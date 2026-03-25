@@ -35,6 +35,7 @@ export type Database = {
           logo_url?: string | null;
           created_at?: string;
         };
+        Relationships: [];
       };
       projects: {
         Row: {
@@ -73,6 +74,7 @@ export type Database = {
           created_at?: string;
           updated_at?: string;
         };
+        Relationships: [];
       };
       documents: {
         Row: {
@@ -102,6 +104,7 @@ export type Database = {
           source_url?: string | null;
           created_at?: string;
         };
+        Relationships: [];
       };
       conversations: {
         Row: {
@@ -128,6 +131,7 @@ export type Database = {
           session_id?: string;
           created_at?: string;
         };
+        Relationships: [];
       };
       messages: {
         Row: {
@@ -154,6 +158,7 @@ export type Database = {
           feedback?: number;
           created_at?: string;
         };
+        Relationships: [];
       };
       rate_limits: {
         Row: {
@@ -177,6 +182,7 @@ export type Database = {
           conversation_count?: number;
           updated_at?: string;
         };
+        Relationships: [];
       };
       indexing_jobs: {
         Row: {
@@ -209,6 +215,7 @@ export type Database = {
           created_at?: string;
           updated_at?: string;
         };
+        Relationships: [];
       };
     };
     Views: Record<string, never>;
