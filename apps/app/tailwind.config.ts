@@ -72,6 +72,10 @@ const config: Config = {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
+        "4xl": "2rem",
+      },
+      ringWidth: {
+        "3": "3px",
       },
       fontFamily: {
         sans: ["var(--font-geist-sans)"],
@@ -79,6 +83,6 @@ const config: Config = {
       },
     },
   },
-  plugins: [require("tailwindcss-animate")],
+  plugins: [require("tailwindcss-animate"), require("@tailwindcss/container-queries")],
 };
 export default config;
