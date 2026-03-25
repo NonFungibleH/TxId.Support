@@ -16,9 +16,9 @@ supabase/.branches
 supabase/.temp
 
 # Env files
-.env
-.env.local
-.env.*.local
+.env*
+!.env.example
+!.env*.example
 
 # Misc
 .DS_Store

@@ -1,0 +1,21 @@
+{
+  "name": "@txid/support",
+  "version": "0.0.1",
+  "private": false,
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "build": "echo 'packages/react is a stub — build implemented in Phase 6'",
+    "lint": "eslint src/",
+    "type-check": "tsc --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "peerDependencies": {
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.0",
+    "typescript": "^5.4.0"
+  }
+}
