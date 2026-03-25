@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useTransition } from "react"
+import { useState, useTransition, useEffect } from "react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
@@ -14,15 +14,22 @@ import { Separator } from "@/components/ui/separator"
 interface BrandingFormProps {
   projectId: string
   initial: BrandingConfig
+  onBrandingChange?: (branding: BrandingConfig) => void
 }
 
-export function BrandingForm({ projectId, initial }: BrandingFormProps) {
+export function BrandingForm({ projectId, initial, onBrandingChange }: BrandingFormProps) {
   const [branding, setBranding] = useState<BrandingConfig>(initial)
   const [isPending, startTransition] = useTransition()
 
   function update<K extends keyof BrandingConfig>(key: K, val: BrandingConfig[K]) {
     setBranding(prev => ({ ...prev, [key]: val }))
   }
+
+  // Notify parent of live branding changes for preview
+  useEffect(() => {
+    onBrandingChange?.(branding)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [JSON.stringify(branding)])
 
   function save() {
     startTransition(async () => {

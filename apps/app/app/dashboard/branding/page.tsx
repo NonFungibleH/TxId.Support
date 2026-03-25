@@ -1,7 +1,6 @@
 import { getProject } from "@/lib/actions/project"
 import { redirect } from "next/navigation"
-import { BrandingForm } from "@/components/settings/BrandingForm"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { BrandingPageClient } from "@/components/settings/BrandingPageClient"
 import type { ProjectConfig } from "@/lib/types/config"
 import type { Database } from "@/lib/supabase/types"
 
@@ -18,17 +17,15 @@ export default async function BrandingPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Branding & Appearance</h1>
-        <p className="text-muted-foreground mt-1">Customise how your widget looks on your site.</p>
+        <p className="text-muted-foreground mt-1">
+          Customise how your widget looks on your site.
+        </p>
       </div>
-      <Card>
-        <CardHeader>
-          <CardTitle>Widget appearance</CardTitle>
-          <CardDescription>Changes take effect immediately for all users.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <BrandingForm projectId={typedProject.id} initial={config.branding} />
-        </CardContent>
-      </Card>
+      <BrandingPageClient
+        projectId={typedProject.id}
+        projectName={typedProject.name}
+        initial={config.branding}
+      />
     </div>
   )
 }
