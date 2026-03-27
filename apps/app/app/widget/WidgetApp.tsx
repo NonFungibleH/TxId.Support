@@ -38,8 +38,18 @@ interface WidgetConfig {
   projectName: string
   branding: BrandingConfig
   chains: string[]
-  token: { symbol: string | null; chain: string; dexUrl: string | null } | null
+  token: { symbol: string | null; chain: string; dexUrl: string | null; address: string } | null
   watchedContracts: WatchedContract[]
+  mode?: "support" | "token"
+  community?: {
+    discord: string | null
+    twitter: string | null
+    telegram: string | null
+    website: string | null
+    whitepaper: string | null
+    announcement: string | null
+  } | null
+  tokenModeAsk?: string | null
 }
 
 interface Message {
@@ -49,7 +59,71 @@ interface Message {
   streaming?: boolean
 }
 
-type Tab = "chat" | "wallet" | "info"
+// ─── Token Mode types ─────────────────────────────────────────────────────────
+
+interface DexPair {
+  chainId: string
+  priceUsd: string | null
+  priceChange: { m5: number; h1: number; h6: number; h24: number } | null
+  volume: { h24: number } | null
+  liquidity: { usd: number } | null
+  marketCap: number | null
+  fdv: number | null
+  baseToken: { address: string; symbol: string; name: string }
+}
+
+interface DexScreenerResponse {
+  pairs: DexPair[] | null
+}
+
+// Map widget chain IDs (hex) to DexScreener chain slugs
+const CHAIN_SLUG: Record<string, string> = {
+  "0x1":    "ethereum",
+  "0x2105": "base",
+  "0x38":   "bsc",
+  "0x89":   "polygon",
+  "0xa4b1": "arbitrum",
+  "0xa":    "optimism",
+}
+
+function formatUsd(n: number | null | undefined): string {
+  if (n == null) return "—"
+  if (n >= 1_000_000_000) return `$${(n / 1_000_000_000).toFixed(2)}B`
+  if (n >= 1_000_000)     return `$${(n / 1_000_000).toFixed(2)}M`
+  if (n >= 1_000)         return `$${(n / 1_000).toFixed(2)}K`
+  return `$${n.toFixed(4)}`
+}
+
+function PriceSparkline({ priceChange }: { priceChange: DexPair["priceChange"] }) {
+  if (!priceChange) return null
+  // Synthesise 4-point series from percentage changes (m5, h1, h6, h24)
+  const base = 100
+  const p24 = base
+  const p6  = p24  * (1 + (priceChange.h6  - priceChange.h24) / 100)
+  const p1  = p6   * (1 + (priceChange.h1  - priceChange.h6)  / 100)
+  const p5m = p1   * (1 + priceChange.m5                       / 100)
+  const points = [p24, p6, p1, p5m]
+  const min = Math.min(...points)
+  const max = Math.max(...points)
+  const range = max - min || 1
+  const W = 80, H = 28
+  const coords = points
+    .map((v, i) => `${(i / (points.length - 1)) * W},${H - ((v - min) / range) * H}`)
+    .join(" ")
+  const isUp = p5m >= p24
+  return (
+    <svg width={W} height={H} style={{ overflow: "visible" }}>
+      <polyline
+        points={coords}
+        fill="none"
+        stroke={isUp ? "#22c55e" : "#ef4444"}
+        strokeWidth="1.5"
+        strokeLinejoin="round"
+        strokeLinecap="round"
+      />
+    </svg>
+  )
+}
 
 // ─── Session ID (persisted per origin+key) ───────────────────────────────────
 
@@ -71,7 +145,7 @@ export function WidgetApp() {
 
   const [config, setConfig] = useState<WidgetConfig | null>(null)
   const [configError, setConfigError] = useState<string | null>(null)
-  const [tab, setTab] = useState<Tab>("chat")
+  const [tab, setTab] = useState<string>("chat")
 
   // Chat state
   const [messages, setMessages] = useState<Message[]>([])
@@ -85,6 +159,10 @@ export function WidgetApp() {
   const [chainId, setChainId] = useState<string | null>(null)
   const [walletConnecting, setWalletConnecting] = useState(false)
 
+  // Token mode state
+  const [dexData, setDexData] = useState<DexPair | null>(null)
+  const [dexLoading, setDexLoading] = useState(false)
+
   // ── Load config ──────────────────────────────────────────────────────────
   useEffect(() => {
     if (!apiKey) {
@@ -97,13 +175,17 @@ export function WidgetApp() {
         if ("error" in data) setConfigError(data.error)
         else {
           setConfig(data)
-          setMessages([
-            {
-              id: nanoid(),
-              role: "assistant",
-              content: `Hi! I'm here to help with ${data.projectName}. Ask me about the protocol, token, smart contracts, or transactions.`,
-            },
-          ])
+          const isToken = data.mode === "token"
+          setTab(isToken ? "trade" : "chat")
+          if (!isToken) {
+            setMessages([
+              {
+                id: nanoid(),
+                role: "assistant",
+                content: `Hi! I'm here to help with ${data.projectName}. Ask me about the protocol, token, smart contracts, or transactions.`,
+              },
+            ])
+          }
         }
       })
       .catch(() => setConfigError("Failed to load widget config"))
@@ -113,6 +195,32 @@ export function WidgetApp() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [messages])
+
+  // ── DexScreener polling ──────────────────────────────────────────────────
+  useEffect(() => {
+    if (config?.mode !== "token" || !config.token?.address) return
+
+    async function fetchDex() {
+      setDexLoading(true)
+      try {
+        const res = await fetch(
+          `https://api.dexscreener.com/latest/dex/tokens/${config!.token!.address}`
+        )
+        const data: DexScreenerResponse = await res.json()
+        const targetChain = CHAIN_SLUG[config!.token!.chain ?? ""] ?? ""
+        const pair = data.pairs?.find((p) => p.chainId === targetChain) ?? data.pairs?.[0] ?? null
+        setDexData(pair)
+      } catch {
+        // silently fail — fallback state shown
+      } finally {
+        setDexLoading(false)
+      }
+    }
+
+    fetchDex()
+    const interval = setInterval(fetchDex, 30_000)
+    return () => clearInterval(interval)
+  }, [config?.mode, config?.token?.address, config?.token?.chain])
 
   // ── Connect wallet ───────────────────────────────────────────────────────
   const connectWallet = useCallback(async () => {
@@ -188,7 +296,6 @@ export function WidgetApp() {
         }
       }
 
-      // Mark streaming complete
       setMessages((prev) =>
         prev.map((m) => (m.id === assistantId ? { ...m, streaming: false } : m)),
       )
@@ -227,6 +334,19 @@ export function WidgetApp() {
 
   const b = config.branding
   const hasWallet = typeof window !== "undefined" && "ethereum" in window
+  const isTokenMode = config.mode === "token"
+
+  const TABS = isTokenMode
+    ? [
+        { id: "trade",     label: "Trade" },
+        { id: "community", label: "Community" },
+        { id: "ask",       label: "Ask" },
+      ]
+    : [
+        { id: "chat",   label: "Chat",   icon: MessageCircleIcon },
+        { id: "wallet", label: "Wallet", icon: WalletIcon },
+        { id: "info",   label: "Info",   icon: InfoIcon },
+      ]
 
   // CSS variables for branding — applied to the root container
   const cssVars = {
@@ -235,6 +355,8 @@ export function WidgetApp() {
     "--w-bg": b.backgroundColor,
     "--w-text": b.textColor,
     "--w-border": `${b.primaryColor}33`,
+    "--txid-text": b.textColor,
+    "--txid-muted": `${b.textColor}80`,
     fontFamily: `'${b.font}', sans-serif`,
     backgroundColor: b.backgroundColor,
     color: b.textColor,
@@ -261,7 +383,7 @@ export function WidgetApp() {
         <span className="flex-1 text-sm font-semibold" style={{ color: b.textColor }}>
           {config.projectName}
         </span>
-        {walletAddress && (
+        {walletAddress && !isTokenMode && (
           <span className="rounded-full px-2 py-0.5 text-[10px] font-mono" style={{ backgroundColor: b.secondaryColor, color: b.textColor }}>
             {walletAddress.slice(0, 6)}…{walletAddress.slice(-4)}
           </span>
@@ -273,29 +395,253 @@ export function WidgetApp() {
         className="flex shrink-0 border-b text-xs"
         style={{ borderColor: `var(--w-border)` }}
       >
-        {(["chat", "wallet", "info"] as Tab[]).map((t) => (
+        {TABS.map((t) => (
           <button
-            key={t}
-            onClick={() => setTab(t)}
+            key={t.id}
+            onClick={() => setTab(t.id)}
             className="flex flex-1 items-center justify-center gap-1.5 py-2.5 capitalize transition-opacity"
             style={{
-              opacity: tab === t ? 1 : 0.5,
-              borderBottom: tab === t ? `2px solid ${b.primaryColor}` : "2px solid transparent",
+              opacity: tab === t.id ? 1 : 0.5,
+              borderBottom: tab === t.id ? `2px solid ${b.primaryColor}` : "2px solid transparent",
               color: b.textColor,
             }}
           >
-            {t === "chat" && <MessageCircleIcon className="size-3.5" />}
-            {t === "wallet" && <WalletIcon className="size-3.5" />}
-            {t === "info" && <InfoIcon className="size-3.5" />}
-            {t}
+            {"icon" in t && t.icon && <t.icon className="size-3.5" />}
+            {t.label}
           </button>
         ))}
       </div>
 
       {/* Tab content */}
       <div className="flex-1 overflow-hidden">
-        {/* Chat tab */}
-        {tab === "chat" && (
+
+        {/* ── Token Mode tabs ────────────────────────────────────────────── */}
+
+        {isTokenMode && tab === "trade" && (
+          <div style={{ padding: "16px", display: "flex", flexDirection: "column", gap: "16px", height: "100%", overflowY: "auto" }}>
+            {dexLoading && !dexData ? (
+              <div style={{ textAlign: "center", color: "var(--txid-muted)", fontSize: "13px", padding: "32px 0" }}>
+                Loading price data…
+              </div>
+            ) : dexData ? (
+              <>
+                <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
+                  <div>
+                    {(() => {
+                      const price = dexData.priceUsd ? parseFloat(dexData.priceUsd) : null
+                      const change24h = dexData.priceChange?.h24 ?? null
+                      const isUp = (change24h ?? 0) >= 0
+                      return (
+                        <>
+                          <div style={{ fontSize: "24px", fontWeight: 700, color: "var(--txid-text)" }}>
+                            {price != null ? `$${price < 0.01 ? price.toExponential(4) : price.toFixed(4)}` : "—"}
+                          </div>
+                          {change24h != null && (
+                            <div style={{ fontSize: "13px", color: isUp ? "#22c55e" : "#ef4444", marginTop: "2px" }}>
+                              {isUp ? "▲" : "▼"} {Math.abs(change24h).toFixed(2)}% (24h)
+                            </div>
+                          )}
+                        </>
+                      )
+                    })()}
+                  </div>
+                  <PriceSparkline priceChange={dexData.priceChange} />
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
+                  {[
+                    { label: "Market Cap", value: formatUsd(dexData.marketCap) },
+                    { label: "Volume 24h", value: formatUsd(dexData.volume?.h24) },
+                    { label: "Liquidity",  value: formatUsd(dexData.liquidity?.usd) },
+                    { label: "FDV",        value: formatUsd(dexData.fdv) },
+                  ].map(({ label, value }) => (
+                    <div key={label} style={{ background: "rgba(255,255,255,0.04)", borderRadius: "8px", padding: "10px" }}>
+                      <div style={{ fontSize: "10px", color: "var(--txid-muted)", marginBottom: "2px" }}>{label}</div>
+                      <div style={{ fontSize: "13px", fontWeight: 600, color: "var(--txid-text)" }}>{value}</div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <div style={{ textAlign: "center", color: "var(--txid-muted)", fontSize: "13px", padding: "32px 0" }}>
+                Price data unavailable — check DexScreener
+              </div>
+            )}
+
+            {config.token?.dexUrl && (
+              <a
+                href={config.token.dexUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  display: "block",
+                  background: b.primaryColor,
+                  color: "#fff",
+                  borderRadius: "10px",
+                  padding: "12px",
+                  textAlign: "center",
+                  fontWeight: 600,
+                  fontSize: "14px",
+                  textDecoration: "none",
+                }}
+              >
+                Buy {config.token.symbol ?? "TOKEN"} →
+              </a>
+            )}
+          </div>
+        )}
+
+        {isTokenMode && tab === "community" && (
+          <div style={{ padding: "16px", display: "flex", flexDirection: "column", gap: "12px", height: "100%", overflowY: "auto" }}>
+            {config.community ? (
+              <>
+                {(() => {
+                  const links = [
+                    { key: "discord",    label: "Discord",    icon: "💬", url: config.community!.discord },
+                    { key: "twitter",    label: "Twitter/X",  icon: "𝕏",  url: config.community!.twitter },
+                    { key: "telegram",   label: "Telegram",   icon: "✈️",  url: config.community!.telegram },
+                    { key: "website",    label: "Website",    icon: "🌐", url: config.community!.website },
+                    { key: "whitepaper", label: "Whitepaper", icon: "📄", url: config.community!.whitepaper },
+                  ].filter((l) => l.url)
+                  return links.length > 0 ? (
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+                      {links.map(({ key, label, icon, url }) => (
+                        <a
+                          key={key}
+                          href={url!}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "6px",
+                            background: "rgba(255,255,255,0.06)",
+                            border: "1px solid rgba(255,255,255,0.1)",
+                            borderRadius: "8px",
+                            padding: "8px 12px",
+                            fontSize: "13px",
+                            color: "var(--txid-text)",
+                            textDecoration: "none",
+                          }}
+                        >
+                          <span>{icon}</span> {label}
+                        </a>
+                      ))}
+                    </div>
+                  ) : null
+                })()}
+                {config.community.announcement && (
+                  <div style={{
+                    background: "rgba(99,102,241,0.1)",
+                    border: "1px solid rgba(99,102,241,0.3)",
+                    borderRadius: "10px",
+                    padding: "12px",
+                    fontSize: "13px",
+                    color: "var(--txid-text)",
+                    lineHeight: 1.5,
+                  }}>
+                    📢 {config.community.announcement}
+                  </div>
+                )}
+              </>
+            ) : (
+              <div style={{ padding: "32px 16px", textAlign: "center", color: "var(--txid-muted)", fontSize: "13px" }}>
+                No community links configured.
+              </div>
+            )}
+          </div>
+        )}
+
+        {isTokenMode && tab === "ask" && (
+          <div className="flex h-full flex-col">
+            <div className="flex-1 space-y-3 overflow-y-auto p-3">
+              {messages.length === 0 && (
+                <div
+                  key="init-ask"
+                  className="flex items-start gap-2"
+                >
+                  <div
+                    className="flex size-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold"
+                    style={{ backgroundColor: b.primaryColor, color: b.textColor }}
+                  >
+                    AI
+                  </div>
+                  <div
+                    className="max-w-[80%] rounded-2xl px-3 py-2 text-xs leading-relaxed"
+                    style={{
+                      backgroundColor: b.secondaryColor,
+                      color: b.textColor,
+                      borderRadius: "1rem 1rem 1rem 0.25rem",
+                    }}
+                  >
+                    Hi! Ask me anything about {config.projectName}.
+                  </div>
+                </div>
+              )}
+              {messages.map((m) => (
+                <div
+                  key={m.id}
+                  className={`flex items-start gap-2 ${m.role === "user" ? "justify-end" : ""}`}
+                >
+                  {m.role === "assistant" && (
+                    <div
+                      className="flex size-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold"
+                      style={{ backgroundColor: b.primaryColor, color: b.textColor }}
+                    >
+                      AI
+                    </div>
+                  )}
+                  <div
+                    className="max-w-[80%] rounded-2xl px-3 py-2 text-xs leading-relaxed"
+                    style={{
+                      backgroundColor: m.role === "user" ? b.primaryColor : b.secondaryColor,
+                      color: b.textColor,
+                      borderRadius: m.role === "user" ? "1rem 1rem 0.25rem 1rem" : "1rem 1rem 1rem 0.25rem",
+                    }}
+                  >
+                    {m.content || (m.streaming && (
+                      <span className="inline-flex items-center gap-1 opacity-60">
+                        <span className="size-1 rounded-full animate-bounce bg-current" style={{ animationDelay: "0ms" }} />
+                        <span className="size-1 rounded-full animate-bounce bg-current" style={{ animationDelay: "150ms" }} />
+                        <span className="size-1 rounded-full animate-bounce bg-current" style={{ animationDelay: "300ms" }} />
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              ))}
+              <div ref={messagesEndRef} />
+            </div>
+            <div
+              className="shrink-0 flex items-center gap-2 border-t px-3 py-2"
+              style={{ borderColor: `var(--w-border)` }}
+            >
+              <input
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && sendMessage()}
+                placeholder="Ask anything…"
+                disabled={isStreaming}
+                className="flex-1 bg-transparent text-xs outline-none placeholder:opacity-40"
+                style={{ color: b.textColor }}
+              />
+              <button
+                onClick={sendMessage}
+                disabled={isStreaming || !input.trim()}
+                className="flex size-7 shrink-0 items-center justify-center rounded-full transition-opacity disabled:opacity-40"
+                style={{ backgroundColor: b.primaryColor }}
+              >
+                {isStreaming ? (
+                  <Loader2Icon className="size-3.5 animate-spin" style={{ color: b.textColor }} />
+                ) : (
+                  <SendIcon className="size-3.5" style={{ color: b.textColor }} />
+                )}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ── Support Mode tabs ─────────────────────────────────────────── */}
+
+        {!isTokenMode && tab === "chat" && (
           <div className="flex h-full flex-col">
             <div className="flex-1 space-y-3 overflow-y-auto p-3">
               {messages.map((m) => (
@@ -363,7 +709,7 @@ export function WidgetApp() {
         )}
 
         {/* Wallet tab */}
-        {tab === "wallet" && (
+        {!isTokenMode && tab === "wallet" && (
           <div className="flex h-full flex-col items-center justify-center gap-4 p-4 text-center">
             {walletAddress ? (
               <>
@@ -404,7 +750,7 @@ export function WidgetApp() {
         )}
 
         {/* Info tab */}
-        {tab === "info" && (
+        {!isTokenMode && tab === "info" && (
           <div className="flex-1 overflow-y-auto p-3 space-y-3">
             {config.token && (
               <div
