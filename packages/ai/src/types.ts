@@ -43,4 +43,6 @@ export interface StreamChatParams {
   walletAddress?: string
   chainId?: string
   ragContext?: string
+  mode?: "support" | "token"
+  tokenModeAsk?: string | null
 }
