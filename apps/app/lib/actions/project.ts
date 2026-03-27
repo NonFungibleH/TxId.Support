@@ -73,6 +73,41 @@ export async function createProject(name: string) {
   return project
 }
 
+export async function createProjectWithMode(name: string, mode: "support" | "token") {
+  const { orgId, userId } = await auth()
+  if (!orgId || !userId) throw new Error("Unauthenticated")
+
+  const supabase = createServiceClient()
+
+  const upsertOrgResult = await supabase
+    .from("organisations")
+    .upsert(
+      { clerk_org_id: orgId, name: "My Protocol" },
+      { onConflict: "clerk_org_id" }
+    )
+    .select()
+    .single()
+
+  const org = upsertOrgResult.data as unknown as OrgRow | null
+  if (!org) throw new Error("Could not resolve organisation")
+
+  const { data: project, error } = await supabase
+    .from("projects")
+    .insert({
+      org_id: org.id,
+      name,
+      mode,
+      config: DEFAULT_CONFIG as unknown as Json,
+    })
+    .select()
+    .single()
+
+  if (error || !project) throw new Error(`Create project failed: ${error?.message}`)
+
+  revalidatePath("/dashboard")
+  return project
+}
+
 export async function updateConfig(
   projectId: string,
   partial: Partial<ProjectConfig>
@@ -117,6 +152,8 @@ export async function updateConfig(
   revalidatePath("/dashboard/docs")
   revalidatePath("/dashboard/chains")
   revalidatePath("/dashboard/content")
+  revalidatePath("/dashboard/community")
+  revalidatePath("/dashboard/ask")
 }
 
 export async function toggleActive(projectId: string, isActive: boolean) {
