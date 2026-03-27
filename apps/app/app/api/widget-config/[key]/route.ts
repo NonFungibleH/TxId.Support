@@ -37,7 +37,7 @@ export async function GET(
 
   const { data: project, error } = await supabase
     .from("projects")
-    .select("id, name, config, is_active")
+    .select("id, name, config, is_active, mode")
     .eq("publishable_key", key)
     .single()
 
@@ -63,6 +63,7 @@ export async function GET(
   const publicConfig = {
     projectId: typedProject.id,
     projectName: typedProject.name,
+    mode: (typedProject as unknown as { mode?: string }).mode ?? "support",
     branding: config.branding,
     chains: config.chains,
     token: config.token
@@ -70,14 +71,16 @@ export async function GET(
           symbol: config.token.symbol,
           chain: config.token.chain,
           dexUrl: config.token.dexUrl,
+          address: config.token.address,
         }
       : null,
+    community: config.community ?? null,
+    tokenModeAsk: config.tokenModeAsk ?? null,
     watchedContracts: (config.watchedContracts ?? []).map((c) => ({
       id: c.id,
       name: c.name,
       chain: c.chain,
       description: c.description,
-      // address exposed so widget can link to explorer
       address: c.address,
     })),
   }
