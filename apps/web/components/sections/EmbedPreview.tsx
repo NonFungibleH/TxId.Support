@@ -12,33 +12,40 @@ const CODE: Record<Tab, { language: string; code: string }> = {
   "Script Tag": {
     language: "html",
     code: `<!-- Add before </body> — that's it -->
-<script
-  src="https://txid.support/widget.js"
-  data-key="YOUR_API_KEY">
+<script>
+  (function() {
+    var iframe = document.createElement('iframe');
+    iframe.src = 'https://app.txid.support/widget?key=YOUR_API_KEY';
+    iframe.style.cssText = 'position:fixed;bottom:24px;right:24px;width:400px;height:600px;border:none;z-index:9999;border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,0.4)';
+    document.body.appendChild(iframe);
+  })();
 </script>`,
   },
   "Inline Div": {
     language: "html",
-    code: `<!-- Place where you want the widget -->
-<div
-  id="txid-support"
-  data-key="YOUR_API_KEY">
-</div>
-<script src="https://txid.support/widget.js"></script>`,
+    code: `<!-- Add this iframe anywhere on your page -->
+<iframe
+  src="https://app.txid.support/widget?key=YOUR_API_KEY"
+  style="position:fixed;bottom:24px;right:24px;
+         width:400px;height:600px;border:none;
+         z-index:9999;border-radius:16px;
+         box-shadow:0 8px 32px rgba(0,0,0,0.4)"
+  allow="clipboard-write">
+</iframe>`,
   },
   "React / npm": {
     language: "tsx",
     code: `// Install
-npm install @txid/support
+npm install @txid/react
 
 // Use in your app
-import { TxIDSupport } from '@txid/support'
+import { TxIDWidget } from '@txid/react'
 
 export default function App() {
   return (
     <>
       <YourApp />
-      <TxIDSupport apiKey="YOUR_API_KEY" />
+      <TxIDWidget apiKey="YOUR_API_KEY" />
     </>
   )
 }`,

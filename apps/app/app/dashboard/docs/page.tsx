@@ -1,5 +1,6 @@
 import { getProject } from "@/lib/actions/project"
 import { redirect } from "next/navigation"
+import { createServiceClient } from "@/lib/supabase/server"
 import { DocsForm } from "@/components/settings/DocsForm"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import type { ProjectConfig } from "@/lib/types/config"
@@ -14,6 +15,12 @@ export default async function DocsPage() {
   const typedProject = project as unknown as ProjectRow
   const config = typedProject.config as unknown as ProjectConfig
 
+  const supabase = createServiceClient()
+  const { count: docCount } = await supabase
+    .from("documents")
+    .select("id", { count: "exact", head: true })
+    .eq("project_id", typedProject.id)
+
   return (
     <div className="space-y-6">
       <div>
@@ -22,11 +29,17 @@ export default async function DocsPage() {
       </div>
       <Card>
         <CardHeader>
-          <CardTitle>Documentation source</CardTitle>
-          <CardDescription>Paste your public docs URL — we crawl and index it automatically.</CardDescription>
+          <CardTitle>Knowledge base</CardTitle>
+          <CardDescription>
+            Indexed content is retrieved via RAG when users ask questions in the widget.
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          <DocsForm projectId={typedProject.id} initialDocsUrl={config.docsUrl} />
+          <DocsForm
+            projectId={typedProject.id}
+            initialDocsUrl={config.docsUrl}
+            docCount={docCount ?? 0}
+          />
         </CardContent>
       </Card>
     </div>

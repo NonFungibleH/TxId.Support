@@ -67,7 +67,7 @@ function getSessionId(key: string): string {
 
 export function WidgetApp() {
   const params = useSearchParams()
-  const apiKey = params.get("key") ?? ""
+  const apiKey = params?.get("key") ?? ""
 
   const [config, setConfig] = useState<WidgetConfig | null>(null)
   const [configError, setConfigError] = useState<string | null>(null)

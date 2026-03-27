@@ -1,7 +1,7 @@
-"use client"
-
 import { Suspense } from "react"
 import { WidgetApp } from "./WidgetApp"
+
+export const dynamic = "force-dynamic"
 
 export default function WidgetPage() {
   return (
