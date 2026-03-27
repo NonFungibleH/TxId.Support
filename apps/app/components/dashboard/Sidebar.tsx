@@ -4,11 +4,11 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import {
   LayoutDashboard, Paintbrush, Coins, FileCode2, BookOpen,
-  Link2, LayoutList, Code2, BarChart3, Users,
+  Link2, LayoutList, Code2, BarChart3, Users, Globe, MessageSquare,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
-const NAV_ITEMS = [
+const SUPPORT_NAV = [
   { href: "/dashboard",           label: "Overview",        icon: LayoutDashboard },
   { href: "/dashboard/branding",  label: "Branding",        icon: Paintbrush },
   { href: "/dashboard/token",     label: "Token",           icon: Coins },
@@ -21,8 +21,19 @@ const NAV_ITEMS = [
   { href: "/dashboard/team",      label: "Team",            icon: Users },
 ]
 
-export function Sidebar() {
+const TOKEN_NAV = [
+  { href: "/dashboard",           label: "Overview",        icon: LayoutDashboard },
+  { href: "/dashboard/branding",  label: "Branding",        icon: Paintbrush },
+  { href: "/dashboard/token",     label: "Token",           icon: Coins },
+  { href: "/dashboard/community", label: "Community",       icon: Globe },
+  { href: "/dashboard/ask",       label: "Ask AI",          icon: MessageSquare },
+  { href: "/dashboard/embed",     label: "Embed",           icon: Code2 },
+  { href: "/dashboard/analytics", label: "Analytics",       icon: BarChart3 },
+]
+
+export function Sidebar({ mode = "support" }: { mode?: string }) {
   const pathname = usePathname()
+  const NAV_ITEMS = mode === "token" ? TOKEN_NAV : SUPPORT_NAV
 
   return (
     <aside className="fixed inset-y-0 left-0 z-40 flex w-60 flex-col border-r border-border bg-background">
