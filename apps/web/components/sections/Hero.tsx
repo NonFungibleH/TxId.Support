@@ -28,17 +28,16 @@ export function Hero() {
 
             <FadeIn delay={0.08}>
               <h1 className="font-display text-5xl lg:text-6xl font-bold text-white leading-[1.1] tracking-tight mb-6">
-                Support your users{" "}
-                <span className="text-accent">on-chain</span>,{" "}
-                <span>not in Discord</span>
+                The embedded{" "}
+                <span className="text-accent">Web3 intelligence</span>{" "}
+                layer.
               </h1>
             </FadeIn>
 
             <FadeIn delay={0.16}>
               <p className="text-lg text-muted leading-relaxed mb-8 max-w-lg">
-                Embed an AI support widget that auto-detects connected wallets,
-                diagnoses failed transactions in plain English, and answers
-                questions from your docs — all in your brand.
+                For protocols that need AI support, projects launching tokens,
+                and developers building on-chain. One widget. Three modes.
               </p>
             </FadeIn>
 

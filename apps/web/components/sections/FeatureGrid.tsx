@@ -16,48 +16,56 @@ const FEATURES = [
     title: "Auto Wallet Detection",
     description:
       "Silently reads the connected wallet — no prompts, no popups. Users are greeted by name before they ask a thing.",
+    mode: "support" as const,
   },
   {
     icon: Activity,
     title: "Transaction Diagnostics",
     description:
       "Paste any tx hash or let us find it automatically. Failed transactions are explained in plain English with a suggested fix.",
+    mode: "support" as const,
   },
   {
     icon: BookOpen,
     title: "Docs Q&A via RAG",
     description:
       "Paste your docs URL. The widget crawls, indexes, and answers questions grounded in your own documentation.",
+    mode: "support" as const,
   },
   {
     icon: TrendingUp,
     title: "Live Token Price",
     description:
       "Set your token contract address. Users see live price, 7-day chart, and a one-tap Buy button pointing to the best DEX.",
+    mode: "token" as const,
   },
   {
     icon: Palette,
     title: "Fully White-Label",
     description:
       "Your colours, your font, your logo. The widget looks native to your site — not a third-party plugin.",
+    mode: "both" as const,
   },
   {
     icon: Code2,
     title: "Three Embed Methods",
     description:
       "Script tag, inline div, or React npm package. All generate from your dashboard with one click to copy.",
+    mode: "both" as const,
   },
   {
     icon: Globe2,
     title: "Multi-Chain",
     description:
       "Ethereum, Base, BNB Chain, Polygon, Arbitrum, and Optimism — wallet history and transaction data across all of them.",
+    mode: "both" as const,
   },
   {
     icon: BarChart3,
     title: "Analytics Dashboard",
     description:
       "See total conversations, most-asked questions, wallet lookup counts, and satisfaction ratings in one place.",
+    mode: "both" as const,
   },
 ];
 
@@ -84,9 +92,20 @@ export function FeatureGrid() {
                 <div className="w-9 h-9 rounded-lg bg-accent-muted flex items-center justify-center mb-3 group-hover:bg-accent/20 transition-colors">
                   <feature.icon className="w-[1.125rem] h-[1.125rem] text-accent" />
                 </div>
-                <h3 className="font-display font-semibold text-white text-sm mb-1.5">
+                <h3 className="font-display font-semibold text-white text-sm mb-1">
                   {feature.title}
                 </h3>
+                <div className="mb-1.5">
+                  {feature.mode === "token" && (
+                    <span className="text-[10px] font-mono text-accent border border-accent/30 rounded px-1.5 py-0.5">🪙 Token</span>
+                  )}
+                  {feature.mode === "support" && (
+                    <span className="text-[10px] font-mono text-muted border border-[var(--border)] rounded px-1.5 py-0.5">🏛️ Protocol</span>
+                  )}
+                  {feature.mode === "both" && (
+                    <span className="text-[10px] font-mono text-muted border border-[var(--border)] rounded px-1.5 py-0.5">🏛️🪙 Both</span>
+                  )}
+                </div>
                 <p className="text-xs text-muted leading-relaxed">
                   {feature.description}
                 </p>
