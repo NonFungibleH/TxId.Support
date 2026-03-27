@@ -52,6 +52,15 @@ export interface ContentBlock {
   order: number
 }
 
+export interface CommunityConfig {
+  discord:      string | null
+  twitter:      string | null
+  telegram:     string | null
+  website:      string | null
+  whitepaper:   string | null
+  announcement: string | null
+}
+
 export interface ProjectConfig {
   branding: BrandingConfig
   token: TokenConfig | null
@@ -60,6 +69,8 @@ export interface ProjectConfig {
   docsUrl: string | null
   allowedDomains: string[]
   watchedContracts: WatchedContract[]
+  community: CommunityConfig | null
+  tokenModeAsk: string | null
 }
 
 export const DEFAULT_CONFIG: ProjectConfig = {
@@ -79,4 +90,6 @@ export const DEFAULT_CONFIG: ProjectConfig = {
   docsUrl: null,
   allowedDomains: [],
   watchedContracts: [],
+  community: null,
+  tokenModeAsk: null,
 }
