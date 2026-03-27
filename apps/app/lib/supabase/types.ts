@@ -49,6 +49,7 @@ export type Database = {
           config: Json;
           created_at: string;
           updated_at: string;
+          mode: string;
         };
         Insert: {
           id?: string;
@@ -61,6 +62,7 @@ export type Database = {
           config?: Json;
           created_at?: string;
           updated_at?: string;
+          mode?: string;
         };
         Update: {
           id?: string;
@@ -73,6 +75,7 @@ export type Database = {
           config?: Json;
           created_at?: string;
           updated_at?: string;
+          mode?: string;
         };
         Relationships: [];
       };
