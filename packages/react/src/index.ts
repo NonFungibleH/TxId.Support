@@ -1,2 +1,2 @@
-// @txid/support React package — populated in Phase 6
-export {};
+export { TxIDWidget } from "./TxIDWidget"
+export type { TxIDWidgetProps } from "./TxIDWidget"

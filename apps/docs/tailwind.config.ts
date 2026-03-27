@@ -1,4 +1,5 @@
-import type { Config } from "tailwindcss";
+import type { Config } from "tailwindcss"
+import typography from "@tailwindcss/typography"
 
 const config: Config = {
   content: [
@@ -9,11 +10,18 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        background: "var(--background)",
-        foreground: "var(--foreground)",
+        accent: "#6366f1",
+        "accent-hover": "#4f46e5",
+        surface: "#111111",
+        border: "#1f1f1f",
+        muted: "#71717a",
+      },
+      fontFamily: {
+        sans: ["var(--font-sans)", "system-ui", "sans-serif"],
+        mono: ["var(--font-mono)", "monospace"],
       },
     },
   },
-  plugins: [],
-};
-export default config;
+  plugins: [typography],
+}
+export default config
