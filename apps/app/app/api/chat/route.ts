@@ -41,7 +41,7 @@ export async function POST(request: Request) {
     // Look up project by publishable key
     const { data: project, error: projectError } = await supabase
       .from("projects")
-      .select("id, name, config, is_active")
+      .select("id, name, config, is_active, mode")
       .eq("publishable_key", key)
       .single()
 
@@ -84,22 +84,28 @@ export async function POST(request: Request) {
       docsUrl: config.docsUrl,
     }
 
-    // RAG: retrieve relevant docs for the latest user message
-    const latestUserMessage = [...messages].reverse().find((m) => m.role === "user")
+    const projectMode = (typedProject as unknown as { mode?: string }).mode ?? "support"
+
+    // RAG: only run for support mode
     let ragContext = ""
-    if (latestUserMessage) {
-      const ragResult = await retrieveContext(supabase, typedProject.id, latestUserMessage.content)
-      ragContext = ragResult.context
+    if (projectMode === "support") {
+      const latestUserMessage = [...messages].reverse().find((m) => m.role === "user")
+      if (latestUserMessage) {
+        const ragResult = await retrieveContext(supabase, typedProject.id, latestUserMessage.content)
+        ragContext = ragResult.context
+      }
     }
 
-    // Build system prompt
+    // Build system prompt — mode-aware
     const systemPrompt = buildSystemPrompt({
       projectName: typedProject.name,
       config: configSnapshot,
       messages,
-      walletAddress,
-      chainId,
+      walletAddress: projectMode === "support" ? walletAddress : undefined,
+      chainId: projectMode === "support" ? chainId : undefined,
       ragContext,
+      mode: projectMode as "support" | "token",
+      tokenModeAsk: config.tokenModeAsk ?? undefined,
     })
 
     // Stream the response using Server-Sent Events
