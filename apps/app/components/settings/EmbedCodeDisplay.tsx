@@ -12,10 +12,12 @@ interface EmbedCodeDisplayProps {
 export function EmbedCodeDisplay({ publishableKey }: EmbedCodeDisplayProps) {
   const [copied, setCopied] = useState<string | null>(null)
 
+  const widgetSrc = `https://app.txid.support/widget?key=${publishableKey}`
+
   const SNIPPETS = {
-    script: `<script\n  src="https://txid.support/widget.js"\n  data-key="${publishableKey}">\n</script>`,
-    inline: `<div\n  id="txid-support"\n  data-key="${publishableKey}">\n</div>\n<script src="https://txid.support/widget.js"></script>`,
-    react: `npm install @txid/support\n\nimport { TxIDSupport } from '@txid/support'\n\nexport default function App() {\n  return (\n    <>\n      <YourApp />\n      <TxIDSupport apiKey="${publishableKey}" />\n    </>\n  )\n}`,
+    script: `<!-- Floating widget (bottom-right) -->\n<script>\n  (function(){\n    var f = document.createElement('iframe');\n    f.src = "${widgetSrc}";\n    f.allow = "clipboard-write";\n    f.style.cssText = "position:fixed;bottom:20px;right:20px;width:380px;height:580px;border:none;z-index:2147483647;border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,0.4)";\n    document.body.appendChild(f);\n  })();\n</script>`,
+    inline: `<!-- Inline embed -->\n<iframe\n  src="${widgetSrc}"\n  style="width:100%;height:580px;border:none;border-radius:16px;"\n  allow="clipboard-write"\n  loading="lazy">\n</iframe>`,
+    react: `npm install @txid/react\n\nimport { TxIDWidget } from '@txid/react'\n\nexport default function App() {\n  return (\n    <>\n      <YourApp />\n      <TxIDWidget apiKey="${publishableKey}" />\n    </>\n  )\n}`,
   }
 
   function copy(key: string, text: string) {

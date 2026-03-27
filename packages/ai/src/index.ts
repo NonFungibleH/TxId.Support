@@ -1,2 +1,13 @@
-// AI package — Claude streaming + RAG pipeline — populated in Phase 2
-export {};
+export { embedText, embedBatch } from "./embed"
+export { retrieveContext } from "./rag"
+export { buildSystemPrompt } from "./prompt"
+export { streamChat, completeChat } from "./stream"
+export type {
+  ChatMessage,
+  StreamChatParams,
+  ProjectConfigSnapshot,
+  TokenConfigSnapshot,
+  WatchedContractSnapshot,
+  RagResult,
+  RagChunk,
+} from "./types"
