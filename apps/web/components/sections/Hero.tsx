@@ -28,17 +28,18 @@ export function Hero() {
 
             <FadeIn delay={0.08}>
               <h1 className="font-display text-5xl lg:text-6xl font-bold text-white leading-[1.1] tracking-tight mb-6">
-                Your users get stuck.{" "}
-                <span className="text-accent">Your team burns out.</span>{" "}
-                Fix it in minutes.
+                Give every user{" "}
+                <span className="text-accent">instant, expert support</span>{" "}
+                — without the overhead.
               </h1>
             </FadeIn>
 
             <FadeIn delay={0.16}>
               <p className="text-lg text-muted leading-relaxed mb-8 max-w-lg">
-                TxID Support is an embeddable AI widget for DeFi protocols.
-                It answers user questions, diagnoses failed transactions, and
-                surfaces your docs — so your team stops being a support desk.
+                TxID Support embeds an AI widget directly into your protocol.
+                It answers questions, diagnoses failed transactions, and surfaces
+                your docs in real time — so every user gets a great experience,
+                not just the ones who find your Discord.
               </p>
             </FadeIn>
 
