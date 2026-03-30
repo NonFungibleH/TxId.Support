@@ -8,7 +8,6 @@ const STEPS = [
     title: "Embed",
     description:
       "Add one script tag to your site. Works with React, Next.js, or plain HTML. Takes under a minute.",
-    code: `<script src="https://txid.support/widget.js"\n  data-key="YOUR_KEY"></script>`,
   },
   {
     icon: Settings,

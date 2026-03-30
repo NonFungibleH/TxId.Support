@@ -5,15 +5,12 @@ import { HowItWorks } from "@/components/sections/HowItWorks";
 import { FeatureGrid } from "@/components/sections/FeatureGrid";
 import { EmbedPreview } from "@/components/sections/EmbedPreview";
 import { PricingSection } from "@/components/sections/PricingSection";
-import { LogosBar } from "@/components/sections/LogosBar";
-
 export default function HomePage() {
   return (
     <>
       <Navbar />
       <main>
         <Hero />
-        <LogosBar />
         <HowItWorks />
         <FeatureGrid />
         <EmbedPreview />
