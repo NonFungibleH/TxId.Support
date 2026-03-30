@@ -15,57 +15,49 @@ const FEATURES = [
     icon: Wallet,
     title: "Auto Wallet Detection",
     description:
-      "Silently reads the connected wallet — no prompts, no popups. Users are greeted by name before they ask a thing.",
-    mode: "support" as const,
+      "Silently reads the connected wallet the moment the widget opens. Users get personalised answers without lifting a finger.",
   },
   {
     icon: Activity,
     title: "Transaction Diagnostics",
     description:
-      "Paste any tx hash or let us find it automatically. Failed transactions are explained in plain English with a suggested fix.",
-    mode: "support" as const,
+      "Any failed transaction explained in plain English — cause, consequence, and the exact step to fix it — before they open a ticket.",
   },
   {
     icon: BookOpen,
-    title: "Docs Q&A via RAG",
+    title: "Docs Q&A",
     description:
-      "Paste your docs URL. The widget crawls, indexes, and answers questions grounded in your own documentation.",
-    mode: "support" as const,
+      "Paste your docs URL. The widget ingests, indexes, and answers questions grounded in your own documentation. No hallucinations.",
   },
   {
     icon: TrendingUp,
-    title: "Live Token Price",
+    title: "Live Token Context",
     description:
-      "Set your token contract address. Users see live price, 7-day chart, and a one-tap Buy button pointing to the best DEX.",
-    mode: "token" as const,
+      "Set your token address. Users see price, DEX link, and contract info inline — no leaving your site to look it up.",
   },
   {
     icon: Palette,
     title: "Fully White-Label",
     description:
-      "Your colours, your font, your logo. The widget looks native to your site — not a third-party plugin.",
-    mode: "both" as const,
+      "Your colours, font, and logo. The widget is invisible as a third-party tool — it looks and feels like part of your product.",
   },
   {
     icon: Code2,
     title: "Three Embed Methods",
     description:
-      "Script tag, inline div, or React npm package. All generate from your dashboard with one click to copy.",
-    mode: "both" as const,
+      "Script tag, inline div, or React npm package. One-click copy from your dashboard. Works anywhere.",
   },
   {
     icon: Globe2,
     title: "Multi-Chain",
     description:
-      "Ethereum, Base, BNB Chain, Polygon, Arbitrum, and Optimism — wallet history and transaction data across all of them.",
-    mode: "both" as const,
+      "Ethereum, Base, BNB Chain, Polygon, Arbitrum, and Optimism — wallet detection and transaction data across all of them.",
   },
   {
     icon: BarChart3,
     title: "Analytics Dashboard",
     description:
-      "See total conversations, most-asked questions, wallet lookup counts, and satisfaction ratings in one place.",
-    mode: "both" as const,
+      "See what your users are struggling with — top questions, failed tx patterns, satisfaction ratings — and fix the root causes.",
   },
 ];
 
@@ -77,10 +69,10 @@ export function FeatureGrid() {
           <div className="text-center mb-16">
             <p className="font-mono text-sm text-accent mb-3">{`// Features`}</p>
             <h2 className="font-display text-4xl font-bold text-white mb-4">
-              Everything a DeFi protocol needs
+              Everything your protocol needs to stop firefighting support
             </h2>
             <p className="text-muted max-w-xl mx-auto">
-              Built specifically for Web3 — not a chatbot wrapper.
+              Built for Web3 from the ground up — not a generic chatbot bolted on.
             </p>
           </div>
         </FadeIn>
@@ -92,20 +84,9 @@ export function FeatureGrid() {
                 <div className="w-9 h-9 rounded-lg bg-accent-muted flex items-center justify-center mb-3 group-hover:bg-accent/20 transition-colors">
                   <feature.icon className="w-[1.125rem] h-[1.125rem] text-accent" />
                 </div>
-                <h3 className="font-display font-semibold text-white text-sm mb-1">
+                <h3 className="font-display font-semibold text-white text-sm mb-1.5">
                   {feature.title}
                 </h3>
-                <div className="mb-1.5">
-                  {feature.mode === "token" && (
-                    <span className="text-[10px] font-mono text-accent border border-accent/30 rounded px-1.5 py-0.5">🪙 Token</span>
-                  )}
-                  {feature.mode === "support" && (
-                    <span className="text-[10px] font-mono text-muted border border-[var(--border)] rounded px-1.5 py-0.5">🏛️ Protocol</span>
-                  )}
-                  {feature.mode === "both" && (
-                    <span className="text-[10px] font-mono text-muted border border-[var(--border)] rounded px-1.5 py-0.5">🏛️🪙 Both</span>
-                  )}
-                </div>
                 <p className="text-xs text-muted leading-relaxed">
                   {feature.description}
                 </p>

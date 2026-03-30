@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { WidgetEmbed } from "@/components/WidgetEmbed";
 import { Inter, Space_Grotesk, Space_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -43,7 +44,10 @@ export default function RootLayout({
       lang="en"
       className={`${inter.variable} ${spaceGrotesk.variable} ${spaceMono.variable}`}
     >
-      <body className="font-sans antialiased">{children}</body>
+      <body className="font-sans antialiased">
+        {children}
+        <WidgetEmbed />
+      </body>
     </html>
   );
 }

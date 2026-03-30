@@ -28,16 +28,17 @@ export function Hero() {
 
             <FadeIn delay={0.08}>
               <h1 className="font-display text-5xl lg:text-6xl font-bold text-white leading-[1.1] tracking-tight mb-6">
-                The embedded{" "}
-                <span className="text-accent">Web3 intelligence</span>{" "}
-                layer.
+                Your users get stuck.{" "}
+                <span className="text-accent">Your team burns out.</span>{" "}
+                Fix it in minutes.
               </h1>
             </FadeIn>
 
             <FadeIn delay={0.16}>
               <p className="text-lg text-muted leading-relaxed mb-8 max-w-lg">
-                For protocols that need AI support, projects launching tokens,
-                and developers building on-chain. One widget. Three modes.
+                TxID Support is an embeddable AI widget for DeFi protocols.
+                It answers user questions, diagnoses failed transactions, and
+                surfaces your docs — so your team stops being a support desk.
               </p>
             </FadeIn>
 
@@ -48,12 +49,12 @@ export function Hero() {
                   variant="primary"
                   size="lg"
                 >
-                  Get Started Free
+                  Add it to your protocol
                   <ArrowRight className="w-4 h-4" />
                 </Button>
                 <Button href="/demo" variant="outline" size="lg">
                   <Play className="w-4 h-4" />
-                  See Demo
+                  See it live
                 </Button>
               </div>
             </FadeIn>
