@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
 import { createProjectWithMode } from "@/lib/actions/project"
+import { ENABLE_TOKEN_MODE } from "@/lib/constants"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
@@ -25,7 +26,7 @@ const MODES: { id: Mode; emoji: string; title: string; desc: string }[] = [
 ]
 
 export default function OnboardingPage() {
-  const [mode, setMode] = useState<Mode | null>(null)
+  const [mode, setMode] = useState<Mode | null>(ENABLE_TOKEN_MODE ? null : "support")
   const [name, setName] = useState("")
   const [isPending, startTransition] = useTransition()
   const router = useRouter()
@@ -47,42 +48,45 @@ export default function OnboardingPage() {
           </div>
           <h1 className="text-2xl font-bold">Create your project</h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            Choose the mode that fits your use case.
+            Give your protocol a name to get started.
           </p>
         </div>
 
-        <div className="space-y-3">
-          {MODES.map(({ id, emoji, title, desc }) => (
-            <button
-              key={id}
-              onClick={() => setMode(id)}
-              className={cn(
-                "w-full rounded-xl border p-4 text-left transition-colors",
-                mode === id
-                  ? "border-primary bg-primary/10"
-                  : "border-border hover:border-primary/50 hover:bg-accent/30"
-              )}
-            >
-              <div className="flex items-center gap-3">
-                <span className="text-2xl">{emoji}</span>
-                <div className="flex-1">
-                  <p className="font-semibold">{title}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">{desc}</p>
+        {/* Mode selection — only shown when token mode is enabled */}
+        {ENABLE_TOKEN_MODE && (
+          <div className="space-y-3">
+            {MODES.map(({ id, emoji, title, desc }) => (
+              <button
+                key={id}
+                onClick={() => setMode(id)}
+                className={cn(
+                  "w-full rounded-xl border p-4 text-left transition-colors",
+                  mode === id
+                    ? "border-primary bg-primary/10"
+                    : "border-border hover:border-primary/50 hover:bg-accent/30"
+                )}
+              >
+                <div className="flex items-center gap-3">
+                  <span className="text-2xl">{emoji}</span>
+                  <div className="flex-1">
+                    <p className="font-semibold">{title}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">{desc}</p>
+                  </div>
+                  <div
+                    className={cn(
+                      "size-4 rounded-full border-2 transition-colors",
+                      mode === id ? "border-primary bg-primary" : "border-muted-foreground"
+                    )}
+                  />
                 </div>
-                <div
-                  className={cn(
-                    "size-4 rounded-full border-2 transition-colors",
-                    mode === id ? "border-primary bg-primary" : "border-muted-foreground"
-                  )}
-                />
-              </div>
-            </button>
-          ))}
-        </div>
+              </button>
+            ))}
+          </div>
+        )}
 
         <div className="space-y-3">
           <Input
-            placeholder="Project name (e.g. My Protocol)"
+            placeholder="Protocol name (e.g. Uniswap, Aave)"
             value={name}
             onChange={(e) => setName(e.target.value)}
             onKeyDown={(e) => { if (e.key === "Enter") submit() }}
