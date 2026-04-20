@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { Button } from "@/components/ui/Button";
-import { ArrowRight, CheckCircle2, Wifi, Zap, BookOpen, TrendingUp, Activity } from "lucide-react";
+import { ArrowRight, CheckCircle2, Wifi, BookOpen, TrendingUp, Activity } from "lucide-react";
 import { APP_URL } from "@/lib/config";
 import { clsx } from "clsx";
 
@@ -155,27 +155,40 @@ function ChatBubble({
 
 function WidgetDemo({ scenario }: { scenario: (typeof SCENARIOS)[number] }) {
   const [step, setStep] = useState(0);
-  const [playing, setPlaying] = useState(false);
+  const [done, setDone] = useState(false);
+  const timerIds = useRef<ReturnType<typeof setTimeout>[]>([]);
 
-  function play() {
-    if (playing) return;
+  function startAnimation() {
+    // Cancel any in-flight timers
+    timerIds.current.forEach(clearTimeout);
+    timerIds.current = [];
     setStep(0);
-    setPlaying(true);
+    setDone(false);
+
     scenario.messages.forEach((msg, i) => {
-      setTimeout(() => {
+      const id = setTimeout(() => {
         setStep(i + 1);
-        if (i === scenario.messages.length - 1) setPlaying(false);
-      }, msg.delay + 300);
+        if (i === scenario.messages.length - 1) setDone(true);
+      }, msg.delay + 400);
+      timerIds.current.push(id);
     });
   }
 
-  // Reset when scenario changes
-  const [lastScenario, setLastScenario] = useState(scenario.id);
-  if (scenario.id !== lastScenario) {
-    setLastScenario(scenario.id);
-    setStep(0);
-    setPlaying(false);
-  }
+  // Auto-play on mount (component is keyed by scenario so remounts on switch)
+  useEffect(() => {
+    const warmup = setTimeout(startAnimation, 600);
+    return () => {
+      clearTimeout(warmup);
+      timerIds.current.forEach(clearTimeout);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const isTyping = !done && step < scenario.messages.length;
+  // Show typing indicator between messages (after at least one has appeared)
+  const showTyping = isTyping && step > 0;
+  // Before first message, show a subtle "starting" state
+  const starting = step === 0;
 
   return (
     <div className="w-80 rounded-2xl overflow-hidden shadow-2xl shadow-accent/10 border border-[var(--border)] bg-[#0c0c0c] font-sans text-sm flex flex-col">
@@ -197,22 +210,24 @@ function WidgetDemo({ scenario }: { scenario: (typeof SCENARIOS)[number] }) {
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-3 min-h-[280px] max-h-[320px]">
-        {step === 0 && !playing && (
-          <div className="flex items-center justify-center h-full">
-            <button
-              onClick={play}
-              className="flex items-center gap-2 bg-accent/20 hover:bg-accent/30 border border-accent/30 text-accent text-xs font-medium px-4 py-2.5 rounded-xl transition-colors"
-            >
-              <Zap className="w-3.5 h-3.5" />
-              Play conversation
-            </button>
+      <div className="p-4 space-y-3" style={{ minHeight: 300 }}>
+        {starting && (
+          <div className="flex justify-start">
+            <div className="bg-[var(--bg-elevated)] border border-[var(--border)] rounded-2xl rounded-bl-sm px-3.5 py-2.5">
+              <div className="flex gap-1 items-center h-3">
+                <span className="w-1.5 h-1.5 rounded-full bg-muted animate-bounce" style={{ animationDelay: "0ms" }} />
+                <span className="w-1.5 h-1.5 rounded-full bg-muted animate-bounce" style={{ animationDelay: "150ms" }} />
+                <span className="w-1.5 h-1.5 rounded-full bg-muted animate-bounce" style={{ animationDelay: "300ms" }} />
+              </div>
+            </div>
           </div>
         )}
+
         {scenario.messages.slice(0, step).map((msg, i) => (
-          <ChatBubble key={i} role={msg.role} text={msg.text} visible={i < step} />
+          <ChatBubble key={i} role={msg.role} text={msg.text} visible />
         ))}
-        {playing && step < scenario.messages.length && (
+
+        {showTyping && (
           <div className="flex justify-start">
             <div className="bg-[var(--bg-elevated)] border border-[var(--border)] rounded-2xl rounded-bl-sm px-3.5 py-2.5">
               <div className="flex gap-1 items-center h-3">
@@ -225,7 +240,7 @@ function WidgetDemo({ scenario }: { scenario: (typeof SCENARIOS)[number] }) {
         )}
       </div>
 
-      {/* Input bar */}
+      {/* Input bar + replay */}
       <div className="px-4 pb-4 pt-2 shrink-0">
         <div className="flex items-center gap-2 bg-[var(--bg-elevated)] rounded-xl px-3 py-2 border border-[var(--border)]">
           <span className="text-xs text-muted flex-1">Ask anything…</span>
@@ -235,7 +250,17 @@ function WidgetDemo({ scenario }: { scenario: (typeof SCENARIOS)[number] }) {
             </svg>
           </div>
         </div>
-        <p className="text-center text-[10px] text-muted mt-2 font-mono">Powered by TxID Support</p>
+        <div className="flex items-center justify-between mt-2">
+          <p className="text-[10px] text-muted font-mono">Powered by TxID Support</p>
+          {done && (
+            <button
+              onClick={startAnimation}
+              className="text-[10px] text-accent hover:underline font-mono"
+            >
+              ↺ replay
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );
