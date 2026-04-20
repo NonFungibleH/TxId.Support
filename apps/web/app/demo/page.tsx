@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { Button } from "@/components/ui/Button";
-import { ArrowRight, CheckCircle2, XCircle, Wifi, Zap, BookOpen, TrendingUp, Activity } from "lucide-react";
+import { ArrowRight, CheckCircle2, Wifi, Zap, BookOpen, TrendingUp, Activity } from "lucide-react";
 import { APP_URL } from "@/lib/config";
 import { clsx } from "clsx";
 
