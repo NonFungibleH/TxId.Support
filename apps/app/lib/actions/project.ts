@@ -11,14 +11,15 @@ type OrgRow = Database["public"]["Tables"]["organisations"]["Row"]
 
 export async function getProject() {
   const { orgId, userId } = await auth()
-  if (!orgId || !userId) throw new Error("Unauthenticated")
+  if (!userId) throw new Error("Unauthenticated")
+  const orgKey = orgId ?? userId
 
   const supabase = createServiceClient()
 
   const upsertOrgResult = await supabase
     .from("organisations")
     .upsert(
-      { clerk_org_id: orgId, name: "My Protocol" },
+      { clerk_org_id: orgKey, name: "My Protocol" },
       { onConflict: "clerk_org_id" }
     )
     .select()
@@ -41,14 +42,15 @@ export async function getProject() {
 
 export async function createProject(name: string) {
   const { orgId, userId } = await auth()
-  if (!orgId || !userId) throw new Error("Unauthenticated")
+  if (!userId) throw new Error("Unauthenticated")
+  const orgKey = orgId ?? userId
 
   const supabase = createServiceClient()
 
   const upsertOrgResult2 = await supabase
     .from("organisations")
     .upsert(
-      { clerk_org_id: orgId, name: "My Protocol" },
+      { clerk_org_id: orgKey, name: "My Protocol" },
       { onConflict: "clerk_org_id" }
     )
     .select()
@@ -75,14 +77,15 @@ export async function createProject(name: string) {
 
 export async function createProjectWithMode(name: string, mode: "support" | "token") {
   const { orgId, userId } = await auth()
-  if (!orgId || !userId) throw new Error("Unauthenticated")
+  if (!userId) throw new Error("Unauthenticated")
+  const orgKey = orgId ?? userId
 
   const supabase = createServiceClient()
 
   const upsertOrgResult = await supabase
     .from("organisations")
     .upsert(
-      { clerk_org_id: orgId, name: "My Protocol" },
+      { clerk_org_id: orgKey, name: "My Protocol" },
       { onConflict: "clerk_org_id" }
     )
     .select()
@@ -113,7 +116,8 @@ export async function updateConfig(
   partial: Partial<ProjectConfig>
 ) {
   const { orgId, userId } = await auth()
-  if (!orgId || !userId) throw new Error("Unauthenticated")
+  if (!userId) throw new Error("Unauthenticated")
+  const orgKey = orgId ?? userId
 
   const supabase = createServiceClient()
 
@@ -128,7 +132,7 @@ export async function updateConfig(
   const { data: org } = await supabase
     .from("organisations")
     .select("id")
-    .eq("clerk_org_id", orgId)
+    .eq("clerk_org_id", orgKey)
     .single()
 
   if (!org || current.org_id !== org.id) throw new Error("Forbidden")
@@ -158,14 +162,15 @@ export async function updateConfig(
 
 export async function toggleActive(projectId: string, isActive: boolean) {
   const { orgId, userId } = await auth()
-  if (!orgId || !userId) throw new Error("Unauthenticated")
+  if (!userId) throw new Error("Unauthenticated")
+  const orgKey = orgId ?? userId
 
   const supabase = createServiceClient()
 
   const { data: org } = await supabase
     .from("organisations")
     .select("id")
-    .eq("clerk_org_id", orgId)
+    .eq("clerk_org_id", orgKey)
     .single()
 
   if (!org) throw new Error("Org not found")
