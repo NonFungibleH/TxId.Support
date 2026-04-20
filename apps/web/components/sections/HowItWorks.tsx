@@ -56,11 +56,6 @@ export function HowItWorks() {
                 <p className="text-sm text-muted leading-relaxed">
                   {step.description}
                 </p>
-                {step.code && (
-                  <pre className="mt-4 bg-[var(--bg-elevated)] rounded-lg px-3 py-2 text-xs font-mono text-accent/80 overflow-x-auto border border-[var(--border)]">
-                    {step.code}
-                  </pre>
-                )}
               </div>
             </FadeIn>
           ))}

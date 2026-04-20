@@ -10,8 +10,8 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.24.0",
     "@supabase/supabase-js": "^2.100.0",
+    "openai": "^6.34.0",
     "voyageai": "^0.2.1"
   },
   "devDependencies": {
