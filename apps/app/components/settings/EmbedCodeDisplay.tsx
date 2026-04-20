@@ -14,6 +14,7 @@ export function EmbedCodeDisplay({ publishableKey, widgetBaseUrl }: EmbedCodeDis
   const [copied, setCopied] = useState<string | null>(null)
 
   const widgetSrc = `${widgetBaseUrl}/widget?key=${publishableKey}`
+  const previewSrc = `${widgetBaseUrl}/preview?key=${publishableKey}`
 
   // Bookmarklet: injects the widget iframe into whatever page the user is on
   const bookmarklet = `javascript:(function(){if(document.getElementById('txid-preview'))return;var f=document.createElement('iframe');f.id='txid-preview';f.src='${widgetSrc}';f.style.cssText='position:fixed;bottom:20px;right:20px;width:380px;height:580px;border:none;z-index:2147483647;border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,0.4)';document.body.appendChild(f);})();`
@@ -52,7 +53,7 @@ export function EmbedCodeDisplay({ publishableKey, widgetBaseUrl }: EmbedCodeDis
 
         {/* Standalone preview */}
         <a
-          href={widgetSrc}
+          href={previewSrc}
           target="_blank"
           rel="noopener noreferrer"
           className="flex items-center gap-3 rounded-lg border border-border px-4 py-3 text-sm hover:border-primary hover:text-primary transition-colors group"
@@ -60,7 +61,7 @@ export function EmbedCodeDisplay({ publishableKey, widgetBaseUrl }: EmbedCodeDis
           <ExternalLink className="size-4 shrink-0 text-muted-foreground group-hover:text-primary" />
           <div>
             <p className="font-medium">Open standalone preview</p>
-            <p className="text-xs text-muted-foreground">Widget on a blank page — quickest way to test</p>
+            <p className="text-xs text-muted-foreground">See your widget as users will — floating on a sample page</p>
           </div>
         </a>
 

@@ -190,7 +190,12 @@ function WidgetDemo({ scenario }: { scenario: (typeof SCENARIOS)[number] }) {
     }
   }, [step]);
 
-  const isTyping = !done && step < scenario.messages.length && step > 0;
+  // Only show the typing indicator when the AI is about to respond
+  // (i.e. the next message to appear is from the AI)
+  const nextMessage = scenario.messages[step]
+  const aiIsTyping = !done && step < scenario.messages.length && step > 0 && nextMessage?.role === "ai"
+  // Before any message appears, show the AI typing indicator (AI opens the conversation)
+  const waitingForFirstMessage = step === 0
 
   return (
     <div className="w-[340px] rounded-2xl overflow-hidden shadow-2xl shadow-accent/10 border border-[var(--border)] bg-[#0c0c0c] font-sans text-sm flex flex-col" style={{ height: 520 }}>
@@ -211,11 +216,13 @@ function WidgetDemo({ scenario }: { scenario: (typeof SCENARIOS)[number] }) {
 
       {/* Messages — fixed height, scrolls internally */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-3">
-        {step === 0 && <TypingIndicator />}
+        {/* Initial AI typing indicator before first message */}
+        {waitingForFirstMessage && <TypingIndicator />}
         {scenario.messages.slice(0, step).map((msg, i) => (
           <ChatBubble key={i} role={msg.role} text={msg.text} />
         ))}
-        {isTyping && <TypingIndicator />}
+        {/* AI typing indicator — only when AI is about to respond, never for user messages */}
+        {aiIsTyping && <TypingIndicator />}
       </div>
 
       {/* Input bar */}
