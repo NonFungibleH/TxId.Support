@@ -135,14 +135,21 @@ function ChatBubble({ role, text }: { role: "ai" | "user"; text: string }) {
   );
 }
 
-function TypingIndicator() {
+function TypingIndicator({ role }: { role: "ai" | "user" }) {
   return (
-    <div className="flex justify-start">
-      <div className="bg-[var(--bg-elevated)] border border-[var(--border)] rounded-2xl rounded-bl-sm px-3.5 py-2.5">
+    <div className={clsx("flex", role === "user" ? "justify-end" : "justify-start")}>
+      <div
+        className={clsx(
+          "rounded-2xl px-3.5 py-2.5",
+          role === "user"
+            ? "bg-accent rounded-br-sm"
+            : "bg-[var(--bg-elevated)] border border-[var(--border)] rounded-bl-sm"
+        )}
+      >
         <div className="flex gap-1 items-center h-3">
-          <span className="w-1.5 h-1.5 rounded-full bg-muted animate-bounce" style={{ animationDelay: "0ms" }} />
-          <span className="w-1.5 h-1.5 rounded-full bg-muted animate-bounce" style={{ animationDelay: "150ms" }} />
-          <span className="w-1.5 h-1.5 rounded-full bg-muted animate-bounce" style={{ animationDelay: "300ms" }} />
+          <span className="w-1.5 h-1.5 rounded-full bg-white/60 animate-bounce" style={{ animationDelay: "0ms" }} />
+          <span className="w-1.5 h-1.5 rounded-full bg-white/60 animate-bounce" style={{ animationDelay: "150ms" }} />
+          <span className="w-1.5 h-1.5 rounded-full bg-white/60 animate-bounce" style={{ animationDelay: "300ms" }} />
         </div>
       </div>
     </div>
@@ -190,12 +197,10 @@ function WidgetDemo({ scenario }: { scenario: (typeof SCENARIOS)[number] }) {
     }
   }, [step]);
 
-  // Only show the typing indicator when the AI is about to respond
-  // (i.e. the next message to appear is from the AI)
+  // Show a typing indicator on whichever side is about to speak next
   const nextMessage = scenario.messages[step]
-  const aiIsTyping = !done && step < scenario.messages.length && step > 0 && nextMessage?.role === "ai"
-  // Before any message appears, show the AI typing indicator (AI opens the conversation)
-  const waitingForFirstMessage = step === 0
+  const isTyping = !done && step < scenario.messages.length
+  const typingRole = nextMessage?.role ?? "ai"
 
   return (
     <div className="w-[340px] rounded-2xl overflow-hidden shadow-2xl shadow-accent/10 border border-[var(--border)] bg-[#0c0c0c] font-sans text-sm flex flex-col" style={{ height: 520 }}>
@@ -216,13 +221,10 @@ function WidgetDemo({ scenario }: { scenario: (typeof SCENARIOS)[number] }) {
 
       {/* Messages — fixed height, scrolls internally */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-3">
-        {/* Initial AI typing indicator before first message */}
-        {waitingForFirstMessage && <TypingIndicator />}
         {scenario.messages.slice(0, step).map((msg, i) => (
           <ChatBubble key={i} role={msg.role} text={msg.text} />
         ))}
-        {/* AI typing indicator — only when AI is about to respond, never for user messages */}
-        {aiIsTyping && <TypingIndicator />}
+        {isTyping && <TypingIndicator role={typingRole} />}
       </div>
 
       {/* Input bar */}
