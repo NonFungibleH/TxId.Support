@@ -133,7 +133,7 @@ export async function fetchAndIngest(
   projectId: string,
   url: string,
 ): Promise<{ ok: boolean; chunksInserted?: number; error?: string }> {
-  const { orgId, userId } = await auth()
+  const { userId } = await auth()
   if (!userId) return { ok: false, error: "Unauthorized" }
 
   // Validate URL

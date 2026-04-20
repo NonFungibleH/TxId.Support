@@ -220,6 +220,7 @@ export function WidgetApp() {
     fetchDex()
     const interval = setInterval(fetchDex, 30_000)
     return () => clearInterval(interval)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [config?.mode, config?.token?.address, config?.token?.chain])
 
   // ── Connect wallet ───────────────────────────────────────────────────────
