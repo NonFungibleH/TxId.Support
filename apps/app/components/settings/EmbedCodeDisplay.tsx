@@ -98,7 +98,7 @@ export function EmbedCodeDisplay({ publishableKey, widgetBaseUrl }: EmbedCodeDis
           <TabsTrigger value="react">React / npm</TabsTrigger>
         </TabsList>
 
-        {(["script", "inline", "react"] as const).map(tab => (
+        {(["script", "inline"] as const).map(tab => (
           <TabsContent key={tab} value={tab}>
             <div className="relative rounded-lg border border-border bg-muted">
               <pre className="p-4 text-xs font-mono overflow-x-auto leading-relaxed">
@@ -115,6 +115,16 @@ export function EmbedCodeDisplay({ publishableKey, widgetBaseUrl }: EmbedCodeDis
             </div>
           </TabsContent>
         ))}
+
+        <TabsContent value="react">
+          <div className="rounded-lg border border-border bg-muted p-6 text-center space-y-2">
+            <p className="text-sm font-medium">@txid/react npm package</p>
+            <p className="text-xs text-muted-foreground">
+              Coming soon — the React package is in development.
+              Use the script tag or inline div embed in the meantime.
+            </p>
+          </div>
+        </TabsContent>
       </Tabs>
     </div>
   )

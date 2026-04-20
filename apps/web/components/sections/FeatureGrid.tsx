@@ -27,7 +27,7 @@ const FEATURES = [
     icon: BookOpen,
     title: "Docs Q&A",
     description:
-      "Paste your docs URL. The widget ingests, indexes, and answers questions grounded in your own documentation. No hallucinations.",
+      "Paste your docs URL. The widget indexes it and answers questions grounded in your own documentation — not hallucinated.",
   },
   {
     icon: TrendingUp,
@@ -43,21 +43,21 @@ const FEATURES = [
   },
   {
     icon: Code2,
-    title: "Three Embed Methods",
+    title: "Simple Embed",
     description:
-      "Script tag, inline div, or React npm package. One-click copy from your dashboard. Works anywhere.",
+      "Add one script tag before your closing body tag. Works with any stack — React, Next.js, Vue, or plain HTML.",
   },
   {
     icon: Globe2,
     title: "Multi-Chain",
     description:
-      "Ethereum, Base, BNB Chain, Polygon, Arbitrum, and Optimism — wallet detection and transaction data across all of them.",
+      "Ethereum, Sepolia, Base, BNB Chain, Polygon, Arbitrum, and Optimism — wallet detection and transaction data across all of them.",
   },
   {
     icon: BarChart3,
     title: "Analytics Dashboard",
     description:
-      "See what your users are struggling with — top questions, failed tx patterns, satisfaction ratings — and fix the root causes.",
+      "See how many users you're helping — conversations over time, satisfaction ratings, and what they're asking about.",
   },
 ];
 

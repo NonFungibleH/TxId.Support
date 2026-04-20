@@ -2,6 +2,7 @@ import { ArrowRight, Play } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { FadeIn } from "@/components/ui/FadeIn";
 import { WidgetMockup } from "./WidgetMockup";
+import { APP_URL } from "@/lib/config";
 
 export function Hero() {
   return (
@@ -46,7 +47,7 @@ export function Hero() {
             <FadeIn delay={0.24}>
               <div className="flex flex-wrap gap-3">
                 <Button
-                  href="https://app.txid.support/sign-up"
+                  href={`${APP_URL}/sign-up`}
                   variant="primary"
                   size="lg"
                 >

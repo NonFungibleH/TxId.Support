@@ -14,7 +14,7 @@ const STEPS = [
     number: "02",
     title: "Configure",
     description:
-      "Set your brand colours, upload your logo, paste your docs URL. Live preview updates in real time.",
+      "Set your brand colours, paste your logo URL, and add your docs link. Preview updates in real time before you go live.",
   },
   {
     icon: Rocket,

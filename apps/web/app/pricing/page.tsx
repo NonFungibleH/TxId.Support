@@ -5,6 +5,7 @@ import { Footer } from "@/components/layout/Footer";
 import { PricingSection } from "@/components/sections/PricingSection";
 import { FadeIn } from "@/components/ui/FadeIn";
 import { Check, Minus } from "lucide-react";
+// APP_URL is consumed by PricingSection — imported there directly
 
 export const metadata: Metadata = {
   title: "Pricing — TxID Support",
@@ -35,7 +36,8 @@ const COMPARISON = [
     category: "Integration",
     rows: [
       { feature: "Script tag embed", starter: true, pro: true, enterprise: true },
-      { feature: "React npm package", starter: false, pro: true, enterprise: true },
+      { feature: "Inline iframe embed", starter: true, pro: true, enterprise: true },
+      { feature: "React npm package (soon)", starter: false, pro: true, enterprise: true },
       { feature: "Multi-chain support", starter: true, pro: true, enterprise: true },
       { feature: "Custom chains", starter: false, pro: false, enterprise: true },
     ],
@@ -44,9 +46,9 @@ const COMPARISON = [
     category: "Team",
     rows: [
       { feature: "Team seats", starter: "1", pro: "5", enterprise: "Unlimited" },
-      { feature: "Analytics dashboard", starter: false, pro: true, enterprise: true },
-      { feature: "CSV export", starter: false, pro: true, enterprise: true },
-      { feature: "SSO / SAML", starter: false, pro: false, enterprise: true },
+      { feature: "Analytics dashboard", starter: true, pro: true, enterprise: true },
+      { feature: "CSV export (soon)", starter: false, pro: true, enterprise: true },
+      { feature: "SSO / SAML (soon)", starter: false, pro: false, enterprise: true },
     ],
   },
   {
@@ -62,24 +64,28 @@ const COMPARISON = [
 
 const FAQ = [
   {
+    q: "Is it really free right now?",
+    a: "Yes — TxID Support is in beta and completely free for early protocols. You get 50 conversations/month, all core features (wallet detection, transaction diagnostics, docs Q&A), and a full analytics dashboard. No credit card required.",
+  },
+  {
     q: "What counts as a conversation?",
     a: "A conversation starts when a user opens the widget and sends their first message. It ends after 30 minutes of inactivity. Multiple messages in the same session count as one conversation.",
   },
   {
-    q: "Can I use TxID Support without branding?",
-    a: 'The free Starter plan includes "Powered by TxID Support" in the widget footer. Pro and Enterprise plans let you remove all TxID branding and use your own.',
+    q: "When is the Pro plan available?",
+    a: 'The Pro plan is coming soon. Email hello@txid.support to join the waitlist — early protocols will get a launch discount.',
   },
   {
     q: "What chains are supported?",
-    a: "Ethereum, Base, BNB Chain, Polygon, Arbitrum, and Optimism are supported by default. Enterprise plans can add custom chains.",
+    a: "Ethereum, Sepolia (testnet), Base, BNB Chain, Polygon, Arbitrum, and Optimism are supported. Enterprise plans can add custom chains.",
   },
   {
     q: "How does the docs Q&A work?",
-    a: "You paste your docs URL in the dashboard. Our system crawls and indexes it automatically using RAG (retrieval-augmented generation). The AI answers questions grounded in your documentation — not hallucinated.",
+    a: "You paste your docs URL in the dashboard. The system crawls and indexes it automatically using RAG (retrieval-augmented generation). The AI answers questions grounded in your documentation — not hallucinated.",
   },
   {
-    q: "Can I cancel anytime?",
-    a: "Yes. No contracts, no cancellation fees. Cancel from your dashboard and you'll retain access until the end of your billing period.",
+    q: "Can I use my own branding?",
+    a: "Yes — set your colours, font, and logo URL in the dashboard. The free tier includes a small 'Powered by TxID Support' footer note. Removing that is a Pro plan feature.",
   },
 ];
 
