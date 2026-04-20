@@ -3,6 +3,7 @@ import { redirect } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Bookmark, ExternalLink, MonitorSmartphone } from "lucide-react"
 import { ConfirmPreviewButton } from "@/components/dashboard/ConfirmPreviewButton"
+import { BookmarkletButton } from "@/components/dashboard/BookmarkletButton"
 import type { Database } from "@/lib/supabase/types"
 import type { ProjectConfig } from "@/lib/types/config"
 
@@ -81,17 +82,7 @@ export default async function PreviewPage() {
           </ol>
 
           <div className="flex items-center gap-4 pt-2">
-            {/* eslint-disable-next-line react/jsx-no-script-url */}
-            <a
-              href={bookmarklet}
-              onClick={e => e.preventDefault()}
-              draggable
-              className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground cursor-grab active:cursor-grabbing select-none"
-              title="Drag this to your bookmarks bar"
-            >
-              <Bookmark className="size-4" />
-              TxID Preview
-            </a>
+            <BookmarkletButton href={bookmarklet} />
             <p className="text-xs text-muted-foreground">← drag this to your bookmarks bar</p>
           </div>
         </CardContent>
