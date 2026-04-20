@@ -3,20 +3,20 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import {
-  LayoutDashboard, Paintbrush, Coins, FileCode2, BookOpen,
-  Link2, LayoutList, Code2, BarChart3, Users, Globe, MessageSquare,
+  LayoutDashboard, Paintbrush, FileCode2, BookOpen,
+  Link2, LayoutList, Code2, BarChart3, Users, Globe, MessageSquare, Eye,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 const SUPPORT_NAV = [
   { href: "/dashboard",           label: "Overview",        icon: LayoutDashboard },
   { href: "/dashboard/branding",  label: "Branding",        icon: Paintbrush },
-  { href: "/dashboard/token",     label: "Token",           icon: Coins },
   { href: "/dashboard/contracts", label: "Smart Contracts", icon: FileCode2 },
   { href: "/dashboard/docs",      label: "Docs & KB",       icon: BookOpen },
   { href: "/dashboard/chains",    label: "Chains",          icon: Link2 },
   { href: "/dashboard/content",   label: "Content",         icon: LayoutList },
-  { href: "/dashboard/embed",     label: "Embed",           icon: Code2 },
+  { href: "/dashboard/preview",   label: "Preview",         icon: Eye },
+  { href: "/dashboard/embed",     label: "Embed & Go Live", icon: Code2 },
   { href: "/dashboard/analytics", label: "Analytics",       icon: BarChart3 },
   { href: "/dashboard/team",      label: "Team",            icon: Users },
 ]
@@ -24,10 +24,10 @@ const SUPPORT_NAV = [
 const TOKEN_NAV = [
   { href: "/dashboard",           label: "Overview",        icon: LayoutDashboard },
   { href: "/dashboard/branding",  label: "Branding",        icon: Paintbrush },
-  { href: "/dashboard/token",     label: "Token",           icon: Coins },
   { href: "/dashboard/community", label: "Community",       icon: Globe },
   { href: "/dashboard/ask",       label: "Ask AI",          icon: MessageSquare },
-  { href: "/dashboard/embed",     label: "Embed",           icon: Code2 },
+  { href: "/dashboard/preview",   label: "Preview",         icon: Eye },
+  { href: "/dashboard/embed",     label: "Embed & Go Live", icon: Code2 },
   { href: "/dashboard/analytics", label: "Analytics",       icon: BarChart3 },
 ]
 
@@ -69,7 +69,7 @@ export function Sidebar({ mode = "support" }: { mode?: string }) {
       </nav>
 
       <div className="border-t border-border px-4 py-3">
-        <p className="text-xs text-muted-foreground">app.txid.support</p>
+        <p className="text-xs text-muted-foreground">tx-id-support-app.vercel.app</p>
       </div>
     </aside>
   )

@@ -39,6 +39,7 @@ export default async function DocsPage() {
             projectId={typedProject.id}
             initialDocsUrl={config.docsUrl}
             docCount={docCount ?? 0}
+            voyageKeySet={!!process.env.VOYAGE_API_KEY}
           />
         </CardContent>
       </Card>

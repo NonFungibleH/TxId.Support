@@ -125,3 +125,56 @@ export async function clearKnowledgeBase(
   revalidatePath("/dashboard")
   return { ok: true }
 }
+
+/**
+ * Fetch a URL and ingest its text content into the knowledge base.
+ */
+export async function fetchAndIngest(
+  projectId: string,
+  url: string,
+): Promise<{ ok: boolean; chunksInserted?: number; error?: string }> {
+  const { orgId, userId } = await auth()
+  if (!userId) return { ok: false, error: "Unauthorized" }
+
+  // Validate URL
+  let parsed: URL
+  try {
+    parsed = new URL(url)
+    if (!["http:", "https:"].includes(parsed.protocol)) throw new Error()
+  } catch {
+    return { ok: false, error: "Invalid URL — must start with http:// or https://" }
+  }
+
+  // Fetch page content
+  let html: string
+  try {
+    const res = await fetch(parsed.toString(), {
+      headers: { "User-Agent": "TxIDSupportBot/1.0 (+https://txid.support)" },
+      signal: AbortSignal.timeout(10_000),
+    })
+    if (!res.ok) return { ok: false, error: `Failed to fetch URL (status ${res.status})` }
+    html = await res.text()
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : "Could not fetch URL" }
+  }
+
+  // Strip HTML to plain text
+  const text = html
+    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, " ")
+    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, " ")
+    .replace(/<!--[\s\S]*?-->/g, " ")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/\s+/g, " ")
+    .trim()
+
+  if (text.length < 100) {
+    return { ok: false, error: "Page content too short or could not be extracted. Try pasting the content manually." }
+  }
+
+  return ingestText(projectId, text, url)
+}

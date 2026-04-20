@@ -1,10 +1,11 @@
 export const SUPPORTED_CHAINS = [
-  { id: "0x1",    name: "Ethereum",  explorer: "etherscan.io" },
-  { id: "0x2105", name: "Base",      explorer: "basescan.org" },
-  { id: "0x38",   name: "BNB Chain", explorer: "bscscan.com" },
-  { id: "0x89",   name: "Polygon",   explorer: "polygonscan.com" },
-  { id: "0xa4b1", name: "Arbitrum",  explorer: "arbiscan.io" },
-  { id: "0xa",    name: "Optimism",  explorer: "optimistic.etherscan.io" },
+  { id: "0x1",      name: "Ethereum",          explorer: "etherscan.io" },
+  { id: "0xaa36a7", name: "Sepolia (Testnet)",  explorer: "sepolia.etherscan.io" },
+  { id: "0x2105",   name: "Base",              explorer: "basescan.org" },
+  { id: "0x38",     name: "BNB Chain",         explorer: "bscscan.com" },
+  { id: "0x89",     name: "Polygon",           explorer: "polygonscan.com" },
+  { id: "0xa4b1",   name: "Arbitrum",          explorer: "arbiscan.io" },
+  { id: "0xa",      name: "Optimism",          explorer: "optimistic.etherscan.io" },
 ] as const
 
 export type ChainId = (typeof SUPPORTED_CHAINS)[number]["id"]
@@ -85,7 +86,7 @@ export const DEFAULT_CONFIG: ProjectConfig = {
     theme: "dark",
   },
   token: null,
-  chains: ["0x1", "0x2105", "0x38", "0x89", "0xa4b1", "0xa"],
+  chains: ["0x1"],
   contentBlocks: [],
   docsUrl: null,
   allowedDomains: [],

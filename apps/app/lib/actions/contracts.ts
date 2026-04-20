@@ -21,14 +21,15 @@ async function resolveProjectWithOwnership(
   projectId: string
 ): Promise<Pick<ProjectRow, "id" | "config" | "org_id">> {
   const { orgId, userId } = await auth()
-  if (!orgId || !userId) throw new Error("Unauthenticated")
+  if (!userId) throw new Error("Unauthenticated")
+  const orgKey = orgId ?? userId
 
   const supabase = createServiceClient()
 
   const orgResult = await supabase
     .from("organisations")
     .select("id")
-    .eq("clerk_org_id", orgId as string)
+    .eq("clerk_org_id", orgKey)
     .single()
 
   const orgData = orgResult.data as unknown as { id: string } | null
