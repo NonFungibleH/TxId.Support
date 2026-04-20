@@ -4,6 +4,7 @@ import { useState, useTransition, useEffect } from "react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
+import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ColorPicker } from "./ColorPicker"
 import { updateConfig } from "@/lib/actions/project"
@@ -50,6 +51,33 @@ export function BrandingForm({ projectId, initial, onBrandingChange }: BrandingF
         <ColorPicker value={branding.secondaryColor} onChange={v => update("secondaryColor", v)} label="Secondary" />
         <ColorPicker value={branding.backgroundColor} onChange={v => update("backgroundColor", v)} label="Background" />
         <ColorPicker value={branding.textColor} onChange={v => update("textColor", v)} label="Text" />
+      </div>
+
+      <Separator />
+
+      <div className="space-y-3">
+        <h3 className="text-sm font-semibold">Logo</h3>
+        <div className="space-y-1.5">
+          <Label className="text-xs text-muted-foreground">Logo URL (shown in widget header)</Label>
+          <Input
+            type="url"
+            placeholder="https://yourprotocol.com/logo.png"
+            value={branding.logoUrl ?? ""}
+            onChange={e => update("logoUrl", e.target.value || null)}
+            className="font-mono text-sm"
+          />
+          {branding.logoUrl && (
+            <div className="flex items-center gap-3 pt-1">
+              <img
+                src={branding.logoUrl}
+                alt="Logo preview"
+                className="h-8 w-auto max-w-[120px] rounded object-contain"
+                onError={e => { (e.target as HTMLImageElement).style.display = "none" }}
+              />
+              <span className="text-xs text-muted-foreground">Preview</span>
+            </div>
+          )}
+        </div>
       </div>
 
       <Separator />

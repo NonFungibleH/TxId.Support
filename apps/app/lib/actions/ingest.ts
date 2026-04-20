@@ -15,8 +15,9 @@ export async function ingestText(
   text: string,
   sourceUrl?: string,
 ): Promise<{ ok: boolean; chunksInserted?: number; error?: string }> {
-  const { orgId } = await auth()
-  if (!orgId) return { ok: false, error: "Unauthorized" }
+  const { orgId, userId } = await auth()
+  if (!userId) return { ok: false, error: "Unauthorized" }
+  const orgKey = orgId ?? userId
 
   const trimmed = text.trim()
   if (trimmed.length < 50) return { ok: false, error: "Content too short" }
@@ -37,7 +38,7 @@ export async function ingestText(
     .from("organisations")
     .select("id")
     .eq("id", project.org_id)
-    .eq("clerk_org_id", orgId)
+    .eq("clerk_org_id", orgKey)
     .single()
 
   if (!org) return { ok: false, error: "Forbidden" }
@@ -97,8 +98,9 @@ export async function ingestText(
 export async function clearKnowledgeBase(
   projectId: string,
 ): Promise<{ ok: boolean; error?: string }> {
-  const { orgId } = await auth()
-  if (!orgId) return { ok: false, error: "Unauthorized" }
+  const { orgId, userId } = await auth()
+  if (!userId) return { ok: false, error: "Unauthorized" }
+  const orgKey = orgId ?? userId
 
   const supabase = createServiceClient()
 
@@ -114,7 +116,7 @@ export async function clearKnowledgeBase(
     .from("organisations")
     .select("id")
     .eq("id", project.org_id)
-    .eq("clerk_org_id", orgId)
+    .eq("clerk_org_id", orgKey)
     .single()
 
   if (!org) return { ok: false, error: "Forbidden" }

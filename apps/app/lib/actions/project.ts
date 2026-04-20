@@ -100,6 +100,7 @@ export async function createProjectWithMode(name: string, mode: "support" | "tok
       org_id: org.id,
       name,
       mode,
+      is_active: false,
       config: DEFAULT_CONFIG as unknown as Json,
     })
     .select()

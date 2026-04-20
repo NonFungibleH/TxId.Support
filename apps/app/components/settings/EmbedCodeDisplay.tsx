@@ -1,18 +1,19 @@
 "use client"
 
 import { useState } from "react"
-import { Copy, Check } from "lucide-react"
+import { Copy, Check, ExternalLink } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 interface EmbedCodeDisplayProps {
   publishableKey: string
+  widgetBaseUrl: string
 }
 
-export function EmbedCodeDisplay({ publishableKey }: EmbedCodeDisplayProps) {
+export function EmbedCodeDisplay({ publishableKey, widgetBaseUrl }: EmbedCodeDisplayProps) {
   const [copied, setCopied] = useState<string | null>(null)
 
-  const widgetSrc = `https://app.txid.support/widget?key=${publishableKey}`
+  const widgetSrc = `${widgetBaseUrl}/widget?key=${publishableKey}`
 
   const SNIPPETS = {
     script: `<!-- Floating widget (bottom-right) -->\n<script>\n  (function(){\n    var f = document.createElement('iframe');\n    f.src = "${widgetSrc}";\n    f.allow = "clipboard-write";\n    f.style.cssText = "position:fixed;bottom:20px;right:20px;width:380px;height:580px;border:none;z-index:2147483647;border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,0.4)";\n    document.body.appendChild(f);\n  })();\n</script>`,
@@ -37,6 +38,16 @@ export function EmbedCodeDisplay({ publishableKey }: EmbedCodeDisplayProps) {
           {copied === "key" ? <Check className="size-3.5 text-green-500" /> : <Copy className="size-3.5" />}
         </Button>
       </div>
+
+      <a
+        href={widgetSrc}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="flex items-center gap-2 w-full justify-center rounded-lg border border-dashed border-border px-4 py-3 text-sm text-muted-foreground hover:border-primary hover:text-primary transition-colors"
+      >
+        <ExternalLink className="size-4" />
+        Preview widget in new tab
+      </a>
 
       <Tabs defaultValue="script">
         <TabsList className="grid grid-cols-3 w-full">
