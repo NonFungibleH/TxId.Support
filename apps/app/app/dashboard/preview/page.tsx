@@ -13,7 +13,9 @@ export default async function PreviewPage() {
   if (!project) redirect("/dashboard")
 
   const typedProject = project as unknown as ProjectRow
-  const config = typedProject.config as unknown as ProjectConfig
+  // config may be null for projects created before this field was introduced
+  const rawConfig = typedProject.config as unknown as ProjectConfig | null
+  const previewConfirmed = rawConfig?.previewConfirmed ?? false
   const widgetBaseUrl = process.env.NEXT_PUBLIC_WIDGET_URL ?? "https://app.txid.support"
   const previewUrl = `${widgetBaseUrl}/preview?key=${typedProject.publishable_key}`
   const bookmarklet = `javascript:(function(){if(document.getElementById('txid-preview'))return;var f=document.createElement('iframe');f.id='txid-preview';f.src='${widgetBaseUrl}/widget?key=${typedProject.publishable_key}';f.style.cssText='position:fixed;bottom:20px;right:20px;width:380px;height:580px;border:none;z-index:2147483647;border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,0.4)';document.body.appendChild(f);})();`
@@ -96,22 +98,22 @@ export default async function PreviewPage() {
       </Card>
 
       {/* Confirm */}
-      <Card className={config.previewConfirmed ? "border-green-500/30 bg-green-500/5" : "border-primary/30 bg-primary/5"}>
+      <Card className={previewConfirmed ? "border-green-500/30 bg-green-500/5" : "border-primary/30 bg-primary/5"}>
         <CardContent className="pt-6">
           <div className="flex items-center justify-between gap-6">
             <div>
               <p className="font-semibold">
-                {config.previewConfirmed ? "✓ Preview approved" : "Happy with how it looks?"}
+                {previewConfirmed ? "✓ Preview approved" : "Happy with how it looks?"}
               </p>
               <p className="text-sm text-muted-foreground mt-1">
-                {config.previewConfirmed
+                {previewConfirmed
                   ? "You confirmed the design. Head to Embed & Go Live to publish."
                   : "Once you've tested the widget and you're happy with it, confirm here to move to the final step."}
               </p>
             </div>
             <ConfirmPreviewButton
               projectId={typedProject.id}
-              confirmed={config.previewConfirmed}
+              confirmed={previewConfirmed}
             />
           </div>
         </CardContent>

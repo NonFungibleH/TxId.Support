@@ -8,6 +8,8 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
+const WEB_URL = process.env.NEXT_PUBLIC_WEB_URL ?? "https://txid.support"
+
 const SUPPORT_NAV = [
   { href: "/dashboard",           label: "Overview",        icon: LayoutDashboard },
   { href: "/dashboard/branding",  label: "Branding",        icon: Paintbrush },
@@ -68,8 +70,13 @@ export function Sidebar({ mode = "support" }: { mode?: string }) {
         })}
       </nav>
 
-      <div className="border-t border-border px-4 py-3">
-        <p className="text-xs text-muted-foreground">tx-id-support-app.vercel.app</p>
+      <div className="border-t border-border px-4 py-3 space-y-2">
+        <p className="text-xs text-muted-foreground">© {new Date().getFullYear()} TxID Support</p>
+        <div className="flex flex-wrap gap-x-3 gap-y-1">
+          <a href={`${WEB_URL}/terms`} target="_blank" rel="noopener noreferrer" className="text-[11px] text-muted-foreground hover:text-foreground transition-colors">Terms</a>
+          <a href={`${WEB_URL}/privacy`} target="_blank" rel="noopener noreferrer" className="text-[11px] text-muted-foreground hover:text-foreground transition-colors">Privacy</a>
+          <a href="mailto:hello@txid.support" className="text-[11px] text-muted-foreground hover:text-foreground transition-colors">Contact</a>
+        </div>
       </div>
     </aside>
   )

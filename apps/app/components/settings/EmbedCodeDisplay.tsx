@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Copy, Check, ExternalLink, Bookmark } from "lucide-react"
+import { Copy, Check } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
@@ -14,10 +14,6 @@ export function EmbedCodeDisplay({ publishableKey, widgetBaseUrl }: EmbedCodeDis
   const [copied, setCopied] = useState<string | null>(null)
 
   const widgetSrc = `${widgetBaseUrl}/widget?key=${publishableKey}`
-  const previewSrc = `${widgetBaseUrl}/preview?key=${publishableKey}`
-
-  // Bookmarklet: injects the widget iframe into whatever page the user is on
-  const bookmarklet = `javascript:(function(){if(document.getElementById('txid-preview'))return;var f=document.createElement('iframe');f.id='txid-preview';f.src='${widgetSrc}';f.style.cssText='position:fixed;bottom:20px;right:20px;width:380px;height:580px;border:none;z-index:2147483647;border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,0.4)';document.body.appendChild(f);})();`
 
   const SNIPPETS = {
     script: `<!-- Floating widget (bottom-right) -->\n<script>\n  (function(){\n    var f = document.createElement('iframe');\n    f.src = "${widgetSrc}";\n    f.allow = "clipboard-write";\n    f.style.cssText = "position:fixed;bottom:20px;right:20px;width:380px;height:580px;border:none;z-index:2147483647;border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,0.4)";\n    document.body.appendChild(f);\n  })();\n</script>`,
@@ -42,53 +38,6 @@ export function EmbedCodeDisplay({ publishableKey, widgetBaseUrl }: EmbedCodeDis
         <Button variant="outline" size="sm" onClick={() => copy("key", publishableKey)}>
           {copied === "key" ? <Check className="size-3.5 text-green-500" /> : <Copy className="size-3.5" />}
         </Button>
-      </div>
-
-      {/* Preview options */}
-      <div className="rounded-lg border border-border p-4 space-y-4">
-        <div>
-          <p className="text-sm font-medium">Preview the widget</p>
-          <p className="text-xs text-muted-foreground mt-0.5">Two ways to see it live before embedding.</p>
-        </div>
-
-        {/* Standalone preview */}
-        <a
-          href={previewSrc}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center gap-3 rounded-lg border border-border px-4 py-3 text-sm hover:border-primary hover:text-primary transition-colors group"
-        >
-          <ExternalLink className="size-4 shrink-0 text-muted-foreground group-hover:text-primary" />
-          <div>
-            <p className="font-medium">Open standalone preview</p>
-            <p className="text-xs text-muted-foreground">See your widget as users will — floating on a sample page</p>
-          </div>
-        </a>
-
-        {/* Bookmarklet */}
-        <div className="rounded-lg border border-dashed border-border px-4 py-3 space-y-2">
-          <div className="flex items-center gap-3">
-            <Bookmark className="size-4 shrink-0 text-muted-foreground" />
-            <div>
-              <p className="text-sm font-medium">Preview on your own website</p>
-              <p className="text-xs text-muted-foreground">Drag the button below to your bookmarks bar, then click it on any page</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-3 pt-1">
-            {/* eslint-disable-next-line react/jsx-no-script-url */}
-            <a
-              href={bookmarklet}
-              onClick={e => e.preventDefault()}
-              draggable
-              className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground cursor-grab active:cursor-grabbing select-none"
-              title="Drag this to your bookmarks bar"
-            >
-              <Bookmark className="size-3" />
-              TxID Preview
-            </a>
-            <p className="text-xs text-muted-foreground">← drag this to your bookmarks bar</p>
-          </div>
-        </div>
       </div>
 
       {/* Embed code */}
