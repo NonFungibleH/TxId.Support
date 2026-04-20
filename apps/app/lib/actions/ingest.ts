@@ -145,36 +145,27 @@ export async function fetchAndIngest(
     return { ok: false, error: "Invalid URL — must start with http:// or https://" }
   }
 
-  // Fetch page content
-  let html: string
+  // Use Jina Reader to fetch + render the page (handles JS-heavy sites)
+  // r.jina.ai renders the full page and returns clean markdown text — no API key needed
+  let text: string
   try {
-    const res = await fetch(parsed.toString(), {
-      headers: { "User-Agent": "TxIDSupportBot/1.0 (+https://txid.support)" },
-      signal: AbortSignal.timeout(10_000),
+    const jinaUrl = `https://r.jina.ai/${parsed.toString()}`
+    const res = await fetch(jinaUrl, {
+      headers: {
+        "Accept": "text/plain",
+        "X-No-Cache": "true",
+      },
+      signal: AbortSignal.timeout(30_000),
     })
-    if (!res.ok) return { ok: false, error: `Failed to fetch URL (status ${res.status})` }
-    html = await res.text()
+    if (!res.ok) return { ok: false, error: `Could not fetch page (status ${res.status}). Check the URL is public and try again.` }
+    text = await res.text()
   } catch (err) {
-    return { ok: false, error: err instanceof Error ? err.message : "Could not fetch URL" }
+    return { ok: false, error: err instanceof Error ? err.message : "Could not fetch URL — check it is publicly accessible" }
   }
 
-  // Strip HTML to plain text
-  const text = html
-    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, " ")
-    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, " ")
-    .replace(/<!--[\s\S]*?-->/g, " ")
-    .replace(/<[^>]+>/g, " ")
-    .replace(/&nbsp;/g, " ")
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&quot;/g, '"')
-    .replace(/\s+/g, " ")
-    .trim()
-
-  if (text.length < 100) {
-    return { ok: false, error: "Page content too short or could not be extracted. Try pasting the content manually." }
+  if (text.trim().length < 100) {
+    return { ok: false, error: "Page appears to be empty or blocked. Try a more specific URL (e.g. a docs page) or paste the content manually." }
   }
 
-  return ingestText(projectId, text, url)
+  return ingestText(projectId, text.trim(), url)
 }
