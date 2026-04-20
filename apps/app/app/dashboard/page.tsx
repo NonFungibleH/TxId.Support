@@ -91,9 +91,6 @@ export default async function DashboardPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">{typedProject.name}</h1>
-          <p className="font-mono text-xs text-muted-foreground mt-1">
-            {typedProject.publishable_key}
-          </p>
         </div>
         <GoLiveToggle projectId={typedProject.id} isActive={typedProject.is_active} />
       </div>

@@ -108,7 +108,7 @@ export function Footer() {
           <p className="text-xs font-mono text-muted">
             <span className="inline-flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-accent inline-block" />
-              Beta — free for early protocols
+              Free trial available · No credit card required
             </span>
           </p>
         </div>

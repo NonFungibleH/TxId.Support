@@ -50,12 +50,12 @@ export function AddContractDialog({ projectId }: AddContractDialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
+      <DialogTrigger render={
         <Button size="sm">
           <Plus className="size-4 mr-1" />
           Add contract
         </Button>
-      </DialogTrigger>
+      } />
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Add smart contract</DialogTitle>

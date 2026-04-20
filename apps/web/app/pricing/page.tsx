@@ -64,16 +64,16 @@ const COMPARISON = [
 
 const FAQ = [
   {
-    q: "Is it really free right now?",
-    a: "Yes — TxID Support is in beta and completely free for early protocols. You get 50 conversations/month, all core features (wallet detection, transaction diagnostics, docs Q&A), and a full analytics dashboard. No credit card required.",
+    q: "What does the free trial include?",
+    a: "The Starter plan is free forever — no trial expiry. You get 50 conversations/month, wallet detection, transaction diagnostics, docs Q&A, and a full analytics dashboard. No credit card required.",
   },
   {
     q: "What counts as a conversation?",
     a: "A conversation starts when a user opens the widget and sends their first message. It ends after 30 minutes of inactivity. Multiple messages in the same session count as one conversation.",
   },
   {
-    q: "When is the Pro plan available?",
-    a: 'The Pro plan is coming soon. Email hello@txid.support to join the waitlist — early protocols will get a launch discount.',
+    q: "How does the Pro plan work?",
+    a: "Pro unlocks 5,000 conversations/month, removes TxID Support branding, and adds custom branding (colours, font, logo). It\'s $99/mo with no long-term contract — cancel anytime.",
   },
   {
     q: "What chains are supported?",

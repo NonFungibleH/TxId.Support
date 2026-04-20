@@ -9,9 +9,9 @@ const PLANS = [
     name: "Starter",
     price: "Free",
     period: null,
-    badge: "Beta — free now",
+    badge: null,
     description: "Everything you need to go live",
-    cta: "Get Started Free",
+    cta: "Start Free Trial",
     ctaHref: `${APP_URL}/sign-up`,
     highlight: false,
     features: [
@@ -29,10 +29,10 @@ const PLANS = [
     name: "Pro",
     price: "$99",
     period: "/mo",
-    badge: "Coming soon",
+    badge: "Most Popular",
     description: "For live protocols with real users",
-    cta: "Join Waitlist",
-    ctaHref: `mailto:hello@txid.support?subject=Pro plan interest`,
+    cta: "Start Free Trial",
+    ctaHref: `${APP_URL}/sign-up?plan=pro`,
     highlight: true,
     features: [
       { label: "5,000 conversations / month", soon: false },
@@ -77,7 +77,7 @@ export function PricingSection({ compact }: { compact?: boolean }) {
                 Simple, transparent pricing
               </h2>
               <p className="text-muted max-w-xl mx-auto">
-                Free during beta. Pro plan launching soon — join the waitlist.
+                Start free. Upgrade when you&apos;re ready.
               </p>
             </div>
           </FadeIn>

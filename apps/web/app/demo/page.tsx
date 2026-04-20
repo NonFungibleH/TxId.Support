@@ -9,7 +9,7 @@ import { APP_URL } from "@/lib/config";
 import { clsx } from "clsx";
 
 // ---------------------------------------------------------------------------
-// Scenario data
+// Scenario data — delays are reading-paced (slower than real typing)
 // ---------------------------------------------------------------------------
 
 const SCENARIOS = [
@@ -21,28 +21,28 @@ const SCENARIOS = [
     messages: [
       {
         role: "ai" as const,
-        text: "Hi 👋 I can see your wallet 0x1a2b...3c4d is connected on Ethereum. I can see your recent transactions — looks like one failed. Want me to explain what happened?",
+        text: "Hi 👋 I can see your wallet 0x1a2b...3c4d is connected. Looks like you had a failed transaction 3 hours ago — want me to explain what happened?",
         delay: 0,
       },
       {
         role: "user" as const,
-        text: "Yes, my swap failed 3 hours ago. I'm confused.",
-        delay: 800,
+        text: "Yes please, I'm confused.",
+        delay: 2500,
       },
       {
         role: "ai" as const,
-        text: "Your swap of 1.5 ETH → USDC failed because of slippage tolerance. The price moved 1.8% between when you submitted and when the transaction was processed — but your slippage was set to 0.5%.\n\nFix: Go back to the swap, increase slippage to 2%, and try again. If the pool is volatile, try 3%.",
-        delay: 1600,
+        text: "Your swap of 1.5 ETH → USDC failed due to slippage. The price moved 1.8% while your transaction was pending — but your slippage tolerance was set to 0.5%.\n\nFix: increase slippage to 2% and retry. If the pool is volatile, use 3%.",
+        delay: 5000,
       },
       {
         role: "user" as const,
-        text: "Got it. Will I lose the gas fee?",
-        delay: 2800,
+        text: "Will I lose the gas fee?",
+        delay: 9000,
       },
       {
         role: "ai" as const,
-        text: "Yes — the gas was spent even though the swap didn't go through. That's ~$4.20 at current prices. Unfortunately that's how Ethereum works — miners are paid for the computation even on reverts.\n\nIf gas fees are a concern, try again during off-peak hours (UTC midnight–6am) when fees are typically 40–60% lower.",
-        delay: 3600,
+        text: "Yes — gas is charged even on failed transactions (~$4.20 at current prices). Miners are paid for computation regardless of outcome.\n\nTip: retry during off-peak hours (UTC midnight–6am) when fees are 40–60% lower.",
+        delay: 11500,
       },
     ],
   },
@@ -54,28 +54,28 @@ const SCENARIOS = [
     messages: [
       {
         role: "ai" as const,
-        text: "Hi 👋 I'm trained on this protocol's documentation and can answer questions about how it works.",
+        text: "Hi 👋 I'm trained on this protocol's documentation. Ask me anything about how it works.",
         delay: 0,
       },
       {
         role: "user" as const,
         text: "How long does the vesting period last?",
-        delay: 800,
+        delay: 2500,
       },
       {
         role: "ai" as const,
-        text: "Based on the protocol docs: the standard vesting period is 24 months with a 6-month cliff.\n\nThis means:\n• Months 0–6: No tokens released (cliff period)\n• Month 6: 25% of your allocation unlocks\n• Months 7–24: Remaining 75% unlocks linearly (~4.2%/month)",
-        delay: 1600,
+        text: "Based on the protocol docs: 24 months total, with a 6-month cliff.\n\n• Months 0–6: nothing released\n• Month 6: 25% unlocks\n• Months 7–24: remaining 75% releases linearly (~4.2%/month)",
+        delay: 5000,
       },
       {
         role: "user" as const,
-        text: "Can I sell before vesting?",
-        delay: 2800,
+        text: "Can I sell before vesting ends?",
+        delay: 9500,
       },
       {
         role: "ai" as const,
-        text: "No — unvested tokens are locked in the smart contract and cannot be transferred. Attempting to transfer them will revert.\n\nHowever, some protocols offer an early unlock at a penalty. I don't see that option in the current documentation — you may want to check with the team on Discord for the latest policy.",
-        delay: 3600,
+        text: "No — unvested tokens are locked in the smart contract. Any transfer attempt will revert.\n\nSome protocols offer early unlock at a penalty — I don't see that option in the current docs. Check with the team on Discord for the latest.",
+        delay: 12000,
       },
     ],
   },
@@ -93,22 +93,22 @@ const SCENARIOS = [
       {
         role: "user" as const,
         text: "What's the current price?",
-        delay: 800,
+        delay: 2500,
       },
       {
         role: "ai" as const,
-        text: "Current price: $0.0847 (+12.4% in the last 24h)\n24h volume: $2.1M\nMarket cap: $84.7M\n\nYou can trade it on Uniswap V3 — I can open that link for you.",
-        delay: 1600,
+        text: "Current price: $0.0847 (+12.4% in 24h)\n24h volume: $2.1M\nMarket cap: $84.7M\n\nYou can trade it directly on Uniswap V3.",
+        delay: 5000,
       },
       {
         role: "user" as const,
         text: "Is the contract verified?",
-        delay: 2800,
+        delay: 8500,
       },
       {
         role: "ai" as const,
-        text: "Yes — the contract at 0x4a3b...9e2f is verified on Etherscan.\n\nKey details:\n• Deployed 14 months ago\n• Ownership renounced ✓\n• No mint function ✓\n• Liquidity locked until Dec 2025 ✓\n\nThis is a good sign for legitimacy.",
-        delay: 3600,
+        text: "Yes — verified on Etherscan at 0x4a3b...9e2f.\n\n✓ Deployed 14 months ago\n✓ Ownership renounced\n✓ No mint function\n✓ Liquidity locked until Dec 2025\n\nAll green flags.",
+        delay: 11000,
       },
     ],
   },
@@ -118,23 +118,9 @@ const SCENARIOS = [
 // Animated chat bubble
 // ---------------------------------------------------------------------------
 
-function ChatBubble({
-  role,
-  text,
-  visible,
-}: {
-  role: "ai" | "user";
-  text: string;
-  visible: boolean;
-}) {
+function ChatBubble({ role, text }: { role: "ai" | "user"; text: string }) {
   return (
-    <div
-      className={clsx(
-        "transition-all duration-500",
-        visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2",
-        role === "user" ? "flex justify-end" : "flex justify-start"
-      )}
-    >
+    <div className={clsx("flex animate-in fade-in slide-in-from-bottom-2 duration-400", role === "user" ? "justify-end" : "justify-start")}>
       <div
         className={clsx(
           "max-w-[85%] rounded-2xl px-3.5 py-2.5 text-xs leading-relaxed whitespace-pre-line",
@@ -149,6 +135,20 @@ function ChatBubble({
   );
 }
 
+function TypingIndicator() {
+  return (
+    <div className="flex justify-start">
+      <div className="bg-[var(--bg-elevated)] border border-[var(--border)] rounded-2xl rounded-bl-sm px-3.5 py-2.5">
+        <div className="flex gap-1 items-center h-3">
+          <span className="w-1.5 h-1.5 rounded-full bg-muted animate-bounce" style={{ animationDelay: "0ms" }} />
+          <span className="w-1.5 h-1.5 rounded-full bg-muted animate-bounce" style={{ animationDelay: "150ms" }} />
+          <span className="w-1.5 h-1.5 rounded-full bg-muted animate-bounce" style={{ animationDelay: "300ms" }} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ---------------------------------------------------------------------------
 // Widget demo shell
 // ---------------------------------------------------------------------------
@@ -157,9 +157,9 @@ function WidgetDemo({ scenario }: { scenario: (typeof SCENARIOS)[number] }) {
   const [step, setStep] = useState(0);
   const [done, setDone] = useState(false);
   const timerIds = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   function startAnimation() {
-    // Cancel any in-flight timers
     timerIds.current.forEach(clearTimeout);
     timerIds.current = [];
     setStep(0);
@@ -169,14 +169,13 @@ function WidgetDemo({ scenario }: { scenario: (typeof SCENARIOS)[number] }) {
       const id = setTimeout(() => {
         setStep(i + 1);
         if (i === scenario.messages.length - 1) setDone(true);
-      }, msg.delay + 400);
+      }, msg.delay + 600);
       timerIds.current.push(id);
     });
   }
 
-  // Auto-play on mount (component is keyed by scenario so remounts on switch)
   useEffect(() => {
-    const warmup = setTimeout(startAnimation, 600);
+    const warmup = setTimeout(startAnimation, 800);
     return () => {
       clearTimeout(warmup);
       timerIds.current.forEach(clearTimeout);
@@ -184,21 +183,22 @@ function WidgetDemo({ scenario }: { scenario: (typeof SCENARIOS)[number] }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const isTyping = !done && step < scenario.messages.length;
-  // Show typing indicator between messages (after at least one has appeared)
-  const showTyping = isTyping && step > 0;
-  // Before first message, show a subtle "starting" state
-  const starting = step === 0;
+  // Scroll to bottom as messages appear
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [step]);
+
+  const isTyping = !done && step < scenario.messages.length && step > 0;
 
   return (
-    <div className="w-80 rounded-2xl overflow-hidden shadow-2xl shadow-accent/10 border border-[var(--border)] bg-[#0c0c0c] font-sans text-sm flex flex-col">
+    <div className="w-[340px] rounded-2xl overflow-hidden shadow-2xl shadow-accent/10 border border-[var(--border)] bg-[#0c0c0c] font-sans text-sm flex flex-col" style={{ height: 520 }}>
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border)] bg-[var(--bg-elevated)] shrink-0">
         <div className="flex items-center gap-2">
           <div className="w-2 h-2 rounded-full bg-green-500 shadow-sm shadow-green-500/50" />
-          <span className="font-display font-semibold text-white text-xs">
-            Protocol Support
-          </span>
+          <span className="font-display font-semibold text-white text-xs">Protocol Support</span>
         </div>
         <Wifi className="w-3.5 h-3.5 text-muted" />
       </div>
@@ -209,38 +209,16 @@ function WidgetDemo({ scenario }: { scenario: (typeof SCENARIOS)[number] }) {
         <span className="font-mono text-xs text-muted">0x1a2b...3c4d connected</span>
       </div>
 
-      {/* Messages */}
-      <div className="p-4 space-y-3" style={{ minHeight: 300 }}>
-        {starting && (
-          <div className="flex justify-start">
-            <div className="bg-[var(--bg-elevated)] border border-[var(--border)] rounded-2xl rounded-bl-sm px-3.5 py-2.5">
-              <div className="flex gap-1 items-center h-3">
-                <span className="w-1.5 h-1.5 rounded-full bg-muted animate-bounce" style={{ animationDelay: "0ms" }} />
-                <span className="w-1.5 h-1.5 rounded-full bg-muted animate-bounce" style={{ animationDelay: "150ms" }} />
-                <span className="w-1.5 h-1.5 rounded-full bg-muted animate-bounce" style={{ animationDelay: "300ms" }} />
-              </div>
-            </div>
-          </div>
-        )}
-
+      {/* Messages — fixed height, scrolls internally */}
+      <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-3">
+        {step === 0 && <TypingIndicator />}
         {scenario.messages.slice(0, step).map((msg, i) => (
-          <ChatBubble key={i} role={msg.role} text={msg.text} visible />
+          <ChatBubble key={i} role={msg.role} text={msg.text} />
         ))}
-
-        {showTyping && (
-          <div className="flex justify-start">
-            <div className="bg-[var(--bg-elevated)] border border-[var(--border)] rounded-2xl rounded-bl-sm px-3.5 py-2.5">
-              <div className="flex gap-1 items-center h-3">
-                <span className="w-1.5 h-1.5 rounded-full bg-muted animate-bounce" style={{ animationDelay: "0ms" }} />
-                <span className="w-1.5 h-1.5 rounded-full bg-muted animate-bounce" style={{ animationDelay: "150ms" }} />
-                <span className="w-1.5 h-1.5 rounded-full bg-muted animate-bounce" style={{ animationDelay: "300ms" }} />
-              </div>
-            </div>
-          </div>
-        )}
+        {isTyping && <TypingIndicator />}
       </div>
 
-      {/* Input bar + replay */}
+      {/* Input bar */}
       <div className="px-4 pb-4 pt-2 shrink-0">
         <div className="flex items-center gap-2 bg-[var(--bg-elevated)] rounded-xl px-3 py-2 border border-[var(--border)]">
           <span className="text-xs text-muted flex-1">Ask anything…</span>
@@ -253,10 +231,7 @@ function WidgetDemo({ scenario }: { scenario: (typeof SCENARIOS)[number] }) {
         <div className="flex items-center justify-between mt-2">
           <p className="text-[10px] text-muted font-mono">Powered by TxID Support</p>
           {done && (
-            <button
-              onClick={startAnimation}
-              className="text-[10px] text-accent hover:underline font-mono"
-            >
+            <button onClick={startAnimation} className="text-[10px] text-accent hover:underline font-mono">
               ↺ replay
             </button>
           )}
@@ -287,15 +262,16 @@ export default function DemoPage() {
               See it in action
             </h1>
             <p className="text-lg text-muted max-w-lg mx-auto">
-              Pick a scenario below and hit play — this is exactly what your users will experience, inside your brand.
+              Watch how your users get instant answers — inside your own brand.
             </p>
           </div>
 
           {/* Demo layout */}
-          <div className="flex flex-col lg:flex-row gap-12 items-start justify-center">
+          <div className="flex flex-col lg:flex-row gap-10 items-start justify-center">
 
-            {/* Scenario tabs */}
-            <div className="flex flex-row lg:flex-col gap-3 lg:w-72 w-full">
+            {/* Left: scenario selector */}
+            <div className="flex flex-row lg:flex-col gap-3 lg:w-64 w-full shrink-0">
+              <p className="hidden lg:block text-xs font-semibold text-muted uppercase tracking-wider mb-1">Try a scenario</p>
               {SCENARIOS.map((s) => {
                 const Icon = s.icon;
                 const active = s.id === activeId;
@@ -304,13 +280,13 @@ export default function DemoPage() {
                     key={s.id}
                     onClick={() => setActiveId(s.id)}
                     className={clsx(
-                      "flex-1 lg:flex-none text-left rounded-xl border p-4 transition-all",
+                      "flex-1 lg:flex-none text-left rounded-xl border p-4 transition-all cursor-pointer",
                       active
                         ? "border-accent bg-accent-muted"
                         : "border-[var(--border)] bg-[var(--bg-surface)] hover:border-[var(--border-accent)]"
                     )}
                   >
-                    <div className="flex items-center gap-2.5 mb-1.5">
+                    <div className="flex items-center gap-2.5 mb-1">
                       <Icon className={clsx("w-4 h-4 shrink-0", active ? "text-accent" : "text-muted")} />
                       <span className={clsx("font-display font-semibold text-sm", active ? "text-white" : "text-muted")}>
                         {s.label}
@@ -320,77 +296,55 @@ export default function DemoPage() {
                   </button>
                 );
               })}
-
-              {/* What powers this */}
-              <div className="hidden lg:block mt-4 rounded-xl border border-[var(--border)] bg-[var(--bg-surface)] p-4">
-                <p className="text-xs font-semibold text-muted uppercase tracking-wider mb-3">What powers this</p>
-                <ul className="space-y-2">
-                  {[
-                    "Claude AI (Anthropic)",
-                    "On-chain data via Moralis",
-                    "Your docs, indexed with RAG",
-                    "DexScreener live prices",
-                  ].map((item) => (
-                    <li key={item} className="flex items-center gap-2 text-xs text-muted">
-                      <CheckCircle2 className="w-3.5 h-3.5 text-accent shrink-0" />
-                      {item}
-                    </li>
-                  ))}
-                </ul>
-              </div>
             </div>
 
-            {/* Widget */}
-            <div className="flex justify-center lg:justify-start flex-1">
+            {/* Centre: widget */}
+            <div className="flex justify-center flex-1">
               <div className="relative">
-                <div
-                  className="absolute inset-0 rounded-2xl blur-3xl scale-90"
-                  style={{ background: "rgba(99, 102, 241, 0.18)" }}
-                />
+                <div className="absolute inset-0 rounded-2xl blur-3xl scale-90" style={{ background: "rgba(99,102,241,0.18)" }} />
                 <WidgetDemo key={activeId} scenario={scenario} />
               </div>
             </div>
 
-            {/* Right callout */}
-            <div className="lg:w-64 w-full space-y-4">
-              <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-surface)] p-5">
-                <p className="font-display font-semibold text-white text-sm mb-1">
-                  This widget is fully white-label
-                </p>
-                <p className="text-xs text-muted leading-relaxed">
-                  Your colours, your font, your logo. Users never know it&apos;s TxID Support.
-                </p>
-              </div>
+            {/* Right: about this product — clearly NOT interactive */}
+            <div className="lg:w-56 w-full shrink-0">
+              <p className="hidden lg:block text-xs font-semibold text-muted uppercase tracking-wider mb-4">About TxID Support</p>
+              <div className="space-y-3">
+                {[
+                  { title: "Fully white-label", body: "Your colours, font, and logo. Users never know it's TxID Support." },
+                  { title: "Live in under 5 minutes", body: "Configure branding, paste your docs URL, copy one script tag." },
+                  { title: "Free trial", body: "50 conversations/month free. No credit card required." },
+                ].map((item) => (
+                  <div key={item.title} className="rounded-xl border border-[var(--border)] bg-[var(--bg-surface)] p-4">
+                    <p className="font-display font-semibold text-white text-xs mb-1">{item.title}</p>
+                    <p className="text-xs text-muted leading-relaxed">{item.body}</p>
+                  </div>
+                ))}
 
-              <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-surface)] p-5">
-                <p className="font-display font-semibold text-white text-sm mb-1">
-                  Live in under 5 minutes
-                </p>
-                <p className="text-xs text-muted leading-relaxed">
-                  Configure your branding, paste your docs URL, copy one script tag. Done.
-                </p>
-              </div>
-
-              <div className="rounded-xl border border-accent/20 bg-accent-muted p-5">
-                <p className="font-mono text-xs text-accent mb-2">Free during beta</p>
-                <p className="text-xs text-muted leading-relaxed">
-                  Early protocols get 50 conversations/month free. No credit card, no commitment.
-                </p>
+                <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-surface)] p-4">
+                  <p className="text-xs font-semibold text-muted uppercase tracking-wider mb-3">Powered by</p>
+                  <ul className="space-y-1.5">
+                    {["Claude AI (Anthropic)", "On-chain data · Moralis", "RAG doc indexing", "DexScreener prices"].map((item) => (
+                      <li key={item} className="flex items-center gap-2 text-xs text-muted">
+                        <CheckCircle2 className="w-3 h-3 text-accent shrink-0" />
+                        {item}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
               </div>
             </div>
           </div>
 
           {/* CTA */}
           <div className="mt-20 text-center">
-            <p className="text-muted text-sm mb-6">
-              Ready to add this to your protocol?
-            </p>
+            <p className="text-muted text-sm mb-6">Ready to add this to your protocol?</p>
             <Button href={`${APP_URL}/sign-up`} variant="primary" size="lg">
               Get started free
               <ArrowRight className="w-4 h-4" />
             </Button>
             <p className="text-xs text-muted mt-4">
-              No credit card · Configure in minutes · Free tier forever
+              No credit card · Set up in minutes · 50 conversations/month free
             </p>
           </div>
         </div>
