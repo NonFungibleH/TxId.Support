@@ -1,115 +1,209 @@
 import { Suspense } from "react"
 import { WidgetApp } from "@/app/widget/WidgetApp"
+import Link from "next/link"
+import { ArrowLeft, Zap } from "lucide-react"
 
 export const dynamic = "force-dynamic"
 
+const EXAMPLE_PROMPTS = [
+  "How do I swap tokens?",
+  "Why did my transaction fail?",
+  "How do I add liquidity?",
+  "What are the fees?",
+  "How do I connect my wallet?",
+  "Is the smart contract audited?",
+]
+
 /**
- * Renders a mock DeFi protocol landing page so the user can see their widget
- * exactly as their own users will — floating in the bottom-right corner of a
- * real-looking site, rather than centred on a blank page.
+ * Clean light-mode preview page. Lets dashboard users test their widget
+ * exactly as it will appear — floating bottom-right — before going live.
  */
 export default function PreviewPage() {
   return (
-    <div className="relative min-h-screen overflow-hidden font-sans" style={{ background: "#0a0a0f", color: "#f4f4f5" }}>
+    <div
+      className="min-h-screen font-sans"
+      style={{ background: "#f8f9fb", color: "#111827" }}
+    >
+      {/* ── Top bar ── */}
+      <header
+        style={{
+          position: "sticky",
+          top: 0,
+          zIndex: 50,
+          background: "rgba(248,249,251,0.9)",
+          backdropFilter: "blur(8px)",
+          borderBottom: "1px solid #e5e7eb",
+        }}
+      >
+        <div
+          style={{
+            maxWidth: 1100,
+            margin: "0 auto",
+            padding: "0 24px",
+            height: 52,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+          }}
+        >
+          <Link
+            href="/dashboard/preview"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 6,
+              fontSize: 13,
+              fontWeight: 500,
+              color: "#6b7280",
+              textDecoration: "none",
+            }}
+          >
+            <ArrowLeft size={14} />
+            Back to dashboard
+          </Link>
 
-      {/* ── Mock site nav ── */}
-      <nav style={{ borderBottom: "1px solid rgba(255,255,255,0.07)", background: "rgba(10,10,15,0.9)", backdropFilter: "blur(12px)" }}
-        className="fixed top-0 left-0 right-0 z-20 flex items-center justify-between px-8 h-14">
-        <div className="flex items-center gap-2">
-          <div className="w-6 h-6 rounded bg-indigo-500 flex items-center justify-center text-[10px] font-bold text-white">P</div>
-          <span className="font-semibold text-sm text-white">YourProtocol</span>
-        </div>
-        <div className="hidden md:flex items-center gap-6 text-xs" style={{ color: "rgba(255,255,255,0.45)" }}>
-          <span>Swap</span>
-          <span>Liquidity</span>
-          <span>Stake</span>
-          <span>Governance</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <button className="text-xs px-3 py-1.5 rounded-lg font-medium" style={{ background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.7)" }}>
-            Connect Wallet
-          </button>
-        </div>
-      </nav>
-
-      {/* ── Mock site hero ── */}
-      <main className="pt-14">
-        {/* Radial glow */}
-        <div className="pointer-events-none absolute top-0 left-1/2 -translate-x-1/2 w-[700px] h-[400px] rounded-full"
-          style={{ background: "radial-gradient(ellipse at center, rgba(99,102,241,0.1) 0%, transparent 70%)" }} />
-
-        <div className="max-w-4xl mx-auto px-8 py-24 text-center relative">
-          <div className="inline-flex items-center gap-1.5 text-[11px] font-mono px-3 py-1 rounded-full mb-6"
-            style={{ background: "rgba(99,102,241,0.12)", color: "#818cf8", border: "1px solid rgba(99,102,241,0.2)" }}>
-            <span className="w-1.5 h-1.5 rounded-full bg-green-400 inline-block" />
-            Live on Ethereum · Base · Arbitrum
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <div
+              style={{
+                width: 20,
+                height: 20,
+                borderRadius: 5,
+                background: "#6366f1",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Zap size={11} color="white" />
+            </div>
+            <span style={{ fontSize: 12, fontWeight: 600, color: "#6366f1" }}>
+              TxID Support
+            </span>
+            <span
+              style={{
+                fontSize: 11,
+                color: "#9ca3af",
+                background: "#f3f4f6",
+                border: "1px solid #e5e7eb",
+                borderRadius: 99,
+                padding: "1px 8px",
+                marginLeft: 4,
+              }}
+            >
+              Preview mode
+            </span>
           </div>
+        </div>
+      </header>
 
-          <h1 className="text-5xl font-bold leading-tight mb-5" style={{ letterSpacing: "-0.03em" }}>
-            The decentralised<br />
-            <span style={{ color: "#818cf8" }}>liquidity protocol</span>
-          </h1>
-          <p className="text-base max-w-lg mx-auto mb-10" style={{ color: "rgba(255,255,255,0.45)", lineHeight: 1.7 }}>
-            Swap, earn, and build on the leading DeFi infrastructure.
-            Over $2.4B in total value locked across 6 chains.
+      {/* ── Main content ── */}
+      <main style={{ maxWidth: 680, margin: "0 auto", padding: "64px 24px 240px" }}>
+
+        {/* Title */}
+        <div style={{ marginBottom: 40 }}>
+          <p style={{ fontSize: 12, fontWeight: 600, color: "#6366f1", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 10 }}>
+            Widget Preview
           </p>
-
-          <div className="flex items-center justify-center gap-3">
-            <button className="px-5 py-2.5 rounded-xl text-sm font-semibold text-white"
-              style={{ background: "#6366f1" }}>
-              Launch App
-            </button>
-            <button className="px-5 py-2.5 rounded-xl text-sm font-semibold"
-              style={{ background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.7)" }}>
-              Read docs
-            </button>
-          </div>
+          <h1 style={{ fontSize: 28, fontWeight: 700, letterSpacing: "-0.02em", marginBottom: 10, color: "#111827" }}>
+            Test your support widget
+          </h1>
+          <p style={{ fontSize: 15, color: "#6b7280", lineHeight: 1.6 }}>
+            Your widget is live in the bottom-right corner — exactly where your users will see it.
+            Try a few questions to make sure it&apos;s answering the way you&apos;d expect.
+          </p>
         </div>
 
-        {/* ── Mock stats bar ── */}
-        <div className="max-w-3xl mx-auto px-8 pb-24">
-          <div className="grid grid-cols-3 gap-px rounded-2xl overflow-hidden" style={{ background: "rgba(255,255,255,0.06)" }}>
-            {[
-              { label: "Total Value Locked", value: "$2.4B" },
-              { label: "24h Volume", value: "$180M" },
-              { label: "Protocols Integrated", value: "340+" },
-            ].map((stat) => (
-              <div key={stat.label} className="px-8 py-6" style={{ background: "#0a0a0f" }}>
-                <p className="text-2xl font-bold text-white mb-1">{stat.value}</p>
-                <p className="text-xs" style={{ color: "rgba(255,255,255,0.35)" }}>{stat.label}</p>
-              </div>
+        {/* Example prompts */}
+        <div
+          style={{
+            background: "white",
+            border: "1px solid #e5e7eb",
+            borderRadius: 14,
+            padding: "24px 28px",
+            marginBottom: 24,
+          }}
+        >
+          <p style={{ fontSize: 12, fontWeight: 600, color: "#9ca3af", letterSpacing: "0.05em", textTransform: "uppercase", marginBottom: 16 }}>
+            Try asking
+          </p>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+            {EXAMPLE_PROMPTS.map((prompt) => (
+              <span
+                key={prompt}
+                style={{
+                  display: "inline-block",
+                  fontSize: 13,
+                  color: "#374151",
+                  background: "#f9fafb",
+                  border: "1px solid #e5e7eb",
+                  borderRadius: 99,
+                  padding: "6px 14px",
+                  cursor: "default",
+                }}
+              >
+                {prompt}
+              </span>
             ))}
           </div>
+          <p style={{ fontSize: 12, color: "#9ca3af", marginTop: 16 }}>
+            Type any of these into the chat widget →
+          </p>
+        </div>
+
+        {/* Tips */}
+        <div
+          style={{
+            background: "#fffbeb",
+            border: "1px solid #fde68a",
+            borderRadius: 12,
+            padding: "16px 20px",
+          }}
+        >
+          <p style={{ fontSize: 13, fontWeight: 600, color: "#92400e", marginBottom: 6 }}>
+            Before going live
+          </p>
+          <ul style={{ fontSize: 13, color: "#78350f", lineHeight: 1.7, paddingLeft: 16, margin: 0 }}>
+            <li>Check that answers reflect your actual documentation</li>
+            <li>Test a failed transaction question if you&apos;ve added contract addresses</li>
+            <li>If answers seem generic, add more docs in the <strong>Docs & KB</strong> section</li>
+          </ul>
         </div>
       </main>
 
-      {/* ── TxID Support widget — floating bottom-right ── */}
+      {/* ── Widget — fixed bottom-right, exactly as it will appear in production ── */}
       <div
-        className="fixed z-30 overflow-hidden rounded-2xl"
         style={{
+          position: "fixed",
           bottom: 20,
           right: 20,
           width: 380,
           height: 580,
-          boxShadow: "0 8px 40px rgba(0,0,0,0.5), 0 0 0 1px rgba(99,102,241,0.15)",
+          borderRadius: 18,
+          overflow: "hidden",
+          zIndex: 40,
+          boxShadow: "0 8px 40px rgba(0,0,0,0.12), 0 0 0 1px rgba(99,102,241,0.12)",
         }}
       >
         <Suspense
           fallback={
-            <div className="flex h-full items-center justify-center bg-zinc-950 text-zinc-400 text-sm">
-              Loading…
+            <div
+              style={{
+                width: "100%",
+                height: "100%",
+                background: "#f9fafb",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "#9ca3af",
+                fontSize: 13,
+              }}
+            >
+              Loading widget…
             </div>
           }
         >
           <WidgetApp />
         </Suspense>
-      </div>
-
-      {/* ── Preview badge ── */}
-      <div className="fixed bottom-[618px] right-4 z-40 flex items-center gap-1.5 px-2.5 py-1 rounded-full"
-        style={{ background: "rgba(99,102,241,0.15)", border: "1px solid rgba(99,102,241,0.25)" }}>
-        <div className="w-1.5 h-1.5 rounded-full bg-indigo-400" />
-        <span className="text-[10px] font-mono text-indigo-300">TxID Support Preview</span>
       </div>
     </div>
   )
