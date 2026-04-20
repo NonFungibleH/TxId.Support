@@ -1,209 +1,173 @@
 import { Suspense } from "react"
 import { WidgetApp } from "@/app/widget/WidgetApp"
 import Link from "next/link"
-import { ArrowLeft, Zap } from "lucide-react"
+import { ArrowLeft, Zap, CheckCircle2, MessageCircle, Wallet, FileText } from "lucide-react"
 
 export const dynamic = "force-dynamic"
 
-const EXAMPLE_PROMPTS = [
-  "How do I swap tokens?",
-  "Why did my transaction fail?",
-  "How do I add liquidity?",
-  "What are the fees?",
-  "How do I connect my wallet?",
-  "Is the smart contract audited?",
+const PROMPTS = [
+  { icon: "💬", text: "Why did my transaction fail?" },
+  { icon: "🔄", text: "How do I swap tokens?" },
+  { icon: "💰", text: "What are the protocol fees?" },
+  { icon: "🔒", text: "How does staking work?" },
+  { icon: "📄", text: "Where can I read the docs?" },
+  { icon: "🔍", text: "Is the contract audited?" },
+]
+
+const HIGHLIGHTS = [
+  {
+    icon: Wallet,
+    title: "Wallet-aware",
+    body: "Detects the connected wallet and can diagnose failed transactions in context.",
+  },
+  {
+    icon: FileText,
+    title: "Docs-grounded",
+    body: "Answers come from your indexed documentation — not hallucinated.",
+  },
+  {
+    icon: MessageCircle,
+    title: "Always on",
+    body: "Handles common questions 24/7 so your team doesn't have to.",
+  },
 ]
 
 /**
- * Clean light-mode preview page. Lets dashboard users test their widget
- * exactly as it will appear — floating bottom-right — before going live.
+ * Preview page — shows the live widget centred between info panels,
+ * matching the style of the marketing demo page.
  */
 export default function PreviewPage() {
   return (
-    <div
-      className="min-h-screen font-sans"
-      style={{ background: "#f8f9fb", color: "#111827" }}
-    >
+    <div className="min-h-screen bg-[#f8f9fb] font-sans">
+
       {/* ── Top bar ── */}
-      <header
-        style={{
-          position: "sticky",
-          top: 0,
-          zIndex: 50,
-          background: "rgba(248,249,251,0.9)",
-          backdropFilter: "blur(8px)",
-          borderBottom: "1px solid #e5e7eb",
-        }}
-      >
-        <div
-          style={{
-            maxWidth: 1100,
-            margin: "0 auto",
-            padding: "0 24px",
-            height: 52,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-          }}
-        >
+      <header className="sticky top-0 z-50 border-b border-gray-200 bg-[rgba(248,249,251,0.92)] backdrop-blur-md">
+        <div className="max-w-7xl mx-auto px-6 h-13 flex items-center justify-between" style={{ height: 52 }}>
           <Link
             href="/dashboard/preview"
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 6,
-              fontSize: 13,
-              fontWeight: 500,
-              color: "#6b7280",
-              textDecoration: "none",
-            }}
+            className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-900 transition-colors"
           >
-            <ArrowLeft size={14} />
+            <ArrowLeft className="w-3.5 h-3.5" />
             Back to dashboard
           </Link>
 
-          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <div
-              style={{
-                width: 20,
-                height: 20,
-                borderRadius: 5,
-                background: "#6366f1",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <Zap size={11} color="white" />
+          <div className="flex items-center gap-2">
+            <div className="w-5 h-5 rounded-md bg-indigo-500 flex items-center justify-center">
+              <Zap className="w-3 h-3 text-white" />
             </div>
-            <span style={{ fontSize: 12, fontWeight: 600, color: "#6366f1" }}>
-              TxID Support
-            </span>
-            <span
-              style={{
-                fontSize: 11,
-                color: "#9ca3af",
-                background: "#f3f4f6",
-                border: "1px solid #e5e7eb",
-                borderRadius: 99,
-                padding: "1px 8px",
-                marginLeft: 4,
-              }}
-            >
+            <span className="text-sm font-semibold text-indigo-600">TxID Support</span>
+            <span className="text-xs text-gray-400 bg-gray-100 border border-gray-200 rounded-full px-2.5 py-0.5 ml-1">
               Preview mode
             </span>
           </div>
         </div>
       </header>
 
-      {/* ── Main content ── */}
-      <main style={{ maxWidth: 680, margin: "0 auto", padding: "64px 24px 240px" }}>
+      {/* ── Page header ── */}
+      <div className="text-center pt-12 pb-10 px-6">
+        <p className="font-mono text-xs font-semibold text-indigo-500 uppercase tracking-widest mb-3">
+          {"// Widget Preview"}
+        </p>
+        <h1 className="text-3xl font-bold text-gray-900 mb-3" style={{ letterSpacing: "-0.02em" }}>
+          Test your support widget
+        </h1>
+        <p className="text-sm text-gray-500 max-w-md mx-auto leading-relaxed">
+          This is exactly how it will appear on your site. Try the prompts on the left,
+          then confirm you&apos;re happy before going live.
+        </p>
+      </div>
 
-        {/* Title */}
-        <div style={{ marginBottom: 40 }}>
-          <p style={{ fontSize: 12, fontWeight: 600, color: "#6366f1", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 10 }}>
-            Widget Preview
-          </p>
-          <h1 style={{ fontSize: 28, fontWeight: 700, letterSpacing: "-0.02em", marginBottom: 10, color: "#111827" }}>
-            Test your support widget
-          </h1>
-          <p style={{ fontSize: 15, color: "#6b7280", lineHeight: 1.6 }}>
-            Your widget is live in the bottom-right corner — exactly where your users will see it.
-            Try a few questions to make sure it&apos;s answering the way you&apos;d expect.
-          </p>
-        </div>
+      {/* ── Three-column layout ── */}
+      <div className="max-w-6xl mx-auto px-6 pb-20 flex flex-col lg:flex-row gap-8 items-start justify-center">
 
-        {/* Example prompts */}
-        <div
-          style={{
-            background: "white",
-            border: "1px solid #e5e7eb",
-            borderRadius: 14,
-            padding: "24px 28px",
-            marginBottom: 24,
-          }}
-        >
-          <p style={{ fontSize: 12, fontWeight: 600, color: "#9ca3af", letterSpacing: "0.05em", textTransform: "uppercase", marginBottom: 16 }}>
+        {/* Left — example prompts */}
+        <div className="lg:w-60 w-full shrink-0 space-y-3">
+          <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-widest mb-4">
             Try asking
           </p>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-            {EXAMPLE_PROMPTS.map((prompt) => (
-              <span
-                key={prompt}
-                style={{
-                  display: "inline-block",
-                  fontSize: 13,
-                  color: "#374151",
-                  background: "#f9fafb",
-                  border: "1px solid #e5e7eb",
-                  borderRadius: 99,
-                  padding: "6px 14px",
-                  cursor: "default",
-                }}
-              >
-                {prompt}
-              </span>
-            ))}
-          </div>
-          <p style={{ fontSize: 12, color: "#9ca3af", marginTop: 16 }}>
+          {PROMPTS.map((p) => (
+            <div
+              key={p.text}
+              className="text-left rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-sm"
+            >
+              <div className="flex items-start gap-2.5">
+                <span className="text-base leading-none mt-0.5">{p.icon}</span>
+                <p className="text-xs text-gray-600 leading-relaxed">{p.text}</p>
+              </div>
+            </div>
+          ))}
+          <p className="text-[11px] text-gray-400 pt-1 leading-relaxed">
             Type any of these into the chat widget →
           </p>
         </div>
 
-        {/* Tips */}
-        <div
-          style={{
-            background: "#fffbeb",
-            border: "1px solid #fde68a",
-            borderRadius: 12,
-            padding: "16px 20px",
-          }}
-        >
-          <p style={{ fontSize: 13, fontWeight: 600, color: "#92400e", marginBottom: 6 }}>
-            Before going live
-          </p>
-          <ul style={{ fontSize: 13, color: "#78350f", lineHeight: 1.7, paddingLeft: 16, margin: 0 }}>
-            <li>Check that answers reflect your actual documentation</li>
-            <li>Test a failed transaction question if you&apos;ve added contract addresses</li>
-            <li>If answers seem generic, add more docs in the <strong>Docs & KB</strong> section</li>
-          </ul>
-        </div>
-      </main>
-
-      {/* ── Widget — fixed bottom-right, exactly as it will appear in production ── */}
-      <div
-        style={{
-          position: "fixed",
-          bottom: 20,
-          right: 20,
-          width: 380,
-          height: 580,
-          borderRadius: 18,
-          overflow: "hidden",
-          zIndex: 40,
-          boxShadow: "0 8px 40px rgba(0,0,0,0.12), 0 0 0 1px rgba(99,102,241,0.12)",
-        }}
-      >
-        <Suspense
-          fallback={
+        {/* Centre — live widget */}
+        <div className="flex justify-center flex-1">
+          <div className="relative">
+            {/* Indigo glow, matching the demo page */}
             <div
+              className="absolute inset-0 rounded-2xl blur-3xl scale-90 pointer-events-none"
+              style={{ background: "rgba(99,102,241,0.14)" }}
+            />
+            {/* Widget shell */}
+            <div
+              className="relative rounded-2xl overflow-hidden shadow-2xl"
               style={{
-                width: "100%",
-                height: "100%",
-                background: "#f9fafb",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: "#9ca3af",
-                fontSize: 13,
+                width: 340,
+                height: 520,
+                boxShadow: "0 8px 40px rgba(0,0,0,0.10), 0 0 0 1px rgba(99,102,241,0.12)",
               }}
             >
-              Loading widget…
+              <Suspense
+                fallback={
+                  <div className="flex h-full items-center justify-center bg-gray-50 text-gray-400 text-sm">
+                    Loading widget…
+                  </div>
+                }
+              >
+                <WidgetApp />
+              </Suspense>
             </div>
-          }
-        >
-          <WidgetApp />
-        </Suspense>
+          </div>
+        </div>
+
+        {/* Right — what this widget does + pre-live checklist */}
+        <div className="lg:w-56 w-full shrink-0 space-y-3">
+          <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-widest mb-4">
+            What it does
+          </p>
+
+          {HIGHLIGHTS.map(({ icon: Icon, title, body }) => (
+            <div
+              key={title}
+              className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm"
+            >
+              <div className="flex items-center gap-2 mb-1.5">
+                <Icon className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+                <p className="text-xs font-semibold text-gray-900">{title}</p>
+              </div>
+              <p className="text-xs text-gray-500 leading-relaxed">{body}</p>
+            </div>
+          ))}
+
+          {/* Pre-live checklist */}
+          <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
+            <p className="text-xs font-semibold text-amber-800 mb-2">Before going live</p>
+            <ul className="space-y-1.5">
+              {[
+                "Answers match your docs",
+                "Failed tx question works",
+                "Branding looks right",
+              ].map((item) => (
+                <li key={item} className="flex items-start gap-2 text-xs text-amber-700">
+                  <CheckCircle2 className="w-3 h-3 text-amber-500 shrink-0 mt-0.5" />
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+
       </div>
     </div>
   )
