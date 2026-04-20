@@ -2,7 +2,9 @@ import { getProject } from "@/lib/actions/project"
 import { redirect } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Bookmark, ExternalLink, MonitorSmartphone } from "lucide-react"
+import { ConfirmPreviewButton } from "@/components/dashboard/ConfirmPreviewButton"
 import type { Database } from "@/lib/supabase/types"
+import type { ProjectConfig } from "@/lib/types/config"
 
 type ProjectRow = Database["public"]["Tables"]["projects"]["Row"]
 
@@ -11,6 +13,7 @@ export default async function PreviewPage() {
   if (!project) redirect("/dashboard")
 
   const typedProject = project as unknown as ProjectRow
+  const config = typedProject.config as unknown as ProjectConfig
   const widgetBaseUrl = process.env.NEXT_PUBLIC_WIDGET_URL ?? "https://app.txid.support"
   const previewUrl = `${widgetBaseUrl}/preview?key=${typedProject.publishable_key}`
   const bookmarklet = `javascript:(function(){if(document.getElementById('txid-preview'))return;var f=document.createElement('iframe');f.id='txid-preview';f.src='${widgetBaseUrl}/widget?key=${typedProject.publishable_key}';f.style.cssText='position:fixed;bottom:20px;right:20px;width:380px;height:580px;border:none;z-index:2147483647;border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,0.4)';document.body.appendChild(f);})();`
@@ -20,7 +23,7 @@ export default async function PreviewPage() {
       <div>
         <h1 className="text-2xl font-bold">Preview widget</h1>
         <p className="text-muted-foreground mt-1">
-          See exactly how your widget looks before going live.
+          Test your widget before any users see it, then confirm you&apos;re happy to move on.
         </p>
       </div>
 
@@ -32,7 +35,7 @@ export default async function PreviewPage() {
             <CardTitle>Standalone preview</CardTitle>
           </div>
           <CardDescription>
-            Opens your widget on a plain page at its exact display size.
+            Opens your widget on a branded page at its exact display size.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -71,7 +74,7 @@ export default async function PreviewPage() {
             </li>
             <li className="flex items-start gap-3">
               <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">3</span>
-              <span>Click the bookmark — your support widget will appear in the bottom-right corner, exactly as your users will see it</span>
+              <span>Click the bookmark — your support widget appears in the bottom-right corner, exactly as users will see it. Refresh the page to remove it.</span>
             </li>
           </ol>
 
@@ -89,10 +92,28 @@ export default async function PreviewPage() {
             </a>
             <p className="text-xs text-muted-foreground">← drag this to your bookmarks bar</p>
           </div>
+        </CardContent>
+      </Card>
 
-          <p className="text-xs text-muted-foreground border-t border-border pt-3">
-            The bookmark is tied to your project key. If you need to remove the widget from a page, just refresh.
-          </p>
+      {/* Confirm */}
+      <Card className={config.previewConfirmed ? "border-green-500/30 bg-green-500/5" : "border-primary/30 bg-primary/5"}>
+        <CardContent className="pt-6">
+          <div className="flex items-center justify-between gap-6">
+            <div>
+              <p className="font-semibold">
+                {config.previewConfirmed ? "✓ Preview approved" : "Happy with how it looks?"}
+              </p>
+              <p className="text-sm text-muted-foreground mt-1">
+                {config.previewConfirmed
+                  ? "You confirmed the design. Head to Embed & Go Live to publish."
+                  : "Once you've tested the widget and you're happy with it, confirm here to move to the final step."}
+              </p>
+            </div>
+            <ConfirmPreviewButton
+              projectId={typedProject.id}
+              confirmed={config.previewConfirmed}
+            />
+          </div>
         </CardContent>
       </Card>
     </div>

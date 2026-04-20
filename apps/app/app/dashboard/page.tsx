@@ -34,8 +34,7 @@ export default async function DashboardPage() {
   const brandingDone = config.branding.logoUrl !== null || config.branding.primaryColor !== "#6366f1"
   const contractsDone = (config.watchedContracts ?? []).length > 0
   const docsDone = docCount > 0
-  // "Go live" only ticks when the user has explicitly enabled it
-  // (new projects start as is_active: false)
+  const previewDone = config.previewConfirmed === true
   const liveDone = typedProject.is_active === true
 
   const SETUP_STEPS = [
@@ -62,16 +61,23 @@ export default async function DashboardPage() {
     },
     {
       step: 4,
-      href: "/dashboard/preview",
-      label: "Preview the widget",
-      desc: "Open a live preview or test it on your own website with the bookmarklet before any users see it.",
-      done: false, // always a prompt — user decides when they're happy
+      href: "/dashboard/chains",
+      label: "Enable chains",
+      desc: "Choose which blockchains the widget scans when a user connects their wallet.",
+      done: config.chains.length > 0,
     },
     {
       step: 5,
+      href: "/dashboard/preview",
+      label: "Preview & approve",
+      desc: "Open the live preview, test it on your own site, then click 'Design looks great!' to confirm.",
+      done: previewDone,
+    },
+    {
+      step: 6,
       href: "/dashboard/embed",
       label: "Embed & go live",
-      desc: "Copy the one-line snippet into your site, then flip the switch below to publish.",
+      desc: "Copy the one-line snippet into your site, then flip the switch to publish.",
       done: liveDone,
     },
   ]
@@ -97,7 +103,7 @@ export default async function DashboardPage() {
         <StatsCard title="Conversations" value={convResult.count ?? 0} description="All time" icon={MessageSquare} />
         <StatsCard title="Users helped" value={convResult.count ?? 0} description="Unique sessions" icon={Users} />
         <StatsCard title="Knowledge docs" value={docCount} description="Indexed chunks" icon={Globe} />
-        <StatsCard title="Chains enabled" value={config.chains.length} description="of 7 supported" icon={Zap} />
+        <StatsCard title="Chains enabled" value={config.chains.length} description={`of ${7} supported`} icon={Zap} />
       </div>
 
       {/* Setup steps */}

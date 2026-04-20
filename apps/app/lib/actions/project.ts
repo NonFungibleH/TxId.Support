@@ -161,6 +161,43 @@ export async function updateConfig(
   revalidatePath("/dashboard/ask")
 }
 
+export async function confirmPreview(projectId: string) {
+  const { orgId, userId } = await auth()
+  if (!userId) throw new Error("Unauthenticated")
+  const orgKey = orgId ?? userId
+
+  const supabase = createServiceClient()
+
+  const { data: org } = await supabase
+    .from("organisations")
+    .select("id")
+    .eq("clerk_org_id", orgKey)
+    .single()
+
+  if (!org) throw new Error("Org not found")
+
+  const { data: project } = await supabase
+    .from("projects")
+    .select("config")
+    .eq("id", projectId)
+    .eq("org_id", org.id)
+    .single()
+
+  if (!project) throw new Error("Project not found")
+
+  const config = project.config as unknown as import("@/lib/types/config").ProjectConfig
+  const updated = { ...config, previewConfirmed: true }
+
+  const { error } = await supabase
+    .from("projects")
+    .update({ config: updated as unknown as import("@/lib/supabase/types").Json })
+    .eq("id", projectId)
+
+  if (error) throw new Error(error.message)
+  revalidatePath("/dashboard")
+  revalidatePath("/dashboard/preview")
+}
+
 export async function toggleActive(projectId: string, isActive: boolean) {
   const { orgId, userId } = await auth()
   if (!userId) throw new Error("Unauthenticated")

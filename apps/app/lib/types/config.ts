@@ -72,6 +72,7 @@ export interface ProjectConfig {
   watchedContracts: WatchedContract[]
   community: CommunityConfig | null
   tokenModeAsk: string | null
+  previewConfirmed: boolean
 }
 
 export const DEFAULT_CONFIG: ProjectConfig = {
@@ -93,4 +94,5 @@ export const DEFAULT_CONFIG: ProjectConfig = {
   watchedContracts: [],
   community: null,
   tokenModeAsk: null,
+  previewConfirmed: false,
 }
