@@ -1,11 +1,12 @@
 import type { StreamChatParams } from "./types"
+import { formatWalletContext, formatTransactionContext } from "./blockchain-context"
 
 /**
  * Build the system prompt from project config + runtime context.
  * Branches on mode: token mode gets a lightweight prompt without RAG.
  */
 export function buildSystemPrompt(params: StreamChatParams): string {
-  const { projectName, config, walletAddress, chainId, ragContext, mode, tokenModeAsk } = params
+  const { projectName, config, walletAddress, chainId, walletContext, transactionContext, ragContext, mode, tokenModeAsk } = params
   const parts: string[] = []
 
   if (mode === "token") {
@@ -66,18 +67,25 @@ export function buildSystemPrompt(params: StreamChatParams): string {
       parts.push(lines.join("\n"))
     }
 
-    if (walletAddress) {
+    if (walletContext) {
+      // Rich wallet context — pre-fetched balances from Moralis
+      parts.push(walletContext)
+    } else if (walletAddress) {
+      // Minimal context — just the address (no balance data available)
       const lines = [
         `## Connected Wallet`,
         `Address: \`${walletAddress}\``,
       ]
       if (chainId) lines.push(`Chain ID: ${chainId}`)
       lines.push(
-        `Note: you can see the wallet address and chain but do not have live balance or ` +
-        `transaction data unless it was shared in the conversation. For balance queries, ` +
-        `direct the user to a block explorer for their chain.`
+        `Note: you can see the wallet address but balance data was not loaded for this session. ` +
+        `For balance queries, direct the user to check a block explorer for their chain.`
       )
       parts.push(lines.join("\n"))
+    }
+
+    if (transactionContext) {
+      parts.push(transactionContext)
     }
 
     if (ragContext && ragContext.trim().length > 0) {
@@ -102,9 +110,10 @@ export function buildSystemPrompt(params: StreamChatParams): string {
       `- Match your response length to the question: short factual answers for simple questions, ` +
         `detailed explanations for complex ones\n` +
       `- Format contract addresses and tx hashes in \`code\` blocks\n` +
-      `- For failed transactions: explain what happened, why, and what to do next\n` +
-      `- For wallet/balance questions: you can see the address but not live balances — ` +
-        `direct to a block explorer (e.g. etherscan.io for Ethereum) for real-time data\n` +
+      `- For failed transactions: explain what happened, why, and what to do next. ` +
+        `Reference the specific transaction hash and error details if provided above\n` +
+      `- For balance questions: if wallet context was provided above, use those exact figures. ` +
+        `For real-time or live data beyond what's shown, direct to a block explorer\n` +
       `- If the answer isn't in the documentation above, be honest — say it's not something ` +
         `you have in front of you and suggest where they might find it (Discord, docs, team)\n` +
       `- Never invent token prices, APYs, or contract data`

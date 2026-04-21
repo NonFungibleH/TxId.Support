@@ -1,8 +1,9 @@
 import { createServiceClient } from "@/lib/supabase/server"
-import { buildSystemPrompt, retrieveContext, streamChat } from "@txid/ai"
+import { buildSystemPrompt, retrieveContext, streamChat, isTxQuery, formatTransactionContext } from "@txid/ai"
 import type { ChatMessage, ProjectConfigSnapshot } from "@txid/ai"
 import type { ProjectConfig } from "@/lib/types/config"
 import type { Database } from "@/lib/supabase/types"
+import { getRecentTransactions } from "@txid/blockchain"
 
 type ProjectRow = Database["public"]["Tables"]["projects"]["Row"]
 
@@ -25,9 +26,11 @@ export async function POST(request: Request) {
       messages: ChatMessage[]
       walletAddress?: string
       chainId?: string
+      /** Pre-fetched wallet balance context (formatted markdown), sent from the widget */
+      walletContext?: string
     }
 
-    const { key, sessionId, messages, walletAddress, chainId } = body
+    const { key, sessionId, messages, walletAddress, chainId, walletContext } = body
 
     if (!key || !sessionId || !Array.isArray(messages) || messages.length === 0) {
       return new Response(JSON.stringify({ error: "Invalid request" }), {
@@ -96,6 +99,25 @@ export async function POST(request: Request) {
       }
     }
 
+    // Optionally fetch recent transactions when the query is tx-related
+    let transactionContext = ""
+    if (
+      projectMode === "support" &&
+      walletAddress &&
+      chainId &&
+      messages.length > 0
+    ) {
+      const latestUser = [...messages].reverse().find((m) => m.role === "user")
+      if (latestUser && isTxQuery(latestUser.content)) {
+        try {
+          const txs = await getRecentTransactions(walletAddress, chainId, 10)
+          transactionContext = formatTransactionContext(txs)
+        } catch {
+          // Non-fatal — proceed without transaction context
+        }
+      }
+    }
+
     // Build system prompt — mode-aware
     const systemPrompt = buildSystemPrompt({
       projectName: typedProject.name,
@@ -103,6 +125,8 @@ export async function POST(request: Request) {
       messages,
       walletAddress: projectMode === "support" ? walletAddress : undefined,
       chainId: projectMode === "support" ? chainId : undefined,
+      walletContext: projectMode === "support" ? walletContext : undefined,
+      transactionContext: transactionContext || undefined,
       ragContext,
       mode: projectMode as "support" | "token",
       tokenModeAsk: config.tokenModeAsk ?? undefined,
