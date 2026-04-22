@@ -50,9 +50,9 @@ export function buildWalletTools(
       name: "get_recent_transactions",
       description:
         "Get the recent transaction history for the connected wallet. " +
-        "Use when the user asks about past transactions, a failed action, pending transactions, " +
-        "or wants to understand what happened with a protocol interaction " +
-        "(locking, staking, swapping, bridging, approving, etc.)." +
+        "Use this proactively whenever the user mentions anything going wrong or asks if something worked — " +
+        "do NOT ask the user for a transaction hash, look it up yourself. " +
+        "If the relevant protocol contract address is known, pass it as contract_address to filter results." +
         contractHint,
       input_schema: {
         type: "object" as const,
@@ -64,8 +64,8 @@ export function buildWalletTools(
           contract_address: {
             type: "string",
             description:
-              "Optional. Filter results to transactions that interacted with this specific contract address. " +
-              "Use when diagnosing an interaction with a known protocol contract.",
+              "Filter to transactions interacting with this contract address. " +
+              "Use the protocol's known contract addresses from the system context whenever relevant.",
           },
         },
         required: [],
