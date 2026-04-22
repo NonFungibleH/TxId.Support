@@ -1,12 +1,15 @@
 import type { StreamChatParams } from "./types"
-import { formatWalletContext, formatTransactionContext } from "./blockchain-context"
 
 /**
  * Build the system prompt from project config + runtime context.
  * Branches on mode: token mode gets a lightweight prompt without RAG.
+ *
+ * For support mode, if a walletConfig is provided Claude also receives
+ * blockchain tools (get_wallet_balance, get_recent_transactions,
+ * get_transaction_by_hash) — it decides what to fetch based on the question.
  */
 export function buildSystemPrompt(params: StreamChatParams): string {
-  const { projectName, config, walletAddress, chainId, walletContext, transactionContext, ragContext, mode, tokenModeAsk } = params
+  const { projectName, config, walletConfig, ragContext, mode, tokenModeAsk } = params
   const parts: string[] = []
 
   if (mode === "token") {
@@ -40,7 +43,7 @@ export function buildSystemPrompt(params: StreamChatParams): string {
     )
 
   } else {
-    // ── Support Mode: full RAG + wallet + contracts ────────────────────────────
+    // ── Support Mode: RAG + contracts + live blockchain tools ─────────────────
     parts.push(
       `You are a senior support specialist for ${projectName}, a DeFi protocol. ` +
       `You have deep knowledge of this protocol — its features, smart contracts, tokenomics, and common user issues. ` +
@@ -67,55 +70,57 @@ export function buildSystemPrompt(params: StreamChatParams): string {
       parts.push(lines.join("\n"))
     }
 
-    if (walletContext) {
-      // Rich wallet context — pre-fetched balances from Moralis
-      parts.push(walletContext)
-    } else if (walletAddress) {
-      // Minimal context — just the address (no balance data available)
-      const lines = [
-        `## Connected Wallet`,
-        `Address: \`${walletAddress}\``,
-      ]
-      if (chainId) lines.push(`Chain ID: ${chainId}`)
-      lines.push(
-        `Note: you can see the wallet address but balance data was not loaded for this session. ` +
-        `For balance queries, direct the user to check a block explorer for their chain.`
+    if (walletConfig) {
+      // Wallet is connected — tools are available
+      parts.push(
+        `## User's Wallet\n` +
+        `Address: \`${walletConfig.address}\`\n` +
+        `Chain ID: ${walletConfig.chainId}\n\n` +
+        `You have live blockchain tools available:\n` +
+        `- **get_wallet_balance** — fetch current native and token balances\n` +
+        `- **get_recent_transactions** — fetch transaction history (filter by contract address if relevant)\n` +
+        `- **get_transaction_by_hash** — fetch full details for a specific transaction hash\n\n` +
+        `Use these tools proactively whenever the question involves balances, transactions, ` +
+        `failed actions, or any on-chain activity. Do not tell the user to check a block explorer ` +
+        `when you can look it up yourself. If gasUsed ≈ gasLimit on a failed transaction, ` +
+        `the cause is likely out-of-gas.`
       )
-      parts.push(lines.join("\n"))
-    }
-
-    if (transactionContext) {
-      parts.push(transactionContext)
+    } else {
+      // No wallet connected
+      parts.push(
+        `## User's Wallet\n` +
+        `No wallet is connected for this session.\n\n` +
+        `If the user asks about their transactions, balances, failed actions, or anything ` +
+        `that requires on-chain data, ask them for their wallet address or suggest they ` +
+        `connect via the Wallet tab in the widget. Keep the ask brief and natural — ` +
+        `don't make it feel like a barrier.`
+      )
     }
 
     if (ragContext && ragContext.trim().length > 0) {
       parts.push(
         `## Protocol Documentation\n` +
-        `The following content is drawn directly from this protocol's documentation. ` +
-        `Treat it as authoritative — always prefer these details over general assumptions.\n\n` +
+        `The following is drawn directly from this protocol's documentation. ` +
+        `Treat it as authoritative.\n\n` +
         ragContext.trim()
       )
     } else {
       parts.push(
         `## Documentation\n` +
-        `No documentation has been indexed for this project yet. ` +
-        `Answer from general DeFi knowledge and the context provided above, ` +
+        `No documentation has been indexed yet. ` +
+        `Answer from general DeFi knowledge and the context above, ` +
         `and let the user know they can check the team's official docs for specifics.`
       )
     }
 
     parts.push(
       `## How to respond\n` +
-      `- Be specific and thorough — don't hedge if the answer is in the docs above\n` +
-      `- Match your response length to the question: short factual answers for simple questions, ` +
-        `detailed explanations for complex ones\n` +
-      `- Format contract addresses and tx hashes in \`code\` blocks\n` +
-      `- For failed transactions: explain what happened, why, and what to do next. ` +
-        `Reference the specific transaction hash and error details if provided above\n` +
-      `- For balance questions: if wallet context was provided above, use those exact figures. ` +
-        `For real-time or live data beyond what's shown, direct to a block explorer\n` +
-      `- If the answer isn't in the documentation above, be honest — say it's not something ` +
-        `you have in front of you and suggest where they might find it (Discord, docs, team)\n` +
+      `- Be specific and thorough — don't hedge when the answer is clear\n` +
+      `- Match length to the question: short for factual, detailed for diagnostic\n` +
+      `- Format addresses and hashes in \`code\` blocks\n` +
+      `- For failed transactions: use your tools to look up the tx, explain the cause, and say what to do next\n` +
+      `- For balance questions: use get_wallet_balance — give the exact figures, don't redirect to a block explorer\n` +
+      `- If something isn't in the docs or tools, be honest and point to Discord / the team\n` +
       `- Never invent token prices, APYs, or contract data`
     )
   }

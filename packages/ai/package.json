@@ -12,6 +12,7 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.90.0",
     "@supabase/supabase-js": "^2.100.0",
+    "@txid/blockchain": "workspace:*",
     "openai": "^6.34.0",
     "voyageai": "^0.2.1"
   },

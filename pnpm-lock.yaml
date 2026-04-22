@@ -227,6 +227,9 @@ importers:
       '@supabase/supabase-js':
         specifier: ^2.100.0
         version: 2.100.0
+      '@txid/blockchain':
+        specifier: workspace:*
+        version: link:../blockchain
       openai:
         specifier: ^6.34.0
         version: 6.34.0(ws@8.20.0)(zod@4.3.6)

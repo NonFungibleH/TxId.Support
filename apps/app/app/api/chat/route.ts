@@ -1,9 +1,8 @@
 import { createServiceClient } from "@/lib/supabase/server"
-import { buildSystemPrompt, retrieveContext, streamChat, isTxQuery, formatTransactionContext } from "@txid/ai"
+import { buildSystemPrompt, retrieveContext, streamChatWithTools } from "@txid/ai"
 import type { ChatMessage, ProjectConfigSnapshot } from "@txid/ai"
 import type { ProjectConfig } from "@/lib/types/config"
 import type { Database } from "@/lib/supabase/types"
-import { getRecentTransactions } from "@txid/blockchain"
 
 type ProjectRow = Database["public"]["Tables"]["projects"]["Row"]
 
@@ -26,11 +25,9 @@ export async function POST(request: Request) {
       messages: ChatMessage[]
       walletAddress?: string
       chainId?: string
-      /** Pre-fetched wallet balance context (formatted markdown), sent from the widget */
-      walletContext?: string
     }
 
-    const { key, sessionId, messages, walletAddress, chainId, walletContext } = body
+    const { key, sessionId, messages, walletAddress, chainId } = body
 
     if (!key || !sessionId || !Array.isArray(messages) || messages.length === 0) {
       return new Response(JSON.stringify({ error: "Invalid request" }), {
@@ -65,6 +62,7 @@ export async function POST(request: Request) {
     }
 
     const config = typedProject.config as unknown as ProjectConfig
+    const projectMode = (typedProject as unknown as { mode?: string }).mode ?? "support"
 
     // Build snapshot for AI package (no Clerk types)
     const configSnapshot: ProjectConfigSnapshot = {
@@ -87,8 +85,6 @@ export async function POST(request: Request) {
       docsUrl: config.docsUrl,
     }
 
-    const projectMode = (typedProject as unknown as { mode?: string }).mode ?? "support"
-
     // RAG: only run for support mode
     let ragContext = ""
     if (projectMode === "support") {
@@ -99,46 +95,39 @@ export async function POST(request: Request) {
       }
     }
 
-    // Optionally fetch recent transactions when the query is tx-related
-    let transactionContext = ""
-    if (
-      projectMode === "support" &&
-      walletAddress &&
-      chainId &&
-      messages.length > 0
-    ) {
-      const latestUser = [...messages].reverse().find((m) => m.role === "user")
-      if (latestUser && isTxQuery(latestUser.content)) {
-        try {
-          const txs = await getRecentTransactions(walletAddress, chainId, 10)
-          transactionContext = formatTransactionContext(txs)
-        } catch {
-          // Non-fatal — proceed without transaction context
-        }
-      }
-    }
+    // Wallet config — passed to the AI so Claude can decide whether to use tools
+    const walletConfig =
+      projectMode === "support" && walletAddress && chainId
+        ? { address: walletAddress, chainId }
+        : null
 
-    // Build system prompt — mode-aware
+    // Build system prompt
     const systemPrompt = buildSystemPrompt({
       projectName: typedProject.name,
       config: configSnapshot,
-      messages,
-      walletAddress: projectMode === "support" ? walletAddress : undefined,
-      chainId: projectMode === "support" ? chainId : undefined,
-      walletContext: projectMode === "support" ? walletContext : undefined,
-      transactionContext: transactionContext || undefined,
+      walletConfig,
       ragContext,
       mode: projectMode as "support" | "token",
       tokenModeAsk: config.tokenModeAsk ?? undefined,
     })
 
-    // Stream the response using Server-Sent Events
+    // Stream the response — Claude uses tools as needed for on-chain data
     const encoder = new TextEncoder()
     const stream = new ReadableStream({
       async start(controller) {
         try {
-          for await (const chunk of streamChat(systemPrompt, messages)) {
-            const data = `data: ${JSON.stringify({ text: chunk })}\n\n`
+          for await (const event of streamChatWithTools(
+            systemPrompt,
+            messages,
+            walletConfig,
+            configSnapshot.watchedContracts,
+          )) {
+            let data: string
+            if (event.type === "tool_call") {
+              data = `data: ${JSON.stringify({ tool_call: event.tool })}\n\n`
+            } else {
+              data = `data: ${JSON.stringify({ text: event.text })}\n\n`
+            }
             controller.enqueue(encoder.encode(data))
           }
           controller.enqueue(encoder.encode("data: [DONE]\n\n"))
@@ -153,7 +142,7 @@ export async function POST(request: Request) {
       },
     })
 
-    // Persist conversation + messages asynchronously (fire and forget)
+    // Persist conversation asynchronously (fire and forget)
     void persistMessages(supabase, typedProject.id, sessionId, messages, walletAddress, chainId)
 
     return new Response(stream, {
@@ -182,7 +171,6 @@ async function persistMessages(
   chainId?: string,
 ) {
   try {
-    // Upsert conversation by sessionId
     const { data: conv } = await supabase
       .from("conversations")
       .upsert(
@@ -194,7 +182,6 @@ async function persistMessages(
 
     if (!conv) return
 
-    // Only insert the latest user message (assistant response is streamed — saved on next turn)
     const latest = messages[messages.length - 1]
     if (latest?.role === "user") {
       await supabase

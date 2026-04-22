@@ -57,6 +57,8 @@ interface Message {
   role: "user" | "assistant"
   content: string
   streaming?: boolean
+  /** Tool currently being called — shown while Claude fetches blockchain data */
+  toolCall?: string | null
 }
 
 // ─── Token Mode types ─────────────────────────────────────────────────────────
@@ -182,9 +184,6 @@ export function WidgetApp() {
   const [walletSetup, setWalletSetup] = useState<"prompt" | "manual-input" | "connected" | "manual" | "skipped">("prompt")
   const [manualInput, setManualInput] = useState("")
   const [manualInputError, setManualInputError] = useState<string | null>(null)
-  // Pre-fetched wallet balance context string, sent with each chat message
-  const [walletContext, setWalletContext] = useState<string | null>(null)
-  const [walletContextLoading, setWalletContextLoading] = useState(false)
 
   // Token mode state
   const [dexData, setDexData] = useState<DexPair | null>(null)
@@ -250,24 +249,6 @@ export function WidgetApp() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [config?.mode, config?.token?.address, config?.token?.chain])
 
-  // ── Fetch wallet context (balances) from our server ─────────────────────
-  const fetchWalletContext = useCallback(async (address: string, cId: string) => {
-    setWalletContextLoading(true)
-    try {
-      const res = await fetch(
-        `/api/wallet-context?address=${encodeURIComponent(address)}&chainId=${encodeURIComponent(cId)}`,
-      )
-      if (res.ok) {
-        const data = (await res.json()) as { context?: string }
-        setWalletContext(data.context ?? null)
-      }
-    } catch {
-      // Non-fatal — chat still works, just without rich balance data
-    } finally {
-      setWalletContextLoading(false)
-    }
-  }, [])
-
   // ── Restore wallet session on mount (after config loads) ─────────────────
   useEffect(() => {
     if (!apiKey || !config) return
@@ -287,18 +268,16 @@ export function WidgetApp() {
                 setWalletAddress(accounts[0])
                 setChainId(session.chainId ?? "0x1")
                 setWalletSetup("connected")
-                void fetchWalletContext(accounts[0], session.chainId ?? "0x1")
               }
-              // If no accounts returned, stay on "prompt" to re-connect
+              // If no accounts, stay on prompt to re-connect
             })
             .catch(() => { /* stay on prompt */ })
         }
       } else {
-        // Manual address — restore directly
+        // Manual address — restore directly, no fetch needed
         setWalletAddress(session.address)
         setChainId(session.chainId ?? "0x1")
         setWalletSetup("manual")
-        void fetchWalletContext(session.address, session.chainId ?? "0x1")
       }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -318,16 +297,15 @@ export function WidgetApp() {
       setChainId(cId)
       setWalletSetup("connected")
       saveWalletSession(apiKey, { setup: "connected", address: addr, chainId: cId })
-      void fetchWalletContext(addr, cId)
     } catch {
       // user rejected
     } finally {
       setWalletConnecting(false)
     }
-  }, [apiKey, fetchWalletContext])
+  }, [apiKey])
 
   // ── Confirm manually entered address ─────────────────────────────────────
-  const confirmManualAddress = useCallback(async () => {
+  const confirmManualAddress = useCallback(() => {
     const addr = manualInput.trim()
     if (!/^0x[0-9a-fA-F]{40}$/i.test(addr)) {
       setManualInputError("Enter a valid Ethereum address (0x…)")
@@ -340,14 +318,12 @@ export function WidgetApp() {
     setChainId(cId)
     setWalletSetup("manual")
     saveWalletSession(apiKey, { setup: "manual", address: lowerAddr, chainId: cId })
-    void fetchWalletContext(lowerAddr, cId)
-  }, [manualInput, apiKey, fetchWalletContext])
+  }, [manualInput, apiKey])
 
   // ── Disconnect / reset wallet ────────────────────────────────────────────
   const disconnectWallet = useCallback(() => {
     setWalletAddress(null)
     setChainId(null)
-    setWalletContext(null)
     setWalletSetup("prompt")
     setManualInput("")
     setManualInputError(null)
@@ -377,7 +353,6 @@ export function WidgetApp() {
           messages: history.map((m) => ({ role: m.role, content: m.content })),
           walletAddress: walletAddress ?? undefined,
           chainId: chainId ?? undefined,
-          walletContext: walletContext ?? undefined,
         }),
       })
 
@@ -397,12 +372,21 @@ export function WidgetApp() {
           const payload = line.slice(5).trim()
           if (payload === "[DONE]") break
           try {
-            const parsed = JSON.parse(payload) as { text?: string; error?: string }
+            const parsed = JSON.parse(payload) as { text?: string; tool_call?: string; error?: string }
+            if (parsed.tool_call) {
+              // Claude is fetching blockchain data — show tool indicator
+              setMessages((prev) =>
+                prev.map((m) =>
+                  m.id === assistantId ? { ...m, toolCall: parsed.tool_call } : m,
+                ),
+              )
+            }
             if (parsed.text) {
+              // Text is streaming — clear any tool indicator
               accumulated += parsed.text
               setMessages((prev) =>
                 prev.map((m) =>
-                  m.id === assistantId ? { ...m, content: accumulated } : m,
+                  m.id === assistantId ? { ...m, content: accumulated, toolCall: null } : m,
                 ),
               )
             }
@@ -426,7 +410,7 @@ export function WidgetApp() {
     } finally {
       setIsStreaming(false)
     }
-  }, [input, isStreaming, config, messages, apiKey, walletAddress, chainId, walletContext])
+  }, [input, isStreaming, config, messages, apiKey, walletAddress, chainId])
 
   // ── Error state ──────────────────────────────────────────────────────────
   if (configError) {
@@ -782,11 +766,25 @@ export function WidgetApp() {
                     }}
                   >
                     {m.content || (m.streaming && (
-                      <span className="inline-flex items-center gap-1 opacity-60">
-                        <span className="size-1 rounded-full animate-bounce bg-current" style={{ animationDelay: "0ms" }} />
-                        <span className="size-1 rounded-full animate-bounce bg-current" style={{ animationDelay: "150ms" }} />
-                        <span className="size-1 rounded-full animate-bounce bg-current" style={{ animationDelay: "300ms" }} />
-                      </span>
+                      m.toolCall ? (
+                        // Claude is calling a blockchain tool
+                        <span className="inline-flex items-center gap-1.5 opacity-70">
+                          <Loader2Icon className="size-2.5 animate-spin" />
+                          <span className="text-[11px]">
+                            {m.toolCall === "get_wallet_balance" && "Checking your balance…"}
+                            {m.toolCall === "get_recent_transactions" && "Looking up your transactions…"}
+                            {m.toolCall === "get_transaction_by_hash" && "Fetching transaction details…"}
+                            {!["get_wallet_balance","get_recent_transactions","get_transaction_by_hash"].includes(m.toolCall) && "Looking up data…"}
+                          </span>
+                        </span>
+                      ) : (
+                        // Waiting for first token
+                        <span className="inline-flex items-center gap-1 opacity-60">
+                          <span className="size-1 rounded-full animate-bounce bg-current" style={{ animationDelay: "0ms" }} />
+                          <span className="size-1 rounded-full animate-bounce bg-current" style={{ animationDelay: "150ms" }} />
+                          <span className="size-1 rounded-full animate-bounce bg-current" style={{ animationDelay: "300ms" }} />
+                        </span>
+                      )
                     ))}
                   </div>
                 </div>
@@ -940,24 +938,14 @@ export function WidgetApp() {
                   </div>
                 </div>
 
-                {walletContextLoading ? (
-                  <div className="flex items-center gap-2 text-[11px] opacity-50">
-                    <Loader2Icon className="size-3 animate-spin" />
-                    Loading balances…
-                  </div>
-                ) : walletContext ? (
-                  <div
-                    className="rounded-xl p-3 text-[11px] space-y-1"
-                    style={{ backgroundColor: `rgba(255,255,255,0.05)`, border: `1px solid var(--w-border)` }}
-                  >
-                    <p className="font-semibold opacity-70 mb-1.5">Balances loaded ✓</p>
-                    <p className="opacity-50 leading-relaxed">
-                      The AI can now see your wallet balances and diagnose transactions. Switch to Chat to ask questions.
-                    </p>
-                  </div>
-                ) : (
-                  <p className="text-[11px] opacity-40">Balance data unavailable — the AI still knows your address.</p>
-                )}
+                <div
+                  className="rounded-xl p-3 text-[11px]"
+                  style={{ backgroundColor: `rgba(255,255,255,0.05)`, border: `1px solid var(--w-border)` }}
+                >
+                  <p className="opacity-60 leading-relaxed">
+                    Wallet linked. Switch to Chat — the bot can now look up your balances and diagnose transactions in real time.
+                  </p>
+                </div>
 
                 <button
                   onClick={disconnectWallet}
