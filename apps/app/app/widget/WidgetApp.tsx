@@ -173,7 +173,7 @@ export function WidgetApp() {
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState("")
   const [isStreaming, setIsStreaming] = useState(false)
-  const sessionId = useRef(apiKey ? getSessionId(apiKey) : nanoid())
+  const sessionId = useRef<string>("")
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   // Wallet state
@@ -189,6 +189,13 @@ export function WidgetApp() {
   // Token mode state
   const [dexData, setDexData] = useState<DexPair | null>(null)
   const [dexLoading, setDexLoading] = useState(false)
+
+  // ── Initialise session ID client-side (sessionStorage not available on server) ──
+  useEffect(() => {
+    if (!sessionId.current) {
+      sessionId.current = apiKey ? getSessionId(apiKey) : nanoid()
+    }
+  }, [apiKey])
 
   // ── Load config ──────────────────────────────────────────────────────────
   useEffect(() => {
