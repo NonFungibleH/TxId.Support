@@ -25,9 +25,10 @@ export async function POST(request: Request) {
       messages: ChatMessage[]
       walletAddress?: string
       chainId?: string
+      preview?: boolean
     }
 
-    const { key, sessionId, messages, walletAddress, chainId } = body
+    const { key, sessionId, messages, walletAddress, chainId, preview } = body
 
     if (!key || !sessionId || !Array.isArray(messages) || messages.length === 0) {
       return new Response(JSON.stringify({ error: "Invalid request" }), {
@@ -54,7 +55,7 @@ export async function POST(request: Request) {
 
     const typedProject = project as unknown as ProjectRow & { name: string; is_active: boolean }
 
-    if (!typedProject.is_active) {
+    if (!typedProject.is_active && !preview) {
       return new Response(JSON.stringify({ error: "Project is inactive" }), {
         status: 403,
         headers: { ...CORS_HEADERS, "Content-Type": "application/json" },

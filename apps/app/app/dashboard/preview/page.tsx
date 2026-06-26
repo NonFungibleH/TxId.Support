@@ -18,8 +18,8 @@ export default async function PreviewPage() {
   const rawConfig = typedProject.config as unknown as ProjectConfig | null
   const previewConfirmed = rawConfig?.previewConfirmed ?? false
   const widgetBaseUrl = process.env.NEXT_PUBLIC_WIDGET_URL ?? "https://app.txid.support"
-  const previewUrl = `${widgetBaseUrl}/preview?key=${typedProject.publishable_key}`
-  const bookmarklet = `javascript:(function(){if(document.getElementById('txid-preview'))return;var f=document.createElement('iframe');f.id='txid-preview';f.src='${widgetBaseUrl}/widget?key=${typedProject.publishable_key}';f.style.cssText='position:fixed;bottom:20px;right:20px;width:380px;height:580px;border:none;z-index:2147483647;border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,0.4)';document.body.appendChild(f);})();`
+  const previewUrl = `${widgetBaseUrl}/preview?key=${typedProject.publishable_key}&preview=1`
+  const bookmarklet = `javascript:(function(){if(document.getElementById('txid-preview'))return;var f=document.createElement('iframe');f.id='txid-preview';f.src='${widgetBaseUrl}/widget?key=${typedProject.publishable_key}&preview=1';f.style.cssText='position:fixed;bottom:20px;right:20px;width:380px;height:580px;border:none;z-index:2147483647;border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,0.4)';document.body.appendChild(f);})();`
 
   return (
     <div className="space-y-6">

@@ -163,6 +163,7 @@ function loadWalletSession(key: string): WalletSession | null {
 export function WidgetApp() {
   const params = useSearchParams()
   const apiKey = params?.get("key") ?? ""
+  const isPreview = params?.get("preview") === "1"
 
   const [config, setConfig] = useState<WidgetConfig | null>(null)
   const [configError, setConfigError] = useState<string | null>(null)
@@ -353,6 +354,7 @@ export function WidgetApp() {
           messages: history.map((m) => ({ role: m.role, content: m.content })),
           walletAddress: walletAddress ?? undefined,
           chainId: chainId ?? undefined,
+          preview: isPreview || undefined,
         }),
       })
 
