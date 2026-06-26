@@ -24,7 +24,10 @@ export default async function EmbedPage() {
           <CardDescription>Three ways to integrate — pick whatever fits your stack.</CardDescription>
         </CardHeader>
         <CardContent>
-          <EmbedCodeDisplay publishableKey={typedProject.publishable_key} />
+          <EmbedCodeDisplay
+            publishableKey={typedProject.publishable_key}
+            widgetBaseUrl={process.env.NEXT_PUBLIC_WIDGET_URL ?? "https://app.txid.support"}
+          />
         </CardContent>
       </Card>
     </div>

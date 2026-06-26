@@ -3,7 +3,8 @@ import { redirect } from "next/navigation"
 import { createServiceClient } from "@/lib/supabase/server"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import dynamic from "next/dynamic"
-import { MessageSquare, ThumbsUp, ThumbsDown, Users } from "lucide-react"
+import { MessageSquare, ThumbsUp, ThumbsDown, Users, Zap } from "lucide-react"
+import Link from "next/link"
 import type { Database } from "@/lib/supabase/types"
 
 const ConversationChart = dynamic(
@@ -105,12 +106,31 @@ export default async function AnalyticsPage() {
       ? Math.round((thumbsUp / (thumbsUp + thumbsDown)) * 100)
       : null
 
+  const hasData = (totalConversations ?? 0) > 0
+
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Analytics</h1>
         <p className="text-muted-foreground mt-1">Conversation insights and satisfaction ratings.</p>
       </div>
+
+      {!hasData && (
+        <div className="rounded-xl border border-dashed border-primary/30 bg-primary/5 p-6 flex items-start gap-4">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10">
+            <Zap className="size-4 text-primary" />
+          </div>
+          <div>
+            <p className="font-semibold text-sm">No conversations yet</p>
+            <p className="text-sm text-muted-foreground mt-1">
+              Analytics will appear here once your widget is embedded and users start chatting.{" "}
+              <Link href="/dashboard/embed" className="text-primary underline underline-offset-2">
+                Get your embed code →
+              </Link>
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Stat cards */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">

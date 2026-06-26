@@ -75,6 +75,47 @@ export async function getTokenBalances(
   })
 }
 
+/** Get the full details of a single transaction by hash */
+export async function getTransactionByHash(
+  hash: string,
+  chainId: string,
+): Promise<Transaction | null> {
+  const chain = moralisChain(chainId)
+  const res = await fetch(
+    `${MORALIS_BASE}/transaction/${hash}?chain=${chain}`,
+    { headers: moralisHeaders() },
+  )
+  if (!res.ok) return null
+  const tx = (await res.json()) as {
+    hash: string
+    block_number: string
+    block_timestamp: string
+    from_address: string
+    to_address: string | null
+    value: string
+    gas: string
+    receipt_gas_used: string | null
+    receipt_status: string | null
+  }
+  const valueEth = (Number(BigInt(tx.value ?? "0")) / 1e18).toLocaleString("en-US", {
+    maximumFractionDigits: 6,
+  })
+  const symbol = CHAIN_CONFIGS[chainId]?.nativeCurrency ?? "ETH"
+  const statusStr = tx.receipt_status === "1" ? "success" : "failed"
+  return {
+    hash: tx.hash,
+    blockNumber: tx.block_number,
+    timestamp: tx.block_timestamp,
+    from: tx.from_address,
+    to: tx.to_address,
+    value: `${valueEth} ${symbol}`,
+    gasLimit: tx.gas,
+    gasUsed: tx.receipt_gas_used ?? "0",
+    status: statusStr,
+    summary: `Transaction ${statusStr} — ${valueEth} ${symbol} to ${tx.to_address ?? "contract creation"}`,
+  }
+}
+
 /** Get recent transactions for a wallet (last 10) */
 export async function getRecentTransactions(
   address: string,
@@ -114,6 +155,7 @@ export async function getRecentTransactions(
       from: tx.from_address,
       to: tx.to_address,
       value: `${valueEth} ${symbol}`,
+      gasLimit: tx.gas,
       gasUsed: tx.receipt_gas_used,
       status: tx.receipt_status === "1" ? "success" : "failed",
       summary,

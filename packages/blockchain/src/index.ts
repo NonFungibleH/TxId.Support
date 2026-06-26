@@ -1,4 +1,4 @@
-export { getNativeBalance, getTokenBalances, getRecentTransactions } from "./wallet"
+export { getNativeBalance, getTokenBalances, getRecentTransactions, getTransactionByHash } from "./wallet"
 export {
   getExplorerUrl,
   getTxUrl,

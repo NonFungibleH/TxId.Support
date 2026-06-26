@@ -5,11 +5,12 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/Button";
 import { Menu, X, Zap } from "lucide-react";
 import { clsx } from "clsx";
+import { APP_URL } from "@/lib/config";
 
 const NAV_LINKS = [
   { label: "Features", href: "/#features" },
   { label: "Pricing", href: "/pricing" },
-  { label: "Docs", href: "https://docs.txid.support", external: true },
+  { label: "Demo", href: "/demo" },
 ];
 
 export function Navbar() {
@@ -42,34 +43,22 @@ export function Navbar() {
         </Link>
 
         <div className="hidden md:flex items-center gap-1">
-          {NAV_LINKS.map((link) =>
-            link.external ? (
-              <a
-                key={link.href}
-                href={link.href}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="px-3 py-2 text-sm text-muted hover:text-white transition-colors"
-              >
-                {link.label}
-              </a>
-            ) : (
-              <Link
-                key={link.href}
-                href={link.href}
-                className="px-3 py-2 text-sm text-muted hover:text-white transition-colors"
-              >
-                {link.label}
-              </Link>
-            )
-          )}
+          {NAV_LINKS.map((link) => (
+            <Link
+              key={link.href}
+              href={link.href}
+              className="px-3 py-2 text-sm text-muted hover:text-white transition-colors"
+            >
+              {link.label}
+            </Link>
+          ))}
         </div>
 
         <div className="hidden md:flex items-center gap-2">
-          <Button href="https://app.txid.support/sign-in" variant="ghost" size="sm">
+          <Button href={`${APP_URL}/sign-in`} variant="ghost" size="sm">
             Sign In
           </Button>
-          <Button href="https://app.txid.support/sign-up" variant="primary" size="sm">
+          <Button href={`${APP_URL}/sign-up`} variant="primary" size="sm">
             Get Started Free
           </Button>
         </div>
@@ -95,10 +84,10 @@ export function Navbar() {
             </Link>
           ))}
           <div className="pt-2 flex flex-col gap-2">
-            <Button href="https://app.txid.support/sign-in" variant="outline" size="sm" className="w-full justify-center">
+            <Button href={`${APP_URL}/sign-in`} variant="outline" size="sm" className="w-full justify-center">
               Sign In
             </Button>
-            <Button href="https://app.txid.support/sign-up" variant="primary" size="sm" className="w-full justify-center">
+            <Button href={`${APP_URL}/sign-up`} variant="primary" size="sm" className="w-full justify-center">
               Get Started Free
             </Button>
           </div>

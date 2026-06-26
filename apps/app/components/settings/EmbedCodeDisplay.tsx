@@ -7,12 +7,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 interface EmbedCodeDisplayProps {
   publishableKey: string
+  widgetBaseUrl: string
 }
 
-export function EmbedCodeDisplay({ publishableKey }: EmbedCodeDisplayProps) {
+export function EmbedCodeDisplay({ publishableKey, widgetBaseUrl }: EmbedCodeDisplayProps) {
   const [copied, setCopied] = useState<string | null>(null)
 
-  const widgetSrc = `https://app.txid.support/widget?key=${publishableKey}`
+  const widgetSrc = `${widgetBaseUrl}/widget?key=${publishableKey}`
 
   const SNIPPETS = {
     script: `<!-- Floating widget (bottom-right) -->\n<script>\n  (function(){\n    var f = document.createElement('iframe');\n    f.src = "${widgetSrc}";\n    f.allow = "clipboard-write";\n    f.style.cssText = "position:fixed;bottom:20px;right:20px;width:380px;height:580px;border:none;z-index:2147483647;border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,0.4)";\n    document.body.appendChild(f);\n  })();\n</script>`,
@@ -27,7 +28,8 @@ export function EmbedCodeDisplay({ publishableKey }: EmbedCodeDisplayProps) {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
+      {/* API key */}
       <div className="flex items-center gap-3 p-3 rounded-lg bg-muted">
         <div className="flex-1 min-w-0">
           <p className="text-xs text-muted-foreground mb-0.5">Your API key</p>
@@ -38,6 +40,7 @@ export function EmbedCodeDisplay({ publishableKey }: EmbedCodeDisplayProps) {
         </Button>
       </div>
 
+      {/* Embed code */}
       <Tabs defaultValue="script">
         <TabsList className="grid grid-cols-3 w-full">
           <TabsTrigger value="script">Script tag</TabsTrigger>
@@ -45,7 +48,7 @@ export function EmbedCodeDisplay({ publishableKey }: EmbedCodeDisplayProps) {
           <TabsTrigger value="react">React / npm</TabsTrigger>
         </TabsList>
 
-        {(["script", "inline", "react"] as const).map(tab => (
+        {(["script", "inline"] as const).map(tab => (
           <TabsContent key={tab} value={tab}>
             <div className="relative rounded-lg border border-border bg-muted">
               <pre className="p-4 text-xs font-mono overflow-x-auto leading-relaxed">
@@ -62,6 +65,16 @@ export function EmbedCodeDisplay({ publishableKey }: EmbedCodeDisplayProps) {
             </div>
           </TabsContent>
         ))}
+
+        <TabsContent value="react">
+          <div className="rounded-lg border border-border bg-muted p-6 text-center space-y-2">
+            <p className="text-sm font-medium">@txid/react npm package</p>
+            <p className="text-xs text-muted-foreground">
+              Coming soon — the React package is in development.
+              Use the script tag or inline div embed in the meantime.
+            </p>
+          </div>
+        </TabsContent>
       </Tabs>
     </div>
   )

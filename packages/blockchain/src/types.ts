@@ -22,7 +22,8 @@ export interface Transaction {
   from: string
   to: string | null
   value: string          // in native currency, formatted
-  gasUsed: string
+  gasLimit: string       // gas limit set by the sender
+  gasUsed: string        // actual gas consumed (gasUsed ≈ gasLimit → out-of-gas)
   status: "success" | "failed"
   summary: string        // human-readable one-liner
 }

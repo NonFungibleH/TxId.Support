@@ -10,15 +10,16 @@ import type { Database, Json } from "@/lib/supabase/types"
 type OrgRow = Database["public"]["Tables"]["organisations"]["Row"]
 
 export async function getProject() {
-  const { userId } = await auth()
+  const { orgId, userId } = await auth()
   if (!userId) throw new Error("Unauthenticated")
+  const orgKey = orgId ?? userId
 
   const supabase = createServiceClient()
 
   const upsertOrgResult = await supabase
     .from("organisations")
     .upsert(
-      { clerk_org_id: userId, name: "My Protocol" },
+      { clerk_org_id: orgKey, name: "My Protocol" },
       { onConflict: "clerk_org_id" }
     )
     .select()
@@ -40,15 +41,16 @@ export async function getProject() {
 }
 
 export async function createProject(name: string) {
-  const { userId } = await auth()
+  const { orgId, userId } = await auth()
   if (!userId) throw new Error("Unauthenticated")
+  const orgKey = orgId ?? userId
 
   const supabase = createServiceClient()
 
   const upsertOrgResult2 = await supabase
     .from("organisations")
     .upsert(
-      { clerk_org_id: userId, name: "My Protocol" },
+      { clerk_org_id: orgKey, name: "My Protocol" },
       { onConflict: "clerk_org_id" }
     )
     .select()
@@ -74,15 +76,16 @@ export async function createProject(name: string) {
 }
 
 export async function createProjectWithMode(name: string, mode: "support" | "token") {
-  const { userId } = await auth()
+  const { orgId, userId } = await auth()
   if (!userId) throw new Error("Unauthenticated")
+  const orgKey = orgId ?? userId
 
   const supabase = createServiceClient()
 
   const upsertOrgResult = await supabase
     .from("organisations")
     .upsert(
-      { clerk_org_id: userId, name: "My Protocol" },
+      { clerk_org_id: orgKey, name: "My Protocol" },
       { onConflict: "clerk_org_id" }
     )
     .select()
@@ -97,6 +100,7 @@ export async function createProjectWithMode(name: string, mode: "support" | "tok
       org_id: org.id,
       name,
       mode,
+      is_active: false,
       config: DEFAULT_CONFIG as unknown as Json,
     })
     .select()
@@ -112,8 +116,9 @@ export async function updateConfig(
   projectId: string,
   partial: Partial<ProjectConfig>
 ) {
-  const { userId } = await auth()
+  const { orgId, userId } = await auth()
   if (!userId) throw new Error("Unauthenticated")
+  const orgKey = orgId ?? userId
 
   const supabase = createServiceClient()
 
@@ -128,7 +133,7 @@ export async function updateConfig(
   const { data: org } = await supabase
     .from("organisations")
     .select("id")
-    .eq("clerk_org_id", userId)
+    .eq("clerk_org_id", orgKey)
     .single()
 
   if (!org || current.org_id !== org.id) throw new Error("Forbidden")
@@ -156,16 +161,54 @@ export async function updateConfig(
   revalidatePath("/dashboard/ask")
 }
 
-export async function toggleActive(projectId: string, isActive: boolean) {
-  const { userId } = await auth()
+export async function confirmPreview(projectId: string) {
+  const { orgId, userId } = await auth()
   if (!userId) throw new Error("Unauthenticated")
+  const orgKey = orgId ?? userId
 
   const supabase = createServiceClient()
 
   const { data: org } = await supabase
     .from("organisations")
     .select("id")
-    .eq("clerk_org_id", userId)
+    .eq("clerk_org_id", orgKey)
+    .single()
+
+  if (!org) throw new Error("Org not found")
+
+  const { data: project } = await supabase
+    .from("projects")
+    .select("config")
+    .eq("id", projectId)
+    .eq("org_id", org.id)
+    .single()
+
+  if (!project) throw new Error("Project not found")
+
+  const config = project.config as unknown as import("@/lib/types/config").ProjectConfig
+  const updated = { ...config, previewConfirmed: true }
+
+  const { error } = await supabase
+    .from("projects")
+    .update({ config: updated as unknown as import("@/lib/supabase/types").Json })
+    .eq("id", projectId)
+
+  if (error) throw new Error(error.message)
+  revalidatePath("/dashboard")
+  revalidatePath("/dashboard/preview")
+}
+
+export async function toggleActive(projectId: string, isActive: boolean) {
+  const { orgId, userId } = await auth()
+  if (!userId) throw new Error("Unauthenticated")
+  const orgKey = orgId ?? userId
+
+  const supabase = createServiceClient()
+
+  const { data: org } = await supabase
+    .from("organisations")
+    .select("id")
+    .eq("clerk_org_id", orgKey)
     .single()
 
   if (!org) throw new Error("Org not found")

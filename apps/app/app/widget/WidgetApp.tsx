@@ -57,6 +57,8 @@ interface Message {
   role: "user" | "assistant"
   content: string
   streaming?: boolean
+  /** Tool currently being called — shown while Claude fetches blockchain data */
+  toolCall?: string | null
 }
 
 // ─── Token Mode types ─────────────────────────────────────────────────────────
@@ -137,6 +139,25 @@ function getSessionId(key: string): string {
   return id
 }
 
+// ─── Wallet session helpers (module-level, no component state) ───────────────
+
+type WalletSession = {
+  setup: "connected" | "manual" | "skipped"
+  address: string | null
+  chainId: string | null
+}
+
+function saveWalletSession(key: string, session: WalletSession) {
+  try { sessionStorage.setItem(`txid_wallet_${key}`, JSON.stringify(session)) } catch { /* ignore */ }
+}
+
+function loadWalletSession(key: string): WalletSession | null {
+  try {
+    const raw = sessionStorage.getItem(`txid_wallet_${key}`)
+    return raw ? (JSON.parse(raw) as WalletSession) : null
+  } catch { return null }
+}
+
 // ─── Main component ──────────────────────────────────────────────────────────
 
 export function WidgetApp() {
@@ -158,6 +179,11 @@ export function WidgetApp() {
   const [walletAddress, setWalletAddress] = useState<string | null>(null)
   const [chainId, setChainId] = useState<string | null>(null)
   const [walletConnecting, setWalletConnecting] = useState(false)
+
+  // Wallet setup flow: prompt → (connected | manual | skipped)
+  const [walletSetup, setWalletSetup] = useState<"prompt" | "manual-input" | "connected" | "manual" | "skipped">("prompt")
+  const [manualInput, setManualInput] = useState("")
+  const [manualInputError, setManualInputError] = useState<string | null>(null)
 
   // Token mode state
   const [dexData, setDexData] = useState<DexPair | null>(null)
@@ -220,7 +246,42 @@ export function WidgetApp() {
     fetchDex()
     const interval = setInterval(fetchDex, 30_000)
     return () => clearInterval(interval)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [config?.mode, config?.token?.address, config?.token?.chain])
+
+  // ── Restore wallet session on mount (after config loads) ─────────────────
+  useEffect(() => {
+    if (!apiKey || !config) return
+    const session = loadWalletSession(apiKey)
+    if (!session) return
+
+    if (session.setup === "skipped") {
+      setWalletSetup("skipped")
+    } else if ((session.setup === "connected" || session.setup === "manual") && session.address) {
+      if (session.setup === "connected") {
+        // Try to silently re-connect MetaMask (no popup)
+        const win = window as unknown as { ethereum?: { request: (a: { method: string }) => Promise<string[]> } }
+        if (win.ethereum) {
+          win.ethereum.request({ method: "eth_accounts" })
+            .then((accounts) => {
+              if (accounts[0]) {
+                setWalletAddress(accounts[0])
+                setChainId(session.chainId ?? "0x1")
+                setWalletSetup("connected")
+              }
+              // If no accounts, stay on prompt to re-connect
+            })
+            .catch(() => { /* stay on prompt */ })
+        }
+      } else {
+        // Manual address — restore directly, no fetch needed
+        setWalletAddress(session.address)
+        setChainId(session.chainId ?? "0x1")
+        setWalletSetup("manual")
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [apiKey, config])
 
   // ── Connect wallet ───────────────────────────────────────────────────────
   const connectWallet = useCallback(async () => {
@@ -230,14 +291,44 @@ export function WidgetApp() {
     try {
       const accounts = await eth.request({ method: "eth_requestAccounts" })
       const chain = await eth.request({ method: "eth_chainId" }) as unknown as string[]
-      setWalletAddress(accounts[0])
-      setChainId(chain as unknown as string)
+      const addr = accounts[0]
+      const cId = chain as unknown as string
+      setWalletAddress(addr)
+      setChainId(cId)
+      setWalletSetup("connected")
+      saveWalletSession(apiKey, { setup: "connected", address: addr, chainId: cId })
     } catch {
       // user rejected
     } finally {
       setWalletConnecting(false)
     }
-  }, [])
+  }, [apiKey])
+
+  // ── Confirm manually entered address ─────────────────────────────────────
+  const confirmManualAddress = useCallback(() => {
+    const addr = manualInput.trim()
+    if (!/^0x[0-9a-fA-F]{40}$/i.test(addr)) {
+      setManualInputError("Enter a valid Ethereum address (0x…)")
+      return
+    }
+    setManualInputError(null)
+    const lowerAddr = addr.toLowerCase()
+    const cId = "0x1" // Default to Ethereum mainnet for manually entered addresses
+    setWalletAddress(lowerAddr)
+    setChainId(cId)
+    setWalletSetup("manual")
+    saveWalletSession(apiKey, { setup: "manual", address: lowerAddr, chainId: cId })
+  }, [manualInput, apiKey])
+
+  // ── Disconnect / reset wallet ────────────────────────────────────────────
+  const disconnectWallet = useCallback(() => {
+    setWalletAddress(null)
+    setChainId(null)
+    setWalletSetup("prompt")
+    setManualInput("")
+    setManualInputError(null)
+    try { sessionStorage.removeItem(`txid_wallet_${apiKey}`) } catch { /* ignore */ }
+  }, [apiKey])
 
   // ── Send message ─────────────────────────────────────────────────────────
   const sendMessage = useCallback(async () => {
@@ -281,12 +372,21 @@ export function WidgetApp() {
           const payload = line.slice(5).trim()
           if (payload === "[DONE]") break
           try {
-            const parsed = JSON.parse(payload) as { text?: string; error?: string }
+            const parsed = JSON.parse(payload) as { text?: string; tool_call?: string; error?: string }
+            if (parsed.tool_call) {
+              // Claude is fetching blockchain data — show tool indicator
+              setMessages((prev) =>
+                prev.map((m) =>
+                  m.id === assistantId ? { ...m, toolCall: parsed.tool_call } : m,
+                ),
+              )
+            }
             if (parsed.text) {
+              // Text is streaming — clear any tool indicator
               accumulated += parsed.text
               setMessages((prev) =>
                 prev.map((m) =>
-                  m.id === assistantId ? { ...m, content: accumulated } : m,
+                  m.id === assistantId ? { ...m, content: accumulated, toolCall: null } : m,
                 ),
               )
             }
@@ -333,8 +433,8 @@ export function WidgetApp() {
   }
 
   const b = config.branding
-  const hasWallet = typeof window !== "undefined" && "ethereum" in window
   const isTokenMode = config.mode === "token"
+  const hasMetaMask = typeof window !== "undefined" && "ethereum" in window
 
   const TABS = isTokenMode
     ? [
@@ -666,11 +766,25 @@ export function WidgetApp() {
                     }}
                   >
                     {m.content || (m.streaming && (
-                      <span className="inline-flex items-center gap-1 opacity-60">
-                        <span className="size-1 rounded-full animate-bounce bg-current" style={{ animationDelay: "0ms" }} />
-                        <span className="size-1 rounded-full animate-bounce bg-current" style={{ animationDelay: "150ms" }} />
-                        <span className="size-1 rounded-full animate-bounce bg-current" style={{ animationDelay: "300ms" }} />
-                      </span>
+                      m.toolCall ? (
+                        // Claude is calling a blockchain tool
+                        <span className="inline-flex items-center gap-1.5 opacity-70">
+                          <Loader2Icon className="size-2.5 animate-spin" />
+                          <span className="text-[11px]">
+                            {m.toolCall === "get_wallet_balance" && "Checking your balance…"}
+                            {m.toolCall === "get_recent_transactions" && "Looking up your transactions…"}
+                            {m.toolCall === "get_transaction_by_hash" && "Fetching transaction details…"}
+                            {!["get_wallet_balance","get_recent_transactions","get_transaction_by_hash"].includes(m.toolCall) && "Looking up data…"}
+                          </span>
+                        </span>
+                      ) : (
+                        // Waiting for first token
+                        <span className="inline-flex items-center gap-1 opacity-60">
+                          <span className="size-1 rounded-full animate-bounce bg-current" style={{ animationDelay: "0ms" }} />
+                          <span className="size-1 rounded-full animate-bounce bg-current" style={{ animationDelay: "150ms" }} />
+                          <span className="size-1 rounded-full animate-bounce bg-current" style={{ animationDelay: "300ms" }} />
+                        </span>
+                      )
                     ))}
                   </div>
                 </div>
@@ -710,41 +824,154 @@ export function WidgetApp() {
 
         {/* Wallet tab */}
         {!isTokenMode && tab === "wallet" && (
-          <div className="flex h-full flex-col items-center justify-center gap-4 p-4 text-center">
-            {walletAddress ? (
-              <>
-                <div
-                  className="flex size-12 items-center justify-center rounded-full"
-                  style={{ backgroundColor: b.primaryColor }}
-                >
-                  <WalletIcon className="size-5" style={{ color: b.textColor }} />
-                </div>
-                <div>
-                  <p className="text-xs opacity-60">Connected wallet</p>
-                  <p className="mt-1 font-mono text-sm break-all">{walletAddress}</p>
-                  {chainId && <p className="mt-0.5 text-xs opacity-50">Chain: {chainId}</p>}
-                </div>
-                <p className="text-xs opacity-50">Switch to the Chat tab to ask questions about your wallet.</p>
-              </>
-            ) : hasWallet ? (
-              <>
-                <WalletIcon className="size-8 opacity-40" />
-                <p className="text-sm opacity-70">Connect your wallet to get personalised support</p>
+          <div className="flex h-full flex-col overflow-y-auto">
+
+            {/* ── Choice prompt ── */}
+            {walletSetup === "prompt" && (
+              <div className="flex flex-col gap-3 p-4">
+                <p className="text-xs font-semibold opacity-70">Connect your wallet</p>
+                <p className="text-[11px] opacity-50 -mt-1">
+                  Share your wallet so the bot can diagnose transactions and check balances.
+                </p>
+
+                {/* MetaMask option */}
                 <button
                   onClick={connectWallet}
-                  disabled={walletConnecting}
-                  className="rounded-lg px-4 py-2 text-sm font-medium transition-opacity disabled:opacity-50"
+                  disabled={walletConnecting || !hasMetaMask}
+                  className="w-full text-left rounded-xl p-3 border transition-opacity disabled:opacity-40 active:opacity-70"
+                  style={{ borderColor: `var(--w-border)`, backgroundColor: `rgba(255,255,255,0.04)` }}
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="text-xl leading-none">🦊</span>
+                    <div>
+                      <p className="text-xs font-semibold">{walletConnecting ? "Connecting…" : "MetaMask"}</p>
+                      <p className="text-[11px] opacity-50">
+                        {hasMetaMask ? "Connect your browser wallet" : "MetaMask not detected"}
+                      </p>
+                    </div>
+                  </div>
+                </button>
+
+                {/* Enter address option */}
+                <button
+                  onClick={() => setWalletSetup("manual-input")}
+                  className="w-full text-left rounded-xl p-3 border transition-opacity active:opacity-70"
+                  style={{ borderColor: `var(--w-border)`, backgroundColor: `rgba(255,255,255,0.04)` }}
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="text-xl leading-none">✏️</span>
+                    <div>
+                      <p className="text-xs font-semibold">Enter address</p>
+                      <p className="text-[11px] opacity-50">Paste any wallet address</p>
+                    </div>
+                  </div>
+                </button>
+
+                {/* Skip option */}
+                <button
+                  onClick={() => {
+                    setWalletSetup("skipped")
+                    saveWalletSession(apiKey, { setup: "skipped", address: null, chainId: null })
+                    setTab("chat")
+                  }}
+                  className="w-full text-left rounded-xl p-3 border transition-opacity active:opacity-70"
+                  style={{ borderColor: `var(--w-border)`, backgroundColor: `rgba(255,255,255,0.04)` }}
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="text-xl leading-none">💬</span>
+                    <div>
+                      <p className="text-xs font-semibold">Skip for now</p>
+                      <p className="text-[11px] opacity-50">Chat without wallet data</p>
+                    </div>
+                  </div>
+                </button>
+              </div>
+            )}
+
+            {/* ── Manual address input ── */}
+            {walletSetup === "manual-input" && (
+              <div className="flex flex-col gap-3 p-4">
+                <button
+                  onClick={() => { setWalletSetup("prompt"); setManualInputError(null) }}
+                  className="flex items-center gap-1.5 text-[11px] opacity-50 hover:opacity-80 transition-opacity w-fit"
+                >
+                  ← Back
+                </button>
+                <p className="text-xs font-semibold opacity-70">Enter your wallet address</p>
+                <input
+                  value={manualInput}
+                  onChange={(e) => { setManualInput(e.target.value); setManualInputError(null) }}
+                  onKeyDown={(e) => e.key === "Enter" && void confirmManualAddress()}
+                  placeholder="0x…"
+                  autoFocus
+                  className="w-full rounded-lg border px-3 py-2 text-xs font-mono bg-transparent outline-none placeholder:opacity-30"
+                  style={{ borderColor: `var(--w-border)`, color: b.textColor }}
+                />
+                {manualInputError && (
+                  <p className="text-[11px] text-red-400">{manualInputError}</p>
+                )}
+                <button
+                  onClick={() => void confirmManualAddress()}
+                  className="rounded-lg px-4 py-2 text-xs font-semibold transition-opacity"
                   style={{ backgroundColor: b.primaryColor, color: b.textColor }}
                 >
-                  {walletConnecting ? "Connecting…" : "Connect Wallet"}
+                  Confirm
                 </button>
-              </>
-            ) : (
-              <>
-                <WalletIcon className="size-8 opacity-30" />
-                <p className="text-sm opacity-60">No wallet detected</p>
-                <p className="text-xs opacity-40">Install MetaMask or another Web3 wallet to connect.</p>
-              </>
+              </div>
+            )}
+
+            {/* ── Connected / manual state ── */}
+            {(walletSetup === "connected" || walletSetup === "manual") && walletAddress && (
+              <div className="flex flex-col gap-3 p-4">
+                <div className="flex items-center gap-2">
+                  <div
+                    className="flex size-8 items-center justify-center rounded-full shrink-0"
+                    style={{ backgroundColor: b.primaryColor }}
+                  >
+                    <WalletIcon className="size-4" style={{ color: b.textColor }} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[11px] opacity-50">
+                      {walletSetup === "connected" ? "MetaMask connected" : "Address added"}
+                    </p>
+                    <p className="text-xs font-mono truncate">{walletAddress}</p>
+                  </div>
+                </div>
+
+                <div
+                  className="rounded-xl p-3 text-[11px]"
+                  style={{ backgroundColor: `rgba(255,255,255,0.05)`, border: `1px solid var(--w-border)` }}
+                >
+                  <p className="opacity-60 leading-relaxed">
+                    Wallet linked. Switch to Chat — the bot can now look up your balances and diagnose transactions in real time.
+                  </p>
+                </div>
+
+                <button
+                  onClick={disconnectWallet}
+                  className="text-[11px] opacity-40 hover:opacity-70 transition-opacity text-left"
+                >
+                  Disconnect wallet
+                </button>
+              </div>
+            )}
+
+            {/* ── Skipped state ── */}
+            {walletSetup === "skipped" && (
+              <div className="flex flex-col gap-3 p-4">
+                <WalletIcon className="size-7 opacity-30" />
+                <p className="text-xs opacity-60">No wallet connected</p>
+                <p className="text-[11px] opacity-40 leading-relaxed">
+                  The bot can still answer general questions. Connect a wallet for personalised transaction support.
+                </p>
+                <button
+                  onClick={disconnectWallet}
+                  className="w-fit rounded-lg px-3 py-1.5 text-xs font-medium border transition-opacity"
+                  style={{ borderColor: `var(--w-border)`, color: b.textColor }}
+                >
+                  Connect wallet
+                </button>
+              </div>
             )}
           </div>
         )}

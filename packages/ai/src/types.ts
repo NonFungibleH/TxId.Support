@@ -39,9 +39,8 @@ export interface RagResult {
 export interface StreamChatParams {
   projectName: string
   config: ProjectConfigSnapshot
-  messages: ChatMessage[]
-  walletAddress?: string
-  chainId?: string
+  /** Wallet address + chain — if present, Claude receives blockchain tools */
+  walletConfig?: { address: string; chainId: string } | null
   ragContext?: string
   mode?: "support" | "token"
   tokenModeAsk?: string | null

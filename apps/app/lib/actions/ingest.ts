@@ -15,8 +15,9 @@ export async function ingestText(
   text: string,
   sourceUrl?: string,
 ): Promise<{ ok: boolean; chunksInserted?: number; error?: string }> {
-  const { userId } = await auth()
+  const { orgId, userId } = await auth()
   if (!userId) return { ok: false, error: "Unauthorized" }
+  const orgKey = orgId ?? userId
 
   const trimmed = text.trim()
   if (trimmed.length < 50) return { ok: false, error: "Content too short" }
@@ -24,7 +25,7 @@ export async function ingestText(
 
   const supabase = createServiceClient()
 
-  // Verify project belongs to this user
+  // Verify project belongs to this org
   const { data: project, error: projError } = await supabase
     .from("projects")
     .select("id, org_id")
@@ -37,7 +38,7 @@ export async function ingestText(
     .from("organisations")
     .select("id")
     .eq("id", project.org_id)
-    .eq("clerk_org_id", userId)
+    .eq("clerk_org_id", orgKey)
     .single()
 
   if (!org) return { ok: false, error: "Forbidden" }
@@ -97,8 +98,9 @@ export async function ingestText(
 export async function clearKnowledgeBase(
   projectId: string,
 ): Promise<{ ok: boolean; error?: string }> {
-  const { userId } = await auth()
+  const { orgId, userId } = await auth()
   if (!userId) return { ok: false, error: "Unauthorized" }
+  const orgKey = orgId ?? userId
 
   const supabase = createServiceClient()
 
@@ -114,7 +116,7 @@ export async function clearKnowledgeBase(
     .from("organisations")
     .select("id")
     .eq("id", project.org_id)
-    .eq("clerk_org_id", userId)
+    .eq("clerk_org_id", orgKey)
     .single()
 
   if (!org) return { ok: false, error: "Forbidden" }
@@ -122,4 +124,48 @@ export async function clearKnowledgeBase(
   await supabase.from("documents").delete().eq("project_id", projectId)
   revalidatePath("/dashboard")
   return { ok: true }
+}
+
+/**
+ * Fetch a URL and ingest its text content into the knowledge base.
+ */
+export async function fetchAndIngest(
+  projectId: string,
+  url: string,
+): Promise<{ ok: boolean; chunksInserted?: number; error?: string }> {
+  const { userId } = await auth()
+  if (!userId) return { ok: false, error: "Unauthorized" }
+
+  // Validate URL
+  let parsed: URL
+  try {
+    parsed = new URL(url)
+    if (!["http:", "https:"].includes(parsed.protocol)) throw new Error()
+  } catch {
+    return { ok: false, error: "Invalid URL — must start with http:// or https://" }
+  }
+
+  // Use Jina Reader to fetch + render the page (handles JS-heavy sites)
+  // r.jina.ai renders the full page and returns clean markdown text — no API key needed
+  let text: string
+  try {
+    const jinaUrl = `https://r.jina.ai/${parsed.toString()}`
+    const res = await fetch(jinaUrl, {
+      headers: {
+        "Accept": "text/plain",
+        "X-No-Cache": "true",
+      },
+      signal: AbortSignal.timeout(30_000),
+    })
+    if (!res.ok) return { ok: false, error: `Could not fetch page (status ${res.status}). Check the URL is public and try again.` }
+    text = await res.text()
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : "Could not fetch URL — check it is publicly accessible" }
+  }
+
+  if (text.trim().length < 100) {
+    return { ok: false, error: "Page appears to be empty or blocked. Try a more specific URL (e.g. a docs page) or paste the content manually." }
+  }
+
+  return ingestText(projectId, text.trim(), url)
 }
