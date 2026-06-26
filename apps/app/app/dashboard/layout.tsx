@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation"
 import { Sidebar } from "@/components/dashboard/Sidebar"
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader"
 import { getProject } from "@/lib/actions/project"
@@ -8,8 +9,11 @@ export default async function DashboardLayout({
   children: React.ReactNode
 }) {
   const { org, project } = await getProject()
-  const typedProject = project as unknown as { mode?: string } | null
-  const mode = typedProject?.mode ?? "support"
+
+  if (!project) redirect("/onboarding")
+
+  const typedProject = project as unknown as { mode?: string }
+  const mode = typedProject.mode ?? "support"
 
   return (
     <div className="min-h-screen bg-background">
