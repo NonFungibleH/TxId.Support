@@ -196,7 +196,7 @@ export function WidgetApp() {
       setConfigError("No API key provided")
       return
     }
-    fetch(`/api/widget-config/${apiKey}`)
+    fetch(`/api/widget-config/${apiKey}${isPreview ? "?preview=1" : ""}`)
       .then((r) => r.json())
       .then((data: WidgetConfig | { error: string }) => {
         if ("error" in data) setConfigError(data.error)

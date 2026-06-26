@@ -21,10 +21,11 @@ export async function OPTIONS() {
  * Only includes branding, chain list, token symbol/chain — never secret_key.
  */
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: { key: string } },
 ) {
   const { key } = params
+  const preview = new URL(request.url).searchParams.get("preview") === "1"
 
   if (!key || !key.startsWith("pk_")) {
     return new Response(JSON.stringify({ error: "Invalid key" }), {
@@ -50,7 +51,7 @@ export async function GET(
 
   const typedProject = project as unknown as ProjectRow & { name: string; is_active: boolean }
 
-  if (!typedProject.is_active) {
+  if (!typedProject.is_active && !preview) {
     return new Response(JSON.stringify({ error: "Project inactive" }), {
       status: 403,
       headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
