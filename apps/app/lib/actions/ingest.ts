@@ -184,115 +184,74 @@ export async function crawlAndIngest(
   const origin = parsed.origin
   const MAX_PAGES = 60
 
+  // Fetch a page: .md files fetched directly, everything else via Jina renderer
   const fetchPage = async (url: string, withLinks = false): Promise<string | null> => {
     try {
+      if (url.endsWith(".md") || url.endsWith(".txt")) {
+        const res = await fetch(url, { signal: AbortSignal.timeout(15_000) })
+        if (!res.ok) return null
+        return await res.text()
+      }
       const headers: Record<string, string> = { "Accept": "text/plain", "X-No-Cache": "true" }
       if (withLinks) headers["X-With-Links-Summary"] = "true"
-      const res = await fetch(`https://r.jina.ai/${url}`, {
-        headers,
-        signal: AbortSignal.timeout(20_000),
-      })
+      const res = await fetch(`https://r.jina.ai/${url}`, { headers, signal: AbortSignal.timeout(20_000) })
       if (!res.ok) return null
       return await res.text()
-    } catch {
-      return null
-    }
+    } catch { return null }
   }
 
   const discovered = new Set<string>()
 
-  const normUrl = (raw: string): string | null => {
-    try {
-      const u = new URL(raw.trim())
-      if (u.origin !== origin) return null
-      if (/\.(pdf|zip|png|jpg|jpeg|gif|svg|ico|css|js|woff2?|ttf|map)$/i.test(u.pathname)) return null
-      // Skip internal framework/infra paths
-      if (/^\/(~gitbook|_next|api|__|\.well-known)\b/.test(u.pathname)) return null
-      u.hash = ""
-      u.search = ""
-      return u.toString().replace(/\/$/, "")
-    } catch { return null }
-  }
-
-  const extractLinksFromText = (text: string) => {
-    // Absolute markdown links: [text](https://...)
-    for (const match of text.matchAll(/\(((https?:\/\/[^)\s"]+))\)/g)) {
-      const n = normUrl(match[1]); if (n) discovered.add(n)
-    }
-    // Absolute href attributes
-    for (const match of text.matchAll(/href=["'](https?:\/\/[^"'\s>]+)["']/g)) {
-      const n = normUrl(match[1]); if (n) discovered.add(n)
-    }
-    // Relative href attributes — resolve against origin (e.g. Gitbook nav links)
-    for (const match of text.matchAll(/href=["'](\/[^"'\s>]+)["']/g)) {
-      const n = normUrl(`${origin}${match[1]}`); if (n) discovered.add(n)
-    }
-    // Relative markdown links: [text](/path)
-    for (const match of text.matchAll(/\((\/[^)\s"#][^)]*)\)/g)) {
-      const n = normUrl(`${origin}${match[1]}`); if (n) discovered.add(n)
-    }
-  }
-
-  // ── Step 1: try sitemap via robots.txt and common paths ──────────────────
-  let foundSitemap = false
-  const sitemapCandidates: string[] = []
-
-  // Check robots.txt for Sitemap: directive
+  // ── Step 1: check for llms.txt (Gitbook and modern doc sites list all pages here) ──
+  let usedLlmsTxt = false
   try {
-    const robotsRes = await fetch(`${origin}/robots.txt`, { signal: AbortSignal.timeout(8_000) })
-    if (robotsRes.ok) {
-      const robots = await robotsRes.text()
-      for (const match of robots.matchAll(/^Sitemap:\s*(.+)$/gmi)) {
-        sitemapCandidates.push(match[1].trim())
+    const llmsRes = await fetch(`${origin}/llms.txt`, { signal: AbortSignal.timeout(8_000) })
+    if (llmsRes.ok) {
+      const llmsText = await llmsRes.text()
+      // Extract .md page URLs — these are fetchable markdown versions of each page
+      for (const match of llmsText.matchAll(/\((https?:\/\/[^)]+\.md)\)/g)) {
+        const url = match[1].trim()
+        try {
+          const u = new URL(url)
+          if (u.origin === origin && !url.includes("?")) discovered.add(url)
+        } catch { /* skip */ }
       }
+      if (discovered.size > 0) usedLlmsTxt = true
     }
   } catch { /* ignore */ }
 
-  // Add common fallback paths
-  sitemapCandidates.push(
-    `${origin}/sitemap.xml`,
-    `${origin}/sitemap_index.xml`,
-    `${origin}/sitemap-0.xml`,
-    `${origin}/sitemap/sitemap.xml`,
-  )
-
-  const parseSitemapXml = async (xml: string) => {
-    const locs = [...xml.matchAll(/<loc>\s*(https?:\/\/[^<\s]+)\s*<\/loc>/g)]
-    if (xml.includes("<sitemapindex")) {
-      // Sitemap index — fetch each child
-      for (const loc of locs.slice(0, 10)) {
-        try {
-          const r = await fetch(loc[1].trim(), { signal: AbortSignal.timeout(8_000) })
-          if (r.ok) { const child = await r.text(); for (const cl of child.matchAll(/<loc>\s*(https?:\/\/[^<\s]+)\s*<\/loc>/g)) { const n = normUrl(cl[1]); if (n) discovered.add(n) } }
-        } catch { /* skip */ }
-      }
-    } else {
-      for (const loc of locs) { const n = normUrl(loc[1]); if (n) discovered.add(n) }
+  // ── Step 2: sitemap fallback (for non-Gitbook sites) ──────────────────────
+  if (!usedLlmsTxt) {
+    const sitemapCandidates = [`${origin}/sitemap.xml`, `${origin}/sitemap_index.xml`, `${origin}/sitemap-0.xml`]
+    for (const candidate of sitemapCandidates) {
+      if (discovered.size > 0) break
+      try {
+        const r = await fetch(candidate, { signal: AbortSignal.timeout(8_000) })
+        if (r.ok) {
+          const xml = await r.text()
+          if (xml.includes("<loc>")) {
+            const locs = [...xml.matchAll(/<loc>\s*(https?:\/\/[^<\s]+)\s*<\/loc>/g)]
+            for (const loc of locs) {
+              try { const u = new URL(loc[1].trim()); if (u.origin === origin) discovered.add(loc[1].trim()) } catch { /* skip */ }
+            }
+          }
+        }
+      } catch { /* try next */ }
     }
   }
 
-  for (const candidate of sitemapCandidates) {
-    if (foundSitemap) break
-    try {
-      const r = await fetch(candidate, { signal: AbortSignal.timeout(8_000) })
-      if (r.ok) {
-        const text = await r.text()
-        if (text.includes("<loc>")) {
-          await parseSitemapXml(text)
-          if (discovered.size > 0) foundSitemap = true
-        }
-      }
-    } catch { /* try next */ }
+  // ── Step 3: Jina root page as final fallback (returns full nav link list) ──
+  if (discovered.size < 3) {
+    const rootText = await fetchPage(rootUrl, true)
+    if (!rootText || rootText.trim().length < 50) {
+      return { ok: false, error: "Could not fetch root page" }
+    }
+    discovered.add(rootUrl.replace(/\/$/, ""))
+    // Extract all absolute markdown links from Jina's Links/Buttons section
+    for (const match of rootText.matchAll(/\(((https?:\/\/[^)\s"]+))\)/g)) {
+      try { const u = new URL(match[1].trim()); if (u.origin === origin) { u.hash=""; u.search=""; discovered.add(u.toString().replace(/\/$/, "")) } } catch { /* skip */ }
+    }
   }
-
-  // ── Step 2: always fetch root page via Jina (renders JS, returns full nav in Links section) ──
-  // Jina's Links/Buttons section captures sidebar navigation that raw HTML fetch misses.
-  const rootText = await fetchPage(rootUrl, true)
-  if (!rootText || rootText.trim().length < 50) {
-    return { ok: false, error: "Could not fetch root page" }
-  }
-  discovered.add(rootUrl.replace(/\/$/, ""))
-  extractLinksFromText(rootText)
 
   discovered.add(rootUrl.replace(/\/$/, ""))
   const urls = [...discovered].slice(0, MAX_PAGES)
