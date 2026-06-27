@@ -12,6 +12,15 @@ import type { BrandingConfig } from "@/lib/types/config"
 import { SUPPORTED_FONTS } from "@/lib/types/config"
 import { Separator } from "@/components/ui/separator"
 
+type ColorPreset = Pick<BrandingConfig, "primaryColor" | "secondaryColor" | "backgroundColor" | "textColor">
+const PRESETS: Array<{ name: string } & ColorPreset> = [
+  { name: "Dark",    primaryColor: "#6366f1", secondaryColor: "#4f46e5", backgroundColor: "#0f0f0f", textColor: "#ffffff" },
+  { name: "Light",   primaryColor: "#6366f1", secondaryColor: "#4f46e5", backgroundColor: "#ffffff", textColor: "#111827" },
+  { name: "Navy",    primaryColor: "#3b82f6", secondaryColor: "#1d4ed8", backgroundColor: "#0f172a", textColor: "#f1f5f9" },
+  { name: "Emerald", primaryColor: "#10b981", secondaryColor: "#059669", backgroundColor: "#0a1512", textColor: "#ecfdf5" },
+  { name: "Violet",  primaryColor: "#a78bfa", secondaryColor: "#7c3aed", backgroundColor: "#0d0a1a", textColor: "#f5f3ff" },
+]
+
 interface BrandingFormProps {
   projectId: string
   initial: BrandingConfig
@@ -43,8 +52,36 @@ export function BrandingForm({ projectId, initial, onBrandingChange }: BrandingF
     })
   }
 
+  function applyPreset(preset: ColorPreset) {
+    setBranding(prev => ({ ...prev, ...preset }))
+  }
+
   return (
     <div className="space-y-6">
+      <div className="space-y-3">
+        <h3 className="text-sm font-semibold">Quick themes</h3>
+        <div className="flex flex-wrap gap-2">
+          {PRESETS.map(preset => (
+            <button
+              key={preset.name}
+              type="button"
+              onClick={() => applyPreset(preset)}
+              className="flex items-center gap-2 rounded-lg border px-3 py-2 text-xs transition-colors hover:opacity-90"
+              style={{
+                backgroundColor: preset.backgroundColor,
+                color: preset.textColor,
+                borderColor: `${preset.primaryColor}60`,
+              }}
+            >
+              <span className="size-2.5 rounded-full shrink-0" style={{ backgroundColor: preset.primaryColor }} />
+              {preset.name}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <Separator />
+
       <div className="space-y-3">
         <h3 className="text-sm font-semibold">Colours</h3>
         <ColorPicker value={branding.primaryColor} onChange={v => update("primaryColor", v)} label="Primary" />
@@ -114,18 +151,6 @@ export function BrandingForm({ projectId, initial, onBrandingChange }: BrandingF
               <SelectItem value="bottom-right">Bottom right</SelectItem>
               <SelectItem value="bottom-left">Bottom left</SelectItem>
               <SelectItem value="inline">Inline</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="flex items-center gap-3">
-          <Label className="w-20 shrink-0">Theme</Label>
-          <Select value={branding.theme} onValueChange={v => update("theme", v as BrandingConfig["theme"])}>
-            <SelectTrigger className="w-48">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="dark">Dark</SelectItem>
-              <SelectItem value="light">Light</SelectItem>
             </SelectContent>
           </Select>
         </div>
