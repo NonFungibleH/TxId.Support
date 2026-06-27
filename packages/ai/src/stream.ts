@@ -66,7 +66,7 @@ export async function* streamChatWithTools(
     // Only offer blockchain tools when the latest message looks like a
     // transaction diagnostic query — not for general protocol/docs questions.
     const latestUserMsg = [...messages].reverse().find((m) => m.role === "user")?.content ?? ""
-    const TX_KEYWORDS = /\b(fail|failed|error|stuck|pending|didn['’]t|did not|went wrong|lost|missing|not received|refund|balance|how much|my wallet|my tokens?|what do i have|my eth|my bnb|transaction|tx |txn)\b/i
+    const TX_KEYWORDS = /\b(fail|failed|error|stuck|pending|didn[‘’]t|did not|went wrong|lost|missing|not received|refund|my balance|what(‘s| is) my balance|my wallet|my tokens?|what do i have|my eth|my bnb|how much (do i|eth|bnb|have)|transaction (fail|stuck|didn)|tx |txn\b)/i
     const needsTools = walletConfig !== null && TX_KEYWORDS.test(latestUserMsg)
 
     const anthropicTools = needsTools ? buildWalletTools(watchedContracts) : []
