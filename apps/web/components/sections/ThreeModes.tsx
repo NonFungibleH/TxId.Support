@@ -56,10 +56,10 @@ export function ThreeModes() {
           <div className="text-center mb-12">
             <p className="font-mono text-sm text-accent mb-3">{"// Three modes"}</p>
             <h2 className="font-display text-4xl font-bold text-white mb-4">
-              One widget, built for your use case
+              One agent, built for your use case
             </h2>
             <p className="text-muted max-w-xl mx-auto">
-              Select the mode that fits when you create your project. The widget, dashboard, and AI adapt automatically.
+              Select the mode that fits when you create your project. The agent, dashboard, and AI adapt automatically.
             </p>
           </div>
         </FadeIn>

@@ -15,7 +15,7 @@ const FEATURES = [
     icon: Wallet,
     title: "Auto Wallet Detection",
     description:
-      "Silently reads the connected wallet the moment the widget opens. Users get personalised answers without lifting a finger.",
+      "Silently reads the connected wallet the moment the agent loads. Users get personalised answers without lifting a finger.",
   },
   {
     icon: Activity,
@@ -27,7 +27,7 @@ const FEATURES = [
     icon: BookOpen,
     title: "Docs Q&A",
     description:
-      "Paste your docs URL. The widget indexes it and answers questions grounded in your own documentation — not hallucinated.",
+      "Paste your docs URL. The agent indexes it and answers questions grounded in your own documentation — not hallucinated.",
   },
   {
     icon: TrendingUp,
@@ -39,7 +39,7 @@ const FEATURES = [
     icon: Palette,
     title: "Fully White-Label",
     description:
-      "Your colours, font, and logo. The widget is invisible as a third-party tool — it looks and feels like part of your product.",
+      "Your colours, font, and logo. The agent is invisible as a third-party tool — it looks and feels like part of your product.",
   },
   {
     icon: Code2,

@@ -28,7 +28,7 @@ export default function PrivacyPage() {
               <ul className="list-disc pl-5 space-y-1 mt-2">
                 <li><strong className="text-white/80">Account data</strong> — your email address and name, via Clerk authentication</li>
                 <li><strong className="text-white/80">Project configuration</strong> — branding settings, smart contract addresses, and documentation you index</li>
-                <li><strong className="text-white/80">Widget conversations</strong> — messages sent by your end-users to the widget, stored to power analytics and improve the AI</li>
+                <li><strong className="text-white/80">Agent conversations</strong> — messages sent by your end-users to the agent, stored to power analytics and improve the AI</li>
                 <li><strong className="text-white/80">Usage data</strong> — conversation counts, timestamps, and satisfaction ratings</li>
               </ul>
             </section>
@@ -36,7 +36,7 @@ export default function PrivacyPage() {
             <section>
               <h2 className="font-display text-lg font-semibold text-white mb-3">Wallet addresses</h2>
               <p>
-                The widget reads the public wallet address of connected wallets to provide personalised support. We store wallet addresses only as part of conversation records. We never request private keys, seed phrases, or signing permission beyond what the user&apos;s own site already has.
+                The agent reads the public wallet address of connected wallets to provide personalised support. We store wallet addresses only as part of conversation records. We never request private keys, seed phrases, or signing permission beyond what the user&apos;s own site already has.
               </p>
             </section>
 
@@ -94,7 +94,7 @@ export default function PrivacyPage() {
                 </li>
               </ul>
               <p className="mt-3">
-                The support widget uses <code className="text-xs bg-white/10 px-1 rounded">sessionStorage</code> (not cookies) to hold the active conversation. This is cleared automatically when the browser tab is closed and is never sent to our servers except as part of a conversation message.
+                The support agent uses <code className="text-xs bg-white/10 px-1 rounded">sessionStorage</code> (not cookies) to hold the active conversation. This is cleared automatically when the browser tab is closed and is never sent to our servers except as part of a conversation message.
               </p>
               <p className="mt-3">
                 Because we use only essential cookies, no consent is required under UK/EU law — but we show a notice as good practice. You can clear cookies at any time through your browser settings; this will sign you out of the dashboard.

@@ -46,7 +46,7 @@ export function ForWho() {
           <div className="text-center mb-14">
             <p className="font-mono text-sm text-accent mb-3">{"// Who it's for"}</p>
             <h2 className="font-display text-4xl font-bold text-white mb-4">
-              Two types of project. One widget.
+              Two types of project. One agent.
             </h2>
             <p className="text-muted max-w-xl mx-auto">
               Whether you&apos;re running a live protocol or launching a token community,

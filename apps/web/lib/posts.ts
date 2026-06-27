@@ -85,13 +85,13 @@ export const POSTS: Post[] = [
       },
       {
         type: "p",
-        text: "This matters for one reason above all others: authenticity. When the support widget is embedded inside app.yourprotocol.xyz, the user knows they're talking to you. There is no vector for a scammer to insert themselves between the user and the interface — the interface is your interface.",
+        text: "This matters for one reason above all others: authenticity. When the support agent is embedded inside app.yourprotocol.xyz, the user knows they're talking to you. There is no vector for a scammer to insert themselves between the user and the interface — the interface is your interface.",
       },
       {
         type: "ul",
         items: [
           "No DM-based phishing: support happens in your UI, not in someone's inbox",
-          "Context-aware: the widget can read the user's wallet state and transaction history automatically",
+          "Context-aware: the agent can read the user's wallet state and transaction history automatically",
           "No account required: users don't need to join a server, verify email, or wait for a moderator to notice them",
           "Async and searchable: common questions get answered once and surface in future sessions via RAG",
         ],
@@ -106,7 +106,7 @@ export const POSTS: Post[] = [
       },
       {
         type: "p",
-        text: "An in-app support widget connected to the user's wallet already knows. It can look up the failed transaction, read the revert reason, and explain exactly what happened — before the user finishes typing their first message.",
+        text: "An in-app support agent connected to the user's wallet already knows. It can look up the failed transaction, read the revert reason, and explain exactly what happened — before the user finishes typing their first message.",
       },
       {
         type: "quote",

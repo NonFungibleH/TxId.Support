@@ -165,7 +165,7 @@ export default function BlogPostPage({ params }: { params: { slug: string } }) {
               Ready to move support in-app?
             </p>
             <p className="text-sm text-muted mb-5">
-              TxID Support gives your protocol an AI support widget that already knows what your users&apos; wallets did — embedded in your app, not Discord.
+              TxID Support gives your protocol an AI support agent that already knows what your users&apos; wallets did — embedded in your app, not Discord.
             </p>
             <a
               href="https://app.txid.support/sign-up"

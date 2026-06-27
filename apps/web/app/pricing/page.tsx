@@ -68,7 +68,7 @@ const FAQ = [
   },
   {
     q: "What counts as a conversation?",
-    a: "A conversation starts when a user opens the widget and sends their first message. It ends after 30 minutes of inactivity. Multiple messages in the same session count as one conversation.",
+    a: "A conversation starts when a user opens the agent and sends their first message. It ends after 30 minutes of inactivity. Multiple messages in the same session count as one conversation.",
   },
   {
     q: "How does the Pro plan work?",

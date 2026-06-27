@@ -1,7 +1,7 @@
 import { ImageResponse } from "next/og"
 
 export const runtime = "edge"
-export const alt = "TxID Support — AI-Powered Web3 Support Widget"
+export const alt = "TxID Support — AI Support Agent for Web3 Protocols"
 export const size = { width: 1200, height: 630 }
 export const contentType = "image/png"
 
@@ -65,7 +65,7 @@ export default function Image() {
 
         {/* Subheadline */}
         <div style={{ fontSize: 24, color: "#6b7280", maxWidth: 700, lineHeight: 1.5 }}>
-          The first support widget that already knows what your user&apos;s wallet did. Embed in 30 seconds.
+          The first support agent that already knows what your user&apos;s wallet did. Embed in 30 seconds.
         </div>
 
         {/* Bottom badge */}
