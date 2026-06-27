@@ -96,20 +96,20 @@ export async function* streamChatWithTools(
         const msg = response.choices[0]?.message
         if (!msg) break
 
-        const fnCalls = msg.tool_calls?.filter((tc) => tc.type === "function") ?? []
+        type FnCall = { type: "function"; id: string; function: { name: string; arguments: string } }
+        const fnCalls = (msg.tool_calls ?? []).filter((tc): tc is FnCall => tc.type === "function")
         if (fnCalls.length) {
           for (const tc of fnCalls) {
-            yield { type: "tool_call", tool: (tc as OpenAI.ChatCompletionMessageToolCall).function.name }
+            yield { type: "tool_call", tool: tc.function.name }
           }
 
           groqMessages.push({ role: "assistant", content: msg.content ?? null, tool_calls: msg.tool_calls })
 
           const toolResults = await Promise.all(
             fnCalls.map(async (tc) => {
-              const fn = (tc as OpenAI.ChatCompletionMessageToolCall).function
               try {
-                const input = JSON.parse(fn.arguments || "{}") as Record<string, unknown>
-                const result = await executeTool(fn.name, input, walletConfig!)
+                const input = JSON.parse(tc.function.arguments || "{}") as Record<string, unknown>
+                const result = await executeTool(tc.function.name, input, walletConfig!)
                 return { role: "tool" as const, tool_call_id: tc.id, content: JSON.stringify(result, null, 2) }
               } catch (err) {
                 return { role: "tool" as const, tool_call_id: tc.id, content: `Error: ${err instanceof Error ? err.message : "Tool failed"}` }
