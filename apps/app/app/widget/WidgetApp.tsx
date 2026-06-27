@@ -130,13 +130,17 @@ function PriceSparkline({ priceChange }: { priceChange: DexPair["priceChange"] }
 // ─── Session ID (persisted per origin+key) ───────────────────────────────────
 
 function getSessionId(key: string): string {
-  const storageKey = `txid_session_${key}`
-  let id = sessionStorage.getItem(storageKey)
-  if (!id) {
-    id = nanoid()
-    sessionStorage.setItem(storageKey, id)
+  try {
+    const storageKey = `txid_session_${key}`
+    let id = sessionStorage.getItem(storageKey)
+    if (!id) {
+      id = nanoid()
+      sessionStorage.setItem(storageKey, id)
+    }
+    return id
+  } catch {
+    return nanoid()
   }
-  return id
 }
 
 // ─── Wallet session helpers (module-level, no component state) ───────────────

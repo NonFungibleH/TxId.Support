@@ -1,5 +1,6 @@
 import { Suspense } from "react"
 import { WidgetApp } from "@/app/widget/WidgetApp"
+import { ErrorBoundary } from "@/components/shared/ErrorBoundary"
 import Link from "next/link"
 import { ArrowLeft, Zap, CheckCircle2, MessageCircle, Wallet, FileText } from "lucide-react"
 
@@ -118,15 +119,17 @@ export default function PreviewPage() {
                 boxShadow: "0 8px 40px rgba(0,0,0,0.10), 0 0 0 1px rgba(99,102,241,0.12)",
               }}
             >
-              <Suspense
-                fallback={
-                  <div className="flex h-full items-center justify-center bg-gray-50 text-gray-400 text-sm">
-                    Loading widget…
-                  </div>
-                }
-              >
-                <WidgetApp />
-              </Suspense>
+              <ErrorBoundary>
+                <Suspense
+                  fallback={
+                    <div className="flex h-full items-center justify-center bg-gray-50 text-gray-400 text-sm">
+                      Loading widget…
+                    </div>
+                  }
+                >
+                  <WidgetApp />
+                </Suspense>
+              </ErrorBoundary>
             </div>
           </div>
         </div>
