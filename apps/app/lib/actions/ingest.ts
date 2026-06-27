@@ -93,6 +93,41 @@ export async function ingestText(
 }
 
 /**
+ * Delete all indexed documents for a single source URL.
+ */
+export async function deleteSource(
+  projectId: string,
+  sourceUrl: string,
+): Promise<{ ok: boolean; error?: string }> {
+  const { orgId, userId } = await auth()
+  if (!userId) return { ok: false, error: "Unauthorized" }
+  const orgKey = orgId ?? userId
+
+  const supabase = createServiceClient()
+
+  const { data: project } = await supabase
+    .from("projects")
+    .select("id, org_id")
+    .eq("id", projectId)
+    .single()
+
+  if (!project) return { ok: false, error: "Project not found" }
+
+  const { data: org } = await supabase
+    .from("organisations")
+    .select("id")
+    .eq("id", project.org_id)
+    .eq("clerk_org_id", orgKey)
+    .single()
+
+  if (!org) return { ok: false, error: "Forbidden" }
+
+  await supabase.from("documents").delete().eq("project_id", projectId).eq("source_url", sourceUrl)
+  revalidatePath("/dashboard")
+  return { ok: true }
+}
+
+/**
  * Delete all indexed documents for a project (full reset).
  */
 export async function clearKnowledgeBase(

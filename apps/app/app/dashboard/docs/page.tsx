@@ -16,10 +16,24 @@ export default async function DocsPage() {
   const config = typedProject.config as unknown as ProjectConfig
 
   const supabase = createServiceClient()
-  const { count: docCount } = await supabase
+
+  // Fetch all source URLs and group client-side (sources are typically few dozen at most)
+  const { data: docs } = await supabase
     .from("documents")
-    .select("id", { count: "exact", head: true })
+    .select("source_url")
     .eq("project_id", typedProject.id)
+
+  const sourcesMap = new Map<string, number>()
+  let nullCount = 0
+  for (const doc of docs ?? []) {
+    if (doc.source_url) {
+      sourcesMap.set(doc.source_url, (sourcesMap.get(doc.source_url) ?? 0) + 1)
+    } else {
+      nullCount++
+    }
+  }
+  const sources = Array.from(sourcesMap.entries()).map(([url, count]) => ({ url, count }))
+  const totalChunks = (docs ?? []).length
 
   return (
     <div className="space-y-6">
@@ -38,7 +52,9 @@ export default async function DocsPage() {
           <DocsForm
             projectId={typedProject.id}
             initialDocsUrl={config.docsUrl}
-            docCount={docCount ?? 0}
+            docCount={totalChunks}
+            pastedChunkCount={nullCount}
+            sources={sources}
             voyageKeySet={!!process.env.VOYAGE_API_KEY}
           />
         </CardContent>
