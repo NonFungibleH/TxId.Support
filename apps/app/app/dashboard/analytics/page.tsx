@@ -4,7 +4,7 @@ import { createServiceClient } from "@/lib/supabase/server"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import dynamic from "next/dynamic"
-import { MessageSquare, ThumbsUp, ThumbsDown, Zap, AlertCircle, CheckCircle2 } from "lucide-react"
+import { MessageSquare, ThumbsUp, Zap, AlertCircle, CheckCircle2 } from "lucide-react"
 import Link from "next/link"
 import type { Database } from "@/lib/supabase/types"
 
