@@ -45,10 +45,10 @@ export default async function ContractsPage() {
           <div className="space-y-2">
             <p className="text-sm font-medium">How it works</p>
             <ul className="text-sm text-muted-foreground space-y-1.5 list-disc list-inside">
-              <li>A user asks: <em>&quot;Is my TEAM token locked?&quot;</em></li>
-              <li>The AI sees your &quot;Token Lock Contract&quot; and its description</li>
-              <li>The AI queries the contract on-chain with the user&apos;s wallet address</li>
-              <li>The user gets a real answer in plain English</li>
+              <li>A user asks about their token lock status</li>
+              <li>The AI matches the question to your contract using its name and description</li>
+              <li>The AI calls the contract on-chain with the user&apos;s wallet address</li>
+              <li>The result is returned to the user in plain English</li>
             </ul>
           </div>
         </CardContent>

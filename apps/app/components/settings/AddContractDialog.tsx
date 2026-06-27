@@ -77,7 +77,9 @@ export function AddContractDialog({ projectId }: AddContractDialogProps) {
             <Label htmlFor="contract-chain">Chain</Label>
             <Select value={chain} onValueChange={v => v && setChain(v)}>
               <SelectTrigger id="contract-chain">
-                <SelectValue />
+                <SelectValue>
+                  {SUPPORTED_CHAINS.find(c => c.id === chain)?.name ?? chain}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {SUPPORTED_CHAINS.map(c => (
@@ -91,12 +93,12 @@ export function AddContractDialog({ projectId }: AddContractDialogProps) {
             <textarea
               id="contract-desc"
               rows={3}
-              placeholder="Explain what this contract does and what questions it helps answer..."
+              placeholder="e.g. Tracks vested TEAM tokens per wallet. Holds unlock dates and vested amounts for each holder."
               value={description}
               onChange={e => setDescription(e.target.value)}
               className="w-full rounded-lg border border-input bg-transparent px-3 py-2 text-sm outline-none focus:border-ring resize-none"
             />
-            <p className="text-xs text-muted-foreground">The AI uses this to decide when to query the contract.</p>
+            <p className="text-xs text-muted-foreground">The AI reads this to understand what the contract tracks and when to call it.</p>
           </div>
         </div>
 
