@@ -188,7 +188,6 @@ export function WidgetApp() {
 
   // Wallet setup flow: prompt → (connected | manual | skipped)
   const [walletSetup, setWalletSetup] = useState<"prompt" | "manual-input" | "connected" | "manual" | "skipped">("prompt")
-  const [manualInput, setManualInput] = useState("")
 
   // Token mode state
   const [dexData, setDexData] = useState<DexPair | null>(null)
@@ -323,8 +322,6 @@ export function WidgetApp() {
     setWalletAddress(null)
     setChainId(null)
     setWalletSetup("prompt")
-    setManualInput("")
-    setManualInputError(null)
     try { sessionStorage.removeItem(`txid_wallet_${apiKey}`) } catch { /* ignore */ }
   }, [apiKey])
 
