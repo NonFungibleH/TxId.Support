@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ColorPicker } from "./ColorPicker"
 import { updateConfig } from "@/lib/actions/project"
 import type { BrandingConfig } from "@/lib/types/config"
-import { SUPPORTED_FONTS } from "@/lib/types/config"
+import { SUPPORTED_FONTS, PERSONAS, PERSONA_LABELS } from "@/lib/types/config"
 import { Separator } from "@/components/ui/separator"
 
 type ColorPreset = Pick<BrandingConfig, "primaryColor" | "secondaryColor" | "backgroundColor" | "textColor">
@@ -153,6 +153,37 @@ export function BrandingForm({ projectId, initial, onBrandingChange }: BrandingF
               <SelectItem value="inline">Inline</SelectItem>
             </SelectContent>
           </Select>
+        </div>
+      </div>
+
+      <Separator />
+
+      <div className="space-y-3">
+        <div>
+          <h3 className="text-sm font-semibold">Bot persona</h3>
+          <p className="text-xs text-muted-foreground mt-0.5">Controls how the AI communicates with your users.</p>
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          {PERSONAS.map(p => {
+            const { name, tagline } = PERSONA_LABELS[p]
+            const active = (branding.persona ?? "concise") === p
+            return (
+              <button
+                key={p}
+                type="button"
+                onClick={() => update("persona", p)}
+                className={[
+                  "flex flex-col items-start gap-0.5 rounded-lg border px-3 py-2.5 text-left transition-colors",
+                  active
+                    ? "border-primary bg-primary/10 text-foreground"
+                    : "border-border hover:border-muted-foreground text-muted-foreground hover:text-foreground",
+                ].join(" ")}
+              >
+                <span className="text-xs font-medium">{name}</span>
+                <span className="text-[11px] leading-tight opacity-70">{tagline}</span>
+              </button>
+            )
+          })}
         </div>
       </div>
 

@@ -143,6 +143,7 @@ export async function POST(request: Request) {
       ragContext,
       mode: projectMode as "support" | "token",
       tokenModeAsk: config.tokenModeAsk ?? undefined,
+      persona: config.branding?.persona ?? "concise",
     })
 
     // Stream the response — Claude uses tools as needed for on-chain data

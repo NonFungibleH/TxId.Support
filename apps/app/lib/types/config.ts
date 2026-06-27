@@ -16,6 +16,16 @@ export const SUPPORTED_FONTS = [
 
 export type SupportedFont = (typeof SUPPORTED_FONTS)[number]
 
+export const PERSONAS = ["concise", "friendly", "professional", "technical"] as const
+export type Persona = (typeof PERSONAS)[number]
+
+export const PERSONA_LABELS: Record<Persona, { name: string; tagline: string }> = {
+  concise:      { name: "Concise",      tagline: "Direct answers, no filler" },
+  friendly:     { name: "Friendly",     tagline: "Warm and approachable" },
+  professional: { name: "Professional", tagline: "Formal and precise" },
+  technical:    { name: "Technical",    tagline: "Data-first, cites sources" },
+}
+
 export interface BrandingConfig {
   primaryColor: string
   secondaryColor: string
@@ -25,6 +35,7 @@ export interface BrandingConfig {
   logoUrl: string | null
   position: "bottom-right" | "bottom-left" | "inline"
   theme: "dark" | "light"
+  persona: Persona
 }
 
 export interface TokenConfig {
@@ -85,6 +96,7 @@ export const DEFAULT_CONFIG: ProjectConfig = {
     logoUrl: null,
     position: "bottom-right",
     theme: "dark",
+    persona: "concise",
   },
   token: null,
   chains: ["0x1"],

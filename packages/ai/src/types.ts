@@ -44,4 +44,5 @@ export interface StreamChatParams {
   ragContext?: string
   mode?: "support" | "token"
   tokenModeAsk?: string | null
+  persona?: string | null
 }
