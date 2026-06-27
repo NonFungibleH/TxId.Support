@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useTransition } from "react"
+import { useState, useTransition, useEffect, useRef } from "react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -35,6 +35,27 @@ export function DocsForm({ projectId, docCount, pastedChunkCount, sources: initi
   const [deletingUrl, setDeletingUrl] = useState<string | null>(null)
   const [crawling, setCrawling] = useState(false)
   const [crawlStatus, setCrawlStatus] = useState<string | null>(null)
+  const [crawlElapsed, setCrawlElapsed] = useState(0)
+  const crawlTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  useEffect(() => {
+    if (crawling) {
+      setCrawlElapsed(0)
+      crawlTimerRef.current = setInterval(() => setCrawlElapsed(s => s + 1), 1000)
+    } else {
+      if (crawlTimerRef.current) clearInterval(crawlTimerRef.current)
+    }
+    return () => { if (crawlTimerRef.current) clearInterval(crawlTimerRef.current) }
+  }, [crawling])
+
+  const CRAWL_MESSAGES = [
+    { until: 5,  text: "Discovering pages on the site…" },
+    { until: 15, text: "Fetching page content…" },
+    { until: 30, text: "Indexing pages — this takes a moment…" },
+    { until: 50, text: "Still working — larger sites take up to 60 seconds…" },
+    { until: Infinity, text: "Almost done, hang tight…" },
+  ]
+  const crawlMessage = CRAWL_MESSAGES.find(m => crawlElapsed < m.until)?.text ?? "Working…"
 
   // Manual paste fallback
   const [showPaste, setShowPaste] = useState(false)
@@ -288,7 +309,12 @@ export function DocsForm({ projectId, docCount, pastedChunkCount, sources: initi
         {crawlStatus
           ? <p className="text-xs text-green-500 flex items-center gap-1.5"><CheckCircle2 className="size-3.5" />{crawlStatus}</p>
           : crawling
-          ? <p className="text-xs text-muted-foreground animate-pulse">Crawling pages — this may take up to 60 seconds…</p>
+          ? <div className="space-y-1">
+              <p className="text-xs text-primary font-medium flex items-center gap-1.5">
+                <Loader2 className="size-3 animate-spin" />{crawlMessage}
+              </p>
+              <p className="text-xs text-muted-foreground">{crawlElapsed}s elapsed — please keep this tab open</p>
+            </div>
           : <p className="text-xs text-muted-foreground">Use <strong>Fetch page</strong> for a single URL, or <strong>Crawl site</strong> to automatically index all pages on the domain (up to 60).</p>
         }
       </div>
