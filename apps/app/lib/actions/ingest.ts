@@ -273,9 +273,7 @@ export async function crawlAndIngest(
 
   for (let i = 0; i < urls.length; i += CONCURRENCY) {
     const batch = urls.slice(i, i + CONCURRENCY)
-    const texts = await Promise.all(batch.map((url, idx) =>
-      idx === 0 && i === 0 ? Promise.resolve(rootText) : fetchPage(url)
-    ))
+    const texts = await Promise.all(batch.map((url) => fetchPage(url)))
 
     await Promise.all(batch.map(async (url, idx) => {
       const text = texts[idx]
