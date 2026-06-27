@@ -72,7 +72,8 @@ export function DocsForm({ projectId, docCount, pastedChunkCount, sources: initi
       const result = await crawlAndIngest(projectId, targetUrl)
       setCrawling(false)
       if (result.ok) {
-        const msg = `Crawled ${result.pagesIndexed} pages, indexed ${result.chunksInserted} chunks`
+        const discovered = (result as { discovered?: number }).discovered
+        const msg = `Crawled ${result.pagesIndexed} pages, indexed ${result.chunksInserted} chunks${discovered ? ` (found ${discovered} total)` : ""}`
         setCrawlStatus(msg)
         toast.success(msg)
         // Refresh page to show updated source list

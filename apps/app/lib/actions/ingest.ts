@@ -255,29 +255,30 @@ export async function crawlAndIngest(
 
   discovered.add(rootUrl.replace(/\/$/, ""))
   const urls = [...discovered].slice(0, MAX_PAGES)
+  console.log(`[crawl] discovered ${urls.length} URLs for ${rootUrl}`)
 
-  // Crawl all pages in parallel batches of 5
-  const CONCURRENCY = 5
+  // Crawl pages sequentially to avoid Voyage AI / Supabase rate limits
   let totalChunks = 0
   let pagesIndexed = 0
 
-  for (let i = 0; i < urls.length; i += CONCURRENCY) {
-    const batch = urls.slice(i, i + CONCURRENCY)
-    const texts = await Promise.all(batch.map((url) => fetchPage(url)))
-
-    await Promise.all(batch.map(async (url, idx) => {
-      const text = texts[idx]
-      if (!text || text.trim().length < 100) return
-      const result = await ingestText(projectId, text.trim(), url)
-      if (result.ok && result.chunksInserted) {
-        totalChunks += result.chunksInserted
-        pagesIndexed++
-      }
-    }))
+  for (const url of urls) {
+    const text = await fetchPage(url)
+    if (!text || text.trim().length < 50) {
+      console.log(`[crawl] skip (short/empty): ${url}`)
+      continue
+    }
+    const result = await ingestText(projectId, text.trim(), url)
+    if (result.ok && result.chunksInserted) {
+      totalChunks += result.chunksInserted
+      pagesIndexed++
+      console.log(`[crawl] indexed ${result.chunksInserted} chunks: ${url}`)
+    } else if (!result.ok) {
+      console.error(`[crawl] ingest failed for ${url}: ${result.error}`)
+    }
   }
 
   revalidatePath("/dashboard")
-  return { ok: true, pagesIndexed, chunksInserted: totalChunks }
+  return { ok: true, pagesIndexed, chunksInserted: totalChunks, discovered: urls.length }
 }
 
 /**
