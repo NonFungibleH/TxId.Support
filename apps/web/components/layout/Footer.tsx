@@ -52,30 +52,6 @@ export function Footer() {
             </ul>
           </div>
 
-          {/* Developers */}
-          <div>
-            <p className="text-xs font-semibold text-muted uppercase tracking-wider mb-4">
-              Developers
-            </p>
-            <ul className="space-y-2.5">
-              <li>
-                <a
-                  href="https://github.com/NonFungibleH/TxId.Support"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-sm text-muted hover:text-white transition-colors"
-                >
-                  GitHub
-                </a>
-              </li>
-              <li>
-                <a href={`${APP_URL}/sign-up`} className="text-sm text-muted hover:text-white transition-colors">
-                  Dashboard
-                </a>
-              </li>
-            </ul>
-          </div>
-
           {/* Company */}
           <div>
             <p className="text-xs font-semibold text-muted uppercase tracking-wider mb-4">
