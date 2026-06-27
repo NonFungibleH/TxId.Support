@@ -3,7 +3,6 @@
 import { useState } from "react"
 import { ChevronDown, ChevronUp, ThumbsUp, ThumbsDown, Wallet, Download } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
 import type { ConversationWithMessages } from "@/app/dashboard/conversations/page"
 
 function timeAgo(dateStr: string): string {
@@ -38,12 +37,14 @@ export function ConversationList({ conversations }: { conversations: Conversatio
   return (
     <div className="space-y-4">
       <div className="flex justify-end">
-        <Button variant="outline" size="sm" asChild>
-          <a href="/api/conversations/export" download="conversations.csv">
-            <Download className="size-3.5 mr-1.5" />
-            Export CSV
-          </a>
-        </Button>
+        <a
+          href="/api/conversations/export"
+          download="conversations.csv"
+          className="inline-flex items-center gap-1.5 rounded-md border border-border bg-transparent px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+        >
+          <Download className="size-3.5" />
+          Export CSV
+        </a>
       </div>
       <div className="space-y-2">
       {conversations.map((conv) => {
