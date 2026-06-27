@@ -184,11 +184,12 @@ export async function crawlAndIngest(
   const origin = parsed.origin
   const MAX_PAGES = 60
 
-  // Fetch root page via Jina with link summary
-  const fetchPage = async (url: string): Promise<string | null> => {
+  const fetchPage = async (url: string, withLinks = false): Promise<string | null> => {
     try {
+      const headers: Record<string, string> = { "Accept": "text/plain", "X-No-Cache": "true" }
+      if (withLinks) headers["X-With-Links-Summary"] = "true"
       const res = await fetch(`https://r.jina.ai/${url}`, {
-        headers: { "Accept": "text/plain", "X-No-Cache": "true", "X-With-Links-Summary": "true" },
+        headers,
         signal: AbortSignal.timeout(20_000),
       })
       if (!res.ok) return null
@@ -198,26 +199,70 @@ export async function crawlAndIngest(
     }
   }
 
-  // Discover all same-domain links from the root page text
-  const rootText = await fetchPage(rootUrl)
-  if (!rootText || rootText.trim().length < 50) {
-    return { ok: false, error: "Could not fetch root page" }
+  // ── Step 1: discover URLs via sitemap (most reliable for doc sites) ──────
+  const discovered = new Set<string>()
+
+  const normUrl = (raw: string): string | null => {
+    try {
+      const u = new URL(raw)
+      if (u.origin !== origin) return null
+      if (/\.(pdf|zip|png|jpg|jpeg|gif|svg|ico|css|js)$/i.test(u.pathname)) return null
+      u.hash = ""
+      return u.toString().replace(/\/$/, "")
+    } catch { return null }
   }
 
-  // Extract all URLs from markdown link syntax: (https://...)
-  const urlMatches = [...rootText.matchAll(/\(((https?:\/\/[^)]+))\)/g)]
-  const discovered = new Set<string>([rootUrl])
-  for (const match of urlMatches) {
+  // Try sitemap.xml (and sitemap_index.xml)
+  const sitemapUrls = [`${origin}/sitemap.xml`, `${origin}/sitemap_index.xml`]
+  let foundSitemap = false
+  for (const sitemapUrl of sitemapUrls) {
     try {
-      const u = new URL(match[1])
-      if (u.origin === origin && !u.pathname.match(/\.(pdf|zip|png|jpg|jpeg|gif|svg|ico|css|js)$/i)) {
-        // Normalise: strip hash and trailing slash
-        u.hash = ""
-        const clean = u.toString().replace(/\/$/, "")
-        discovered.add(clean)
+      const res = await fetch(sitemapUrl, { signal: AbortSignal.timeout(10_000) })
+      if (res.ok) {
+        const xml = await res.text()
+        // Parse <loc> tags — works for both sitemap and sitemap_index
+        const locs = [...xml.matchAll(/<loc>\s*(https?:\/\/[^<]+)\s*<\/loc>/g)]
+        // If it's a sitemap index, fetch each child sitemap
+        const isSitemapIndex = xml.includes("<sitemapindex")
+        if (isSitemapIndex) {
+          for (const loc of locs.slice(0, 5)) {
+            try {
+              const childRes = await fetch(loc[1].trim(), { signal: AbortSignal.timeout(10_000) })
+              if (childRes.ok) {
+                const childXml = await childRes.text()
+                for (const childLoc of childXml.matchAll(/<loc>\s*(https?:\/\/[^<]+)\s*<\/loc>/g)) {
+                  const n = normUrl(childLoc[1].trim())
+                  if (n) discovered.add(n)
+                }
+              }
+            } catch { /* skip */ }
+          }
+        } else {
+          for (const loc of locs) {
+            const n = normUrl(loc[1].trim())
+            if (n) discovered.add(n)
+          }
+        }
+        if (discovered.size > 0) { foundSitemap = true; break }
       }
-    } catch { /* skip invalid URLs */ }
+    } catch { /* try next */ }
   }
+
+  // ── Step 2: fallback — extract links from root page ──────────────────────
+  if (!foundSitemap) {
+    const rootText = await fetchPage(rootUrl, true)
+    if (!rootText || rootText.trim().length < 50) {
+      return { ok: false, error: "Could not fetch root page" }
+    }
+    discovered.add(rootUrl.replace(/\/$/, ""))
+    for (const match of rootText.matchAll(/\(((https?:\/\/[^)\s]+))\)/g)) {
+      const n = normUrl(match[1])
+      if (n) discovered.add(n)
+    }
+  }
+
+  // Always include the root
+  discovered.add(rootUrl.replace(/\/$/, ""))
 
   const urls = [...discovered].slice(0, MAX_PAGES)
 
