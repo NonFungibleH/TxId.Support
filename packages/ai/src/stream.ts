@@ -174,23 +174,16 @@ export async function* streamChatWithTools(
     content: m.content,
   }))
 
-  // Cache the system prompt — 90% cheaper on hits, especially valuable in
-  // tool-use loops where the same system prompt is sent multiple rounds.
-  const cachedSystem: Anthropic.TextBlockParam[] = [
-    { type: "text", text: systemPrompt, cache_control: { type: "ephemeral" } },
-  ]
-
   const MAX_ROUNDS = 5
 
   for (let round = 0; round < MAX_ROUNDS; round++) {
     const stream = anthropic.messages.stream({
       model: "claude-3-5-haiku-20241022",
       max_tokens: maxTokens,
-      system: cachedSystem,
+      system: systemPrompt,
       messages: currentMessages,
       tools: tools.length > 0 ? tools : undefined,
-      betas: ["prompt-caching-2024-07-31"],
-    } as Parameters<typeof anthropic.messages.stream>[0])
+    })
 
     let hasToolCalls = false
     const emittedToolIds = new Set<string>()
