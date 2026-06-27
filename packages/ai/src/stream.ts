@@ -178,7 +178,7 @@ export async function* streamChatWithTools(
 
   for (let round = 0; round < MAX_ROUNDS; round++) {
     const stream = anthropic.messages.stream({
-      model: "claude-3-5-haiku-20241022",
+      model: "claude-haiku-4-5-20251001",
       max_tokens: maxTokens,
       system: systemPrompt,
       messages: currentMessages,
@@ -263,7 +263,7 @@ export async function* streamChat(
 
   if (anthropic) {
     const stream = anthropic.messages.stream({
-      model: "claude-3-5-haiku-20241022",
+      model: "claude-haiku-4-5-20251001",
       max_tokens: maxTokens,
       system: systemPrompt,
       messages: messages.map((m) => ({ role: m.role, content: m.content })),
