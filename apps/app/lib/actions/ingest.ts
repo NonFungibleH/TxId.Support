@@ -169,7 +169,7 @@ export async function clearKnowledgeBase(
 export async function crawlAndIngest(
   projectId: string,
   rootUrl: string,
-): Promise<{ ok: boolean; pagesIndexed?: number; chunksInserted?: number; error?: string }> {
+): Promise<{ ok: boolean; pagesIndexed?: number; chunksInserted?: number; discovered?: number; error?: string }> {
   const { userId } = await auth()
   if (!userId) return { ok: false, error: "Unauthorized" }
 
