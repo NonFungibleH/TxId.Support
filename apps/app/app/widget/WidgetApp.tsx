@@ -33,6 +33,14 @@ interface WatchedContract {
   description: string
 }
 
+interface ContentBlockData {
+  id: string
+  type: string
+  title: string
+  content: Record<string, string> | unknown
+  order: number
+}
+
 interface WidgetConfig {
   projectId: string
   projectName: string
@@ -50,6 +58,23 @@ interface WidgetConfig {
     announcement: string | null
   } | null
   tokenModeAsk?: string | null
+  contentBlocks?: ContentBlockData[]
+}
+
+function getVideoEmbedUrl(url: string): string | null {
+  try {
+    const u = new URL(url)
+    if (u.hostname.includes("youtube.com") && u.searchParams.get("v")) {
+      return `https://www.youtube.com/embed/${u.searchParams.get("v")}`
+    }
+    if (u.hostname === "youtu.be") {
+      return `https://www.youtube.com/embed${u.pathname}`
+    }
+    if (u.hostname.includes("loom.com") && u.pathname.startsWith("/share/")) {
+      return `https://www.loom.com/embed/${u.pathname.replace("/share/", "")}`
+    }
+  } catch { /* ignore */ }
+  return null
 }
 
 interface Message {
@@ -964,7 +989,86 @@ export function WidgetApp() {
               </div>
             )}
 
-            {!config.token && config.watchedContracts.length === 0 && (
+            {/* Content blocks */}
+            {(config.contentBlocks ?? []).length > 0 && (
+              <div className="space-y-3">
+                {(config.contentBlocks ?? []).map((block) => {
+                  const c = (block.content && typeof block.content === "object")
+                    ? block.content as Record<string, string>
+                    : {}
+
+                  if (block.type === "video") {
+                    const embedUrl = c.url ? getVideoEmbedUrl(c.url) : null
+                    if (!embedUrl) return null
+                    return (
+                      <div key={block.id}>
+                        {block.title && <p className="text-[10px] uppercase tracking-wider opacity-60 mb-1">{block.title}</p>}
+                        <div className="relative w-full rounded-xl overflow-hidden" style={{ paddingBottom: "56.25%" }}>
+                          <iframe
+                            src={embedUrl}
+                            className="absolute inset-0 w-full h-full"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowFullScreen
+                          />
+                        </div>
+                      </div>
+                    )
+                  }
+
+                  if (block.type === "text" && c.body) {
+                    return (
+                      <div key={block.id} className="rounded-xl p-3" style={{ backgroundColor: b.secondaryColor }}>
+                        {block.title && <p className="text-xs font-semibold mb-1.5">{block.title}</p>}
+                        <p className="text-[11px] opacity-80 leading-relaxed whitespace-pre-wrap">{c.body}</p>
+                      </div>
+                    )
+                  }
+
+                  if (block.type === "link" && c.url) {
+                    return (
+                      <a
+                        key={block.id}
+                        href={c.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-3 rounded-xl p-3 hover:opacity-90 transition-opacity"
+                        style={{ backgroundColor: b.secondaryColor, color: b.textColor }}
+                      >
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-semibold truncate">{block.title}</p>
+                          {c.description && <p className="text-[10px] opacity-60 mt-0.5">{c.description}</p>}
+                        </div>
+                        <ExternalLinkIcon className="size-3.5 opacity-40 shrink-0" />
+                      </a>
+                    )
+                  }
+
+                  if (block.type === "image" && c.url) {
+                    return (
+                      <div key={block.id}>
+                        {block.title && <p className="text-[10px] uppercase tracking-wider opacity-60 mb-1">{block.title}</p>}
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={c.url} alt={c.alt || block.title || ""} className="w-full rounded-xl object-cover" />
+                      </div>
+                    )
+                  }
+
+                  if (block.type === "html" && c.code) {
+                    return (
+                      <div
+                        key={block.id}
+                        className="text-[11px]"
+                        dangerouslySetInnerHTML={{ __html: c.code }}
+                      />
+                    )
+                  }
+
+                  return null
+                })}
+              </div>
+            )}
+
+            {!config.token && config.watchedContracts.length === 0 && (config.contentBlocks ?? []).length === 0 && (
               <div className="flex h-full items-center justify-center py-12">
                 <p className="text-xs opacity-40">No protocol info configured.</p>
               </div>

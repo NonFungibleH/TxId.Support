@@ -84,6 +84,15 @@ export async function GET(
       description: c.description,
       address: c.address,
     })),
+    contentBlocks: (config.contentBlocks ?? [])
+      .sort((a, b) => a.order - b.order)
+      .map((b) => ({
+        id: b.id,
+        type: b.type,
+        title: b.title,
+        content: b.content,
+        order: b.order,
+      })),
   }
 
   return new Response(JSON.stringify(publicConfig), {
