@@ -371,7 +371,7 @@ export function WidgetApp() {
   const [walletConnecting, setWalletConnecting] = useState(false)
 
   // Wallet setup flow: prompt → (connected | manual | skipped)
-  const [_walletSetup, setWalletSetup] = useState<"prompt" | "manual-input" | "connected" | "manual" | "skipped">("prompt")
+  const [, setWalletSetup] = useState<"prompt" | "manual-input" | "connected" | "manual" | "skipped">("prompt")
 
   // Ticket escalation state
   const [escalation, setEscalation] = useState<{ summary: string; reason: string } | null>(null)
