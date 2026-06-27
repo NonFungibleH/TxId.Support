@@ -12,13 +12,16 @@ const SEGMENTS = [
       "When users hit a failed swap, wrong-network error, or a question your docs should answer — they need help that already knows their on-chain context. Not a generic chatbot.",
     features: [
       "Transaction diagnostics — failed swaps explained in plain English",
-      "Wallet-aware — the bot already knows what the user's wallet did",
+      "Wallet-aware — the agent already knows what the user's wallet did",
       "Docs Q&A — trained on your protocol documentation",
-      "Escalation tickets — clean hand-off when the bot can't resolve",
+      "Escalation tickets — clean hand-off when the agent can't resolve",
     ],
     cta: "Add to your protocol",
     ctaHref: `${APP_URL}/sign-up`,
-    highlight: true,
+    dotColor: "bg-accent",
+    textColor: "text-accent",
+    cardClass: "bg-accent-muted border-accent shadow-lg shadow-accent/10",
+    buttonVariant: "primary" as const,
   },
   {
     badge: "Discovery hub",
@@ -34,7 +37,10 @@ const SEGMENTS = [
     ],
     cta: "Set up your hub",
     ctaHref: `${APP_URL}/sign-up`,
-    highlight: false,
+    dotColor: "bg-[var(--yellow)]",
+    textColor: "text-[var(--yellow)]",
+    cardClass: "bg-[var(--bg-surface)] border-[var(--border)]",
+    buttonVariant: "outline" as const,
   },
 ];
 
@@ -58,21 +64,18 @@ export function ForWho() {
         <div className="grid md:grid-cols-2 gap-6">
           {SEGMENTS.map((seg, i) => (
             <FadeIn key={seg.heading} delay={i * 0.1}>
-              <div
-                className={`relative rounded-2xl border p-8 flex flex-col h-full ${
-                  seg.highlight
-                    ? "bg-accent-muted border-accent shadow-lg shadow-accent/10"
-                    : "bg-[var(--bg-surface)] border-[var(--border)]"
-                }`}
-              >
-                <span className="inline-block font-mono text-[10px] uppercase tracking-widest text-accent mb-4 px-2 py-1 rounded border border-accent/30 bg-accent/10 self-start">
+              <div className={`relative rounded-2xl border p-8 flex flex-col h-full ${seg.cardClass}`}>
+
+                {/* Badge — dot + label, no box */}
+                <span className={`inline-flex items-center gap-2 font-mono text-[10px] uppercase tracking-widest mb-5 self-start ${seg.textColor}`}>
+                  <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${seg.dotColor}`} />
                   {seg.badge}
                 </span>
 
                 <h3 className="font-display text-2xl font-bold text-white mb-1">
                   {seg.heading}
                 </h3>
-                <p className="text-sm text-accent mb-4">{seg.subheading}</p>
+                <p className={`text-sm mb-4 ${seg.textColor}`}>{seg.subheading}</p>
                 <p className="text-sm text-muted leading-relaxed mb-6">
                   {seg.description}
                 </p>
@@ -80,7 +83,7 @@ export function ForWho() {
                 <ul className="space-y-3 mb-8 flex-1">
                   {seg.features.map((f) => (
                     <li key={f} className="flex items-start gap-2.5 text-sm text-muted">
-                      <Check className="w-4 h-4 text-accent flex-shrink-0 mt-0.5" />
+                      <Check className={`w-4 h-4 shrink-0 mt-0.5 ${seg.textColor}`} />
                       <span>{f}</span>
                     </li>
                   ))}
@@ -88,7 +91,7 @@ export function ForWho() {
 
                 <Button
                   href={seg.ctaHref}
-                  variant={seg.highlight ? "primary" : "outline"}
+                  variant={seg.buttonVariant}
                   className="w-full justify-center"
                 >
                   {seg.cta}
