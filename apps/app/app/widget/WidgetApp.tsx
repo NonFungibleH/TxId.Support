@@ -480,7 +480,7 @@ export function WidgetApp() {
   } as React.CSSProperties
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden" style={cssVars}>
+    <div className="flex h-full flex-col overflow-hidden" style={cssVars}>
       {/* Header */}
       <div
         className="flex shrink-0 items-center gap-2 px-4 py-3"
