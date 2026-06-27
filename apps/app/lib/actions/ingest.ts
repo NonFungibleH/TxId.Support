@@ -257,28 +257,71 @@ export async function crawlAndIngest(
   const urls = [...discovered].slice(0, MAX_PAGES)
   console.log(`[crawl] discovered ${urls.length} URLs for ${rootUrl}`)
 
-  // Crawl pages sequentially to avoid Voyage AI / Supabase rate limits
-  let totalChunks = 0
-  let pagesIndexed = 0
-
+  // ── Fetch all pages sequentially ──────────────────────────────────────────
+  const pageTexts: { url: string; text: string }[] = []
   for (const url of urls) {
     const text = await fetchPage(url)
-    if (!text || text.trim().length < 50) {
-      console.log(`[crawl] skip (short/empty): ${url}`)
-      continue
+    if (text && text.trim().length > 50) {
+      pageTexts.push({ url, text: text.trim() })
     }
-    const result = await ingestText(projectId, text.trim(), url)
-    if (result.ok && result.chunksInserted) {
-      totalChunks += result.chunksInserted
-      pagesIndexed++
-      console.log(`[crawl] indexed ${result.chunksInserted} chunks: ${url}`)
-    } else if (!result.ok) {
-      console.error(`[crawl] ingest failed for ${url}: ${result.error}`)
+  }
+  if (pageTexts.length === 0) return { ok: false, error: "No content found on any discovered pages" }
+
+  // ── Auth + org check (once for the whole crawl) ───────────────────────────
+  const { orgId } = await auth()
+  const orgKey = orgId ?? userId
+  const supabase = createServiceClient()
+
+  const { data: project } = await supabase.from("projects").select("id, org_id").eq("id", projectId).single()
+  if (!project) return { ok: false, error: "Project not found" }
+
+  const { data: org } = await supabase.from("organisations").select("id").eq("id", project.org_id).eq("clerk_org_id", orgKey).single()
+  if (!org) return { ok: false, error: "Forbidden" }
+
+  // Remove any existing docs from these sources
+  await supabase.from("documents").delete().eq("project_id", projectId).in("source_url", pageTexts.map(p => p.url))
+
+  // ── Chunk all pages together ───────────────────────────────────────────────
+  type ChunkRow = { url: string; content: string; chunkIndex: number; totalChunks: number }
+  const allChunks: ChunkRow[] = []
+  for (const { url, text } of pageTexts) {
+    const chunks = chunkText(text)
+    chunks.forEach((c, i) => allChunks.push({ url, content: c, chunkIndex: i, totalChunks: chunks.length }))
+  }
+
+  // ── Embed all chunks in batches of 64 (minimises Voyage API calls) ────────
+  // With 28 pages ≈ 84 chunks → 2 Voyage calls total (vs 28 previously).
+  const EMBED_BATCH = 64
+  const rows: Array<{ project_id: string; content: string; embedding: number[]; source_url: string; metadata: Json }> = []
+
+  for (let i = 0; i < allChunks.length; i += EMBED_BATCH) {
+    const batch = allChunks.slice(i, i + EMBED_BATCH)
+    try {
+      const embeddings = await embedBatch(batch.map(c => c.content))
+      batch.forEach((c, j) => rows.push({
+        project_id: projectId,
+        content: c.content,
+        embedding: embeddings[j],
+        source_url: c.url,
+        metadata: { chunkIndex: c.chunkIndex, totalChunks: c.totalChunks } as Json,
+      }))
+    } catch (err) {
+      console.error(`[crawl] embed batch ${i}–${i + batch.length} failed:`, err)
+      return { ok: false, error: err instanceof Error ? err.message : "Embedding failed" }
     }
   }
 
+  // ── Bulk insert ────────────────────────────────────────────────────────────
+  const { error: insertError } = await supabase.from("documents").insert(rows)
+  if (insertError) return { ok: false, error: insertError.message }
+
   revalidatePath("/dashboard")
-  return { ok: true, pagesIndexed, chunksInserted: totalChunks, discovered: urls.length }
+  return {
+    ok: true,
+    pagesIndexed: pageTexts.length,
+    chunksInserted: rows.length,
+    discovered: urls.length,
+  }
 }
 
 /**
