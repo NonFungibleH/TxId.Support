@@ -245,7 +245,6 @@ export const POSTS: Post[] = [
       },
     ],
   },
-  ,
   {
     slug: "on-chain-data-support-bot",
     title: "What on-chain data should your DeFi support bot actually read?",
