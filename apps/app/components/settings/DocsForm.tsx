@@ -7,9 +7,9 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import {
   Loader2, CheckCircle2, Trash2, Plus, Globe, FileText,
-  AlertTriangle, RefreshCw, X,
+  AlertTriangle, RefreshCw, X, Layers,
 } from "lucide-react"
-import { fetchAndIngest, ingestText, clearKnowledgeBase, deleteSource } from "@/lib/actions/ingest"
+import { fetchAndIngest, ingestText, clearKnowledgeBase, deleteSource, crawlAndIngest } from "@/lib/actions/ingest"
 
 interface Source {
   url: string
@@ -33,11 +33,34 @@ export function DocsForm({ projectId, docCount, pastedChunkCount, sources: initi
   const [isPending, startTransition] = useTransition()
   const [refreshingUrl, setRefreshingUrl] = useState<string | null>(null)
   const [deletingUrl, setDeletingUrl] = useState<string | null>(null)
+  const [crawling, setCrawling] = useState(false)
+  const [crawlStatus, setCrawlStatus] = useState<string | null>(null)
 
   // Manual paste fallback
   const [showPaste, setShowPaste] = useState(false)
   const [pasteContent, setPasteContent] = useState("")
   const [pasteUrl, setPasteUrl] = useState("")
+
+  function crawlSite() {
+    if (!url.trim()) { toast.error("Enter a URL first"); return }
+    const targetUrl = url.trim()
+    setCrawling(true)
+    setCrawlStatus("Discovering pages…")
+    startTransition(async () => {
+      const result = await crawlAndIngest(projectId, targetUrl)
+      setCrawling(false)
+      if (result.ok) {
+        const msg = `Crawled ${result.pagesIndexed} pages, indexed ${result.chunksInserted} chunks`
+        setCrawlStatus(msg)
+        toast.success(msg)
+        // Refresh page to show updated source list
+        window.location.reload()
+      } else {
+        setCrawlStatus(null)
+        toast.error(result.error ?? "Crawl failed")
+      }
+    })
+  }
 
   function fetchUrl() {
     if (!url.trim()) { toast.error("Enter a URL first"); return }
@@ -249,16 +272,25 @@ export function DocsForm({ projectId, docCount, pastedChunkCount, sources: initi
               disabled={isPending}
             />
           </div>
-          <Button onClick={fetchUrl} disabled={isPending || !url.trim()}>
-            {isPending && !showPaste
+          <Button onClick={fetchUrl} disabled={isPending || crawling || !url.trim()}>
+            {isPending && !showPaste && !crawling
               ? <><Loader2 className="size-3.5 animate-spin mr-2" />Fetching…</>
-              : <><Plus className="size-3.5 mr-1.5" />Fetch & Index</>
+              : <><Plus className="size-3.5 mr-1.5" />Fetch page</>
+            }
+          </Button>
+          <Button variant="outline" onClick={crawlSite} disabled={isPending || crawling || !url.trim()} title="Crawl all pages on this domain (up to 60)">
+            {crawling
+              ? <><Loader2 className="size-3.5 animate-spin mr-2" />Crawling…</>
+              : <><Layers className="size-3.5 mr-1.5" />Crawl site</>
             }
           </Button>
         </div>
-        <p className="text-xs text-muted-foreground">
-          Add as many URLs as you like — each gets fetched, chunked, and stored for AI retrieval.
-        </p>
+        {crawlStatus
+          ? <p className="text-xs text-green-500 flex items-center gap-1.5"><CheckCircle2 className="size-3.5" />{crawlStatus}</p>
+          : crawling
+          ? <p className="text-xs text-muted-foreground animate-pulse">Crawling pages — this may take up to 60 seconds…</p>
+          : <p className="text-xs text-muted-foreground">Use <strong>Fetch page</strong> for a single URL, or <strong>Crawl site</strong> to automatically index all pages on the domain (up to 60).</p>
+        }
       </div>
 
       {/* Paste fallback */}

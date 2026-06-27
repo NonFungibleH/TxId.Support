@@ -162,6 +162,92 @@ export async function clearKnowledgeBase(
 }
 
 /**
+ * Crawl all pages on a domain and ingest them.
+ * Fetches the root URL, discovers same-domain links, then crawls each page.
+ * Capped at 60 pages to avoid runaway crawls.
+ */
+export async function crawlAndIngest(
+  projectId: string,
+  rootUrl: string,
+): Promise<{ ok: boolean; pagesIndexed?: number; chunksInserted?: number; error?: string }> {
+  const { userId } = await auth()
+  if (!userId) return { ok: false, error: "Unauthorized" }
+
+  let parsed: URL
+  try {
+    parsed = new URL(rootUrl)
+    if (!["http:", "https:"].includes(parsed.protocol)) throw new Error()
+  } catch {
+    return { ok: false, error: "Invalid URL" }
+  }
+
+  const origin = parsed.origin
+  const MAX_PAGES = 60
+
+  // Fetch root page via Jina with link summary
+  const fetchPage = async (url: string): Promise<string | null> => {
+    try {
+      const res = await fetch(`https://r.jina.ai/${url}`, {
+        headers: { "Accept": "text/plain", "X-No-Cache": "true", "X-With-Links-Summary": "true" },
+        signal: AbortSignal.timeout(20_000),
+      })
+      if (!res.ok) return null
+      return await res.text()
+    } catch {
+      return null
+    }
+  }
+
+  // Discover all same-domain links from the root page text
+  const rootText = await fetchPage(rootUrl)
+  if (!rootText || rootText.trim().length < 50) {
+    return { ok: false, error: "Could not fetch root page" }
+  }
+
+  // Extract all URLs from markdown link syntax: (https://...)
+  const urlMatches = [...rootText.matchAll(/\(((https?:\/\/[^)]+))\)/g)]
+  const discovered = new Set<string>([rootUrl])
+  for (const match of urlMatches) {
+    try {
+      const u = new URL(match[1])
+      if (u.origin === origin && !u.pathname.match(/\.(pdf|zip|png|jpg|jpeg|gif|svg|ico|css|js)$/i)) {
+        // Normalise: strip hash and trailing slash
+        u.hash = ""
+        const clean = u.toString().replace(/\/$/, "")
+        discovered.add(clean)
+      }
+    } catch { /* skip invalid URLs */ }
+  }
+
+  const urls = [...discovered].slice(0, MAX_PAGES)
+
+  // Crawl all pages in parallel batches of 5
+  const CONCURRENCY = 5
+  let totalChunks = 0
+  let pagesIndexed = 0
+
+  for (let i = 0; i < urls.length; i += CONCURRENCY) {
+    const batch = urls.slice(i, i + CONCURRENCY)
+    const texts = await Promise.all(batch.map((url, idx) =>
+      idx === 0 && i === 0 ? Promise.resolve(rootText) : fetchPage(url)
+    ))
+
+    await Promise.all(batch.map(async (url, idx) => {
+      const text = texts[idx]
+      if (!text || text.trim().length < 100) return
+      const result = await ingestText(projectId, text.trim(), url)
+      if (result.ok && result.chunksInserted) {
+        totalChunks += result.chunksInserted
+        pagesIndexed++
+      }
+    }))
+  }
+
+  revalidatePath("/dashboard")
+  return { ok: true, pagesIndexed, chunksInserted: totalChunks }
+}
+
+/**
  * Fetch a URL and ingest its text content into the knowledge base.
  */
 export async function fetchAndIngest(
