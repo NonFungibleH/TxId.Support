@@ -4,7 +4,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import {
   LayoutDashboard, Paintbrush, FileCode2, BookOpen,
-  Link2, LayoutList, Code2, BarChart3, Users, Globe, MessageSquare, Eye,
+  Link2, LayoutList, Code2, BarChart3, Users, Globe, MessageSquare, Eye, Ticket,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -19,6 +19,7 @@ const SUPPORT_NAV = [
   { href: "/dashboard/content",   label: "Content",         icon: LayoutList },
   { href: "/dashboard/preview",   label: "Preview",         icon: Eye },
   { href: "/dashboard/embed",     label: "Embed & Go Live", icon: Code2 },
+  { href: "/dashboard/tickets",   label: "Tickets",         icon: Ticket },
   { href: "/dashboard/analytics", label: "Analytics",       icon: BarChart3 },
   { href: "/dashboard/team",      label: "Team",            icon: Users },
 ]

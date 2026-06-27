@@ -160,6 +160,8 @@ export async function POST(request: Request) {
             let data: string
             if (event.type === "tool_call") {
               data = `data: ${JSON.stringify({ tool_call: event.tool })}\n\n`
+            } else if (event.type === "escalate") {
+              data = `data: ${JSON.stringify({ escalate: { summary: event.summary, reason: event.reason } })}\n\n`
             } else {
               data = `data: ${JSON.stringify({ text: event.text })}\n\n`
             }

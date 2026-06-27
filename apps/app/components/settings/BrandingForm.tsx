@@ -2,12 +2,14 @@
 
 import { useState, useTransition, useEffect } from "react"
 import { toast } from "sonner"
+import { Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ColorPicker } from "./ColorPicker"
 import { updateConfig } from "@/lib/actions/project"
+import { fetchBrandColors } from "@/lib/actions/brand"
 import type { BrandingConfig } from "@/lib/types/config"
 import { SUPPORTED_FONTS, PERSONAS, PERSONA_LABELS } from "@/lib/types/config"
 import { Separator } from "@/components/ui/separator"
@@ -30,6 +32,8 @@ interface BrandingFormProps {
 export function BrandingForm({ projectId, initial, onBrandingChange }: BrandingFormProps) {
   const [branding, setBranding] = useState<BrandingConfig>(initial)
   const [isPending, startTransition] = useTransition()
+  const [fetchingColors, setFetchingColors] = useState(false)
+  const [colorFetchMsg, setColorFetchMsg] = useState<{ ok: boolean; text: string } | null>(null)
 
   function update<K extends keyof BrandingConfig>(key: K, val: BrandingConfig[K]) {
     setBranding(prev => ({ ...prev, [key]: val }))
@@ -56,8 +60,73 @@ export function BrandingForm({ projectId, initial, onBrandingChange }: BrandingF
     setBranding(prev => ({ ...prev, ...preset }))
   }
 
+  async function handleFetchColors() {
+    if (!branding.websiteUrl) return
+    setFetchingColors(true)
+    setColorFetchMsg(null)
+    try {
+      const result = await fetchBrandColors(branding.websiteUrl)
+      if (result.error) {
+        setColorFetchMsg({ ok: false, text: result.error })
+      } else {
+        setBranding(prev => ({
+          ...prev,
+          ...(result.primaryColor    ? { primaryColor:    result.primaryColor }    : {}),
+          ...(result.secondaryColor  ? { secondaryColor:  result.secondaryColor }  : {}),
+          ...(result.backgroundColor ? { backgroundColor: result.backgroundColor } : {}),
+          ...(result.textColor       ? { textColor:       result.textColor }       : {}),
+        }))
+        setColorFetchMsg({
+          ok: true,
+          text: `Found via ${result.foundSignals.join(", ")} — colours applied below. Tweak as needed.`,
+        })
+      }
+    } finally {
+      setFetchingColors(false)
+    }
+  }
+
   return (
     <div className="space-y-6">
+      {/* Website URL + auto colour extraction */}
+      <div className="space-y-3">
+        <div>
+          <h3 className="text-sm font-semibold">Website</h3>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Enter your website to auto-fetch brand colours.
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <Input
+            type="url"
+            placeholder="https://yourprotocol.com"
+            value={branding.websiteUrl ?? ""}
+            onChange={e => update("websiteUrl", e.target.value || null)}
+            className="flex-1"
+          />
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={handleFetchColors}
+            disabled={!branding.websiteUrl || fetchingColors}
+            className="shrink-0 gap-1.5"
+          >
+            {fetchingColors
+              ? <><Loader2 className="size-3.5 animate-spin" /> Fetching…</>
+              : "Fetch colours"
+            }
+          </Button>
+        </div>
+        {colorFetchMsg && (
+          <p className={`text-xs ${colorFetchMsg.ok ? "text-green-500" : "text-destructive"}`}>
+            {colorFetchMsg.text}
+          </p>
+        )}
+      </div>
+
+      <Separator />
+
       <div className="space-y-3">
         <h3 className="text-sm font-semibold">Quick themes</h3>
         <div className="flex flex-wrap gap-2">
@@ -184,6 +253,45 @@ export function BrandingForm({ projectId, initial, onBrandingChange }: BrandingF
               </button>
             )
           })}
+        </div>
+      </div>
+
+      <Separator />
+
+      <div className="space-y-3">
+        <div>
+          <h3 className="text-sm font-semibold">AI agent identity</h3>
+          <p className="text-xs text-muted-foreground mt-0.5">Give the AI a name and avatar — users will see this instead of "AI".</p>
+        </div>
+        <div className="space-y-1.5">
+          <Label className="text-xs text-muted-foreground">Name (e.g. Alex, Aria, Support)</Label>
+          <Input
+            placeholder="AI"
+            value={branding.agentName ?? ""}
+            onChange={e => update("agentName", e.target.value || null)}
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label className="text-xs text-muted-foreground">Avatar URL (optional)</Label>
+          <Input
+            type="url"
+            placeholder="https://yourprotocol.com/avatar.png"
+            value={branding.agentIconUrl ?? ""}
+            onChange={e => update("agentIconUrl", e.target.value || null)}
+            className="font-mono text-sm"
+          />
+          {branding.agentIconUrl && (
+            <div className="flex items-center gap-3 pt-1">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={branding.agentIconUrl}
+                alt="Avatar preview"
+                className="size-8 rounded-full object-cover"
+                onError={e => { (e.target as HTMLImageElement).style.display = "none" }}
+              />
+              <span className="text-xs text-muted-foreground">Preview</span>
+            </div>
+          )}
         </div>
       </div>
 

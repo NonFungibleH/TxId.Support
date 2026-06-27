@@ -1,0 +1,171 @@
+"use server"
+
+// ── Colour utilities ─────────────────────────────────────────────────────────
+
+function isValidHex(value: string): boolean {
+  return /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(value.trim())
+}
+
+function normalizeHex(hex: string): string {
+  const clean = hex.trim().replace("#", "")
+  if (clean.length === 3) {
+    return "#" + clean.split("").map(c => c + c).join("")
+  }
+  return "#" + clean.slice(0, 6).toLowerCase()
+}
+
+function hexToRgb(hex: string): [number, number, number] | null {
+  const clean = hex.replace("#", "").slice(0, 6)
+  if (clean.length !== 6) return null
+  return [
+    parseInt(clean.slice(0, 2), 16),
+    parseInt(clean.slice(2, 4), 16),
+    parseInt(clean.slice(4, 6), 16),
+  ]
+}
+
+function darken(hex: string, amount: number): string {
+  const rgb = hexToRgb(hex)
+  if (!rgb) return hex
+  const [r, g, b] = rgb.map(c => Math.max(0, Math.floor(c * (1 - amount))))
+  return `#${r.toString(16).padStart(2, "0")}${g.toString(16).padStart(2, "0")}${b.toString(16).padStart(2, "0")}`
+}
+
+function isLight(hex: string): boolean {
+  const rgb = hexToRgb(hex)
+  if (!rgb) return false
+  return (0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2]) / 255 > 0.5
+}
+
+// ── Main export ───────────────────────────────────────────────────────────────
+
+export interface BrandColorResult {
+  primaryColor?: string
+  secondaryColor?: string
+  backgroundColor?: string
+  textColor?: string
+  foundSignals: string[]
+  error?: string
+}
+
+export async function fetchBrandColors(rawUrl: string): Promise<BrandColorResult> {
+  try {
+    const url = rawUrl.startsWith("http") ? rawUrl : `https://${rawUrl}`
+
+    const response = await fetch(url, {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (compatible; TxIDSupport/1.0)",
+        Accept: "text/html,application/xhtml+xml",
+      },
+      signal: AbortSignal.timeout(8000),
+      redirect: "follow",
+    })
+
+    if (!response.ok) {
+      return { foundSignals: [], error: `Could not reach ${url} (HTTP ${response.status})` }
+    }
+
+    const html = await response.text()
+    const foundSignals: string[] = []
+    let primaryColor: string | undefined
+    let backgroundColor: string | undefined
+
+    // 1. <meta name="theme-color"> — most reliable signal
+    const themeColorMatch =
+      html.match(/<meta[^>]*name=["']theme-color["'][^>]*content=["']([^"']+)["']/i) ||
+      html.match(/<meta[^>]*content=["']([^"']+)["'][^>]*name=["']theme-color["']/i)
+
+    if (themeColorMatch?.[1]) {
+      const val = themeColorMatch[1].trim()
+      if (isValidHex(val)) {
+        primaryColor = normalizeHex(val)
+        foundSignals.push("theme-color meta")
+      }
+    }
+
+    // 2. Web app manifest — theme_color + background_color
+    if (!primaryColor || !backgroundColor) {
+      const manifestMatch =
+        html.match(/<link[^>]*rel=["']manifest["'][^>]*href=["']([^"']+)["']/i) ||
+        html.match(/<link[^>]*href=["']([^"']+)["'][^>]*rel=["']manifest["']/i)
+
+      if (manifestMatch?.[1]) {
+        try {
+          const manifestUrl = new URL(manifestMatch[1], url).href
+          const mRes = await fetch(manifestUrl, { signal: AbortSignal.timeout(3000) })
+          if (mRes.ok) {
+            const manifest = (await mRes.json()) as { theme_color?: string; background_color?: string }
+            if (!primaryColor && manifest.theme_color && isValidHex(manifest.theme_color)) {
+              primaryColor = normalizeHex(manifest.theme_color)
+              foundSignals.push("manifest theme_color")
+            }
+            if (!backgroundColor && manifest.background_color && isValidHex(manifest.background_color)) {
+              backgroundColor = normalizeHex(manifest.background_color)
+              foundSignals.push("manifest background_color")
+            }
+          }
+        } catch {
+          // non-fatal
+        }
+      }
+    }
+
+    // 3. CSS custom properties in <style> blocks
+    if (!primaryColor) {
+      const styleContent = [...html.matchAll(/<style[^>]*>([\s\S]*?)<\/style>/gi)]
+        .map(m => m[1])
+        .join("\n")
+
+      const cssVarCandidates = [
+        "--primary-color", "--brand-color", "--accent-color", "--color-primary",
+        "--primary", "--brand", "--accent", "--theme-color", "--main-color",
+        "--color-brand", "--color-accent",
+      ]
+
+      for (const v of cssVarCandidates) {
+        const escaped = v.replace(/[-]/g, "\\-")
+        const match = styleContent.match(new RegExp(`${escaped}\\s*:\\s*(#[0-9a-fA-F]{3,8})`, "i"))
+        if (match?.[1] && isValidHex(match[1])) {
+          primaryColor = normalizeHex(match[1])
+          foundSignals.push(`CSS var ${v}`)
+          break
+        }
+      }
+
+      // Body background as fallback for backgroundColor
+      if (!backgroundColor) {
+        const bodyBgMatch = styleContent.match(
+          /body\s*\{[^}]*background(?:-color)?\s*:\s*(#[0-9a-fA-F]{3,8})/i
+        )
+        if (bodyBgMatch?.[1] && isValidHex(bodyBgMatch[1])) {
+          backgroundColor = normalizeHex(bodyBgMatch[1])
+          foundSignals.push("body background-color")
+        }
+      }
+    }
+
+    if (!primaryColor) {
+      return {
+        foundSignals,
+        error: "No brand colour found. Try a different URL, or enter colours manually.",
+      }
+    }
+
+    const bg = backgroundColor ?? (isLight(primaryColor) ? "#f9fafb" : "#0f0f0f")
+    const secondary = darken(primaryColor, 0.2)
+    const text = isLight(bg) ? "#111827" : "#ffffff"
+
+    return {
+      primaryColor,
+      secondaryColor: secondary,
+      backgroundColor: bg,
+      textColor: text,
+      foundSignals,
+    }
+  } catch (err) {
+    return {
+      foundSignals: [],
+      error: err instanceof Error ? `Failed: ${err.message}` : "Unknown error",
+    }
+  }
+}

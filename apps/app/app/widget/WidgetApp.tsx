@@ -5,7 +5,6 @@ import { useSearchParams } from "next/navigation"
 import { nanoid } from "nanoid"
 import {
   SendIcon,
-  WalletIcon,
   MessageCircleIcon,
   InfoIcon,
   Loader2Icon,
@@ -23,6 +22,8 @@ interface BrandingConfig {
   font: string
   logoUrl: string | null
   theme: "dark" | "light"
+  agentName?: string | null
+  agentIconUrl?: string | null
 }
 
 interface WatchedContract {
@@ -214,6 +215,13 @@ export function WidgetApp() {
   // Wallet setup flow: prompt → (connected | manual | skipped)
   const [walletSetup, setWalletSetup] = useState<"prompt" | "manual-input" | "connected" | "manual" | "skipped">("prompt")
 
+  // Ticket escalation state
+  const [escalation, setEscalation] = useState<{ summary: string; reason: string } | null>(null)
+  const [ticketName, setTicketName] = useState("")
+  const [ticketEmail, setTicketEmail] = useState("")
+  const [ticketSubmitting, setTicketSubmitting] = useState(false)
+  const [ticketRef, setTicketRef] = useState<string | null>(null)
+
   // Token mode state
   const [dexData, setDexData] = useState<DexPair | null>(null)
   const [dexLoading, setDexLoading] = useState(false)
@@ -238,8 +246,7 @@ export function WidgetApp() {
         else {
           setConfig(data)
           const isToken = data.mode === "token"
-          // Default to wallet tab for support mode so users connect before chatting
-          setTab(isToken ? "trade" : "wallet")
+          setTab(isToken ? "trade" : "chat")
           if (!isToken) {
             setMessages([
               {
@@ -350,6 +357,40 @@ export function WidgetApp() {
     try { sessionStorage.removeItem(`txid_wallet_${apiKey}`) } catch { /* ignore */ }
   }, [apiKey])
 
+  // ── Submit support ticket ────────────────────────────────────────────────
+  const submitTicket = useCallback(async () => {
+    if (!escalation || !ticketName.trim() || !ticketEmail.trim()) return
+    setTicketSubmitting(true)
+    try {
+      const res = await fetch("/api/tickets", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          key: apiKey,
+          name: ticketName.trim(),
+          email: ticketEmail.trim(),
+          summary: escalation.summary,
+          reason: escalation.reason,
+          conversation: messages.map(m => ({ role: m.role, content: m.content })),
+        }),
+      })
+      const data = (await res.json()) as { ref?: string; error?: string }
+      if (data.ref) {
+        setTicketRef(data.ref)
+        setMessages(prev => [...prev, {
+          id: nanoid(),
+          role: "assistant" as const,
+          content: `Ticket ${data.ref} has been raised — the team will be in touch at ${ticketEmail.trim()}.`,
+          streaming: false,
+        }])
+      }
+    } catch {
+      // non-fatal
+    } finally {
+      setTicketSubmitting(false)
+    }
+  }, [escalation, ticketName, ticketEmail, apiKey, messages])
+
   // ── Send message ─────────────────────────────────────────────────────────
   const sendMessage = useCallback(async () => {
     if (!input.trim() || isStreaming || !config) return
@@ -393,7 +434,12 @@ export function WidgetApp() {
           const payload = line.slice(5).trim()
           if (payload === "[DONE]") break
           try {
-            const parsed = JSON.parse(payload) as { text?: string; tool_call?: string; error?: string }
+            const parsed = JSON.parse(payload) as {
+              text?: string
+              tool_call?: string
+              error?: string
+              escalate?: { summary: string; reason: string }
+            }
             if (parsed.error) {
               setMessages((prev) =>
                 prev.map((m) =>
@@ -403,6 +449,15 @@ export function WidgetApp() {
                 ),
               )
               break
+            }
+            if (parsed.escalate) {
+              // AI wants to raise a ticket — end stream and show form
+              setMessages((prev) =>
+                prev.map((m) => (m.id === assistantId ? { ...m, streaming: false } : m)),
+              )
+              setEscalation(parsed.escalate)
+              setIsStreaming(false)
+              return
             }
             if (parsed.tool_call) {
               // Claude is fetching blockchain data — show tool indicator
@@ -467,6 +522,8 @@ export function WidgetApp() {
   const isTokenMode = config.mode === "token"
   const hasMetaMask = typeof window !== "undefined" && "ethereum" in window
 
+  const hasContentBlocks = (config.contentBlocks ?? []).length > 0
+
   const TABS = isTokenMode
     ? [
         { id: "trade",     label: "Trade" },
@@ -474,9 +531,8 @@ export function WidgetApp() {
         { id: "ask",       label: "Ask" },
       ]
     : [
-        { id: "chat",   label: "Chat",   icon: MessageCircleIcon },
-        { id: "wallet", label: "Wallet", icon: WalletIcon },
-        { id: "info",   label: "Info",   icon: InfoIcon },
+        { id: "chat", label: "Chat", icon: MessageCircleIcon },
+        ...(hasContentBlocks ? [{ id: "info", label: "Info", icon: InfoIcon }] : []),
       ]
 
   // CSS variables for branding — applied to the root container
@@ -514,10 +570,21 @@ export function WidgetApp() {
         <span className="flex-1 text-sm font-semibold" style={{ color: b.textColor }}>
           {config.projectName}
         </span>
-        {walletAddress && !isTokenMode && (
-          <span className="rounded-full px-2 py-0.5 text-[10px] font-mono" style={{ backgroundColor: b.secondaryColor, color: b.textColor }}>
-            {walletAddress.slice(0, 6)}…{walletAddress.slice(-4)}
-          </span>
+        {!isTokenMode && (
+          walletAddress ? (
+            <span className="rounded-full px-2 py-0.5 text-[10px] font-mono" style={{ backgroundColor: b.secondaryColor, color: b.textColor }}>
+              {walletAddress.slice(0, 6)}…{walletAddress.slice(-4)}
+            </span>
+          ) : (
+            <button
+              onClick={connectWallet}
+              disabled={walletConnecting || !hasMetaMask}
+              className="rounded-full px-2 py-0.5 text-[10px] font-medium transition-opacity disabled:opacity-40 active:opacity-70"
+              style={{ backgroundColor: b.secondaryColor, color: b.textColor }}
+            >
+              {walletConnecting ? "Connecting…" : "Connect"}
+            </button>
+          )
         )}
       </div>
 
@@ -527,14 +594,10 @@ export function WidgetApp() {
         style={{ borderColor: `var(--w-border)` }}
       >
         {TABS.map((t) => {
-          const walletRequired = !isTokenMode && t.id === "chat" && walletSetup === "prompt"
           return (
             <button
               key={t.id}
-              onClick={() => {
-                if (walletRequired) { setTab("wallet"); return }
-                setTab(t.id)
-              }}
+              onClick={() => setTab(t.id)}
               className="flex flex-1 items-center justify-center gap-1.5 py-2.5 capitalize transition-opacity"
               style={{
                 opacity: tab === t.id ? 1 : 0.5,
@@ -550,7 +613,7 @@ export function WidgetApp() {
       </div>
 
       {/* Tab content */}
-      <div className="flex-1 overflow-hidden">
+      <div className="flex flex-1 flex-col overflow-hidden">
 
         {/* ── Token Mode tabs ────────────────────────────────────────────── */}
 
@@ -696,12 +759,17 @@ export function WidgetApp() {
                   key="init-ask"
                   className="flex items-start gap-2"
                 >
-                  <div
-                    className="flex size-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold"
-                    style={{ backgroundColor: b.primaryColor, color: b.textColor }}
-                  >
-                    AI
-                  </div>
+                  {b.agentIconUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={b.agentIconUrl} alt={b.agentName || "AI"} className="size-6 shrink-0 rounded-full object-cover" />
+                  ) : (
+                    <div
+                      className="flex size-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold"
+                      style={{ backgroundColor: b.primaryColor, color: b.textColor }}
+                    >
+                      {b.agentName ? b.agentName.slice(0, 2).toUpperCase() : "AI"}
+                    </div>
+                  )}
                   <div
                     className="max-w-[80%] rounded-2xl px-3 py-2 text-xs leading-relaxed"
                     style={{
@@ -720,12 +788,17 @@ export function WidgetApp() {
                   className={`flex items-start gap-2 ${m.role === "user" ? "justify-end" : ""}`}
                 >
                   {m.role === "assistant" && (
-                    <div
-                      className="flex size-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold"
-                      style={{ backgroundColor: b.primaryColor, color: b.textColor }}
-                    >
-                      AI
-                    </div>
+                    b.agentIconUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={b.agentIconUrl} alt={b.agentName || "AI"} className="size-6 shrink-0 rounded-full object-cover" />
+                    ) : (
+                      <div
+                        className="flex size-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold"
+                        style={{ backgroundColor: b.primaryColor, color: b.textColor }}
+                      >
+                        {b.agentName ? b.agentName.slice(0, 2).toUpperCase() : "AI"}
+                      </div>
+                    )
                   )}
                   <div
                     className="max-w-[80%] rounded-2xl px-3 py-2 text-xs leading-relaxed break-words"
@@ -780,7 +853,7 @@ export function WidgetApp() {
         {/* ── Support Mode tabs ─────────────────────────────────────────── */}
 
         {!isTokenMode && tab === "chat" && (
-          <div className="flex h-full flex-col">
+          <div className="flex flex-1 flex-col">
             <div ref={messagesContainerRef} className="flex-1 space-y-3 overflow-y-auto p-3">
               {messages.map((m) => (
                 <div
@@ -788,12 +861,17 @@ export function WidgetApp() {
                   className={`flex items-start gap-2 ${m.role === "user" ? "justify-end" : ""}`}
                 >
                   {m.role === "assistant" && (
-                    <div
-                      className="flex size-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold"
-                      style={{ backgroundColor: b.primaryColor, color: b.textColor }}
-                    >
-                      AI
-                    </div>
+                    b.agentIconUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={b.agentIconUrl} alt={b.agentName || "AI"} className="size-6 shrink-0 rounded-full object-cover" />
+                    ) : (
+                      <div
+                        className="flex size-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold"
+                        style={{ backgroundColor: b.primaryColor, color: b.textColor }}
+                      >
+                        {b.agentName ? b.agentName.slice(0, 2).toUpperCase() : "AI"}
+                      </div>
+                    )
                   )}
                   <div
                     className="max-w-[80%] rounded-2xl px-3 py-2 text-xs leading-relaxed break-words"
@@ -831,116 +909,97 @@ export function WidgetApp() {
               <div ref={messagesEndRef} />
             </div>
 
-            {/* Input */}
-            <div
-              className="shrink-0 flex items-center gap-2 border-t px-3 py-2"
-              style={{ borderColor: `var(--w-border)` }}
-            >
-              <input
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && sendMessage()}
-                placeholder="Ask anything…"
-                disabled={isStreaming}
-                className="flex-1 bg-transparent text-xs outline-none placeholder:opacity-40"
-                style={{ color: b.textColor }}
-              />
-              <button
-                onClick={sendMessage}
-                disabled={isStreaming || !input.trim()}
-                className="flex size-7 shrink-0 items-center justify-center rounded-full transition-opacity disabled:opacity-40"
-                style={{ backgroundColor: b.primaryColor }}
+            {/* Ticket escalation form — shown when AI triggers escalation */}
+            {escalation && (
+              <div
+                className="shrink-0 border-t space-y-2.5 px-3 py-3"
+                style={{ borderColor: `var(--w-border)` }}
               >
-                {isStreaming ? (
-                  <Loader2Icon className="size-3.5 animate-spin" style={{ color: b.textColor }} />
-                ) : (
-                  <SendIcon className="size-3.5" style={{ color: b.textColor }} />
-                )}
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Wallet tab */}
-        {!isTokenMode && tab === "wallet" && (
-          <div className="flex h-full flex-col overflow-y-auto">
-
-            {/* ── Choice prompt ── */}
-            {walletSetup === "prompt" && (
-              <div className="flex flex-col gap-3 p-4">
-                <p className="text-xs font-semibold opacity-70">Connect your wallet</p>
-                <p className="text-[11px] opacity-50 -mt-1">
-                  Share your wallet so the bot can diagnose transactions and check balances.
-                </p>
-
-                {/* MetaMask option */}
-                <button
-                  onClick={connectWallet}
-                  disabled={walletConnecting || !hasMetaMask}
-                  className="w-full text-left rounded-xl p-3 border transition-opacity disabled:opacity-40 active:opacity-70"
-                  style={{ borderColor: `var(--w-border)`, backgroundColor: `rgba(255,255,255,0.04)` }}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="flex size-8 shrink-0 items-center justify-center rounded-lg" style={{ backgroundColor: "rgba(255,255,255,0.08)" }}>
-                      <WalletIcon className="size-4" style={{ color: "var(--w-primary)" }} />
-                    </div>
+                {!ticketRef ? (
+                  <>
                     <div>
-                      <p className="text-xs font-semibold">{walletConnecting ? "Connecting…" : "MetaMask"}</p>
-                      <p className="text-[11px] opacity-50">
-                        {hasMetaMask ? "Connect your browser wallet" : "MetaMask not detected"}
-                      </p>
+                      <p className="text-xs font-semibold mb-0.5">Raise a support ticket</p>
+                      <p className="text-[11px] opacity-50 leading-relaxed">{escalation.summary}</p>
                     </div>
-                  </div>
-                </button>
-
-
+                    <input
+                      type="text"
+                      value={ticketName}
+                      onChange={e => setTicketName(e.target.value)}
+                      placeholder="Your name"
+                      className="w-full bg-transparent text-xs outline-none border-b pb-1.5 placeholder:opacity-30"
+                      style={{ color: b.textColor, borderColor: `var(--w-border)` }}
+                    />
+                    <input
+                      type="email"
+                      value={ticketEmail}
+                      onChange={e => setTicketEmail(e.target.value)}
+                      placeholder="Your email"
+                      className="w-full bg-transparent text-xs outline-none border-b pb-1.5 placeholder:opacity-30"
+                      style={{ color: b.textColor, borderColor: `var(--w-border)` }}
+                    />
+                    <div className="flex items-center gap-2 pt-0.5">
+                      <button
+                        onClick={submitTicket}
+                        disabled={ticketSubmitting || !ticketName.trim() || !ticketEmail.trim()}
+                        className="flex-1 rounded-xl py-2 text-xs font-semibold transition-opacity disabled:opacity-40"
+                        style={{ backgroundColor: b.primaryColor, color: b.textColor }}
+                      >
+                        {ticketSubmitting ? "Submitting…" : "Submit ticket"}
+                      </button>
+                      <button
+                        onClick={() => { setEscalation(null); setTicketName(""); setTicketEmail("") }}
+                        className="text-[11px] opacity-30 hover:opacity-60 transition-opacity"
+                        style={{ color: b.textColor }}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-xs font-semibold opacity-70">Ticket {ticketRef} created</p>
+                    <p className="text-[11px] opacity-50">We&apos;ll be in touch at {ticketEmail}.</p>
+                    <button
+                      onClick={() => { setEscalation(null); setTicketRef(null) }}
+                      className="text-[11px] opacity-40 hover:opacity-70 transition-opacity"
+                      style={{ color: b.textColor }}
+                    >
+                      Continue chatting →
+                    </button>
+                  </>
+                )}
               </div>
             )}
 
-            {/* ── Connected / manual state ── */}
-            {(walletSetup === "connected" || walletSetup === "manual") && walletAddress && (
-              <div className="flex flex-col gap-3 p-4">
-                {/* Address card */}
-                <div
-                  className="flex items-center gap-3 rounded-xl p-3 border"
-                  style={{ borderColor: `var(--w-border)`, backgroundColor: `rgba(255,255,255,0.04)` }}
-                >
-                  <div
-                    className="flex size-8 shrink-0 items-center justify-center rounded-lg"
-                    style={{ backgroundColor: b.primaryColor }}
-                  >
-                    <WalletIcon className="size-4" style={{ color: b.textColor }} />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-[11px] font-medium opacity-50 mb-0.5">
-                      {walletSetup === "connected" ? "MetaMask connected" : "Address linked"}
-                    </p>
-                    <p className="text-xs font-mono truncate opacity-80">{walletAddress}</p>
-                  </div>
-                </div>
-
-                {/* CTA */}
+            {/* Input — hidden while escalation form is shown */}
+            {!escalation && (
+              <div
+                className="shrink-0 flex items-center gap-2 border-t px-3 py-2"
+                style={{ borderColor: `var(--w-border)` }}
+              >
+                <input
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && sendMessage()}
+                  placeholder="Ask anything…"
+                  disabled={isStreaming}
+                  className="flex-1 bg-transparent text-xs outline-none placeholder:opacity-40"
+                  style={{ color: b.textColor }}
+                />
                 <button
-                  onClick={() => setTab("chat")}
-                  className="w-full rounded-xl py-2.5 text-xs font-semibold transition-opacity active:opacity-80"
-                  style={{ backgroundColor: b.primaryColor, color: b.textColor }}
+                  onClick={sendMessage}
+                  disabled={isStreaming || !input.trim()}
+                  className="flex size-7 shrink-0 items-center justify-center rounded-full transition-opacity disabled:opacity-40"
+                  style={{ backgroundColor: b.primaryColor }}
                 >
-                  Go to Chat
-                </button>
-
-                <p className="text-[11px] opacity-40 leading-relaxed text-center px-2">
-                  The bot can now look up balances and diagnose transactions for this address.
-                </p>
-
-                <button
-                  onClick={disconnectWallet}
-                  className="text-[11px] opacity-30 hover:opacity-60 transition-opacity mx-auto"
-                >
-                  Disconnect wallet
+                  {isStreaming ? (
+                    <Loader2Icon className="size-3.5 animate-spin" style={{ color: b.textColor }} />
+                  ) : (
+                    <SendIcon className="size-3.5" style={{ color: b.textColor }} />
+                  )}
                 </button>
               </div>
             )}
-
           </div>
         )}
 

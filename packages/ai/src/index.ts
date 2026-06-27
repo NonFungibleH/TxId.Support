@@ -4,7 +4,7 @@ export { retrieveContext } from "./rag"
 export { buildSystemPrompt } from "./prompt"
 export { streamChat, streamChatWithTools, completeChat } from "./stream"
 export type { StreamEvent } from "./stream"
-export { buildWalletTools, executeTool, TOOL_LABELS } from "./tools"
+export { buildWalletTools, buildEscalationTool, executeTool, TOOL_LABELS } from "./tools"
 export type { WalletConfig } from "./tools"
 export type {
   ChatMessage,

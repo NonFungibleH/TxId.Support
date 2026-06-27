@@ -36,6 +36,9 @@ export interface BrandingConfig {
   position: "bottom-right" | "bottom-left" | "inline"
   theme: "dark" | "light"
   persona: Persona
+  agentName?: string | null
+  agentIconUrl?: string | null
+  websiteUrl?: string | null
 }
 
 export interface TokenConfig {
@@ -84,6 +87,7 @@ export interface ProjectConfig {
   community: CommunityConfig | null
   tokenModeAsk: string | null
   previewConfirmed: boolean
+  notificationEmail?: string | null
 }
 
 export const DEFAULT_CONFIG: ProjectConfig = {

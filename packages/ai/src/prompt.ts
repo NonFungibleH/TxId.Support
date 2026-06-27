@@ -221,6 +221,15 @@ export function buildSystemPrompt(params: StreamChatParams): string {
       )
     }
 
+    parts.push(
+      `## Escalation\n` +
+      `You have a \`create_support_ticket\` tool. Use it only when:\n` +
+      `- You have genuinely tried but cannot resolve the issue (missing docs, requires account access, billing question)\n` +
+      `- The user explicitly asks to speak to a human, raise a ticket, or contact support\n` +
+      `- The issue is urgent\n\n` +
+      `Do NOT escalate just because you're uncertain — try to help first. Only escalate when you truly cannot resolve it.`
+    )
+
     parts.push(UNIVERSAL_RULES)
     parts.push(personaStyle(persona))
   }

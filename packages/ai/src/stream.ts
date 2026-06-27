@@ -1,7 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk"
 import OpenAI from "openai"
 import type { ChatMessage, WatchedContractSnapshot } from "./types"
-import { buildWalletTools, executeTool } from "./tools"
+import { buildWalletTools, buildEscalationTool, executeTool } from "./tools"
 import type { WalletConfig } from "./tools"
 
 // ── Model selection ──────────────────────────────────────────────────────────
@@ -33,6 +33,7 @@ function getGroqClient(): OpenAI {
 export type StreamEvent =
   | { type: "text"; text: string }
   | { type: "tool_call"; tool: string }
+  | { type: "escalate"; summary: string; reason: string }
 
 // ── Agentic streaming with tool use ─────────────────────────────────────────
 
@@ -67,9 +68,13 @@ export async function* streamChatWithTools(
     // transaction diagnostic query — not for general protocol/docs questions.
     const latestUserMsg = [...messages].reverse().find((m) => m.role === "user")?.content ?? ""
     const TX_KEYWORDS = /\b(fail|failed|error|stuck|pending|didn[‘’]t|did not|went wrong|lost|missing|not received|refund|my balance|what(‘s| is) my balance|my wallet|my tokens?|what do i have|my eth|my bnb|how much (do i|eth|bnb|have)|transaction (fail|stuck|didn)|tx |txn\b)/i
-    const needsTools = walletConfig !== null && TX_KEYWORDS.test(latestUserMsg)
+    const needsWalletTools = walletConfig !== null && TX_KEYWORDS.test(latestUserMsg)
 
-    const anthropicTools = needsTools ? buildWalletTools(watchedContracts) : []
+    // Escalation tool is always available; wallet tools only when connected + relevant
+    const anthropicTools = [
+      ...(needsWalletTools ? buildWalletTools(watchedContracts) : []),
+      buildEscalationTool(),
+    ]
     const groqTools: OpenAI.ChatCompletionTool[] = anthropicTools.map((t) => ({
       type: "function" as const,
       function: {
@@ -106,6 +111,14 @@ export async function* streamChatWithTools(
         type FnCall = { type: "function"; id: string; function: { name: string; arguments: string } }
         const fnCalls = (msg.tool_calls ?? []).filter((tc): tc is FnCall => tc.type === "function")
         if (fnCalls.length) {
+          // Escalation is handled client-side — yield event and stop stream
+          const escalationCall = fnCalls.find(tc => tc.function.name === "create_support_ticket")
+          if (escalationCall) {
+            const input = JSON.parse(escalationCall.function.arguments || "{}") as { summary?: string; reason?: string }
+            yield { type: "escalate", summary: input.summary ?? "Issue needs further attention", reason: input.reason ?? "unresolved" }
+            return
+          }
+
           for (const tc of fnCalls) {
             yield { type: "tool_call", tool: tc.function.name }
           }
@@ -164,7 +177,10 @@ export async function* streamChatWithTools(
   }
 
   // ── Claude with agentic tool use ─────────────────────────────────────────
-  const tools = walletConfig ? buildWalletTools(watchedContracts) : []
+  const tools = [
+    ...(walletConfig ? buildWalletTools(watchedContracts) : []),
+    buildEscalationTool(),
+  ]
 
   // Cap history to last 10 messages to prevent linear cost growth
   const recentMessages = messages.slice(-10)
@@ -215,7 +231,15 @@ export async function* streamChatWithTools(
       (b): b is Anthropic.ToolUseBlock => b.type === "tool_use",
     )
 
-    // Execute all tool calls in parallel
+    // Escalation is handled client-side — yield event and stop stream
+    const escalationBlock = toolUseBlocks.find(b => b.name === "create_support_ticket")
+    if (escalationBlock) {
+      const input = escalationBlock.input as { summary?: string; reason?: string }
+      yield { type: "escalate", summary: input.summary ?? "Issue needs further attention", reason: input.reason ?? "unresolved" }
+      return
+    }
+
+    // Execute all wallet tool calls in parallel
     const toolResults = await Promise.all(
       toolUseBlocks.map(async (block) => {
         try {

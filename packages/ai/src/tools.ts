@@ -141,6 +141,38 @@ export async function executeTool(
   }
 }
 
+/**
+ * Escalation tool — always offered, not wallet-gated.
+ * When Claude calls this, the widget intercepts it and shows a ticket form
+ * (name + email) instead of executing it server-side.
+ */
+export function buildEscalationTool(): Anthropic.Tool {
+  return {
+    name: "create_support_ticket",
+    description:
+      "Create a support ticket when the issue cannot be resolved through this chat. Use this when:\n" +
+      "- You have genuinely tried to help but cannot resolve the issue (no relevant documentation, requires account access, etc.)\n" +
+      "- The user explicitly asks to speak to a human, raise a ticket, or contact support\n" +
+      "- The issue is urgent or involves billing/account problems\n\n" +
+      "Do NOT use this just because you are uncertain. Try to answer first. Only escalate when you truly cannot help.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        summary: {
+          type: "string",
+          description: "A concise 1–2 sentence summary of the user's issue. Shown to the user when confirming their ticket.",
+        },
+        reason: {
+          type: "string",
+          enum: ["unresolved", "user_requested", "account_issue", "billing", "urgent"],
+          description: "Why escalation is needed.",
+        },
+      },
+      required: ["summary", "reason"],
+    },
+  }
+}
+
 /** Human-readable labels shown in the widget while Claude is using a tool */
 export const TOOL_LABELS: Record<string, string> = {
   get_wallet_balance: "Checking your balance…",
