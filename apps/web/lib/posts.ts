@@ -245,6 +245,120 @@ export const POSTS: Post[] = [
       },
     ],
   },
+  ,
+  {
+    slug: "on-chain-data-support-bot",
+    title: "What on-chain data should your DeFi support bot actually read?",
+    description:
+      "Most AI support tools are knowledge-base chatbots bolted onto a DeFi UI. Here's what separates a genuinely useful support bot from one that just rephrases your docs.",
+    publishedAt: "2026-06-28",
+    readingMinutes: 6,
+    tags: ["DeFi operations", "Web3 support"],
+    content: [
+      {
+        type: "p",
+        text: "There are two ways to build a support bot for a DeFi protocol. The first is to take a general-purpose LLM, feed it your documentation, and put it in a chat window. The second is to wire it into the on-chain context your users are actually looking at.",
+      },
+      {
+        type: "p",
+        text: "The difference in user experience is enormous. A doc-only bot can tell a user what slippage is. A context-aware bot can tell them that their specific swap failed because their 0.5% slippage tolerance was too tight for the ETH/USDC pool at that moment — and suggest what to try instead.",
+      },
+      {
+        type: "h2",
+        text: "The four data sources that matter",
+      },
+      {
+        type: "p",
+        text: "Not all on-chain data is equally useful for support. Here's what actually moves the needle.",
+      },
+      {
+        type: "h3",
+        text: "1. Transaction history and revert reasons",
+      },
+      {
+        type: "p",
+        text: "The single highest-value data source. When a user says 'my transaction failed', the support bot should already know which transaction, why it failed at the EVM level, and what that revert reason means in plain English.",
+      },
+      {
+        type: "p",
+        text: "Revert reasons like INSUFFICIENT_OUTPUT_AMOUNT, EXPIRED, or TRANSFER_FROM_FAILED are machine-readable — a bot can translate them directly. Without transaction history, the bot has to ask the user to describe something they don't understand, which is the worst possible support interaction.",
+      },
+      {
+        type: "h3",
+        text: "2. Token balances and approvals",
+      },
+      {
+        type: "p",
+        text: "A significant portion of DeFi support questions are approval-related. 'Why can't I swap?' is often answered by 'you haven't approved the contract to spend your tokens.' A bot that can check the user's current approvals can confirm this in seconds rather than walking the user through a generic troubleshooting checklist.",
+      },
+      {
+        type: "callout",
+        label: "Common approval questions",
+        text: "Has the user approved the router contract? Is the approval amount sufficient for the transaction? Did the approval transaction itself succeed? All of these are answerable from on-chain data before the user finishes typing.",
+      },
+      {
+        type: "h3",
+        text: "3. Wallet's connected chain",
+      },
+      {
+        type: "p",
+        text: "Wrong-network errors are one of the most common DeFi support issues and one of the easiest to diagnose automatically. If a user is on Polygon but trying to interact with an Ethereum contract, the bot can detect this immediately from the wallet's current chain ID and tell them exactly what to do — without any user input.",
+      },
+      {
+        type: "p",
+        text: "This is obvious in hindsight, but most support bots have no idea what chain the user is on. They respond with generic 'make sure you're on the right network' instructions instead of 'you're currently on Polygon (0x89) — please switch to Ethereum Mainnet to use this protocol'.",
+      },
+      {
+        type: "h3",
+        text: "4. Protocol-specific contract state",
+      },
+      {
+        type: "p",
+        text: "For protocols with locking, vesting, or staking mechanics, users frequently ask about their position: 'When does my lock expire?', 'How much have I earned?', 'Why can't I withdraw?'. These are not documentation questions — they're questions about that specific user's on-chain state.",
+      },
+      {
+        type: "p",
+        text: "A bot connected to your watched contracts can read lock expiry dates, vesting schedules, and reward accruals directly. A doc-only bot can only explain what vesting is in general — not when this user's tokens vest.",
+      },
+      {
+        type: "h2",
+        text: "What on-chain data is NOT useful for support",
+      },
+      {
+        type: "p",
+        text: "It's worth being explicit about the signal-to-noise problem. Pulling all on-chain data into every support interaction creates context bloat that degrades answer quality.",
+      },
+      {
+        type: "ul",
+        items: [
+          "Full ERC-20 token lists — irrelevant tokens distract from the protocol's own assets",
+          "Historical prices — usually not what the user is asking, and can be misleading",
+          "Gas price history — useful context for 'why was my gas so high?' but rarely the root question",
+          "Other protocols' state — a user of your staking protocol doesn't need Uniswap LP data in their support context",
+        ],
+      },
+      {
+        type: "p",
+        text: "The right model is targeted retrieval: pull the data most likely to answer the specific question, not everything that's technically available.",
+      },
+      {
+        type: "h2",
+        text: "The integration question",
+      },
+      {
+        type: "p",
+        text: "The reason most DeFi support bots don't do this is that wallet and transaction data retrieval has historically required either running your own node or paying for RPC providers, and wiring it into a chat interface requires custom integration work.",
+      },
+      {
+        type: "quote",
+        text: "The gap between a doc-retrieval chatbot and a genuinely useful Web3 support agent is almost entirely about data access — not model quality. A GPT-4 with no wallet context is worse for DeFi support than a smaller model that knows what the user's wallet just did.",
+      },
+      {
+        type: "p",
+        text: "The practical implication: when evaluating support tooling for your protocol, the question to ask is not 'which LLM does it use?' but 'what does it know about my user before they type their first message?' That answer determines whether you're deploying a genuinely useful tool or a slightly better FAQ page.",
+      },
+    ],
+  },
 ]
 
 export function getPost(slug: string): Post | undefined {

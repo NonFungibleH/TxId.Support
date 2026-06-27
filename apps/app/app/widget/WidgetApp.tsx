@@ -420,7 +420,7 @@ export function WidgetApp() {
         }
       })
       .catch(() => setConfigError("Failed to load widget config"))
-  }, [apiKey])
+  }, [apiKey, isPreview, previewToken])
 
   // ── Auto-scroll to latest message ───────────────────────────────────────
   useEffect(() => {
@@ -656,7 +656,7 @@ export function WidgetApp() {
     } finally {
       setIsStreaming(false)
     }
-  }, [input, isStreaming, config, messages, apiKey, walletAddress, chainId])
+  }, [input, isStreaming, config, messages, apiKey, walletAddress, chainId, isPreview, previewToken])
 
   // ── Error state ──────────────────────────────────────────────────────────
   if (configError) {

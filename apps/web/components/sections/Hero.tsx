@@ -50,7 +50,7 @@ export function Hero() {
 
             <FadeIn delay={0.32}>
               <p className="text-xs text-muted mt-4">
-                No credit card required · Free tier includes 50 conversations/mo
+                No credit card required · Free tier includes 200 conversations/mo
               </p>
             </FadeIn>
           </div>
