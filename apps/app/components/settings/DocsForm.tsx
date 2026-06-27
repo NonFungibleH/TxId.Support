@@ -352,6 +352,11 @@ export function DocsForm({ projectId, docCount, pastedChunkCount, pastedLastInde
               <div className="flex items-center gap-3 px-3 py-2.5">
                 <FileText className="size-3.5 text-muted-foreground shrink-0" />
                 <span className="flex-1 text-xs text-muted-foreground italic">Pasted content</span>
+                {pastedLastIndexedAt && (
+                  <span className="text-[11px] text-muted-foreground/60 shrink-0" title={new Date(pastedLastIndexedAt).toLocaleString()}>
+                    {timeAgo(pastedLastIndexedAt)}
+                  </span>
+                )}
                 <span className="text-[11px] text-muted-foreground shrink-0 tabular-nums">
                   {pastedCount} chunk{pastedCount !== 1 ? "s" : ""}
                 </span>
