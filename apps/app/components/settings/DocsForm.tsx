@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import {
   Loader2, CheckCircle2, Trash2, Plus, Globe, FileText,
-  AlertTriangle, RefreshCw, X, Layers,
+  AlertTriangle, RefreshCw, X, Layers, ChevronDown,
 } from "lucide-react"
 import { fetchAndIngest, ingestText, clearKnowledgeBase, deleteSource, crawlAndIngest } from "@/lib/actions/ingest"
 
@@ -25,6 +25,23 @@ interface DocsFormProps {
   voyageKeySet: boolean
 }
 
+type SourceGroup = { hostname: string; sources: Source[]; totalChunks: number }
+
+function groupByOrigin(sources: Source[]): SourceGroup[] {
+  const map = new Map<string, Source[]>()
+  for (const s of sources) {
+    let hostname = s.url
+    try { hostname = new URL(s.url).hostname } catch { /* use url as-is */ }
+    if (!map.has(hostname)) map.set(hostname, [])
+    map.get(hostname)!.push(s)
+  }
+  return Array.from(map.entries()).map(([hostname, srcs]) => ({
+    hostname,
+    sources: srcs,
+    totalChunks: srcs.reduce((sum, s) => sum + s.count, 0),
+  }))
+}
+
 export function DocsForm({ projectId, docCount, pastedChunkCount, sources: initialSources, voyageKeySet }: DocsFormProps) {
   const [url, setUrl] = useState("")
   const [totalChunks, setTotalChunks] = useState(docCount)
@@ -37,6 +54,16 @@ export function DocsForm({ projectId, docCount, pastedChunkCount, sources: initi
   const [crawlStatus, setCrawlStatus] = useState<string | null>(null)
   const [crawlElapsed, setCrawlElapsed] = useState(0)
   const crawlTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const [openGroups, setOpenGroups] = useState<Set<string>>(new Set())
+
+  function toggleGroup(hostname: string) {
+    setOpenGroups(prev => {
+      const next = new Set(prev)
+      if (next.has(hostname)) next.delete(hostname)
+      else next.add(hostname)
+      return next
+    })
+  }
 
   useEffect(() => {
     if (crawling) {
@@ -223,42 +250,79 @@ export function DocsForm({ projectId, docCount, pastedChunkCount, sources: initi
         <div className="space-y-2">
           <p className="text-sm font-medium">Indexed sources</p>
           <div className="rounded-lg border border-border divide-y divide-border">
-            {sources.map((source) => (
-              <div key={source.url} className="flex items-center gap-3 px-3 py-2.5">
-                <Globe className="size-3.5 text-muted-foreground shrink-0" />
-                <span
-                  className="flex-1 text-xs font-mono text-foreground truncate"
-                  title={source.url}
-                >
-                  {source.url}
-                </span>
-                <span className="text-[11px] text-muted-foreground shrink-0 tabular-nums">
-                  {source.count} chunk{source.count !== 1 ? "s" : ""}
-                </span>
-                <button
-                  onClick={() => refresh(source.url)}
-                  disabled={isPending}
-                  title="Re-fetch and re-index"
-                  className="shrink-0 rounded p-1 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors disabled:opacity-40"
-                >
-                  {refreshingUrl === source.url
-                    ? <Loader2 className="size-3.5 animate-spin" />
-                    : <RefreshCw className="size-3.5" />
-                  }
-                </button>
-                <button
-                  onClick={() => removeSource(source.url)}
-                  disabled={isPending}
-                  title="Remove this source"
-                  className="shrink-0 rounded p-1 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors disabled:opacity-40"
-                >
-                  {deletingUrl === source.url
-                    ? <Loader2 className="size-3.5 animate-spin" />
-                    : <X className="size-3.5" />
-                  }
-                </button>
-              </div>
-            ))}
+            {groupByOrigin(sources).map(group => {
+              const multi = group.sources.length > 1
+              const isOpen = openGroups.has(group.hostname)
+
+              if (!multi) {
+                const source = group.sources[0]
+                return (
+                  <div key={source.url} className="flex items-center gap-3 px-3 py-2.5">
+                    <Globe className="size-3.5 text-muted-foreground shrink-0" />
+                    <span className="flex-1 text-xs font-mono text-foreground truncate" title={source.url}>
+                      {source.url}
+                    </span>
+                    <span className="text-[11px] text-muted-foreground shrink-0 tabular-nums">
+                      {source.count} chunk{source.count !== 1 ? "s" : ""}
+                    </span>
+                    <button onClick={() => refresh(source.url)} disabled={isPending} title="Re-fetch and re-index"
+                      className="shrink-0 rounded p-1 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors disabled:opacity-40">
+                      {refreshingUrl === source.url ? <Loader2 className="size-3.5 animate-spin" /> : <RefreshCw className="size-3.5" />}
+                    </button>
+                    <button onClick={() => removeSource(source.url)} disabled={isPending} title="Remove this source"
+                      className="shrink-0 rounded p-1 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors disabled:opacity-40">
+                      {deletingUrl === source.url ? <Loader2 className="size-3.5 animate-spin" /> : <X className="size-3.5" />}
+                    </button>
+                  </div>
+                )
+              }
+
+              return (
+                <div key={group.hostname}>
+                  {/* Group header — clickable to expand/collapse */}
+                  <button
+                    type="button"
+                    onClick={() => toggleGroup(group.hostname)}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-muted/40 transition-colors text-left"
+                  >
+                    <Globe className="size-3.5 text-muted-foreground shrink-0" />
+                    <span className="flex-1 text-xs font-medium text-foreground truncate">{group.hostname}</span>
+                    <span className="text-[11px] text-muted-foreground shrink-0 tabular-nums">
+                      {group.sources.length} pages · {group.totalChunks} chunks
+                    </span>
+                    <ChevronDown className={`size-3.5 text-muted-foreground shrink-0 transition-transform duration-150 ${isOpen ? "rotate-180" : ""}`} />
+                  </button>
+
+                  {/* Expanded page rows */}
+                  {isOpen && (
+                    <div className="divide-y divide-border border-t border-border">
+                      {group.sources.map(source => {
+                        let path = source.url
+                        try { path = new URL(source.url).pathname } catch { /* keep full url */ }
+                        return (
+                          <div key={source.url} className="flex items-center gap-3 pl-7 pr-3 py-2 bg-muted/20">
+                            <span className="flex-1 text-[11px] font-mono text-muted-foreground truncate" title={source.url}>
+                              {path}
+                            </span>
+                            <span className="text-[11px] text-muted-foreground shrink-0 tabular-nums">
+                              {source.count} chunk{source.count !== 1 ? "s" : ""}
+                            </span>
+                            <button onClick={() => refresh(source.url)} disabled={isPending} title="Re-fetch and re-index"
+                              className="shrink-0 rounded p-1 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors disabled:opacity-40">
+                              {refreshingUrl === source.url ? <Loader2 className="size-3 animate-spin" /> : <RefreshCw className="size-3" />}
+                            </button>
+                            <button onClick={() => removeSource(source.url)} disabled={isPending} title="Remove this page"
+                              className="shrink-0 rounded p-1 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors disabled:opacity-40">
+                              {deletingUrl === source.url ? <Loader2 className="size-3 animate-spin" /> : <X className="size-3" />}
+                            </button>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+              )
+            })}
             {pastedCount > 0 && (
               <div className="flex items-center gap-3 px-3 py-2.5">
                 <FileText className="size-3.5 text-muted-foreground shrink-0" />
