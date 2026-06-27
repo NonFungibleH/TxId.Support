@@ -205,8 +205,11 @@ export async function crawlAndIngest(
     try {
       const u = new URL(raw.trim())
       if (u.origin !== origin) return null
-      if (/\.(pdf|zip|png|jpg|jpeg|gif|svg|ico|css|js)$/i.test(u.pathname)) return null
+      if (/\.(pdf|zip|png|jpg|jpeg|gif|svg|ico|css|js|woff2?|ttf|map)$/i.test(u.pathname)) return null
+      // Skip internal framework/infra paths
+      if (/^\/(~gitbook|_next|api|__|\.well-known)\b/.test(u.pathname)) return null
       u.hash = ""
+      u.search = ""
       return u.toString().replace(/\/$/, "")
     } catch { return null }
   }
@@ -282,17 +285,37 @@ export async function crawlAndIngest(
     } catch { /* try next */ }
   }
 
-  // ── Step 2: BFS link extraction (2 levels deep) as fallback ──────────────
+  // ── Step 2: raw HTML fetch to extract nav links (works for SSR sites like Gitbook) ──
   if (!foundSitemap) {
-    // Level 1: root page
+    try {
+      const rawRes = await fetch(rootUrl, {
+        headers: { "User-Agent": "Mozilla/5.0 (compatible; TxIDBot/1.0)", "Accept": "text/html" },
+        signal: AbortSignal.timeout(15_000),
+        redirect: "follow",
+      })
+      if (rawRes.ok) {
+        const html = await rawRes.text()
+        // Extract all href attributes — both absolute and relative
+        for (const match of html.matchAll(/href=["']([^"'#?][^"']*?)["']/g)) {
+          const href = match[1].trim()
+          if (href.startsWith("http")) {
+            const n = normUrl(href); if (n) discovered.add(n)
+          } else if (href.startsWith("/") && !href.startsWith("//")) {
+            const n = normUrl(`${origin}${href}`); if (n) discovered.add(n)
+          }
+        }
+      }
+    } catch { /* fall through */ }
+  }
+
+  // ── Step 3: Jina BFS for any pages not yet discovered ────────────────────
+  if (discovered.size < 3) {
     const rootText = await fetchPage(rootUrl, true)
     if (!rootText || rootText.trim().length < 50) {
       return { ok: false, error: "Could not fetch root page" }
     }
     discovered.add(rootUrl.replace(/\/$/, ""))
     extractLinksFromText(rootText)
-
-    // Level 2: follow each discovered link and extract its links too
     const level1 = [...discovered].slice(0, 20)
     const level1Texts = await Promise.all(level1.map(u => fetchPage(u, true)))
     level1Texts.forEach(t => { if (t) extractLinksFromText(t) })
