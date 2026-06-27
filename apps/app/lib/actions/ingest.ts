@@ -285,41 +285,14 @@ export async function crawlAndIngest(
     } catch { /* try next */ }
   }
 
-  // ── Step 2: raw HTML fetch to extract nav links (works for SSR sites like Gitbook) ──
-  if (!foundSitemap) {
-    try {
-      const rawRes = await fetch(rootUrl, {
-        headers: { "User-Agent": "Mozilla/5.0 (compatible; TxIDBot/1.0)", "Accept": "text/html" },
-        signal: AbortSignal.timeout(15_000),
-        redirect: "follow",
-      })
-      if (rawRes.ok) {
-        const html = await rawRes.text()
-        // Extract all href attributes — both absolute and relative
-        for (const match of html.matchAll(/href=["']([^"'#?][^"']*?)["']/g)) {
-          const href = match[1].trim()
-          if (href.startsWith("http")) {
-            const n = normUrl(href); if (n) discovered.add(n)
-          } else if (href.startsWith("/") && !href.startsWith("//")) {
-            const n = normUrl(`${origin}${href}`); if (n) discovered.add(n)
-          }
-        }
-      }
-    } catch { /* fall through */ }
+  // ── Step 2: always fetch root page via Jina (renders JS, returns full nav in Links section) ──
+  // Jina's Links/Buttons section captures sidebar navigation that raw HTML fetch misses.
+  const rootText = await fetchPage(rootUrl, true)
+  if (!rootText || rootText.trim().length < 50) {
+    return { ok: false, error: "Could not fetch root page" }
   }
-
-  // ── Step 3: Jina BFS for any pages not yet discovered ────────────────────
-  if (discovered.size < 3) {
-    const rootText = await fetchPage(rootUrl, true)
-    if (!rootText || rootText.trim().length < 50) {
-      return { ok: false, error: "Could not fetch root page" }
-    }
-    discovered.add(rootUrl.replace(/\/$/, ""))
-    extractLinksFromText(rootText)
-    const level1 = [...discovered].slice(0, 20)
-    const level1Texts = await Promise.all(level1.map(u => fetchPage(u, true)))
-    level1Texts.forEach(t => { if (t) extractLinksFromText(t) })
-  }
+  discovered.add(rootUrl.replace(/\/$/, ""))
+  extractLinksFromText(rootText)
 
   discovered.add(rootUrl.replace(/\/$/, ""))
   const urls = [...discovered].slice(0, MAX_PAGES)
