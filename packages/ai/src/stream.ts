@@ -55,7 +55,7 @@ export async function* streamChatWithTools(
   messages: ChatMessage[],
   walletConfig: WalletConfig | null,
   watchedContracts: WatchedContractSnapshot[] = [],
-  maxTokens = 2048,
+  maxTokens = 800,
 ): AsyncGenerator<StreamEvent> {
   const anthropic = getAnthropicClient()
 
@@ -166,10 +166,19 @@ export async function* streamChatWithTools(
   // ── Claude with agentic tool use ─────────────────────────────────────────
   const tools = walletConfig ? buildWalletTools(watchedContracts) : []
 
-  let currentMessages: Anthropic.MessageParam[] = messages.map((m) => ({
+  // Cap history to last 10 messages to prevent linear cost growth
+  const recentMessages = messages.slice(-10)
+
+  let currentMessages: Anthropic.MessageParam[] = recentMessages.map((m) => ({
     role: m.role as "user" | "assistant",
     content: m.content,
   }))
+
+  // Cache the system prompt — 90% cheaper on hits, especially valuable in
+  // tool-use loops where the same system prompt is sent multiple rounds.
+  const cachedSystem: Anthropic.TextBlockParam[] = [
+    { type: "text", text: systemPrompt, cache_control: { type: "ephemeral" } },
+  ]
 
   const MAX_ROUNDS = 5
 
@@ -177,10 +186,11 @@ export async function* streamChatWithTools(
     const stream = anthropic.messages.stream({
       model: "claude-3-5-haiku-20241022",
       max_tokens: maxTokens,
-      system: systemPrompt,
+      system: cachedSystem,
       messages: currentMessages,
       tools: tools.length > 0 ? tools : undefined,
-    })
+      betas: ["prompt-caching-2024-07-31"],
+    } as Parameters<typeof anthropic.messages.stream>[0])
 
     let hasToolCalls = false
     const emittedToolIds = new Set<string>()
