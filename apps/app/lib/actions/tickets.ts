@@ -3,6 +3,7 @@
 import { auth } from "@clerk/nextjs/server"
 import { createServiceClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
+import { getProject } from "@/lib/actions/project"
 
 export interface Ticket {
   id: string
@@ -20,6 +21,10 @@ export interface Ticket {
 }
 
 export async function getTickets(projectId: string): Promise<Ticket[]> {
+  // Verify the caller owns this project before returning any data
+  const { project } = await getProject()
+  if (!project || (project as unknown as { id: string }).id !== projectId) return []
+
   const supabase = createServiceClient()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data } = await (supabase as any).from("tickets")
@@ -36,11 +41,17 @@ export async function updateTicketStatus(
   const { userId } = await auth()
   if (!userId) throw new Error("Unauthenticated")
 
+  const { project } = await getProject()
+  if (!project) throw new Error("No project")
+  const projectId = (project as unknown as { id: string }).id
+
   const supabase = createServiceClient()
+  // Scoped to the caller's project — prevents cross-account ticket modification
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   await (supabase as any).from("tickets")
     .update({ status, updated_at: new Date().toISOString() })
     .eq("id", ticketId)
+    .eq("project_id", projectId)
 
   revalidatePath("/dashboard/tickets")
 }
@@ -49,11 +60,16 @@ export async function updateTicketNotes(ticketId: string, notes: string) {
   const { userId } = await auth()
   if (!userId) throw new Error("Unauthenticated")
 
+  const { project } = await getProject()
+  if (!project) throw new Error("No project")
+  const projectId = (project as unknown as { id: string }).id
+
   const supabase = createServiceClient()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   await (supabase as any).from("tickets")
     .update({ notes, updated_at: new Date().toISOString() })
     .eq("id", ticketId)
+    .eq("project_id", projectId)
 
   revalidatePath("/dashboard/tickets")
 }

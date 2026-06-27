@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react"
 import { useSearchParams } from "next/navigation"
 import { nanoid } from "nanoid"
+import DOMPurify from "dompurify"
 import {
   SendIcon,
   MessageCircleIcon,
@@ -350,6 +351,7 @@ export function WidgetApp() {
   const params = useSearchParams()
   const apiKey = params?.get("key") ?? ""
   const isPreview = params?.get("preview") === "1"
+  const previewToken = params?.get("pt") ?? undefined
 
   const [config, setConfig] = useState<WidgetConfig | null>(null)
   const [configError, setConfigError] = useState<string | null>(null)
@@ -398,7 +400,7 @@ export function WidgetApp() {
       setConfigError("No API key provided")
       return
     }
-    fetch(`/api/widget-config/${apiKey}${isPreview ? "?preview=1" : ""}`)
+    fetch(`/api/widget-config/${apiKey}${isPreview ? `?preview=1&pt=${previewToken ?? ""}` : ""}`)
       .then((r) => r.json())
       .then((data: WidgetConfig | { error: string }) => {
         if ("error" in data) setConfigError(data.error)
@@ -568,6 +570,7 @@ export function WidgetApp() {
           walletAddress: walletAddress ?? undefined,
           chainId: chainId ?? undefined,
           preview: isPreview || undefined,
+          previewToken: isPreview ? previewToken : undefined,
         }),
       })
 
@@ -1320,7 +1323,7 @@ export function WidgetApp() {
                       <div
                         key={block.id}
                         className="text-[11px]"
-                        dangerouslySetInnerHTML={{ __html: c.code }}
+                        dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(c.code) }}
                       />
                     )
                   }

@@ -3,6 +3,7 @@ import { buildSystemPrompt, retrieveContext, streamChatWithTools, generateSugges
 import type { ChatMessage, ProjectConfigSnapshot } from "@txid/ai"
 import type { ProjectConfig } from "@/lib/types/config"
 import type { Database } from "@/lib/supabase/types"
+import { verifyPreviewToken } from "@/lib/preview-token"
 
 type ProjectRow = Database["public"]["Tables"]["projects"]["Row"]
 
@@ -59,12 +60,21 @@ export async function POST(request: Request) {
       walletAddress?: string
       chainId?: string
       preview?: boolean
+      previewToken?: string
     }
 
-    const { key, sessionId, messages, walletAddress, chainId, preview } = body
+    const { key, sessionId, messages, walletAddress, chainId, preview, previewToken } = body
 
     if (!key || !sessionId || !Array.isArray(messages) || messages.length === 0) {
       return new Response(JSON.stringify({ error: "Invalid request" }), {
+        status: 400,
+        headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
+      })
+    }
+
+    // F2: validate wallet address format before it touches any downstream URL
+    if (walletAddress && !/^0x[0-9a-fA-F]{40}$/.test(walletAddress)) {
+      return new Response(JSON.stringify({ error: "Invalid wallet address" }), {
         status: 400,
         headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
       })
@@ -88,11 +98,14 @@ export async function POST(request: Request) {
 
     const typedProject = project as unknown as ProjectRow & { name: string; is_active: boolean }
 
-    if (!typedProject.is_active && !preview) {
-      return new Response(JSON.stringify({ error: "Project is inactive" }), {
-        status: 403,
-        headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
-      })
+    // F1: preview mode requires a server-signed token — prevents unauthenticated quota abuse
+    if (!typedProject.is_active) {
+      if (!preview || !verifyPreviewToken(typedProject.id, previewToken)) {
+        return new Response(JSON.stringify({ error: "Project is inactive" }), {
+          status: 403,
+          headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
+        })
+      }
     }
 
     const config = typedProject.config as unknown as ProjectConfig

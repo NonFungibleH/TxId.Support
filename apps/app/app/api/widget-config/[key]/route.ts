@@ -1,6 +1,7 @@
 import { createServiceClient } from "@/lib/supabase/server"
 import type { ProjectConfig } from "@/lib/types/config"
 import type { Database } from "@/lib/supabase/types"
+import { verifyPreviewToken } from "@/lib/preview-token"
 
 type ProjectRow = Database["public"]["Tables"]["projects"]["Row"]
 
@@ -25,7 +26,9 @@ export async function GET(
   { params }: { params: { key: string } },
 ) {
   const { key } = params
-  const preview = new URL(request.url).searchParams.get("preview") === "1"
+  const url = new URL(request.url)
+  const preview = url.searchParams.get("preview") === "1"
+  const previewToken = url.searchParams.get("pt")
 
   if (!key || !key.startsWith("pk_")) {
     return new Response(JSON.stringify({ error: "Invalid key" }), {
@@ -51,11 +54,13 @@ export async function GET(
 
   const typedProject = project as unknown as ProjectRow & { name: string; is_active: boolean }
 
-  if (!typedProject.is_active && !preview) {
-    return new Response(JSON.stringify({ error: "Project inactive" }), {
-      status: 403,
-      headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
-    })
+  if (!typedProject.is_active) {
+    if (!preview || !verifyPreviewToken(typedProject.id, previewToken)) {
+      return new Response(JSON.stringify({ error: "Project inactive" }), {
+        status: 403,
+        headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
+      })
+    }
   }
 
   const config = typedProject.config as unknown as ProjectConfig

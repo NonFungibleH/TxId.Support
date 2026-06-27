@@ -5,7 +5,7 @@ import { Copy, Check } from "lucide-react";
 import { clsx } from "clsx";
 import { FadeIn } from "@/components/ui/FadeIn";
 
-const TABS = ["Script Tag", "Inline Div", "React / npm"] as const;
+const TABS = ["Script Tag", "Inline Div"] as const;
 type Tab = (typeof TABS)[number];
 
 const CODE: Record<Tab, { language: string; code: string }> = {
@@ -32,23 +32,6 @@ const CODE: Record<Tab, { language: string; code: string }> = {
          box-shadow:0 8px 32px rgba(0,0,0,0.4)"
   allow="clipboard-write">
 </iframe>`,
-  },
-  "React / npm": {
-    language: "tsx",
-    code: `// Install
-npm install @txid/react
-
-// Use in your app
-import { TxIDWidget } from '@txid/react'
-
-export default function App() {
-  return (
-    <>
-      <YourApp />
-      <TxIDWidget apiKey="YOUR_API_KEY" />
-    </>
-  )
-}`,
   },
 };
 
@@ -91,7 +74,7 @@ export function EmbedPreview() {
               Embed in 30 seconds
             </h2>
             <p className="text-muted max-w-xl mx-auto">
-              Three ways to integrate — pick whatever fits your stack.
+              Two lines of code. Works on any stack, any framework.
             </p>
           </div>
         </FadeIn>

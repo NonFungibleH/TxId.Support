@@ -10,17 +10,47 @@ const CORS_HEADERS = {
   "Access-Control-Allow-Headers": "Content-Type",
 }
 
+// 5 ticket submissions per IP per 10 minutes (stricter than chat — email side-effect)
+const RATE_LIMIT = 5
+const WINDOW_MS = 10 * 60_000
+
+interface RateEntry { count: number; resetAt: number }
+const rateLimitMap = new Map<string, RateEntry>()
+
+function isRateLimited(ip: string): boolean {
+  const now = Date.now()
+  const entry = rateLimitMap.get(ip)
+  if (!entry || now >= entry.resetAt) {
+    rateLimitMap.set(ip, { count: 1, resetAt: now + WINDOW_MS })
+    return false
+  }
+  if (entry.count >= RATE_LIMIT) return true
+  entry.count++
+  return false
+}
+
 export async function OPTIONS() {
   return new Response(null, { status: 204, headers: CORS_HEADERS })
 }
 
 function makeRef(): string {
-  // TKT- + 6 uppercase alphanumeric chars from current timestamp + random
   return "TKT-" + Math.random().toString(36).slice(2, 8).toUpperCase()
 }
 
 export async function POST(request: Request) {
   try {
+    const ip =
+      request.headers.get("x-forwarded-for")?.split(",")[0].trim() ??
+      request.headers.get("x-real-ip") ??
+      "unknown"
+
+    if (isRateLimited(ip)) {
+      return new Response(JSON.stringify({ error: "Too many requests. Please try again later." }), {
+        status: 429,
+        headers: { ...CORS_HEADERS, "Content-Type": "application/json", "Retry-After": "600" },
+      })
+    }
+
     const body = (await request.json()) as {
       key: string
       name?: string
