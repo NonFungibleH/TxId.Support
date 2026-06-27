@@ -708,11 +708,12 @@ export function WidgetApp() {
                     </div>
                   )}
                   <div
-                    className="max-w-[80%] rounded-2xl px-3 py-2 text-xs leading-relaxed"
+                    className="max-w-[80%] rounded-2xl px-3 py-2 text-xs leading-relaxed break-words"
                     style={{
                       backgroundColor: m.role === "user" ? b.primaryColor : b.secondaryColor,
                       color: b.textColor,
                       borderRadius: m.role === "user" ? "1rem 1rem 0.25rem 1rem" : "1rem 1rem 1rem 0.25rem",
+                      overflowWrap: "anywhere",
                     }}
                   >
                     {m.content || (m.streaming && (
@@ -775,11 +776,12 @@ export function WidgetApp() {
                     </div>
                   )}
                   <div
-                    className="max-w-[80%] rounded-2xl px-3 py-2 text-xs leading-relaxed"
+                    className="max-w-[80%] rounded-2xl px-3 py-2 text-xs leading-relaxed break-words"
                     style={{
                       backgroundColor: m.role === "user" ? b.primaryColor : b.secondaryColor,
                       color: b.textColor,
                       borderRadius: m.role === "user" ? "1rem 1rem 0.25rem 1rem" : "1rem 1rem 1rem 0.25rem",
+                      overflowWrap: "anywhere",
                     }}
                   >
                     {m.content || (m.streaming && (
@@ -946,33 +948,41 @@ export function WidgetApp() {
             {/* ── Connected / manual state ── */}
             {(walletSetup === "connected" || walletSetup === "manual") && walletAddress && (
               <div className="flex flex-col gap-3 p-4">
-                <div className="flex items-center gap-2">
+                {/* Address card */}
+                <div
+                  className="flex items-center gap-3 rounded-xl p-3 border"
+                  style={{ borderColor: `var(--w-border)`, backgroundColor: `rgba(255,255,255,0.04)` }}
+                >
                   <div
-                    className="flex size-8 items-center justify-center rounded-full shrink-0"
+                    className="flex size-8 shrink-0 items-center justify-center rounded-lg"
                     style={{ backgroundColor: b.primaryColor }}
                   >
                     <WalletIcon className="size-4" style={{ color: b.textColor }} />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-[11px] opacity-50">
-                      {walletSetup === "connected" ? "MetaMask connected" : "Address added"}
+                    <p className="text-[11px] font-medium opacity-50 mb-0.5">
+                      {walletSetup === "connected" ? "MetaMask connected" : "Address linked"}
                     </p>
-                    <p className="text-xs font-mono truncate">{walletAddress}</p>
+                    <p className="text-xs font-mono truncate opacity-80">{walletAddress}</p>
                   </div>
                 </div>
 
-                <div
-                  className="rounded-xl p-3 text-[11px]"
-                  style={{ backgroundColor: `rgba(255,255,255,0.05)`, border: `1px solid var(--w-border)` }}
+                {/* CTA */}
+                <button
+                  onClick={() => setTab("chat")}
+                  className="w-full rounded-xl py-2.5 text-xs font-semibold transition-opacity active:opacity-80"
+                  style={{ backgroundColor: b.primaryColor, color: b.textColor }}
                 >
-                  <p className="opacity-60 leading-relaxed">
-                    Wallet linked. Switch to Chat — the bot can now look up your balances and diagnose transactions in real time.
-                  </p>
-                </div>
+                  Go to Chat
+                </button>
+
+                <p className="text-[11px] opacity-40 leading-relaxed text-center px-2">
+                  The bot can now look up balances and diagnose transactions for this address.
+                </p>
 
                 <button
                   onClick={disconnectWallet}
-                  className="text-[11px] opacity-40 hover:opacity-70 transition-opacity text-left"
+                  className="text-[11px] opacity-30 hover:opacity-60 transition-opacity mx-auto"
                 >
                   Disconnect wallet
                 </button>

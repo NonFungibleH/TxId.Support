@@ -121,7 +121,22 @@ export async function* streamChatWithTools(
         }
 
         // No tool calls — emit the text response
-        if (msg.content) yield { type: "text", text: msg.content }
+        if (msg.content) {
+          yield { type: "text", text: msg.content }
+          return
+        }
+        // Groq sometimes returns null content when tools are present but unused;
+        // fall back to a plain streaming call without tools
+        const fallbackStream = await client.chat.completions.create({
+          model: "llama-3.3-70b-versatile",
+          max_tokens: maxTokens,
+          messages: groqMessages,
+          stream: true,
+        })
+        for await (const chunk of fallbackStream) {
+          const text = chunk.choices[0]?.delta?.content
+          if (text) yield { type: "text", text }
+        }
         return
       }
 
