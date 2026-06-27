@@ -13,23 +13,23 @@ export function WidgetMockup({ className }: { className?: string }) {
   return (
     <div
       className={clsx(
-        "w-80 rounded-2xl overflow-hidden shadow-2xl shadow-accent/10",
-        "border border-[var(--border)] bg-[#0c0c0c]",
+        "w-80 rounded-2xl overflow-hidden shadow-2xl shadow-accent/20",
+        "border border-white/10 bg-[#1e1e2e]",
         "font-sans text-sm",
         className
       )}
     >
-      <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border)] bg-[var(--bg-elevated)]">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-white/8 bg-[#252540]">
         <div className="flex items-center gap-2">
-          <div className="w-2 h-2 rounded-full bg-green-500 shadow-sm shadow-green-500/50" />
+          <div className="w-2 h-2 rounded-full bg-green-400 shadow-sm shadow-green-400/50" />
           <span className="font-display font-semibold text-white text-xs">
             TxID Support
           </span>
         </div>
-        <Wifi className="w-3.5 h-3.5 text-muted" />
+        <Wifi className="w-3.5 h-3.5 text-white/30" />
       </div>
 
-      <div className="flex border-b border-[var(--border)]">
+      <div className="flex border-b border-white/8">
         {TABS.map((tab, i) => (
           <button
             key={tab}
@@ -37,7 +37,7 @@ export function WidgetMockup({ className }: { className?: string }) {
               "flex-1 py-2 text-xs transition-colors",
               i === 0
                 ? "text-accent border-b-2 border-accent font-medium"
-                : "text-muted hover:text-white"
+                : "text-white/35 hover:text-white"
             )}
           >
             {tab}
@@ -46,40 +46,40 @@ export function WidgetMockup({ className }: { className?: string }) {
       </div>
 
       <div className="p-4 space-y-3">
-        <div className="bg-[var(--bg-elevated)] rounded-xl p-3">
-          <p className="text-white text-xs leading-relaxed">
+        <div className="bg-[#2a2a40] rounded-xl p-3">
+          <p className="text-white/90 text-xs leading-relaxed">
             Hi 👋 I&apos;m your support agent. I can diagnose transactions and
             answer questions about the protocol.
           </p>
         </div>
 
         <div className="flex items-center gap-2 px-1">
-          <div className="w-1.5 h-1.5 rounded-full bg-green-500" />
-          <span className="font-mono text-xs text-muted">0x1a2b...3c4d</span>
+          <div className="w-1.5 h-1.5 rounded-full bg-green-400" />
+          <span className="font-mono text-xs text-white/40">0x1a2b...3c4d</span>
         </div>
 
         <div className="space-y-1.5">
-          <p className="text-xs text-muted px-1">Recent transactions</p>
+          <p className="text-xs text-white/40 px-1">Recent transactions</p>
           {TRANSACTIONS.map((tx, i) => (
             <div
               key={i}
-              className="flex items-center justify-between bg-[var(--bg-elevated)] rounded-lg px-3 py-2"
+              className="flex items-center justify-between bg-[#2a2a40] rounded-lg px-3 py-2"
             >
               <div className="flex items-center gap-2">
                 {tx.status === "success" ? (
-                  <CheckCircle2 className="w-3.5 h-3.5 text-green-500 flex-shrink-0" />
+                  <CheckCircle2 className="w-3.5 h-3.5 text-green-400 flex-shrink-0" />
                 ) : (
-                  <XCircle className="w-3.5 h-3.5 text-red-500 flex-shrink-0" />
+                  <XCircle className="w-3.5 h-3.5 text-red-400 flex-shrink-0" />
                 )}
-                <span className="text-xs text-white">{tx.label}</span>
+                <span className="text-xs text-white/80">{tx.label}</span>
               </div>
-              <span className="text-xs text-muted font-mono">{tx.time}</span>
+              <span className="text-xs text-white/35 font-mono">{tx.time}</span>
             </div>
           ))}
         </div>
 
-        <div className="flex items-center gap-2 bg-[var(--bg-elevated)] rounded-xl px-3 py-2 border border-[var(--border)]">
-          <span className="text-xs text-muted flex-1">
+        <div className="flex items-center gap-2 bg-[#2a2a40] rounded-xl px-3 py-2 border border-white/8">
+          <span className="text-xs text-white/35 flex-1">
             Ask anything about your wallet...
           </span>
           <div className="w-5 h-5 rounded-lg bg-accent flex items-center justify-center flex-shrink-0">
