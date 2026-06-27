@@ -59,24 +59,82 @@ export async function* streamChatWithTools(
 ): AsyncGenerator<StreamEvent> {
   const anthropic = getAnthropicClient()
 
-  // ── Groq fallback — no tool support ─────────────────────────────────────
+  // ── Groq path with tool support ──────────────────────────────────────────
   if (!anthropic) {
     const client = getGroqClient()
-    const groqStream = await client.chat.completions.create({
-      model: "llama-3.3-70b-versatile",
-      max_tokens: maxTokens,
-      messages: [
-        { role: "system", content: systemPrompt },
-        ...messages.map((m) => ({
-          role: m.role as "user" | "assistant",
-          content: m.content,
-        })),
-      ],
-      stream: true,
-    })
-    for await (const chunk of groqStream) {
-      const text = chunk.choices[0]?.delta?.content
-      if (text) yield { type: "text", text }
+    const anthropicTools = walletConfig ? buildWalletTools(watchedContracts) : []
+    const groqTools: OpenAI.ChatCompletionTool[] = anthropicTools.map((t) => ({
+      type: "function" as const,
+      function: {
+        name: t.name,
+        description: t.description ?? "",
+        parameters: t.input_schema as Record<string, unknown>,
+      },
+    }))
+
+    let groqMessages: OpenAI.ChatCompletionMessageParam[] = [
+      { role: "system", content: systemPrompt },
+      ...messages.map((m) => ({
+        role: m.role as "user" | "assistant",
+        content: m.content,
+      })),
+    ]
+
+    const MAX_ROUNDS = 5
+    for (let round = 0; round < MAX_ROUNDS; round++) {
+      if (groqTools.length > 0) {
+        // Non-streaming round so we can inspect tool_calls cleanly
+        const response = await client.chat.completions.create({
+          model: "llama-3.3-70b-versatile",
+          max_tokens: maxTokens,
+          messages: groqMessages,
+          tools: groqTools,
+          tool_choice: "auto",
+          stream: false,
+        })
+
+        const msg = response.choices[0]?.message
+        if (!msg) break
+
+        if (msg.tool_calls?.length) {
+          for (const tc of msg.tool_calls) {
+            yield { type: "tool_call", tool: tc.function.name }
+          }
+
+          groqMessages.push({ role: "assistant", content: msg.content ?? null, tool_calls: msg.tool_calls })
+
+          const toolResults = await Promise.all(
+            msg.tool_calls.map(async (tc: OpenAI.ChatCompletionMessageToolCall) => {
+              try {
+                const input = JSON.parse(tc.function.arguments || "{}") as Record<string, unknown>
+                const result = await executeTool(tc.function.name, input, walletConfig!)
+                return { role: "tool" as const, tool_call_id: tc.id, content: JSON.stringify(result, null, 2) }
+              } catch (err) {
+                return { role: "tool" as const, tool_call_id: tc.id, content: `Error: ${err instanceof Error ? err.message : "Tool failed"}` }
+              }
+            }),
+          )
+          groqMessages.push(...toolResults)
+          continue
+        }
+
+        // No tool calls — emit the text response
+        if (msg.content) yield { type: "text", text: msg.content }
+        return
+      }
+
+      // No tools — stream directly
+      const groqStream = await client.chat.completions.create({
+        model: "llama-3.3-70b-versatile",
+        max_tokens: maxTokens,
+        messages: groqMessages,
+        stream: true,
+      })
+      for await (const chunk of groqStream) {
+        const text = chunk.choices[0]?.delta?.content
+        if (text) yield { type: "text", text }
+      }
+      return
     }
     return
   }
