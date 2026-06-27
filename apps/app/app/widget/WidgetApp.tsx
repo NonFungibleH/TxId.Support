@@ -11,7 +11,6 @@ import {
   Loader2Icon,
   AlertCircleIcon,
   ExternalLinkIcon,
-  KeyRoundIcon,
 } from "lucide-react"
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -888,55 +887,7 @@ export function WidgetApp() {
                   </div>
                 </button>
 
-                {/* Enter address option */}
-                <button
-                  onClick={() => setWalletSetup("manual-input")}
-                  className="w-full text-left rounded-xl p-3 border transition-opacity active:opacity-70"
-                  style={{ borderColor: `var(--w-border)`, backgroundColor: `rgba(255,255,255,0.04)` }}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="flex size-8 shrink-0 items-center justify-center rounded-lg" style={{ backgroundColor: "rgba(255,255,255,0.08)" }}>
-                      <KeyRoundIcon className="size-4" style={{ color: "var(--w-primary)" }} />
-                    </div>
-                    <div>
-                      <p className="text-xs font-semibold">Enter address</p>
-                      <p className="text-[11px] opacity-50">Paste any wallet address</p>
-                    </div>
-                  </div>
-                </button>
 
-              </div>
-            )}
-
-            {/* ── Manual address input ── */}
-            {walletSetup === "manual-input" && (
-              <div className="flex flex-col gap-3 p-4">
-                <button
-                  onClick={() => { setWalletSetup("prompt"); setManualInputError(null) }}
-                  className="flex items-center gap-1.5 text-[11px] opacity-50 hover:opacity-80 transition-opacity w-fit"
-                >
-                  ← Back
-                </button>
-                <p className="text-xs font-semibold opacity-70">Enter your wallet address</p>
-                <input
-                  value={manualInput}
-                  onChange={(e) => { setManualInput(e.target.value); setManualInputError(null) }}
-                  onKeyDown={(e) => e.key === "Enter" && void confirmManualAddress()}
-                  placeholder="0x…"
-                  autoFocus
-                  className="w-full rounded-lg border px-3 py-2 text-xs font-mono bg-transparent outline-none placeholder:opacity-30"
-                  style={{ borderColor: `var(--w-border)`, color: b.textColor }}
-                />
-                {manualInputError && (
-                  <p className="text-[11px] text-red-400">{manualInputError}</p>
-                )}
-                <button
-                  onClick={() => void confirmManualAddress()}
-                  className="rounded-lg px-4 py-2 text-xs font-semibold transition-opacity"
-                  style={{ backgroundColor: b.primaryColor, color: b.textColor }}
-                >
-                  Confirm
-                </button>
               </div>
             )}
 
