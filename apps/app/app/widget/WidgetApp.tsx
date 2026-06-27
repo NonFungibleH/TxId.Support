@@ -189,7 +189,6 @@ export function WidgetApp() {
   // Wallet setup flow: prompt → (connected | manual | skipped)
   const [walletSetup, setWalletSetup] = useState<"prompt" | "manual-input" | "connected" | "manual" | "skipped">("prompt")
   const [manualInput, setManualInput] = useState("")
-  const [manualInputError, setManualInputError] = useState<string | null>(null)
 
   // Token mode state
   const [dexData, setDexData] = useState<DexPair | null>(null)
@@ -318,21 +317,6 @@ export function WidgetApp() {
     }
   }, [apiKey])
 
-  // ── Confirm manually entered address ─────────────────────────────────────
-  const confirmManualAddress = useCallback(() => {
-    const addr = manualInput.trim()
-    if (!/^0x[0-9a-fA-F]{40}$/i.test(addr)) {
-      setManualInputError("Enter a valid Ethereum address (0x…)")
-      return
-    }
-    setManualInputError(null)
-    const lowerAddr = addr.toLowerCase()
-    const cId = "0x1" // Default to Ethereum mainnet for manually entered addresses
-    setWalletAddress(lowerAddr)
-    setChainId(cId)
-    setWalletSetup("manual")
-    saveWalletSession(apiKey, { setup: "manual", address: lowerAddr, chainId: cId })
-  }, [manualInput, apiKey])
 
   // ── Disconnect / reset wallet ────────────────────────────────────────────
   const disconnectWallet = useCallback(() => {
