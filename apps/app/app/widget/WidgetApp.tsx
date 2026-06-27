@@ -11,6 +11,8 @@ import {
   Loader2Icon,
   AlertCircleIcon,
   ExternalLinkIcon,
+  KeyRoundIcon,
+  ArrowRightIcon,
 } from "lucide-react"
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -857,7 +859,9 @@ export function WidgetApp() {
                   style={{ borderColor: `var(--w-border)`, backgroundColor: `rgba(255,255,255,0.04)` }}
                 >
                   <div className="flex items-center gap-3">
-                    <span className="text-xl leading-none">🦊</span>
+                    <div className="flex size-8 shrink-0 items-center justify-center rounded-lg" style={{ backgroundColor: "rgba(255,255,255,0.08)" }}>
+                      <WalletIcon className="size-4" style={{ color: "var(--w-primary)" }} />
+                    </div>
                     <div>
                       <p className="text-xs font-semibold">{walletConnecting ? "Connecting…" : "MetaMask"}</p>
                       <p className="text-[11px] opacity-50">
@@ -874,7 +878,9 @@ export function WidgetApp() {
                   style={{ borderColor: `var(--w-border)`, backgroundColor: `rgba(255,255,255,0.04)` }}
                 >
                   <div className="flex items-center gap-3">
-                    <span className="text-xl leading-none">✏️</span>
+                    <div className="flex size-8 shrink-0 items-center justify-center rounded-lg" style={{ backgroundColor: "rgba(255,255,255,0.08)" }}>
+                      <KeyRoundIcon className="size-4" style={{ color: "var(--w-primary)" }} />
+                    </div>
                     <div>
                       <p className="text-xs font-semibold">Enter address</p>
                       <p className="text-[11px] opacity-50">Paste any wallet address</p>
@@ -893,7 +899,9 @@ export function WidgetApp() {
                   style={{ borderColor: `var(--w-border)`, backgroundColor: `rgba(255,255,255,0.04)` }}
                 >
                   <div className="flex items-center gap-3">
-                    <span className="text-xl leading-none">💬</span>
+                    <div className="flex size-8 shrink-0 items-center justify-center rounded-lg" style={{ backgroundColor: "rgba(255,255,255,0.08)" }}>
+                      <ArrowRightIcon className="size-4" style={{ color: "var(--w-primary)" }} />
+                    </div>
                     <div>
                       <p className="text-xs font-semibold">Skip for now</p>
                       <p className="text-[11px] opacity-50">Chat without wallet data</p>
