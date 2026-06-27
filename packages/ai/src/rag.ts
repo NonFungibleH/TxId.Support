@@ -19,7 +19,7 @@ export async function retrieveContext(
   query: string,
   opts: { limit?: number; threshold?: number } = {},
 ): Promise<RagResult> {
-  const { limit = 5, threshold = 0.65 } = opts
+  const { limit = 5, threshold = 0.5 } = opts
 
   // Embed the user query
   const embedding = await embedText(query)

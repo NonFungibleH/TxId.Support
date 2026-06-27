@@ -118,9 +118,9 @@ export function buildSystemPrompt(params: StreamChatParams): string {
     } else {
       parts.push(
         `## Documentation\n` +
-        `No documentation has been indexed yet. ` +
-        `Answer from general DeFi knowledge and the context above, ` +
-        `and let the user know they can check the team's official docs for specifics.`
+        `No documentation excerpts matched this specific query. ` +
+        `Answer from general DeFi knowledge and the protocol context above. ` +
+        `Point users to the team's official docs for anything you cannot confirm.`
       )
     }
 

@@ -12,7 +12,6 @@ import {
   AlertCircleIcon,
   ExternalLinkIcon,
   KeyRoundIcon,
-  ArrowRightIcon,
 } from "lucide-react"
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -217,7 +216,8 @@ export function WidgetApp() {
         else {
           setConfig(data)
           const isToken = data.mode === "token"
-          setTab(isToken ? "trade" : "chat")
+          // Default to wallet tab for support mode so users connect before chatting
+          setTab(isToken ? "trade" : "wallet")
           if (!isToken) {
             setMessages([
               {
@@ -271,9 +271,7 @@ export function WidgetApp() {
     const session = loadWalletSession(apiKey)
     if (!session) return
 
-    if (session.setup === "skipped") {
-      setWalletSetup("skipped")
-    } else if ((session.setup === "connected" || session.setup === "manual") && session.address) {
+    if ((session.setup === "connected" || session.setup === "manual") && session.address) {
       if (session.setup === "connected") {
         // Try to silently re-connect MetaMask (no popup)
         const win = window as unknown as { ethereum?: { request: (a: { method: string }) => Promise<string[]> } }
@@ -284,8 +282,8 @@ export function WidgetApp() {
                 setWalletAddress(accounts[0])
                 setChainId(session.chainId ?? "0x1")
                 setWalletSetup("connected")
+                setTab("chat")
               }
-              // If no accounts, stay on prompt to re-connect
             })
             .catch(() => { /* stay on prompt */ })
         }
@@ -294,6 +292,7 @@ export function WidgetApp() {
         setWalletAddress(session.address)
         setChainId(session.chainId ?? "0x1")
         setWalletSetup("manual")
+        setTab("chat")
       }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -512,21 +511,27 @@ export function WidgetApp() {
         className="flex shrink-0 border-b text-xs"
         style={{ borderColor: `var(--w-border)` }}
       >
-        {TABS.map((t) => (
-          <button
-            key={t.id}
-            onClick={() => setTab(t.id)}
-            className="flex flex-1 items-center justify-center gap-1.5 py-2.5 capitalize transition-opacity"
-            style={{
-              opacity: tab === t.id ? 1 : 0.5,
-              borderBottom: tab === t.id ? `2px solid ${b.primaryColor}` : "2px solid transparent",
-              color: b.textColor,
-            }}
-          >
-            {"icon" in t && t.icon && <t.icon className="size-3.5" />}
-            {t.label}
-          </button>
-        ))}
+        {TABS.map((t) => {
+          const walletRequired = !isTokenMode && t.id === "chat" && walletSetup === "prompt"
+          return (
+            <button
+              key={t.id}
+              onClick={() => {
+                if (walletRequired) { setTab("wallet"); return }
+                setTab(t.id)
+              }}
+              className="flex flex-1 items-center justify-center gap-1.5 py-2.5 capitalize transition-opacity"
+              style={{
+                opacity: tab === t.id ? 1 : 0.5,
+                borderBottom: tab === t.id ? `2px solid ${b.primaryColor}` : "2px solid transparent",
+                color: b.textColor,
+              }}
+            >
+              {"icon" in t && t.icon && <t.icon className="size-3.5" />}
+              {t.label}
+            </button>
+          )
+        })}
       </div>
 
       {/* Tab content */}
@@ -890,26 +895,6 @@ export function WidgetApp() {
                   </div>
                 </button>
 
-                {/* Skip option */}
-                <button
-                  onClick={() => {
-                    setWalletSetup("skipped")
-                    saveWalletSession(apiKey, { setup: "skipped", address: null, chainId: null })
-                    setTab("chat")
-                  }}
-                  className="w-full text-left rounded-xl p-3 border transition-opacity active:opacity-70"
-                  style={{ borderColor: `var(--w-border)`, backgroundColor: `rgba(255,255,255,0.04)` }}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="flex size-8 shrink-0 items-center justify-center rounded-lg" style={{ backgroundColor: "rgba(255,255,255,0.08)" }}>
-                      <ArrowRightIcon className="size-4" style={{ color: "var(--w-primary)" }} />
-                    </div>
-                    <div>
-                      <p className="text-xs font-semibold">Skip for now</p>
-                      <p className="text-[11px] opacity-50">Chat without wallet data</p>
-                    </div>
-                  </div>
-                </button>
               </div>
             )}
 
@@ -989,23 +974,6 @@ export function WidgetApp() {
               </div>
             )}
 
-            {/* ── Skipped state ── */}
-            {walletSetup === "skipped" && (
-              <div className="flex flex-col gap-3 p-4">
-                <WalletIcon className="size-7 opacity-30" />
-                <p className="text-xs opacity-60">No wallet connected</p>
-                <p className="text-[11px] opacity-40 leading-relaxed">
-                  The bot can still answer general questions. Connect a wallet for personalised transaction support.
-                </p>
-                <button
-                  onClick={disconnectWallet}
-                  className="w-fit rounded-lg px-3 py-1.5 text-xs font-medium border transition-opacity"
-                  style={{ borderColor: `var(--w-border)`, color: b.textColor }}
-                >
-                  Connect wallet
-                </button>
-              </div>
-            )}
           </div>
         )}
 
