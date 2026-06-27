@@ -1,6 +1,7 @@
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { Hero } from "@/components/sections/Hero";
+import { ForWho } from "@/components/sections/ForWho";
 import { HowItWorks } from "@/components/sections/HowItWorks";
 import { FeatureGrid } from "@/components/sections/FeatureGrid";
 import { EmbedPreview } from "@/components/sections/EmbedPreview";
@@ -11,6 +12,7 @@ export default function HomePage() {
       <Navbar />
       <main>
         <Hero />
+        <ForWho />
         <HowItWorks />
         <FeatureGrid />
         <EmbedPreview />
