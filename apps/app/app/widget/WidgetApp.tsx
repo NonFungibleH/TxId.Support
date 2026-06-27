@@ -153,6 +153,162 @@ function PriceSparkline({ priceChange }: { priceChange: DexPair["priceChange"] }
   )
 }
 
+// ─── Rich message renderer ───────────────────────────────────────────────────
+
+function parseInline(text: string): React.ReactNode {
+  const parts = text.split(/(\*\*[^*]+\*\*|`[^`]+`)/g)
+  if (parts.length === 1) return text
+  return (
+    <>
+      {parts.map((part, i) => {
+        if (part.startsWith("**") && part.endsWith("**")) {
+          return <strong key={i}>{part.slice(2, -2)}</strong>
+        }
+        if (part.startsWith("`") && part.endsWith("`")) {
+          return (
+            <code
+              key={i}
+              style={{
+                fontFamily: "monospace",
+                fontSize: "0.85em",
+                background: "rgba(0,0,0,0.25)",
+                padding: "0 3px",
+                borderRadius: "3px",
+              }}
+            >
+              {part.slice(1, -1)}
+            </code>
+          )
+        }
+        return part
+      })}
+    </>
+  )
+}
+
+function MessageContent({
+  text,
+  primaryColor,
+  textColor,
+}: {
+  text: string
+  primaryColor: string
+  textColor: string
+}) {
+  const blocks: React.ReactNode[] = []
+  const lines = text.split("\n")
+  let i = 0
+
+  while (i < lines.length) {
+    const trimmed = lines[i].trim()
+
+    if (!trimmed) { i++; continue }
+
+    // Fenced code block
+    if (trimmed.startsWith("```")) {
+      const codeLines: string[] = []
+      i++
+      while (i < lines.length && !lines[i].trim().startsWith("```")) {
+        codeLines.push(lines[i])
+        i++
+      }
+      i++
+      blocks.push(
+        <pre
+          key={blocks.length}
+          style={{
+            fontFamily: "monospace",
+            fontSize: "0.78em",
+            background: "rgba(0,0,0,0.3)",
+            padding: "8px 10px",
+            borderRadius: "6px",
+            overflowX: "auto",
+            whiteSpace: "pre",
+            margin: 0,
+          }}
+        >
+          {codeLines.join("\n")}
+        </pre>,
+      )
+      continue
+    }
+
+    // Numbered list
+    if (/^\d+[.)]\s/.test(trimmed)) {
+      const steps: string[] = []
+      while (i < lines.length && /^\d+[.)]\s/.test(lines[i].trim())) {
+        steps.push(lines[i].trim().replace(/^\d+[.)]\s/, ""))
+        i++
+      }
+      blocks.push(
+        <div key={blocks.length} style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+          {steps.map((step, idx) => (
+            <div key={idx} style={{ display: "flex", gap: "8px", alignItems: "flex-start" }}>
+              <span
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  minWidth: "17px",
+                  height: "17px",
+                  borderRadius: "50%",
+                  background: primaryColor,
+                  color: textColor,
+                  fontSize: "8px",
+                  fontWeight: 700,
+                  flexShrink: 0,
+                  marginTop: "1px",
+                  opacity: 0.85,
+                }}
+              >
+                {idx + 1}
+              </span>
+              <span style={{ lineHeight: 1.5 }}>{parseInline(step)}</span>
+            </div>
+          ))}
+        </div>,
+      )
+      continue
+    }
+
+    // Bullet list
+    if (/^[-*•]\s/.test(trimmed)) {
+      const items: string[] = []
+      while (i < lines.length && /^[-*•]\s/.test(lines[i].trim())) {
+        items.push(lines[i].trim().replace(/^[-*•]\s/, ""))
+        i++
+      }
+      blocks.push(
+        <div key={blocks.length} style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+          {items.map((item, idx) => (
+            <div key={idx} style={{ display: "flex", gap: "7px", alignItems: "flex-start" }}>
+              <span style={{ opacity: 0.45, fontSize: "7px", lineHeight: "2.2", flexShrink: 0 }}>●</span>
+              <span style={{ lineHeight: 1.5 }}>{parseInline(item)}</span>
+            </div>
+          ))}
+        </div>,
+      )
+      continue
+    }
+
+    // Regular paragraph
+    blocks.push(
+      <p key={blocks.length} style={{ margin: 0, lineHeight: 1.55 }}>
+        {parseInline(trimmed)}
+      </p>,
+    )
+    i++
+  }
+
+  if (blocks.length === 0) return null
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+      {blocks}
+    </div>
+  )
+}
+
 // ─── Session ID (persisted per origin+key) ───────────────────────────────────
 
 function getSessionId(key: string): string {
@@ -221,6 +377,9 @@ export function WidgetApp() {
   const [ticketEmail, setTicketEmail] = useState("")
   const [ticketSubmitting, setTicketSubmitting] = useState(false)
   const [ticketRef, setTicketRef] = useState<string | null>(null)
+
+  // Quick-reply suggestion chips
+  const [suggestions, setSuggestions] = useState<string[]>([])
 
   // Token mode state
   const [dexData, setDexData] = useState<DexPair | null>(null)
@@ -392,16 +551,18 @@ export function WidgetApp() {
   }, [escalation, ticketName, ticketEmail, apiKey, messages])
 
   // ── Send message ─────────────────────────────────────────────────────────
-  const sendMessage = useCallback(async () => {
-    if (!input.trim() || isStreaming || !config) return
+  const sendMessage = useCallback(async (textArg?: string) => {
+    const msgText = (textArg ?? input).trim()
+    if (!msgText || isStreaming || !config) return
 
-    const userMsg: Message = { id: nanoid(), role: "user", content: input.trim() }
+    const userMsg: Message = { id: nanoid(), role: "user", content: msgText }
     const assistantId = nanoid()
     const assistantMsg: Message = { id: assistantId, role: "assistant", content: "", streaming: true }
 
     const history = [...messages, userMsg]
     setMessages([...history, assistantMsg])
-    setInput("")
+    if (!textArg) setInput("")
+    setSuggestions([])
     setIsStreaming(true)
 
     try {
@@ -439,6 +600,7 @@ export function WidgetApp() {
               tool_call?: string
               error?: string
               escalate?: { summary: string; reason: string }
+              suggestions?: { items: string[] }
             }
             if (parsed.error) {
               setMessages((prev) =>
@@ -466,6 +628,9 @@ export function WidgetApp() {
                   m.id === assistantId ? { ...m, toolCall: parsed.tool_call } : m,
                 ),
               )
+            }
+            if (parsed.suggestions?.items?.length) {
+              setSuggestions(parsed.suggestions.items)
             }
             if (parsed.text) {
               // Text is streaming — clear any tool indicator
@@ -801,7 +966,7 @@ export function WidgetApp() {
                     )
                   )}
                   <div
-                    className="max-w-[80%] rounded-2xl px-3 py-2 text-xs leading-relaxed break-words"
+                    className="max-w-[80%] rounded-2xl px-3 py-2 text-xs break-words"
                     style={{
                       backgroundColor: m.role === "user" ? b.primaryColor : b.secondaryColor,
                       color: b.textColor,
@@ -809,7 +974,11 @@ export function WidgetApp() {
                       overflowWrap: "anywhere",
                     }}
                   >
-                    {m.content || (m.streaming && (
+                    {m.content ? (
+                      m.role === "assistant" ? (
+                        <MessageContent text={m.content} primaryColor={b.primaryColor} textColor={b.textColor} />
+                      ) : m.content
+                    ) : (m.streaming && (
                       <span className="inline-flex items-center gap-1 opacity-60">
                         <span className="size-1 rounded-full animate-bounce bg-current" style={{ animationDelay: "0ms" }} />
                         <span className="size-1 rounded-full animate-bounce bg-current" style={{ animationDelay: "150ms" }} />
@@ -821,13 +990,32 @@ export function WidgetApp() {
               ))}
               <div ref={messagesEndRef} />
             </div>
+            {suggestions.length > 0 && !isStreaming && (
+              <div className="shrink-0 flex flex-wrap gap-1.5 px-3 pb-2">
+                {suggestions.map((s, i) => (
+                  <button
+                    key={i}
+                    onClick={() => sendMessage(s)}
+                    className="text-[10px] rounded-full px-2.5 py-1 border transition-opacity hover:opacity-90 active:scale-95"
+                    style={{
+                      borderColor: `${b.primaryColor}50`,
+                      color: b.textColor,
+                      background: `${b.primaryColor}12`,
+                      opacity: 0.75,
+                    }}
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
+            )}
             <div
               className="shrink-0 flex items-center gap-2 border-t px-3 py-2"
               style={{ borderColor: `var(--w-border)` }}
             >
               <input
                 value={input}
-                onChange={(e) => setInput(e.target.value)}
+                onChange={(e) => { setInput(e.target.value); if (suggestions.length) setSuggestions([]) }}
                 onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && sendMessage()}
                 placeholder="Ask anything…"
                 disabled={isStreaming}
@@ -835,7 +1023,7 @@ export function WidgetApp() {
                 style={{ color: b.textColor }}
               />
               <button
-                onClick={sendMessage}
+                onClick={() => sendMessage()}
                 disabled={isStreaming || !input.trim()}
                 className="flex size-7 shrink-0 items-center justify-center rounded-full transition-opacity disabled:opacity-40"
                 style={{ backgroundColor: b.primaryColor }}
@@ -874,7 +1062,7 @@ export function WidgetApp() {
                     )
                   )}
                   <div
-                    className="max-w-[80%] rounded-2xl px-3 py-2 text-xs leading-relaxed break-words"
+                    className="max-w-[80%] rounded-2xl px-3 py-2 text-xs break-words"
                     style={{
                       backgroundColor: m.role === "user" ? b.primaryColor : b.secondaryColor,
                       color: b.textColor,
@@ -882,9 +1070,12 @@ export function WidgetApp() {
                       overflowWrap: "anywhere",
                     }}
                   >
-                    {m.content || (m.streaming && (
+                    {m.content ? (
+                      m.role === "assistant" ? (
+                        <MessageContent text={m.content} primaryColor={b.primaryColor} textColor={b.textColor} />
+                      ) : m.content
+                    ) : (m.streaming && (
                       m.toolCall ? (
-                        // Claude is calling a blockchain tool
                         <span className="inline-flex items-center gap-1.5 opacity-70">
                           <Loader2Icon className="size-2.5 animate-spin" />
                           <span className="text-[11px]">
@@ -895,7 +1086,6 @@ export function WidgetApp() {
                           </span>
                         </span>
                       ) : (
-                        // Waiting for first token
                         <span className="inline-flex items-center gap-1 opacity-60">
                           <span className="size-1 rounded-full animate-bounce bg-current" style={{ animationDelay: "0ms" }} />
                           <span className="size-1 rounded-full animate-bounce bg-current" style={{ animationDelay: "150ms" }} />
@@ -971,6 +1161,27 @@ export function WidgetApp() {
               </div>
             )}
 
+            {/* Quick-reply chips — appear after each AI response, cleared on send */}
+            {suggestions.length > 0 && !isStreaming && !escalation && (
+              <div className="shrink-0 flex flex-wrap gap-1.5 px-3 pb-2">
+                {suggestions.map((s, i) => (
+                  <button
+                    key={i}
+                    onClick={() => sendMessage(s)}
+                    className="text-[10px] rounded-full px-2.5 py-1 border transition-opacity hover:opacity-90 active:scale-95"
+                    style={{
+                      borderColor: `${b.primaryColor}50`,
+                      color: b.textColor,
+                      background: `${b.primaryColor}12`,
+                      opacity: 0.75,
+                    }}
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
+            )}
+
             {/* Input — hidden while escalation form is shown */}
             {!escalation && (
               <div
@@ -979,7 +1190,7 @@ export function WidgetApp() {
               >
                 <input
                   value={input}
-                  onChange={(e) => setInput(e.target.value)}
+                  onChange={(e) => { setInput(e.target.value); if (suggestions.length) setSuggestions([]) }}
                   onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && sendMessage()}
                   placeholder="Ask anything…"
                   disabled={isStreaming}
@@ -987,7 +1198,7 @@ export function WidgetApp() {
                   style={{ color: b.textColor }}
                 />
                 <button
-                  onClick={sendMessage}
+                  onClick={() => sendMessage()}
                   disabled={isStreaming || !input.trim()}
                   className="flex size-7 shrink-0 items-center justify-center rounded-full transition-opacity disabled:opacity-40"
                   style={{ backgroundColor: b.primaryColor }}

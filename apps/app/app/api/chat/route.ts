@@ -1,5 +1,5 @@
 import { createServiceClient } from "@/lib/supabase/server"
-import { buildSystemPrompt, retrieveContext, streamChatWithTools } from "@txid/ai"
+import { buildSystemPrompt, retrieveContext, streamChatWithTools, generateSuggestions } from "@txid/ai"
 import type { ChatMessage, ProjectConfigSnapshot } from "@txid/ai"
 import type { ProjectConfig } from "@/lib/types/config"
 import type { Database } from "@/lib/supabase/types"
@@ -151,6 +151,9 @@ export async function POST(request: Request) {
     const stream = new ReadableStream({
       async start(controller) {
         try {
+          let fullResponseText = ""
+          let wasEscalated = false
+
           for await (const event of streamChatWithTools(
             systemPrompt,
             messages,
@@ -161,12 +164,29 @@ export async function POST(request: Request) {
             if (event.type === "tool_call") {
               data = `data: ${JSON.stringify({ tool_call: event.tool })}\n\n`
             } else if (event.type === "escalate") {
+              wasEscalated = true
               data = `data: ${JSON.stringify({ escalate: { summary: event.summary, reason: event.reason } })}\n\n`
             } else {
+              fullResponseText += event.text
               data = `data: ${JSON.stringify({ text: event.text })}\n\n`
             }
             controller.enqueue(encoder.encode(data))
           }
+
+          // Generate contextual follow-up chips after the main response
+          if (!wasEscalated && fullResponseText.length > 20) {
+            try {
+              const items = await generateSuggestions(messages, fullResponseText)
+              if (items.length > 0) {
+                controller.enqueue(
+                  encoder.encode(`data: ${JSON.stringify({ suggestions: { items } })}\n\n`),
+                )
+              }
+            } catch {
+              // non-fatal — chips are a nice-to-have
+            }
+          }
+
           controller.enqueue(encoder.encode("data: [DONE]\n\n"))
         } catch (err) {
           const msg = err instanceof Error ? err.message : "Stream error"
