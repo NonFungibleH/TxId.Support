@@ -178,6 +178,7 @@ export function WidgetApp() {
   const [input, setInput] = useState("")
   const [isStreaming, setIsStreaming] = useState(false)
   const sessionId = useRef<string>("")
+  const messagesContainerRef = useRef<HTMLDivElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   // Wallet state
@@ -231,7 +232,8 @@ export function WidgetApp() {
 
   // ── Auto-scroll to latest message ───────────────────────────────────────
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
+    const el = messagesContainerRef.current
+    if (el) el.scrollTop = el.scrollHeight
   }, [messages])
 
   // ── DexScreener polling ──────────────────────────────────────────────────
@@ -666,7 +668,7 @@ export function WidgetApp() {
 
         {isTokenMode && tab === "ask" && (
           <div className="flex h-full flex-col">
-            <div className="flex-1 space-y-3 overflow-y-auto p-3">
+            <div ref={messagesContainerRef} className="flex-1 space-y-3 overflow-y-auto p-3">
               {messages.length === 0 && (
                 <div
                   key="init-ask"
@@ -756,7 +758,7 @@ export function WidgetApp() {
 
         {!isTokenMode && tab === "chat" && (
           <div className="flex h-full flex-col">
-            <div className="flex-1 space-y-3 overflow-y-auto p-3">
+            <div ref={messagesContainerRef} className="flex-1 space-y-3 overflow-y-auto p-3">
               {messages.map((m) => (
                 <div
                   key={m.id}
