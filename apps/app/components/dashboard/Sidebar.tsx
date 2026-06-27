@@ -41,9 +41,8 @@ export function Sidebar({ mode = "support" }: { mode?: string }) {
   return (
     <aside className="fixed inset-y-0 left-0 z-40 flex w-60 flex-col border-r border-border bg-background">
       <div className="flex h-14 items-center gap-2 border-b border-border px-4">
-        <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary">
-          <span className="text-xs font-bold text-primary-foreground">TX</span>
-        </div>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/brand/txid-icon-64.png" alt="TxID Support" className="h-7 w-7" />
         <span className="font-semibold text-sm">TxID Support</span>
       </div>
 

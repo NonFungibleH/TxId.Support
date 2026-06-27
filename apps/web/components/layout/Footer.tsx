@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { Zap } from "lucide-react";
 import { APP_URL } from "@/lib/config";
 
 export function Footer() {
@@ -11,10 +10,9 @@ export function Footer() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-10">
           <div className="col-span-2 md:col-span-1">
             <Link href="/" className="flex items-center gap-2 mb-3">
-              <div className="w-7 h-7 rounded-lg bg-accent flex items-center justify-center">
-                <Zap className="w-4 h-4 text-white" />
-              </div>
-              <span className="font-display font-semibold text-white">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/brand/txid-icon-64.png" alt="TxID Support" className="h-7 w-7" />
+              <span className="font-display font-semibold text-white text-sm tracking-tight">
                 TxID Support
               </span>
             </Link>

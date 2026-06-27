@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/Button";
-import { Menu, X, Zap } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import { clsx } from "clsx";
 import { APP_URL } from "@/lib/config";
 
@@ -28,16 +28,15 @@ export function Navbar() {
       className={clsx(
         "fixed top-0 left-0 right-0 z-50 transition-all duration-300",
         scrolled
-          ? "bg-[#070707]/90 backdrop-blur-md"
+          ? "bg-[#0b0c14]/90 backdrop-blur-md"
           : "bg-transparent"
       )}
     >
       <nav className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-        <Link href="/" className="flex items-center gap-2 group">
-          <div className="w-7 h-7 rounded-lg bg-accent flex items-center justify-center">
-            <Zap className="w-4 h-4 text-white" />
-          </div>
-          <span className="font-display font-semibold text-white">
+        <Link href="/" className="flex items-center gap-2">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/brand/txid-icon-64.png" alt="TxID Support" className="h-7 w-7" />
+          <span className="font-display font-semibold text-white text-sm tracking-tight">
             TxID Support
           </span>
         </Link>
@@ -72,7 +71,7 @@ export function Navbar() {
       </nav>
 
       {open && (
-        <div className="md:hidden bg-[#0f0f0f] border-b border-[var(--border)] px-6 py-4 flex flex-col gap-3">
+        <div className="md:hidden bg-[#0f1020] border-b border-[var(--border)] px-6 py-4 flex flex-col gap-3">
           {NAV_LINKS.map((link) => (
             <Link
               key={link.href}

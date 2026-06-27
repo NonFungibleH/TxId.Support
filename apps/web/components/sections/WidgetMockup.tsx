@@ -1,4 +1,5 @@
-import { CheckCircle2, XCircle, Wifi } from "lucide-react";
+import { CheckCircle2, XCircle } from "lucide-react";
+import Image from "next/image";
 import { clsx } from "clsx";
 
 const TRANSACTIONS = [
@@ -23,12 +24,12 @@ export function WidgetMockup({ className }: { className?: string }) {
       <div className="bg-[#252540] px-4 pt-3 pb-0">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-green-400 shadow-sm shadow-green-400/50" />
+            <Image src="/brand/txid-icon-64.png" alt="TxID Support" width={20} height={20} className="rounded-md" />
             <span className="font-display font-semibold text-white text-xs">
               TxID Support
             </span>
           </div>
-          <Wifi className="w-3.5 h-3.5 text-white/25" />
+          <div className="w-1.5 h-1.5 rounded-full bg-green-400 shadow-sm shadow-green-400/60" />
         </div>
 
         <div className="flex">
