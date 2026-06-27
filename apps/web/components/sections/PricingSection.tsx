@@ -39,10 +39,8 @@ const PLANS = [
       { label: "Remove TxID branding", soon: false },
       { label: "Custom branding (colours, font, logo)", soon: false },
       { label: "Priority support", soon: false },
-      { label: "5 team seats", soon: false },
-      { label: "React npm package", soon: true },
-      { label: "CSV export", soon: true },
-      { label: "SSO / SAML", soon: true },
+      { label: "Escalation webhooks", soon: false },
+      { label: "CSV export", soon: false },
     ],
   },
   {

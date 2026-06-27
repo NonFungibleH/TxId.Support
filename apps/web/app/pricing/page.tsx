@@ -37,18 +37,17 @@ const COMPARISON = [
     rows: [
       { feature: "Script tag embed", starter: true, pro: true, enterprise: true },
       { feature: "Inline iframe embed", starter: true, pro: true, enterprise: true },
-      { feature: "React npm package (soon)", starter: false, pro: true, enterprise: true },
+      { feature: "React npm package", starter: false, pro: true, enterprise: true },
       { feature: "Multi-chain support", starter: true, pro: true, enterprise: true },
       { feature: "Custom chains", starter: false, pro: false, enterprise: true },
     ],
   },
   {
-    category: "Team",
+    category: "Notifications",
     rows: [
-      { feature: "Team seats", starter: "1", pro: "5", enterprise: "Unlimited" },
       { feature: "Analytics dashboard", starter: true, pro: true, enterprise: true },
-      { feature: "CSV export (soon)", starter: false, pro: true, enterprise: true },
-      { feature: "SSO / SAML (soon)", starter: false, pro: false, enterprise: true },
+      { feature: "Escalation webhooks", starter: false, pro: true, enterprise: true },
+      { feature: "CSV export", starter: false, pro: true, enterprise: true },
     ],
   },
   {
@@ -73,7 +72,7 @@ const FAQ = [
   },
   {
     q: "How does the Pro plan work?",
-    a: "Pro unlocks 5,000 conversations/month, removes TxID Support branding, and adds custom branding (colours, font, logo). It\'s $499/mo with no long-term contract — cancel anytime.",
+    a: "Pro unlocks 5,000 conversations/month, removes TxID Support branding, adds custom branding (colours, font, logo), escalation webhooks, and CSV export. It\'s $499/mo with no long-term contract — cancel anytime.",
   },
   {
     q: "What chains are supported?",

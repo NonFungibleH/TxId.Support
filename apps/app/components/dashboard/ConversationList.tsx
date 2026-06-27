@@ -1,8 +1,9 @@
 "use client"
 
 import { useState } from "react"
-import { ChevronDown, ChevronUp, ThumbsUp, ThumbsDown, Wallet } from "lucide-react"
+import { ChevronDown, ChevronUp, ThumbsUp, ThumbsDown, Wallet, Download } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import type { ConversationWithMessages } from "@/app/dashboard/conversations/page"
 
 function timeAgo(dateStr: string): string {
@@ -35,7 +36,16 @@ export function ConversationList({ conversations }: { conversations: Conversatio
   const [expanded, setExpanded] = useState<string | null>(null)
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-4">
+      <div className="flex justify-end">
+        <Button variant="outline" size="sm" asChild>
+          <a href="/api/conversations/export" download="conversations.csv">
+            <Download className="size-3.5 mr-1.5" />
+            Export CSV
+          </a>
+        </Button>
+      </div>
+      <div className="space-y-2">
       {conversations.map((conv) => {
         const isOpen = expanded === conv.id
         const msgCount = conv.messages.length
@@ -104,6 +114,7 @@ export function ConversationList({ conversations }: { conversations: Conversatio
           </div>
         )
       })}
+      </div>
     </div>
   )
 }

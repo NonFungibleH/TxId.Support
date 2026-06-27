@@ -88,6 +88,7 @@ export interface ProjectConfig {
   tokenModeAsk: string | null
   previewConfirmed: boolean
   notificationEmail?: string | null
+  webhookUrl?: string | null
 }
 
 export const DEFAULT_CONFIG: ProjectConfig = {

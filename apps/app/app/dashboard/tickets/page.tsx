@@ -27,6 +27,7 @@ export default async function TicketsPage() {
         projectId={typedProject.id}
         tickets={tickets}
         notificationEmail={config.notificationEmail ?? ""}
+        webhookUrl={config.webhookUrl ?? ""}
       />
     </div>
   )

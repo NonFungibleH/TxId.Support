@@ -116,6 +116,24 @@ export async function POST(request: Request) {
       })
     }
 
+    // Optional webhook notification
+    const webhookUrl = config.webhookUrl
+    if (webhookUrl) {
+      fetch(webhookUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ref,
+          project: typedProject.name,
+          summary,
+          reason: reason || null,
+          user: { name: name || null, email: email || null },
+          conversation: conversation ?? [],
+        }),
+        signal: AbortSignal.timeout(5000),
+      }).catch(() => { /* non-fatal */ })
+    }
+
     // Optional email notification via Resend (no package needed — plain HTTP)
     const notificationEmail = config.notificationEmail
     if (notificationEmail && process.env.RESEND_API_KEY) {

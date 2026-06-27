@@ -159,10 +159,12 @@ interface TicketListProps {
   projectId: string
   tickets: Ticket[]
   notificationEmail: string
+  webhookUrl: string
 }
 
-export function TicketList({ projectId, tickets, notificationEmail }: TicketListProps) {
+export function TicketList({ projectId, tickets, notificationEmail, webhookUrl }: TicketListProps) {
   const [email, setEmail] = useState(notificationEmail)
+  const [webhook, setWebhook] = useState(webhookUrl)
   const [isPending, startTransition] = useTransition()
 
   function saveEmail() {
@@ -170,6 +172,17 @@ export function TicketList({ projectId, tickets, notificationEmail }: TicketList
       try {
         await updateConfig(projectId, { notificationEmail: email || null })
         toast.success("Notification email saved")
+      } catch {
+        toast.error("Failed to save")
+      }
+    })
+  }
+
+  function saveWebhook() {
+    startTransition(async () => {
+      try {
+        await updateConfig(projectId, { webhookUrl: webhook || null })
+        toast.success("Webhook URL saved")
       } catch {
         toast.error("Failed to save")
       }
@@ -200,6 +213,28 @@ export function TicketList({ projectId, tickets, notificationEmail }: TicketList
             className="flex-1"
           />
           <Button variant="outline" size="sm" onClick={saveEmail} disabled={isPending}>
+            Save
+          </Button>
+        </div>
+      </div>
+
+      {/* Webhook notifications */}
+      <div className="rounded-lg border border-border p-4 space-y-3">
+        <div>
+          <p className="text-sm font-semibold">Escalation webhook</p>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            POST request sent to your URL when a ticket is created — use it to ping Slack, Discord, or your own system.
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <Input
+            type="url"
+            placeholder="https://hooks.slack.com/services/..."
+            value={webhook}
+            onChange={e => setWebhook(e.target.value)}
+            className="flex-1"
+          />
+          <Button variant="outline" size="sm" onClick={saveWebhook} disabled={isPending}>
             Save
           </Button>
         </div>
