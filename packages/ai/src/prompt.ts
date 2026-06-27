@@ -1,5 +1,34 @@
 import type { StreamChatParams } from "./types"
 
+const CHAIN_NAMES: Record<string, string> = {
+  "0x1":      "Ethereum Mainnet",
+  "0x38":     "BNB Chain",
+  "0x89":     "Polygon",
+  "0xa":      "Optimism",
+  "0xa4b1":   "Arbitrum One",
+  "0x2105":   "Base",
+  "0xe708":   "Linea",
+  "0xaa36a7": "Sepolia (testnet)",
+  "0x13881":  "Mumbai (testnet)",
+  "0x14a34":  "Base Sepolia (testnet)",
+  // decimal string variants
+  "1":        "Ethereum Mainnet",
+  "56":       "BNB Chain",
+  "137":      "Polygon",
+  "10":       "Optimism",
+  "42161":    "Arbitrum One",
+  "8453":     "Base",
+  "59144":    "Linea",
+  "11155111": "Sepolia (testnet)",
+  "80001":    "Mumbai (testnet)",
+  "84532":    "Base Sepolia (testnet)",
+}
+
+function chainName(chainId: string): string {
+  const key = chainId.toLowerCase()
+  return CHAIN_NAMES[key] ?? chainId
+}
+
 /**
  * Build the system prompt from project config + runtime context.
  * Branches on mode: token mode gets a lightweight prompt without RAG.
@@ -75,7 +104,7 @@ export function buildSystemPrompt(params: StreamChatParams): string {
       parts.push(
         `## User's Wallet\n` +
         `Address: \`${walletConfig.address}\`\n` +
-        `Chain ID: ${walletConfig.chainId}\n\n` +
+        `Network: ${chainName(walletConfig.chainId)}\n\n` +
         `You have live blockchain tools. Use them like an expert with full system access:\n` +
         `- **get_wallet_balance** — native currency + ERC-20 token balances\n` +
         `- **get_recent_transactions** — recent tx history; use contract_address filter to focus on a specific protocol interaction\n` +
