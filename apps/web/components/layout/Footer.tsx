@@ -88,10 +88,20 @@ export function Footer() {
           <p className="text-xs text-muted/50">
             © {year} TxID Support. All rights reserved.
           </p>
-          <p className="text-[10px] font-mono text-muted/40 flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-accent inline-block" />
-            Free trial available · No credit card required
-          </p>
+          <div className="flex items-center gap-4">
+            <p className="text-[10px] font-mono text-muted/40 flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-accent inline-block" />
+              Free trial available · No credit card required
+            </p>
+            <a
+              href="https://www.3uild.io/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[10px] text-muted/40 hover:text-muted/70 transition-colors"
+            >
+              Built by 3UILD
+            </a>
+          </div>
         </div>
       </div>
     </footer>
