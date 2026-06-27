@@ -719,6 +719,7 @@ export function WidgetApp() {
                       color: b.textColor,
                       borderRadius: m.role === "user" ? "1rem 1rem 0.25rem 1rem" : "1rem 1rem 1rem 0.25rem",
                       overflowWrap: "anywhere",
+                      wordBreak: "break-all",
                     }}
                   >
                     {m.content || (m.streaming && (
@@ -787,6 +788,7 @@ export function WidgetApp() {
                       color: b.textColor,
                       borderRadius: m.role === "user" ? "1rem 1rem 0.25rem 1rem" : "1rem 1rem 1rem 0.25rem",
                       overflowWrap: "anywhere",
+                      wordBreak: "break-all",
                     }}
                   >
                     {m.content || (m.streaming && (

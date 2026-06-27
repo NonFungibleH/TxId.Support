@@ -5,6 +5,7 @@ import { MessageSquare, Users, Zap, Globe, ArrowRight, CheckCircle2 } from "luci
 import Link from "next/link"
 import { redirect } from "next/navigation"
 import { GoLiveToggle } from "@/components/dashboard/GoLiveToggle"
+import { ProjectNameEditor } from "@/components/dashboard/ProjectNameEditor"
 import type { ProjectConfig } from "@/lib/types/config"
 import type { Database } from "@/lib/supabase/types"
 
@@ -89,9 +90,7 @@ export default async function DashboardPage() {
     <div className="space-y-8">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">{typedProject.name}</h1>
-        </div>
+        <ProjectNameEditor projectId={typedProject.id} initialName={typedProject.name} />
         <GoLiveToggle projectId={typedProject.id} isActive={typedProject.is_active} />
       </div>
 

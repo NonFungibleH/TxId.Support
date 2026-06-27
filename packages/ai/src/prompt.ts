@@ -105,24 +105,20 @@ export function buildSystemPrompt(params: StreamChatParams): string {
         `## User's Wallet\n` +
         `Address: \`${walletConfig.address}\`\n` +
         `Network: ${chainName(walletConfig.chainId)}\n\n` +
-        `You have live blockchain tools. Use them like an expert with full system access:\n` +
-        `- **get_wallet_balance** — native currency + ERC-20 token balances\n` +
-        `- **get_recent_transactions** — recent tx history; use contract_address filter to focus on a specific protocol interaction\n` +
-        `- **get_transaction_by_hash** — full detail on one transaction\n\n` +
-        `## Critical rules for tool use\n` +
-        `- **Never ask the user for a transaction hash or any technical blockchain data.** ` +
-        `They won't know what that means. You have the tools — look it up yourself.\n` +
-        `- When a user says something went wrong ("my lock failed", "my swap didn't work", ` +
-        `"I don't know if it went through"), immediately call get_recent_transactions. ` +
-        `If the protocol's contract address is known from the Smart Contracts section above, ` +
-        `pass it as contract_address to filter results to that interaction.\n` +
-        `- Find the relevant transaction yourself — the most recent one to/from that contract, ` +
-        `or the most recent failed one. Never ask the user to identify it.\n` +
-        `- Diagnose in plain English. Users are not technical — explain what happened and what to do next ` +
-        `without blockchain jargon. Say "the transaction ran out of gas fee" not "OOG error". ` +
-        `Say "you weren't connected to the right network" not "chainId mismatch".\n` +
-        `- If gasUsed is equal to or very close to gasLimit on a failed tx, the cause is out-of-gas.\n` +
-        `- Do not tell the user to check a block explorer — you are the block explorer.`
+        `Live blockchain tools are available. Use them ONLY to diagnose a specific transaction problem the user is describing — NOT for general protocol questions.\n\n` +
+        `**Use tools when:**\n` +
+        `- The user says a specific action failed or didn't complete ("my lock failed", "did my transfer go through", "something went wrong")\n` +
+        `- The user explicitly asks about their balance\n\n` +
+        `**Do NOT use tools when:**\n` +
+        `- The user asks how the protocol works, what features it has, what things cost, or how to do something\n` +
+        `- Questions about fees, pricing, functionality, or protocol behaviour — answer these from the documentation below\n\n` +
+        `**When you do use tools:**\n` +
+        `- Never ask the user for a transaction hash or any technical data — look it up yourself\n` +
+        `- Find the relevant transaction yourself (most recent failed or relevant one). Never ask the user to identify it.\n` +
+        `- If the protocol's contract address is known (Smart Contracts section), pass it as contract_address to filter results\n` +
+        `- Diagnose in plain English: "the transaction ran out of gas fee" not "OOG error"; "wrong network" not "chainId mismatch"\n` +
+        `- If gasUsed equals or nearly equals gasLimit on a failed tx, the cause is out-of-gas\n` +
+        `- Do not tell the user to check a block explorer — you are the block explorer`
       )
     } else {
       // No wallet connected
