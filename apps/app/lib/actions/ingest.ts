@@ -212,12 +212,21 @@ export async function crawlAndIngest(
   }
 
   const extractLinksFromText = (text: string) => {
+    // Absolute markdown links: [text](https://...)
     for (const match of text.matchAll(/\(((https?:\/\/[^)\s"]+))\)/g)) {
       const n = normUrl(match[1]); if (n) discovered.add(n)
     }
-    // Also match bare href-style URLs in case Jina renders them differently
+    // Absolute href attributes
     for (const match of text.matchAll(/href=["'](https?:\/\/[^"'\s>]+)["']/g)) {
       const n = normUrl(match[1]); if (n) discovered.add(n)
+    }
+    // Relative href attributes — resolve against origin (e.g. Gitbook nav links)
+    for (const match of text.matchAll(/href=["'](\/[^"'\s>]+)["']/g)) {
+      const n = normUrl(`${origin}${match[1]}`); if (n) discovered.add(n)
+    }
+    // Relative markdown links: [text](/path)
+    for (const match of text.matchAll(/\((\/[^)\s"#][^)]*)\)/g)) {
+      const n = normUrl(`${origin}${match[1]}`); if (n) discovered.add(n)
     }
   }
 
