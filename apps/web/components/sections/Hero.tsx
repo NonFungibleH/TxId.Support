@@ -18,15 +18,6 @@ export function Hero() {
       <div className="max-w-6xl mx-auto px-6 w-full">
         <div className="grid lg:grid-cols-2 gap-12 items-center">
           <div>
-            <FadeIn delay={0}>
-              <div className="inline-flex items-center gap-2 bg-accent-muted border border-[var(--border-accent)] rounded-full px-3 py-1.5 mb-6">
-                <span className="w-1.5 h-1.5 rounded-full bg-accent" />
-                <span className="text-xs font-mono text-accent">
-                  Now in beta — free for early protocols
-                </span>
-              </div>
-            </FadeIn>
-
             <FadeIn delay={0.08}>
               <h1 className="font-display text-5xl lg:text-6xl font-bold text-white leading-[1.1] tracking-tight mb-6">
                 Give every user{" "}
