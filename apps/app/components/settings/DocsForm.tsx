@@ -66,7 +66,8 @@ export function DocsForm({ projectId, docCount, pastedChunkCount, sources: initi
     if (!url.trim()) { toast.error("Enter a URL first"); return }
     const targetUrl = url.trim()
     setCrawling(true)
-    setCrawlStatus("Discovering pages…")
+    setCrawlStatus(null)
+    toast.info("Crawl started — this typically takes 30–60 seconds. Keep this tab open.", { duration: 8000 })
     startTransition(async () => {
       const result = await crawlAndIngest(projectId, targetUrl)
       setCrawling(false)

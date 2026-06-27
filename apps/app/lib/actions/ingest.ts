@@ -199,12 +199,11 @@ export async function crawlAndIngest(
     }
   }
 
-  // ── Step 1: discover URLs via sitemap (most reliable for doc sites) ──────
   const discovered = new Set<string>()
 
   const normUrl = (raw: string): string | null => {
     try {
-      const u = new URL(raw)
+      const u = new URL(raw.trim())
       if (u.origin !== origin) return null
       if (/\.(pdf|zip|png|jpg|jpeg|gif|svg|ico|css|js)$/i.test(u.pathname)) return null
       u.hash = ""
@@ -212,58 +211,85 @@ export async function crawlAndIngest(
     } catch { return null }
   }
 
-  // Try sitemap.xml (and sitemap_index.xml)
-  const sitemapUrls = [`${origin}/sitemap.xml`, `${origin}/sitemap_index.xml`]
+  const extractLinksFromText = (text: string) => {
+    for (const match of text.matchAll(/\(((https?:\/\/[^)\s"]+))\)/g)) {
+      const n = normUrl(match[1]); if (n) discovered.add(n)
+    }
+    // Also match bare href-style URLs in case Jina renders them differently
+    for (const match of text.matchAll(/href=["'](https?:\/\/[^"'\s>]+)["']/g)) {
+      const n = normUrl(match[1]); if (n) discovered.add(n)
+    }
+  }
+
+  // ── Step 1: try sitemap via robots.txt and common paths ──────────────────
   let foundSitemap = false
-  for (const sitemapUrl of sitemapUrls) {
+  const sitemapCandidates: string[] = []
+
+  // Check robots.txt for Sitemap: directive
+  try {
+    const robotsRes = await fetch(`${origin}/robots.txt`, { signal: AbortSignal.timeout(8_000) })
+    if (robotsRes.ok) {
+      const robots = await robotsRes.text()
+      for (const match of robots.matchAll(/^Sitemap:\s*(.+)$/gmi)) {
+        sitemapCandidates.push(match[1].trim())
+      }
+    }
+  } catch { /* ignore */ }
+
+  // Add common fallback paths
+  sitemapCandidates.push(
+    `${origin}/sitemap.xml`,
+    `${origin}/sitemap_index.xml`,
+    `${origin}/sitemap-0.xml`,
+    `${origin}/sitemap/sitemap.xml`,
+  )
+
+  const parseSitemapXml = async (xml: string) => {
+    const locs = [...xml.matchAll(/<loc>\s*(https?:\/\/[^<\s]+)\s*<\/loc>/g)]
+    if (xml.includes("<sitemapindex")) {
+      // Sitemap index — fetch each child
+      for (const loc of locs.slice(0, 10)) {
+        try {
+          const r = await fetch(loc[1].trim(), { signal: AbortSignal.timeout(8_000) })
+          if (r.ok) { const child = await r.text(); for (const cl of child.matchAll(/<loc>\s*(https?:\/\/[^<\s]+)\s*<\/loc>/g)) { const n = normUrl(cl[1]); if (n) discovered.add(n) } }
+        } catch { /* skip */ }
+      }
+    } else {
+      for (const loc of locs) { const n = normUrl(loc[1]); if (n) discovered.add(n) }
+    }
+  }
+
+  for (const candidate of sitemapCandidates) {
+    if (foundSitemap) break
     try {
-      const res = await fetch(sitemapUrl, { signal: AbortSignal.timeout(10_000) })
-      if (res.ok) {
-        const xml = await res.text()
-        // Parse <loc> tags — works for both sitemap and sitemap_index
-        const locs = [...xml.matchAll(/<loc>\s*(https?:\/\/[^<]+)\s*<\/loc>/g)]
-        // If it's a sitemap index, fetch each child sitemap
-        const isSitemapIndex = xml.includes("<sitemapindex")
-        if (isSitemapIndex) {
-          for (const loc of locs.slice(0, 5)) {
-            try {
-              const childRes = await fetch(loc[1].trim(), { signal: AbortSignal.timeout(10_000) })
-              if (childRes.ok) {
-                const childXml = await childRes.text()
-                for (const childLoc of childXml.matchAll(/<loc>\s*(https?:\/\/[^<]+)\s*<\/loc>/g)) {
-                  const n = normUrl(childLoc[1].trim())
-                  if (n) discovered.add(n)
-                }
-              }
-            } catch { /* skip */ }
-          }
-        } else {
-          for (const loc of locs) {
-            const n = normUrl(loc[1].trim())
-            if (n) discovered.add(n)
-          }
+      const r = await fetch(candidate, { signal: AbortSignal.timeout(8_000) })
+      if (r.ok) {
+        const text = await r.text()
+        if (text.includes("<loc>")) {
+          await parseSitemapXml(text)
+          if (discovered.size > 0) foundSitemap = true
         }
-        if (discovered.size > 0) { foundSitemap = true; break }
       }
     } catch { /* try next */ }
   }
 
-  // ── Step 2: fallback — extract links from root page ──────────────────────
+  // ── Step 2: BFS link extraction (2 levels deep) as fallback ──────────────
   if (!foundSitemap) {
+    // Level 1: root page
     const rootText = await fetchPage(rootUrl, true)
     if (!rootText || rootText.trim().length < 50) {
       return { ok: false, error: "Could not fetch root page" }
     }
     discovered.add(rootUrl.replace(/\/$/, ""))
-    for (const match of rootText.matchAll(/\(((https?:\/\/[^)\s]+))\)/g)) {
-      const n = normUrl(match[1])
-      if (n) discovered.add(n)
-    }
+    extractLinksFromText(rootText)
+
+    // Level 2: follow each discovered link and extract its links too
+    const level1 = [...discovered].slice(0, 20)
+    const level1Texts = await Promise.all(level1.map(u => fetchPage(u, true)))
+    level1Texts.forEach(t => { if (t) extractLinksFromText(t) })
   }
 
-  // Always include the root
   discovered.add(rootUrl.replace(/\/$/, ""))
-
   const urls = [...discovered].slice(0, MAX_PAGES)
 
   // Crawl all pages in parallel batches of 5
