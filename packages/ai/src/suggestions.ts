@@ -22,11 +22,17 @@ export async function generateSuggestions(
   ]
 
   try {
-    const raw = await completeChat(
-      "Return ONLY a valid JSON array of 2–3 short follow-up question strings (≤7 words each). No explanation, no markdown, no preamble.",
-      suggestionMessages,
-      80,
-    )
+    // 5-second timeout — suggestions are a nice-to-have; never stall stream close
+    const raw = await Promise.race([
+      completeChat(
+        "Return ONLY a valid JSON array of 2–3 short follow-up question strings (≤7 words each). No explanation, no markdown, no preamble.",
+        suggestionMessages,
+        80,
+      ),
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("suggestions timeout")), 5000),
+      ),
+    ])
     const match = raw.trim().match(/\[[\s\S]*?\]/)
     if (!match) return []
     const parsed = JSON.parse(match[0]) as unknown

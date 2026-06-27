@@ -16,7 +16,7 @@ const COMPARISON = [
   {
     category: "Support",
     rows: [
-      { feature: "Conversations / month", starter: "50", pro: "5,000", enterprise: "Unlimited" },
+      { feature: "Conversations / month", starter: "200", pro: "5,000", enterprise: "Unlimited" },
       { feature: "Wallet detection", starter: true, pro: true, enterprise: true },
       { feature: "Transaction diagnostics", starter: true, pro: true, enterprise: true },
       { feature: "Revert reason explainer", starter: true, pro: true, enterprise: true },
@@ -65,7 +65,7 @@ const COMPARISON = [
 const FAQ = [
   {
     q: "What does the free trial include?",
-    a: "The Starter plan is free forever — no trial expiry. You get 50 conversations/month, wallet detection, transaction diagnostics, docs Q&A, and a full analytics dashboard. No credit card required.",
+    a: "The Starter plan is free forever — no trial expiry. You get 200 conversations/month, wallet detection, transaction diagnostics, docs Q&A, and a full analytics dashboard. No credit card required.",
   },
   {
     q: "What counts as a conversation?",
@@ -73,7 +73,7 @@ const FAQ = [
   },
   {
     q: "How does the Pro plan work?",
-    a: "Pro unlocks 5,000 conversations/month, removes TxID Support branding, and adds custom branding (colours, font, logo). It\'s $299/mo with no long-term contract — cancel anytime.",
+    a: "Pro unlocks 5,000 conversations/month, removes TxID Support branding, and adds custom branding (colours, font, logo). It\'s $499/mo with no long-term contract — cancel anytime.",
   },
   {
     q: "What chains are supported?",
@@ -97,9 +97,23 @@ function Cell({ value }: { value: CellValue }) {
   return <span className="text-sm text-white">{value}</span>;
 }
 
+const FAQ_SCHEMA = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: FAQ.map((item) => ({
+    "@type": "Question",
+    name: item.q,
+    acceptedAnswer: { "@type": "Answer", text: item.a },
+  })),
+}
+
 export default function PricingPage() {
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(FAQ_SCHEMA) }}
+      />
       <Navbar />
       <main className="pt-24">
         <div className="max-w-6xl mx-auto px-6 text-center py-16">

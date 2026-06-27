@@ -84,11 +84,16 @@ export async function* streamChatWithTools(
       },
     }))
 
+    // F7: cap history to last 50 messages; cap each message to 2 000 chars
+    const MAX_MSG = 50
+    const MAX_CHARS = 2000
+    const recentHistory = messages.slice(-MAX_MSG)
+
     let groqMessages: OpenAI.ChatCompletionMessageParam[] = [
       { role: "system", content: systemPrompt },
-      ...messages.map((m) => ({
+      ...recentHistory.map((m) => ({
         role: m.role as "user" | "assistant",
-        content: m.content,
+        content: m.content.slice(0, MAX_CHARS),
       })),
     ]
 

@@ -86,19 +86,27 @@ export async function POST(request: Request) {
 
     const typedProject = project as unknown as ProjectRow & { name: string }
     const config = typedProject.config as unknown as ProjectConfig
-    const ref = makeRef()
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { error: insertError } = await (supabase as any).from("tickets").insert({
-      project_id: typedProject.id,
-      ref,
-      user_name: name || null,
-      user_email: email || null,
-      summary,
-      reason: reason || null,
-      conversation: conversation ? JSON.stringify(conversation) : null,
-      status: "open",
-    })
+    // Retry up to 3 times on ref collision (unique constraint added in migration 20260627000002)
+    let ref = ""
+    let insertError = null
+    for (let attempt = 0; attempt < 3; attempt++) {
+      ref = makeRef()
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const result = await (supabase as any).from("tickets").insert({
+        project_id: typedProject.id,
+        ref,
+        user_name: name || null,
+        user_email: email || null,
+        summary,
+        reason: reason || null,
+        conversation: conversation ? JSON.stringify(conversation) : null,
+        status: "open",
+      })
+      insertError = result.error
+      if (!insertError) break
+      if (insertError.code !== "23505") break // only retry on unique violation
+    }
 
     if (insertError) {
       console.error("[tickets] insert error:", insertError)

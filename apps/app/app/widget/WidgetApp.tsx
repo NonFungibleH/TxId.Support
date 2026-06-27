@@ -735,16 +735,24 @@ export function WidgetApp() {
             <span className="rounded-full px-2 py-0.5 text-[10px] font-mono" style={{ backgroundColor: b.secondaryColor, color: b.textColor }}>
               {walletAddress.slice(0, 6)}…{walletAddress.slice(-4)}
             </span>
-          ) : (
-            <button
-              onClick={connectWallet}
-              disabled={walletConnecting || !hasMetaMask}
-              className="rounded-full px-2 py-0.5 text-[10px] font-medium transition-opacity disabled:opacity-40 active:opacity-70"
-              style={{ backgroundColor: b.secondaryColor, color: b.textColor }}
-            >
-              {walletConnecting ? "Connecting…" : "Connect"}
-            </button>
-          )
+          ) : hasMetaMask ? (
+              <button
+                onClick={connectWallet}
+                disabled={walletConnecting}
+                className="rounded-full px-2 py-0.5 text-[10px] font-medium transition-opacity disabled:opacity-40 active:opacity-70"
+                style={{ backgroundColor: b.secondaryColor, color: b.textColor }}
+              >
+                {walletConnecting ? "Connecting…" : "Connect wallet"}
+              </button>
+            ) : (
+              <button
+                onClick={() => setWalletSetup("manual-input")}
+                className="rounded-full px-2 py-0.5 text-[10px] font-medium transition-opacity active:opacity-70"
+                style={{ backgroundColor: b.secondaryColor, color: b.textColor }}
+              >
+                Enter address
+              </button>
+            )
         )}
       </div>
 

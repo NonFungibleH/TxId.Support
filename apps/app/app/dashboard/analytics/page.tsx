@@ -2,8 +2,9 @@ import { getProject } from "@/lib/actions/project"
 import { redirect } from "next/navigation"
 import { createServiceClient } from "@/lib/supabase/server"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
 import dynamic from "next/dynamic"
-import { MessageSquare, ThumbsUp, ThumbsDown, Users, Zap } from "lucide-react"
+import { MessageSquare, ThumbsUp, ThumbsDown, Zap, AlertCircle, CheckCircle2 } from "lucide-react"
 import Link from "next/link"
 import type { Database } from "@/lib/supabase/types"
 
@@ -106,6 +107,27 @@ export default async function AnalyticsPage() {
       ? Math.round((thumbsUp / (thumbsUp + thumbsDown)) * 100)
       : null
 
+  // P4: escalation metrics — requires tickets table
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: recentTickets, count: openTicketCount } = await (supabase as any)
+    .from("tickets")
+    .select("ref, summary, status, created_at", { count: "exact" })
+    .eq("project_id", projectId)
+    .eq("status", "open")
+    .order("created_at", { ascending: false })
+    .limit(5)
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { count: totalTickets } = await (supabase as any)
+    .from("tickets")
+    .select("id", { count: "exact", head: true })
+    .eq("project_id", projectId)
+
+  const escalationRate =
+    (totalConversations ?? 0) > 0 && (totalTickets ?? 0) > 0
+      ? Math.round(((totalTickets ?? 0) / (totalConversations ?? 1)) * 100)
+      : null
+
   const hasData = (totalConversations ?? 0) > 0
 
   return (
@@ -143,18 +165,39 @@ export default async function AnalyticsPage() {
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold">{totalConversations ?? 0}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">{totalMessages} messages</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
-              <Users className="size-3.5" />
-              Total messages
+              <CheckCircle2 className="size-3.5" />
+              Satisfaction
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold">{totalMessages}</p>
+            <p className="text-2xl font-bold">
+              {satisfactionRate !== null ? `${satisfactionRate}%` : "—"}
+            </p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {thumbsUp} helpful · {thumbsDown} not
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+              <AlertCircle className="size-3.5" />
+              Escalation rate
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold">
+              {escalationRate !== null ? `${escalationRate}%` : "—"}
+            </p>
+            <p className="text-xs text-muted-foreground mt-0.5">{totalTickets ?? 0} tickets total</p>
           </CardContent>
         </Card>
 
@@ -162,26 +205,14 @@ export default async function AnalyticsPage() {
           <CardHeader className="pb-2">
             <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
               <ThumbsUp className="size-3.5" />
-              Helpful
+              Open tickets
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold">{thumbsUp}</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
-              <ThumbsDown className="size-3.5" />
-              Not helpful
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold">{thumbsDown}</p>
-            {satisfactionRate !== null && (
-              <p className="text-xs text-muted-foreground mt-0.5">{satisfactionRate}% satisfaction</p>
-            )}
+            <p className="text-2xl font-bold">{openTicketCount ?? 0}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              <Link href="/dashboard/tickets" className="hover:underline">View all →</Link>
+            </p>
           </CardContent>
         </Card>
       </div>
@@ -195,6 +226,31 @@ export default async function AnalyticsPage() {
           <ConversationChart data={chartData} />
         </CardContent>
       </Card>
+
+      {/* P4: Top open escalations — what the AI is failing on */}
+      {(recentTickets ?? []).length > 0 && (
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle className="text-sm font-medium">Open escalations</CardTitle>
+            <Link href="/dashboard/tickets" className="text-xs text-muted-foreground hover:underline">
+              View all →
+            </Link>
+          </CardHeader>
+          <CardContent className="p-0">
+            <ul className="divide-y divide-border">
+              {(recentTickets as Array<{ ref: string; summary: string; status: string; created_at: string }>).map((t) => (
+                <li key={t.ref} className="flex items-start gap-3 px-6 py-3">
+                  <Badge variant="outline" className="text-[10px] shrink-0 mt-0.5 font-mono">{t.ref}</Badge>
+                  <p className="text-sm flex-1 leading-snug">{t.summary}</p>
+                  <span className="text-xs text-muted-foreground shrink-0">
+                    {new Date(t.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+      )}
     </div>
   )
 }

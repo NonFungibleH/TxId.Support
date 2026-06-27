@@ -202,6 +202,7 @@ export async function POST(request: Request) {
 
           controller.enqueue(encoder.encode("data: [DONE]\n\n"))
         } catch (err) {
+          console.error("[chat/stream]", err)
           const msg = err instanceof Error ? err.message : "Stream error"
           controller.enqueue(
             encoder.encode(`data: ${JSON.stringify({ error: msg })}\n\n`),
@@ -224,6 +225,7 @@ export async function POST(request: Request) {
       },
     })
   } catch (err) {
+    console.error("[chat/POST]", err)
     const msg = err instanceof Error ? err.message : "Internal error"
     return new Response(JSON.stringify({ error: msg }), {
       status: 500,

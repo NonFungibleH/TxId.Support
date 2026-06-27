@@ -4,9 +4,12 @@ import { useState, useEffect, useRef } from "react";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { Button } from "@/components/ui/Button";
-import { ArrowRight, CheckCircle2, Wifi, BookOpen, TrendingUp, Activity } from "lucide-react";
+import { ArrowRight, CheckCircle2, Wifi, BookOpen, TrendingUp, Activity, Zap } from "lucide-react";
 import { APP_URL } from "@/lib/config";
 import { clsx } from "clsx";
+
+const DEMO_KEY = process.env.NEXT_PUBLIC_DEMO_WIDGET_KEY ?? null;
+const WIDGET_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://app.txid.support";
 
 // ---------------------------------------------------------------------------
 // Scenario data — delays are reading-paced (slower than real typing)
@@ -254,8 +257,25 @@ function WidgetDemo({ scenario }: { scenario: (typeof SCENARIOS)[number] }) {
 // Page
 // ---------------------------------------------------------------------------
 
+function LiveWidget() {
+  const src = `${WIDGET_URL}/widget?key=${DEMO_KEY}&mode=support`
+  return (
+    <div className="w-[340px] rounded-2xl overflow-hidden shadow-2xl shadow-accent/10 border border-[var(--border)]" style={{ height: 520 }}>
+      <iframe
+        src={src}
+        width={340}
+        height={520}
+        style={{ border: "none", borderRadius: "1rem" }}
+        title="TxID Support — live demo"
+        allow="clipboard-write"
+      />
+    </div>
+  )
+}
+
 export default function DemoPage() {
   const [activeId, setActiveId] = useState(SCENARIOS[0].id);
+  const [liveMode, setLiveMode] = useState(false);
   const scenario = SCENARIOS.find((s) => s.id === activeId) ?? SCENARIOS[0];
 
   return (
@@ -275,10 +295,39 @@ export default function DemoPage() {
             </p>
           </div>
 
+          {/* Live / simulated toggle */}
+          {DEMO_KEY && (
+            <div className="flex items-center justify-center gap-3 mb-10">
+              <button
+                onClick={() => setLiveMode(false)}
+                className={clsx(
+                  "rounded-full px-4 py-1.5 text-xs font-semibold transition-all",
+                  !liveMode ? "bg-accent text-white" : "bg-[var(--bg-surface)] text-muted border border-[var(--border)]"
+                )}
+              >
+                Simulated
+              </button>
+              <button
+                onClick={() => setLiveMode(true)}
+                className={clsx(
+                  "flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-semibold transition-all",
+                  liveMode ? "bg-accent text-white" : "bg-[var(--bg-surface)] text-muted border border-[var(--border)]"
+                )}
+              >
+                <Zap className="w-3 h-3" />
+                Live AI
+              </button>
+            </div>
+          )}
+
           {/* Demo layout */}
           <div className="flex flex-col lg:flex-row gap-10 items-start justify-center">
 
-            {/* Left: scenario selector */}
+            {/* Left: scenario selector — hidden in live mode */}
+            {liveMode ? (
+              <div className="hidden lg:block lg:w-64 w-full shrink-0" />
+            ) : null}
+            {!liveMode && (
             <div className="flex flex-row lg:flex-col gap-3 lg:w-64 w-full shrink-0">
               <p className="hidden lg:block text-xs font-semibold text-muted uppercase tracking-wider mb-1">Try a scenario</p>
               {SCENARIOS.map((s) => {
@@ -306,12 +355,17 @@ export default function DemoPage() {
                 );
               })}
             </div>
+            )}
 
             {/* Centre: widget */}
             <div className="flex justify-center flex-1">
               <div className="relative">
                 <div className="absolute inset-0 rounded-2xl blur-3xl scale-90" style={{ background: "rgba(99,102,241,0.18)" }} />
-                <WidgetDemo key={activeId} scenario={scenario} />
+                {liveMode && DEMO_KEY ? (
+                  <LiveWidget />
+                ) : (
+                  <WidgetDemo key={activeId} scenario={scenario} />
+                )}
               </div>
             </div>
 

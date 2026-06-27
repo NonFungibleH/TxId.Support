@@ -15,7 +15,7 @@ const PLANS = [
     ctaHref: `${APP_URL}/sign-up`,
     highlight: false,
     features: [
-      { label: "50 conversations / month", soon: false },
+      { label: "200 conversations / month", soon: false },
       { label: "Wallet detection", soon: false },
       { label: "Transaction diagnostics", soon: false },
       { label: "Docs Q&A (RAG)", soon: false },
@@ -27,7 +27,7 @@ const PLANS = [
   },
   {
     name: "Pro",
-    price: "$299",
+    price: "$499",
     period: "/mo",
     badge: "Most Popular",
     description: "For live protocols with real users",

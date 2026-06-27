@@ -18,7 +18,7 @@ export default async function DashboardPage() {
   const typedProject = project as unknown as ProjectRow
   const supabase = createServiceClient()
 
-  const [convResult, docsResult] = await Promise.all([
+  const [convResult, docsResult, walletsResult] = await Promise.all([
     supabase
       .from("conversations")
       .select("id", { count: "exact", head: true })
@@ -27,7 +27,17 @@ export default async function DashboardPage() {
       .from("documents")
       .select("id", { count: "exact", head: true })
       .eq("project_id", typedProject.id),
+    // P6: distinct connected wallets — genuinely different from total conversations
+    supabase
+      .from("conversations")
+      .select("wallet_address")
+      .eq("project_id", typedProject.id)
+      .not("wallet_address", "is", null),
   ])
+
+  const uniqueWallets = new Set(
+    (walletsResult.data ?? []).map((r) => (r as { wallet_address: string }).wallet_address)
+  ).size
 
   const config = typedProject.config as unknown as ProjectConfig
   const docCount = docsResult.count ?? 0
@@ -97,7 +107,7 @@ export default async function DashboardPage() {
       {/* Stats */}
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
         <StatsCard title="Conversations" value={convResult.count ?? 0} description="All time" icon={MessageSquare} />
-        <StatsCard title="Users helped" value={convResult.count ?? 0} description="Unique sessions" icon={Users} />
+        <StatsCard title="Connected wallets" value={uniqueWallets} description="Unique addresses" icon={Users} />
         <StatsCard title="Knowledge docs" value={docCount} description="Indexed chunks" icon={Globe} />
         <StatsCard title="Chains enabled" value={config.chains.length} description={`of ${7} supported`} icon={Zap} />
       </div>

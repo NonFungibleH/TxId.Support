@@ -21,7 +21,7 @@ export async function getNativeBalance(
   const chain = moralisChain(chainId)
   const res = await fetch(
     `${MORALIS_BASE}/${address}/balance?chain=${chain}`,
-    { headers: moralisHeaders() },
+    { headers: moralisHeaders(), signal: AbortSignal.timeout(8000) },
   )
   if (!res.ok) throw new Error(`Moralis balance error: ${res.status}`)
   const data = (await res.json()) as { balance: string }
@@ -41,7 +41,7 @@ export async function getTokenBalances(
   const chain = moralisChain(chainId)
   const res = await fetch(
     `${MORALIS_BASE}/${address}/erc20?chain=${chain}`,
-    { headers: moralisHeaders() },
+    { headers: moralisHeaders(), signal: AbortSignal.timeout(8000) },
   )
   if (!res.ok) throw new Error(`Moralis token balances error: ${res.status}`)
   const data = (await res.json()) as Array<{
@@ -83,7 +83,7 @@ export async function getTransactionByHash(
   const chain = moralisChain(chainId)
   const res = await fetch(
     `${MORALIS_BASE}/transaction/${hash}?chain=${chain}`,
-    { headers: moralisHeaders() },
+    { headers: moralisHeaders(), signal: AbortSignal.timeout(8000) },
   )
   if (!res.ok) return null
   const tx = (await res.json()) as {
@@ -125,7 +125,7 @@ export async function getRecentTransactions(
   const chain = moralisChain(chainId)
   const res = await fetch(
     `${MORALIS_BASE}/${address}?chain=${chain}&limit=${limit}`,
-    { headers: moralisHeaders() },
+    { headers: moralisHeaders(), signal: AbortSignal.timeout(8000) },
   )
   if (!res.ok) throw new Error(`Moralis transactions error: ${res.status}`)
   const data = (await res.json()) as {

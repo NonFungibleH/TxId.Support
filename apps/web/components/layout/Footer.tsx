@@ -1,89 +1,96 @@
 import Link from "next/link";
 import { APP_URL } from "@/lib/config";
 
+const PRODUCT_LINKS = [
+  { label: "Features", href: "/#features" },
+  { label: "Pricing", href: "/pricing" },
+  { label: "Demo", href: "/demo" },
+  { label: "Blog", href: "/blog" },
+  { label: "Get started free", href: `${APP_URL}/sign-up`, external: true },
+];
+
+const LEGAL_LINKS = [
+  { label: "Contact", href: "mailto:hello@txid.support", external: true },
+  { label: "Terms", href: "/terms" },
+  { label: "Privacy", href: "/privacy" },
+];
+
 export function Footer() {
   const year = new Date().getFullYear();
 
   return (
-    <footer className="border-t border-[var(--border)] bg-[var(--bg-surface)] mt-32">
-      <div className="max-w-6xl mx-auto px-6 py-16">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-10">
-          <div className="col-span-2 md:col-span-1">
-            <Link href="/" className="flex items-center gap-2 mb-3">
+    <footer className="border-t border-[var(--border)] bg-[var(--bg-surface)]">
+      <div className="max-w-6xl mx-auto px-6 py-10">
+        <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-8">
+
+          {/* Brand */}
+          <div className="shrink-0">
+            <Link href="/" className="flex items-center gap-2 mb-2">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/brand/txid-icon-64.png" alt="TxID Support" className="h-7 w-7" />
+              <img src="/brand/txid-icon-64.png" alt="TxID Support" className="h-6 w-6" />
               <span className="font-display font-semibold text-white text-sm tracking-tight">
                 TxID Support
               </span>
             </Link>
-            <p className="text-sm text-muted leading-relaxed">
-              AI-powered support widget for DeFi protocols. Embed in 30 seconds.
+            <p className="text-xs text-muted leading-relaxed max-w-[200px]">
+              AI support for DeFi protocols.<br />Embed in 30 seconds.
             </p>
           </div>
 
-          {/* Product */}
-          <div>
-            <p className="text-xs font-semibold text-muted uppercase tracking-wider mb-4">
-              Product
-            </p>
-            <ul className="space-y-2.5">
-              <li>
-                <Link href="/#features" className="text-sm text-muted hover:text-white transition-colors">
-                  Features
-                </Link>
-              </li>
-              <li>
-                <Link href="/pricing" className="text-sm text-muted hover:text-white transition-colors">
-                  Pricing
-                </Link>
-              </li>
-              <li>
-                <Link href="/demo" className="text-sm text-muted hover:text-white transition-colors">
-                  Demo
-                </Link>
-              </li>
-              <li>
-                <a href={`${APP_URL}/sign-up`} className="text-sm text-muted hover:text-white transition-colors">
-                  Get started free
-                </a>
-              </li>
-            </ul>
-          </div>
+          {/* Links — two tight columns */}
+          <div className="flex gap-12">
+            <div>
+              <p className="text-[10px] font-semibold text-muted/50 uppercase tracking-wider mb-3">
+                Product
+              </p>
+              <ul className="space-y-2">
+                {PRODUCT_LINKS.map((l) => (
+                  <li key={l.label}>
+                    {l.external ? (
+                      <a href={l.href} className="text-xs text-muted hover:text-white transition-colors">
+                        {l.label}
+                      </a>
+                    ) : (
+                      <Link href={l.href} className="text-xs text-muted hover:text-white transition-colors">
+                        {l.label}
+                      </Link>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
 
-          {/* Company */}
-          <div>
-            <p className="text-xs font-semibold text-muted uppercase tracking-wider mb-4">
-              Company
-            </p>
-            <ul className="space-y-2.5">
-              <li>
-                <a href="mailto:hello@txid.support" className="text-sm text-muted hover:text-white transition-colors">
-                  Contact
-                </a>
-              </li>
-              <li>
-                <Link href="/terms" className="text-sm text-muted hover:text-white transition-colors">
-                  Terms
-                </Link>
-              </li>
-              <li>
-                <Link href="/privacy" className="text-sm text-muted hover:text-white transition-colors">
-                  Privacy
-                </Link>
-              </li>
-            </ul>
+            <div>
+              <p className="text-[10px] font-semibold text-muted/50 uppercase tracking-wider mb-3">
+                Company
+              </p>
+              <ul className="space-y-2">
+                {LEGAL_LINKS.map((l) => (
+                  <li key={l.label}>
+                    {l.external ? (
+                      <a href={l.href} className="text-xs text-muted hover:text-white transition-colors">
+                        {l.label}
+                      </a>
+                    ) : (
+                      <Link href={l.href} className="text-xs text-muted hover:text-white transition-colors">
+                        {l.label}
+                      </Link>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
           </div>
         </div>
 
-        <div className="mt-12 pt-6 border-t border-[var(--border)] flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p className="text-xs text-muted">
+        {/* Bottom bar */}
+        <div className="mt-8 pt-6 border-t border-[var(--border)] flex flex-col sm:flex-row items-center justify-between gap-3">
+          <p className="text-xs text-muted/50">
             © {year} TxID Support. All rights reserved.
           </p>
-          <p className="text-xs font-mono text-muted">
-            <span className="inline-flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-accent inline-block" />
-              Free trial available · No credit card required
-            </span>
+          <p className="text-[10px] font-mono text-muted/40 flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-accent inline-block" />
+            Free trial available · No credit card required
           </p>
         </div>
       </div>
