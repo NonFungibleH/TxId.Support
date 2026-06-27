@@ -73,7 +73,7 @@ const FAQ = [
   },
   {
     q: "How does the Pro plan work?",
-    a: "Pro unlocks 5,000 conversations/month, removes TxID Support branding, and adds custom branding (colours, font, logo). It\'s $99/mo with no long-term contract — cancel anytime.",
+    a: "Pro unlocks 5,000 conversations/month, removes TxID Support branding, and adds custom branding (colours, font, logo). It\'s $299/mo with no long-term contract — cancel anytime.",
   },
   {
     q: "What chains are supported?",

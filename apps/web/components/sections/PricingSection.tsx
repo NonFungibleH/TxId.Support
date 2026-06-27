@@ -27,7 +27,7 @@ const PLANS = [
   },
   {
     name: "Pro",
-    price: "$99",
+    price: "$299",
     period: "/mo",
     badge: "Most Popular",
     description: "For live protocols with real users",
