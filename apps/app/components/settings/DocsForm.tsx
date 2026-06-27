@@ -14,6 +14,7 @@ import { fetchAndIngest, ingestText, clearKnowledgeBase, deleteSource, crawlAndI
 interface Source {
   url: string
   count: number
+  lastIndexedAt: string
 }
 
 interface DocsFormProps {
@@ -21,11 +22,12 @@ interface DocsFormProps {
   initialDocsUrl: string | null
   docCount: number
   pastedChunkCount: number
+  pastedLastIndexedAt: string
   sources: Source[]
   voyageKeySet: boolean
 }
 
-type SourceGroup = { hostname: string; sources: Source[]; totalChunks: number }
+type SourceGroup = { hostname: string; sources: Source[]; totalChunks: number; lastIndexedAt: string }
 
 function groupByOrigin(sources: Source[]): SourceGroup[] {
   const map = new Map<string, Source[]>()
@@ -39,10 +41,21 @@ function groupByOrigin(sources: Source[]): SourceGroup[] {
     hostname,
     sources: srcs,
     totalChunks: srcs.reduce((sum, s) => sum + s.count, 0),
+    lastIndexedAt: srcs.reduce((latest, s) => s.lastIndexedAt > latest ? s.lastIndexedAt : latest, ""),
   }))
 }
 
-export function DocsForm({ projectId, docCount, pastedChunkCount, sources: initialSources, voyageKeySet }: DocsFormProps) {
+function timeAgo(iso: string): string {
+  if (!iso) return ""
+  const diff = Date.now() - new Date(iso).getTime()
+  const mins = Math.floor(diff / 60000)
+  if (mins < 60) return `${mins}m ago`
+  const hrs = Math.floor(mins / 60)
+  if (hrs < 24) return `${hrs}h ago`
+  return `${Math.floor(hrs / 24)}d ago`
+}
+
+export function DocsForm({ projectId, docCount, pastedChunkCount, pastedLastIndexedAt, sources: initialSources, voyageKeySet }: DocsFormProps) {
   const [url, setUrl] = useState("")
   const [totalChunks, setTotalChunks] = useState(docCount)
   const [sources, setSources] = useState<Source[]>(initialSources)
@@ -119,10 +132,11 @@ export function DocsForm({ projectId, docCount, pastedChunkCount, sources: initi
       const result = await fetchAndIngest(projectId, targetUrl)
       if (result.ok && result.chunksInserted) {
         toast.success(`Indexed ${result.chunksInserted} chunks from ${targetUrl}`)
+        const now = new Date().toISOString()
         setSources(prev => {
           const exists = prev.find(s => s.url === targetUrl)
-          if (exists) return prev.map(s => s.url === targetUrl ? { ...s, count: result.chunksInserted! } : s)
-          return [...prev, { url: targetUrl, count: result.chunksInserted! }]
+          if (exists) return prev.map(s => s.url === targetUrl ? { ...s, count: result.chunksInserted!, lastIndexedAt: now } : s)
+          return [...prev, { url: targetUrl, count: result.chunksInserted!, lastIndexedAt: now }]
         })
         setTotalChunks(n => n + result.chunksInserted!)
         setUrl("")
@@ -138,8 +152,9 @@ export function DocsForm({ projectId, docCount, pastedChunkCount, sources: initi
       const result = await fetchAndIngest(projectId, sourceUrl)
       if (result.ok && result.chunksInserted != null) {
         toast.success(`Re-indexed ${result.chunksInserted} chunks`)
+        const now = new Date().toISOString()
         setSources(prev =>
-          prev.map(s => s.url === sourceUrl ? { ...s, count: result.chunksInserted! } : s),
+          prev.map(s => s.url === sourceUrl ? { ...s, count: result.chunksInserted!, lastIndexedAt: now } : s),
         )
         // total changed: removed old count, added new count
         setTotalChunks(prev => {
@@ -262,6 +277,11 @@ export function DocsForm({ projectId, docCount, pastedChunkCount, sources: initi
                     <span className="flex-1 text-xs font-mono text-foreground truncate" title={source.url}>
                       {source.url}
                     </span>
+                    {source.lastIndexedAt && (
+                      <span className="text-[11px] text-muted-foreground/60 shrink-0" title={new Date(source.lastIndexedAt).toLocaleString()}>
+                        {timeAgo(source.lastIndexedAt)}
+                      </span>
+                    )}
                     <span className="text-[11px] text-muted-foreground shrink-0 tabular-nums">
                       {source.count} chunk{source.count !== 1 ? "s" : ""}
                     </span>
@@ -287,6 +307,11 @@ export function DocsForm({ projectId, docCount, pastedChunkCount, sources: initi
                   >
                     <Globe className="size-3.5 text-muted-foreground shrink-0" />
                     <span className="flex-1 text-xs font-medium text-foreground truncate">{group.hostname}</span>
+                    {group.sources[0]?.lastIndexedAt && (
+                      <span className="text-[11px] text-muted-foreground/60 shrink-0" title="Last indexed">
+                        {timeAgo(group.sources.reduce((latest, s) => s.lastIndexedAt > latest ? s.lastIndexedAt : latest, ""))}
+                      </span>
+                    )}
                     <span className="text-[11px] text-muted-foreground shrink-0 tabular-nums">
                       {group.sources.length} pages · {group.totalChunks} chunks
                     </span>

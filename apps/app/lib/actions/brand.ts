@@ -37,6 +37,18 @@ function isLight(hex: string): boolean {
   return (0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2]) / 255 > 0.5
 }
 
+function isNearBlack(hex: string): boolean {
+  const rgb = hexToRgb(hex)
+  if (!rgb) return false
+  return (0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2]) / 255 < 0.08
+}
+
+function isNearWhite(hex: string): boolean {
+  const rgb = hexToRgb(hex)
+  if (!rgb) return false
+  return (0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2]) / 255 > 0.92
+}
+
 // ── Main export ───────────────────────────────────────────────────────────────
 
 export interface BrandColorResult {
@@ -70,14 +82,32 @@ export async function fetchBrandColors(rawUrl: string): Promise<BrandColorResult
     let primaryColor: string | undefined
     let backgroundColor: string | undefined
 
-    // 1. <meta name="theme-color"> — most reliable signal
+    // Detect explicit dark-theme signals upfront
+    const hasDarkColorScheme =
+      /<meta[^>]*name=["']color-scheme["'][^>]*content=["'][^"']*dark/i.test(html) ||
+      /color-scheme\s*:\s*dark(?:\s|;|")/i.test(html)
+    const hasDarkBodyClass =
+      /<(?:html|body)[^>]*class=["'][^"']*\bdark\b/i.test(html) ||
+      /<(?:html|body)[^>]*data-theme=["']dark["']/i.test(html)
+
+    // 0. body/html inline style background — most direct signal
+    if (!backgroundColor) {
+      const bodyStyleBg =
+        html.match(/<(?:body|html)[^>]+style=["'][^"']*background(?:-color)?\s*:\s*(#[0-9a-fA-F]{3,8})/i)
+      if (bodyStyleBg?.[1] && isValidHex(bodyStyleBg[1])) {
+        backgroundColor = normalizeHex(bodyStyleBg[1])
+        foundSignals.push("body/html style background")
+      }
+    }
+
+    // 1. <meta name="theme-color"> — most reliable primary signal
     const themeColorMatch =
       html.match(/<meta[^>]*name=["']theme-color["'][^>]*content=["']([^"']+)["']/i) ||
       html.match(/<meta[^>]*content=["']([^"']+)["'][^>]*name=["']theme-color["']/i)
 
     if (themeColorMatch?.[1]) {
       const val = themeColorMatch[1].trim()
-      if (isValidHex(val)) {
+      if (isValidHex(val) && !isNearBlack(val) && !isNearWhite(val)) {
         primaryColor = normalizeHex(val)
         foundSignals.push("theme-color meta")
       }
@@ -95,7 +125,8 @@ export async function fetchBrandColors(rawUrl: string): Promise<BrandColorResult
           const mRes = await fetch(manifestUrl, { signal: AbortSignal.timeout(3000) })
           if (mRes.ok) {
             const manifest = (await mRes.json()) as { theme_color?: string; background_color?: string }
-            if (!primaryColor && manifest.theme_color && isValidHex(manifest.theme_color)) {
+            if (!primaryColor && manifest.theme_color && isValidHex(manifest.theme_color)
+              && !isNearBlack(manifest.theme_color) && !isNearWhite(manifest.theme_color)) {
               primaryColor = normalizeHex(manifest.theme_color)
               foundSignals.push("manifest theme_color")
             }
@@ -125,14 +156,14 @@ export async function fetchBrandColors(rawUrl: string): Promise<BrandColorResult
       for (const v of cssVarCandidates) {
         const escaped = v.replace(/[-]/g, "\\-")
         const match = styleContent.match(new RegExp(`${escaped}\\s*:\\s*(#[0-9a-fA-F]{3,8})`, "i"))
-        if (match?.[1] && isValidHex(match[1])) {
+        if (match?.[1] && isValidHex(match[1]) && !isNearBlack(match[1]) && !isNearWhite(match[1])) {
           primaryColor = normalizeHex(match[1])
           foundSignals.push(`CSS var ${v}`)
           break
         }
       }
 
-      // Body background as fallback for backgroundColor
+      // Body background from inline <style>
       if (!backgroundColor) {
         const bodyBgMatch = styleContent.match(
           /body\s*\{[^}]*background(?:-color)?\s*:\s*(#[0-9a-fA-F]{3,8})/i
@@ -151,7 +182,12 @@ export async function fetchBrandColors(rawUrl: string): Promise<BrandColorResult
       }
     }
 
-    const bg = backgroundColor ?? (isLight(primaryColor) ? "#f9fafb" : "#0f0f0f")
+    // Background: use detected value, or infer from explicit dark signals.
+    // Default to white — most marketing/B2B sites are light-themed even when their
+    // brand colour is a dark/saturated hue.
+    const explicitlyDark = hasDarkColorScheme || hasDarkBodyClass ||
+      (backgroundColor != null && !isLight(backgroundColor))
+    const bg = backgroundColor ?? (explicitlyDark ? "#0f0f0f" : "#ffffff")
     const secondary = darken(primaryColor, 0.2)
     const text = isLight(bg) ? "#111827" : "#ffffff"
 

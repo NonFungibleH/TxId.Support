@@ -20,19 +20,23 @@ export default async function DocsPage() {
   // Fetch all source URLs and group client-side (sources are typically few dozen at most)
   const { data: docs } = await supabase
     .from("documents")
-    .select("source_url")
+    .select("source_url, created_at")
     .eq("project_id", typedProject.id)
 
-  const sourcesMap = new Map<string, number>()
+  const sourcesMap = new Map<string, { count: number; lastIndexedAt: string }>()
   let nullCount = 0
+  let nullLastIndexed = ""
   for (const doc of docs ?? []) {
     if (doc.source_url) {
-      sourcesMap.set(doc.source_url, (sourcesMap.get(doc.source_url) ?? 0) + 1)
+      const existing = sourcesMap.get(doc.source_url)
+      const latest = !existing || doc.created_at > existing.lastIndexedAt ? doc.created_at : existing.lastIndexedAt
+      sourcesMap.set(doc.source_url, { count: (existing?.count ?? 0) + 1, lastIndexedAt: latest })
     } else {
       nullCount++
+      if (doc.created_at > nullLastIndexed) nullLastIndexed = doc.created_at
     }
   }
-  const sources = Array.from(sourcesMap.entries()).map(([url, count]) => ({ url, count }))
+  const sources = Array.from(sourcesMap.entries()).map(([url, { count, lastIndexedAt }]) => ({ url, count, lastIndexedAt }))
   const totalChunks = (docs ?? []).length
 
   return (
@@ -55,6 +59,7 @@ export default async function DocsPage() {
             docCount={totalChunks}
             pastedChunkCount={nullCount}
             sources={sources}
+            pastedLastIndexedAt={nullLastIndexed}
             voyageKeySet={!!process.env.VOYAGE_API_KEY}
           />
         </CardContent>
