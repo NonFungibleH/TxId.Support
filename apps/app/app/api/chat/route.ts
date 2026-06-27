@@ -6,6 +6,27 @@ import type { Database } from "@/lib/supabase/types"
 
 type ProjectRow = Database["public"]["Tables"]["projects"]["Row"]
 
+// ── Rate limiting (per-IP, in-memory) ────────────────────────────────────────
+// 20 requests per IP per minute. In-memory is per-instance but sufficient to
+// block rapid-fire abuse from a single client hitting the same Vercel instance.
+const RATE_LIMIT = 20
+const WINDOW_MS = 60_000
+
+interface RateEntry { count: number; resetAt: number }
+const rateLimitMap = new Map<string, RateEntry>()
+
+function isRateLimited(ip: string): boolean {
+  const now = Date.now()
+  const entry = rateLimitMap.get(ip)
+  if (!entry || now >= entry.resetAt) {
+    rateLimitMap.set(ip, { count: 1, resetAt: now + WINDOW_MS })
+    return false
+  }
+  if (entry.count >= RATE_LIMIT) return true
+  entry.count++
+  return false
+}
+
 // Allow cross-origin requests from any embedded site
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
@@ -19,6 +40,18 @@ export async function OPTIONS() {
 
 export async function POST(request: Request) {
   try {
+    const ip =
+      request.headers.get("x-forwarded-for")?.split(",")[0].trim() ??
+      request.headers.get("x-real-ip") ??
+      "unknown"
+
+    if (isRateLimited(ip)) {
+      return new Response(JSON.stringify({ error: "Too many requests. Please slow down." }), {
+        status: 429,
+        headers: { ...CORS_HEADERS, "Content-Type": "application/json", "Retry-After": "60" },
+      })
+    }
+
     const body = (await request.json()) as {
       key: string
       sessionId: string
