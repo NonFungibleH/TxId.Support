@@ -191,10 +191,11 @@ export function DocsForm({ projectId, docCount, pastedChunkCount, pastedLastInde
       if (result.ok && result.chunksInserted) {
         toast.success(`Indexed ${result.chunksInserted} chunks`)
         if (pasteUrl.trim()) {
+          const now = new Date().toISOString()
           setSources(prev => {
             const exists = prev.find(s => s.url === pasteUrl.trim())
-            if (exists) return prev.map(s => s.url === pasteUrl.trim() ? { ...s, count: result.chunksInserted! } : s)
-            return [...prev, { url: pasteUrl.trim(), count: result.chunksInserted! }]
+            if (exists) return prev.map(s => s.url === pasteUrl.trim() ? { ...s, count: result.chunksInserted!, lastIndexedAt: now } : s)
+            return [...prev, { url: pasteUrl.trim(), count: result.chunksInserted!, lastIndexedAt: now }]
           })
         } else {
           setPastedCount(n => n + result.chunksInserted!)
