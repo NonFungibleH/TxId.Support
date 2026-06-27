@@ -77,6 +77,7 @@ export async function embedText(text: string): Promise<number[]> {
 }
 
 export async function embedBatch(texts: string[]): Promise<number[][]> {
+  console.log('[embed] COHERE set:', !!process.env.COHERE_API_KEY, '| VOYAGE set:', !!process.env.VOYAGE_API_KEY)
   if (process.env.COHERE_API_KEY) {
     // Cohere max 96 texts per call
     const BATCH = 96
