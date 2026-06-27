@@ -369,7 +369,7 @@ export function WidgetApp() {
   const [walletConnecting, setWalletConnecting] = useState(false)
 
   // Wallet setup flow: prompt → (connected | manual | skipped)
-  const [walletSetup, setWalletSetup] = useState<"prompt" | "manual-input" | "connected" | "manual" | "skipped">("prompt")
+  const [_walletSetup, setWalletSetup] = useState<"prompt" | "manual-input" | "connected" | "manual" | "skipped">("prompt")
 
   // Ticket escalation state
   const [escalation, setEscalation] = useState<{ summary: string; reason: string } | null>(null)
@@ -507,14 +507,6 @@ export function WidgetApp() {
     }
   }, [apiKey])
 
-
-  // ── Disconnect / reset wallet ────────────────────────────────────────────
-  const disconnectWallet = useCallback(() => {
-    setWalletAddress(null)
-    setChainId(null)
-    setWalletSetup("prompt")
-    try { sessionStorage.removeItem(`txid_wallet_${apiKey}`) } catch { /* ignore */ }
-  }, [apiKey])
 
   // ── Submit support ticket ────────────────────────────────────────────────
   const submitTicket = useCallback(async () => {

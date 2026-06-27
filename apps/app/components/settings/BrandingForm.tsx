@@ -261,7 +261,7 @@ export function BrandingForm({ projectId, initial, onBrandingChange }: BrandingF
       <div className="space-y-3">
         <div>
           <h3 className="text-sm font-semibold">AI agent identity</h3>
-          <p className="text-xs text-muted-foreground mt-0.5">Give the AI a name and avatar — users will see this instead of "AI".</p>
+          <p className="text-xs text-muted-foreground mt-0.5">Give the AI a name and avatar — users will see this instead of &ldquo;AI&rdquo;.</p>
         </div>
         <div className="space-y-1.5">
           <Label className="text-xs text-muted-foreground">Name (e.g. Alex, Aria, Support)</Label>

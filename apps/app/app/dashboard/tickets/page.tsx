@@ -1,6 +1,5 @@
 import { getProject } from "@/lib/actions/project"
 import { getTickets } from "@/lib/actions/tickets"
-import { updateConfig } from "@/lib/actions/project"
 import { TicketList } from "@/components/dashboard/TicketList"
 import type { Database } from "@/lib/supabase/types"
 import type { ProjectConfig } from "@/lib/types/config"

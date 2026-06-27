@@ -14,37 +14,41 @@ export function WidgetMockup({ className }: { className?: string }) {
     <div
       className={clsx(
         "w-80 rounded-2xl overflow-hidden shadow-2xl shadow-accent/20",
-        "border border-white/10 bg-[#1e1e2e]",
+        "bg-[#1e1e2e]",
         "font-sans text-sm",
         className
       )}
     >
-      <div className="flex items-center justify-between px-4 py-3 border-b border-white/8 bg-[#252540]">
-        <div className="flex items-center gap-2">
-          <div className="w-2 h-2 rounded-full bg-green-400 shadow-sm shadow-green-400/50" />
-          <span className="font-display font-semibold text-white text-xs">
-            TxID Support
-          </span>
+      {/* Header + tabs unified — no separating borders */}
+      <div className="bg-[#252540] px-4 pt-3 pb-0">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-green-400 shadow-sm shadow-green-400/50" />
+            <span className="font-display font-semibold text-white text-xs">
+              TxID Support
+            </span>
+          </div>
+          <Wifi className="w-3.5 h-3.5 text-white/25" />
         </div>
-        <Wifi className="w-3.5 h-3.5 text-white/30" />
+
+        <div className="flex">
+          {TABS.map((tab, i) => (
+            <button
+              key={tab}
+              className={clsx(
+                "flex-1 pb-2.5 text-xs transition-colors",
+                i === 0
+                  ? "text-accent border-b-2 border-accent font-medium"
+                  : "text-white/30"
+              )}
+            >
+              {tab}
+            </button>
+          ))}
+        </div>
       </div>
 
-      <div className="flex border-b border-white/8">
-        {TABS.map((tab, i) => (
-          <button
-            key={tab}
-            className={clsx(
-              "flex-1 py-2 text-xs transition-colors",
-              i === 0
-                ? "text-accent border-b-2 border-accent font-medium"
-                : "text-white/35 hover:text-white"
-            )}
-          >
-            {tab}
-          </button>
-        ))}
-      </div>
-
+      {/* Content */}
       <div className="p-4 space-y-3">
         <div className="bg-[#2a2a40] rounded-xl p-3">
           <p className="text-white/90 text-xs leading-relaxed">
@@ -55,11 +59,11 @@ export function WidgetMockup({ className }: { className?: string }) {
 
         <div className="flex items-center gap-2 px-1">
           <div className="w-1.5 h-1.5 rounded-full bg-green-400" />
-          <span className="font-mono text-xs text-white/40">0x1a2b...3c4d</span>
+          <span className="font-mono text-xs text-white/35">0x1a2b...3c4d</span>
         </div>
 
         <div className="space-y-1.5">
-          <p className="text-xs text-white/40 px-1">Recent transactions</p>
+          <p className="text-xs text-white/35 px-1">Recent transactions</p>
           {TRANSACTIONS.map((tx, i) => (
             <div
               key={i}
@@ -73,13 +77,13 @@ export function WidgetMockup({ className }: { className?: string }) {
                 )}
                 <span className="text-xs text-white/80">{tx.label}</span>
               </div>
-              <span className="text-xs text-white/35 font-mono">{tx.time}</span>
+              <span className="text-xs text-white/30 font-mono">{tx.time}</span>
             </div>
           ))}
         </div>
 
-        <div className="flex items-center gap-2 bg-[#2a2a40] rounded-xl px-3 py-2 border border-white/8">
-          <span className="text-xs text-white/35 flex-1">
+        <div className="flex items-center gap-2 bg-[#2a2a40] rounded-xl px-3 py-2.5">
+          <span className="text-xs text-white/30 flex-1">
             Ask anything about your wallet...
           </span>
           <div className="w-5 h-5 rounded-lg bg-accent flex items-center justify-center flex-shrink-0">
