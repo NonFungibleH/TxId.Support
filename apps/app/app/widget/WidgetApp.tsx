@@ -389,6 +389,16 @@ export function WidgetApp() {
           if (payload === "[DONE]") break
           try {
             const parsed = JSON.parse(payload) as { text?: string; tool_call?: string; error?: string }
+            if (parsed.error) {
+              setMessages((prev) =>
+                prev.map((m) =>
+                  m.id === assistantId
+                    ? { ...m, content: `Error: ${parsed.error}`, streaming: false }
+                    : m,
+                ),
+              )
+              break
+            }
             if (parsed.tool_call) {
               // Claude is fetching blockchain data — show tool indicator
               setMessages((prev) =>
