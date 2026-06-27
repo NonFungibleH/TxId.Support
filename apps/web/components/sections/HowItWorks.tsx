@@ -8,6 +8,8 @@ const STEPS = [
     title: "Embed",
     description:
       "Add one script tag to your site. Works with React, Next.js, or plain HTML. Takes under a minute.",
+    iconBg: "bg-accent-muted",
+    iconColor: "text-accent",
   },
   {
     icon: Settings,
@@ -15,6 +17,8 @@ const STEPS = [
     title: "Configure",
     description:
       "Set your brand colours, paste your logo URL, and add your docs link. Preview updates in real time before you go live.",
+    iconBg: "bg-[rgba(245,158,11,0.12)]",
+    iconColor: "text-[var(--yellow)]",
   },
   {
     icon: Rocket,
@@ -22,6 +26,8 @@ const STEPS = [
     title: "Go Live",
     description:
       "Your users get instant AI support — wallet detection, transaction diagnosis, docs Q&A — all in your brand.",
+    iconBg: "bg-[rgba(34,197,94,0.12)]",
+    iconColor: "text-[var(--green)]",
   },
 ];
 
@@ -43,8 +49,8 @@ export function HowItWorks() {
             <FadeIn key={step.number} delay={i * 0.1}>
               <div className="relative bg-[var(--bg-surface)] border border-[var(--border)] rounded-2xl p-6 hover:border-[var(--border-accent)] transition-colors group">
                 <div className="flex items-start justify-between mb-4">
-                  <div className="w-10 h-10 rounded-xl bg-accent-muted flex items-center justify-center">
-                    <step.icon className="w-5 h-5 text-accent" />
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${step.iconBg}`}>
+                    <step.icon className={`w-5 h-5 ${step.iconColor}`} />
                   </div>
                   <span className="font-mono text-3xl font-bold text-white/5 group-hover:text-white/10 transition-colors select-none">
                     {step.number}

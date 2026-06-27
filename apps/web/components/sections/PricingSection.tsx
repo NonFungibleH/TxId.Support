@@ -124,7 +124,7 @@ export function PricingSection({ compact }: { compact?: boolean }) {
                       {f.soon ? (
                         <Clock className="w-4 h-4 text-muted/50 flex-shrink-0 mt-0.5" />
                       ) : (
-                        <Check className="w-4 h-4 text-accent flex-shrink-0 mt-0.5" />
+                        <Check className="w-4 h-4 text-[var(--green)] flex-shrink-0 mt-0.5" />
                       )}
                       <span className={f.soon ? "text-muted/50" : undefined}>
                         {f.label}

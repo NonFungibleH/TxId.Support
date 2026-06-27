@@ -6,6 +6,7 @@ import { HowItWorks } from "@/components/sections/HowItWorks";
 import { FeatureGrid } from "@/components/sections/FeatureGrid";
 import { EmbedPreview } from "@/components/sections/EmbedPreview";
 import { PricingSection } from "@/components/sections/PricingSection";
+import { FAQ } from "@/components/sections/FAQ";
 export default function HomePage() {
   return (
     <>
@@ -17,6 +18,7 @@ export default function HomePage() {
         <FeatureGrid />
         <EmbedPreview />
         <PricingSection compact />
+        <FAQ />
       </main>
       <Footer />
     </>
