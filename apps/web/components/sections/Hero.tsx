@@ -52,17 +52,17 @@ export function Hero() {
               <p className="text-xs text-muted mt-4 mb-6">
                 No credit card required · Free tier includes 200 conversations/mo
               </p>
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
-                <span className="text-xs text-muted/50 uppercase tracking-widest font-mono">Chains</span>
+              <div className="flex flex-nowrap items-center gap-x-3 gap-y-2 overflow-x-auto">
+                <span className="text-xs text-muted/50 font-mono shrink-0">Available on</span>
                 {[
-                  { name: "Ethereum", file: "Ethereum.png",  whiteBg: false },
-                  { name: "Base",     file: "Base.png",      whiteBg: false },
-                  { name: "Arbitrum", file: "Arbitrum.png",  whiteBg: false },
-                  { name: "Polygon",  file: "Polygon.png",   whiteBg: true  },
-                  { name: "Optimism", file: "Optimism.png",  whiteBg: false },
-                  { name: "BNB",      file: "BNB.png",       whiteBg: false },
+                  { name: "Ethereum", file: "Ethereum.png", whiteBg: false },
+                  { name: "Base",     file: "Base.png",     whiteBg: true  },
+                  { name: "Arbitrum", file: "Arbitrum.png", whiteBg: false },
+                  { name: "Polygon",  file: "Polygon.png",  whiteBg: true  },
+                  { name: "Optimism", file: "Optimism.png", whiteBg: false },
+                  { name: "BNB",      file: "BNB.png",      whiteBg: false },
                 ].map(({ name, file, whiteBg }) => (
-                  <div key={name} className="flex items-center gap-1.5">
+                  <div key={name} className="flex items-center gap-1.5 shrink-0">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={`/chains/${file}`}
