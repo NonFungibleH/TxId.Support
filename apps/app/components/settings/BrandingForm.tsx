@@ -232,7 +232,7 @@ export function BrandingForm({ projectId, initial, onBrandingChange }: BrandingF
           <h3 className="text-sm font-semibold">Bot persona</h3>
           <p className="text-xs text-muted-foreground mt-0.5">Controls how the AI communicates with your users.</p>
         </div>
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
           {PERSONAS.map(p => {
             const { name, tagline } = PERSONA_LABELS[p]
             const active = (branding.persona ?? "concise") === p

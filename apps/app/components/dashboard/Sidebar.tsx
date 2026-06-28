@@ -4,7 +4,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import {
   LayoutDashboard, Paintbrush, FileCode2, BookOpen,
-  Link2, LayoutList, Code2, BarChart3, Users, Globe, MessageSquare, Eye, Ticket, MessagesSquare,
+  Link2, LayoutList, Code2, BarChart3, Users, Globe, MessageSquare, Eye, Ticket, MessagesSquare, ExternalLink,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -70,12 +70,15 @@ export function Sidebar({ mode = "support", isOpen = false, onClose }: SidebarPr
               href={href}
               onClick={onClose}
               className={cn(
-                "flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-sm transition-colors",
+                "relative flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-sm transition-colors",
                 isActive
-                  ? "bg-accent text-accent-foreground font-medium"
+                  ? "bg-primary/10 text-primary font-semibold"
                   : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
               )}
             >
+              {isActive && (
+                <span className="absolute left-0 inset-y-1 w-0.5 bg-primary rounded-r-full" />
+              )}
               <Icon className="size-4 shrink-0" />
               {label}
             </Link>
@@ -86,8 +89,12 @@ export function Sidebar({ mode = "support", isOpen = false, onClose }: SidebarPr
       <div className="border-t border-border px-4 py-3 space-y-2">
         <p className="text-xs text-muted-foreground">© {new Date().getFullYear()} TxID Support</p>
         <div className="flex flex-wrap gap-x-3 gap-y-1">
-          <a href={`${WEB_URL}/terms`} target="_blank" rel="noopener noreferrer" className="text-[11px] text-muted-foreground hover:text-foreground transition-colors">Terms</a>
-          <a href={`${WEB_URL}/privacy`} target="_blank" rel="noopener noreferrer" className="text-[11px] text-muted-foreground hover:text-foreground transition-colors">Privacy</a>
+          <a href={`${WEB_URL}/terms`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-0.5 text-[11px] text-muted-foreground hover:text-foreground transition-colors">
+            Terms <ExternalLink className="size-2.5 opacity-40" />
+          </a>
+          <a href={`${WEB_URL}/privacy`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-0.5 text-[11px] text-muted-foreground hover:text-foreground transition-colors">
+            Privacy <ExternalLink className="size-2.5 opacity-40" />
+          </a>
           <a href="mailto:hello@txid.support" className="text-[11px] text-muted-foreground hover:text-foreground transition-colors">Contact</a>
         </div>
       </div>

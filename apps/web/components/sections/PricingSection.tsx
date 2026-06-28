@@ -86,27 +86,26 @@ export function PricingSection({ compact }: { compact?: boolean }) {
             <FadeIn key={plan.name} delay={i * 0.08}>
               <div
                 className={clsx(
-                  "relative rounded-2xl border p-6 flex flex-col h-full transition-colors",
+                  "rounded-2xl border p-6 flex flex-col h-full transition-colors",
                   plan.highlight
                     ? "bg-accent-muted border-accent shadow-lg shadow-accent/10"
                     : "bg-[var(--bg-surface)] border-[var(--border)] hover:border-[var(--border-accent)]"
                 )}
               >
-                {plan.badge && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                    <span className={clsx(
-                      "text-white text-xs font-semibold px-3 py-1 rounded-full",
-                      plan.badge === "Coming soon" ? "bg-[#3f3f46]" : "bg-accent"
-                    )}>
-                      {plan.badge}
-                    </span>
-                  </div>
-                )}
-
                 <div className="mb-6">
-                  <h3 className="font-display font-semibold text-white mb-1">
-                    {plan.name}
-                  </h3>
+                  <div className="flex items-center justify-between gap-2 mb-1">
+                    <h3 className="font-display font-semibold text-white">
+                      {plan.name}
+                    </h3>
+                    {plan.badge && (
+                      <span className={clsx(
+                        "text-white text-[10px] font-semibold px-2.5 py-1 rounded-full shrink-0",
+                        plan.badge === "Coming soon" ? "bg-[#3f3f46]" : "bg-accent"
+                      )}>
+                        {plan.badge}
+                      </span>
+                    )}
+                  </div>
                   <p className="text-xs text-muted mb-3">{plan.description}</p>
                   <div className="flex items-baseline gap-1">
                     <span className="font-display text-3xl font-bold text-white">

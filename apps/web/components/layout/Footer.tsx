@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ExternalLink } from "lucide-react";
 import { APP_URL } from "@/lib/config";
 
 const NAV = [
@@ -15,10 +16,12 @@ const LEGAL = [
 ];
 
 function NavLink({ label, href, external }: { label: string; href: string; external?: boolean }) {
-  const cls = "text-sm text-muted hover:text-white transition-colors";
+  const cls = "inline-flex items-center gap-1 text-sm text-muted hover:text-white transition-colors";
+  const isNewTab = external && !href.startsWith("mailto");
   return external ? (
-    <a href={href} className={cls} target={href.startsWith("mailto") ? undefined : "_blank"} rel="noopener noreferrer">
+    <a href={href} className={cls} target={isNewTab ? "_blank" : undefined} rel={isNewTab ? "noopener noreferrer" : undefined}>
       {label}
+      {isNewTab && <ExternalLink className="w-3 h-3 opacity-40" />}
     </a>
   ) : (
     <Link href={href} className={cls}>{label}</Link>
@@ -63,9 +66,10 @@ export function Footer() {
             href="https://www.3uild.io/"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-xs text-muted/40 hover:text-muted/70 transition-colors"
+            className="inline-flex items-center gap-1 text-xs text-muted/40 hover:text-muted/70 transition-colors"
           >
             Built by 3UILD
+            <ExternalLink className="w-2.5 h-2.5 opacity-40" />
           </a>
         </div>
       </div>

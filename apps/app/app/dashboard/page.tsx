@@ -151,6 +151,7 @@ export default async function DashboardPage() {
               <Link
                 key={href}
                 href={href}
+                prefetch
                 className="block group"
               >
                 <div
