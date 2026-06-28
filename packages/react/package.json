@@ -1,21 +1,36 @@
 {
-  "name": "@txid/support",
-  "version": "0.0.1",
+  "name": "@txid/react",
+  "version": "0.1.0",
   "private": false,
-  "main": "./src/index.ts",
-  "types": "./src/index.ts",
+  "description": "React component for the TxID Support AI agent",
+  "license": "MIT",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    }
+  },
+  "files": ["dist"],
   "scripts": {
-    "build": "echo 'packages/react is a stub — build implemented in Phase 6'",
+    "build": "tsup",
+    "dev": "tsup --watch",
     "lint": "eslint src/",
     "type-check": "tsc --noEmit",
     "clean": "rm -rf dist"
   },
   "peerDependencies": {
-    "react": "^18.0.0",
-    "react-dom": "^18.0.0"
+    "react": "^18.0.0 || ^19.0.0"
   },
   "devDependencies": {
     "@types/react": "^18.3.0",
+    "tsup": "^8.3.0",
     "typescript": "^5.4.0"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

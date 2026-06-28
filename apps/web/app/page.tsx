@@ -7,6 +7,8 @@ import { FeatureGrid } from "@/components/sections/FeatureGrid";
 import { EmbedPreview } from "@/components/sections/EmbedPreview";
 import { PricingSection } from "@/components/sections/PricingSection";
 import { FAQ } from "@/components/sections/FAQ";
+import { ClosingCTA } from "@/components/sections/ClosingCTA";
+
 export default function HomePage() {
   return (
     <>
@@ -19,6 +21,7 @@ export default function HomePage() {
         <EmbedPreview />
         <PricingSection compact />
         <FAQ />
+        <ClosingCTA />
       </main>
       <Footer />
     </>

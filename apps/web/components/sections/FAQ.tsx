@@ -46,7 +46,7 @@ export function FAQ() {
             {FAQS.map((faq) => (
               <details
                 key={faq.q}
-                className="group rounded-xl border border-[var(--border)] bg-[var(--bg-surface)] open:border-[var(--border-accent)] transition-colors"
+                className="group rounded-xl border border-[var(--border)] bg-[var(--bg-surface)] open:border-[var(--border-accent)] hover:border-[var(--border-accent)] hover:bg-white/[0.03] transition-colors"
               >
                 <summary className="flex items-center justify-between gap-4 px-5 py-4 cursor-pointer list-none select-none text-white font-medium text-sm">
                   {faq.q}

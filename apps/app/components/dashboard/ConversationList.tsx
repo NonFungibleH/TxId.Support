@@ -66,7 +66,7 @@ export function ConversationList({ conversations }: { conversations: Conversatio
                 <div className="flex items-center gap-2 mb-0.5">
                   <SessionBadge walletAddress={conv.wallet_address} />
                   {hasNegative && (
-                    <Badge variant="destructive" className="text-[10px] px-1.5 py-0">Low satisfaction</Badge>
+                    <Badge variant="destructive" className="text-[10px] px-1.5 py-0.5 leading-none shrink-0">Low satisfaction</Badge>
                   )}
                 </div>
                 <p className="text-sm truncate text-muted-foreground">{preview || "No messages"}</p>

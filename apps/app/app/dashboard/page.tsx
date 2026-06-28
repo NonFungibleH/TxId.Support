@@ -53,7 +53,8 @@ export default async function DashboardPage() {
       step: 1,
       href: "/dashboard/branding",
       label: "Configure branding",
-      desc: "Set your colours, font, and upload your logo so the widget feels like yours.",
+      desc: "Set your colours, font, and upload your logo so the agent feels like yours.",
+      time: "~5 min",
       done: brandingDone,
     },
     {
@@ -61,6 +62,7 @@ export default async function DashboardPage() {
       href: "/dashboard/contracts",
       label: "Add smart contracts",
       desc: "Add your protocol's contracts so the AI can look them up when users ask about locks, staking, or vesting.",
+      time: "~2 min",
       done: contractsDone,
     },
     {
@@ -68,20 +70,23 @@ export default async function DashboardPage() {
       href: "/dashboard/docs",
       label: "Index your docs",
       desc: "Paste links to your website, docs, or FAQ — the AI reads them and answers questions from them.",
+      time: "~3 min",
       done: docsDone,
     },
     {
       step: 4,
       href: "/dashboard/chains",
       label: "Enable chains",
-      desc: "Choose which blockchains the widget scans when a user connects their wallet.",
+      desc: "Choose which blockchains the agent scans when a user connects their wallet.",
+      time: "~1 min",
       done: config.chains.length > 0,
     },
     {
       step: 5,
       href: "/dashboard/preview",
       label: "Preview & approve",
-      desc: "Open the live preview, test it on your own site, then click 'Design looks great!' to confirm.",
+      desc: "Open the live preview, test it on your own site, then confirm the design.",
+      time: "~5 min",
       done: previewDone,
     },
     {
@@ -89,6 +94,7 @@ export default async function DashboardPage() {
       href: "/dashboard/embed",
       label: "Embed & go live",
       desc: "Copy the one-line snippet into your site, then flip the switch to publish.",
+      time: "~2 min",
       done: liveDone,
     },
   ]
@@ -105,7 +111,7 @@ export default async function DashboardPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-4">
         <StatsCard title="Conversations" value={convResult.count ?? 0} description="All time" icon={MessageSquare} />
         <StatsCard title="Connected wallets" value={uniqueWallets} description="Unique addresses" icon={Users} />
         <StatsCard title="Knowledge docs" value={docCount} description="Indexed chunks" icon={Globe} />
@@ -119,26 +125,26 @@ export default async function DashboardPage() {
             <h2 className="text-lg font-semibold">Getting started</h2>
             <p className="text-sm text-muted-foreground">
               {completedSteps === SETUP_STEPS.length
-                ? "All steps complete — your widget is live."
+                ? "All steps complete — your agent is live."
                 : `${completedSteps} of ${SETUP_STEPS.length} steps complete`}
             </p>
           </div>
-          {/* Progress bar */}
-          <div className="hidden sm:flex items-center gap-3">
-            <div className="w-32 h-1.5 rounded-full bg-muted">
+          {/* Progress bar — shown on sm+ as bar, always shown as % on mobile */}
+          <div className="flex items-center gap-3">
+            <div className="hidden sm:block w-32 h-1.5 rounded-full bg-muted">
               <div
                 className="h-1.5 rounded-full bg-primary transition-all"
                 style={{ width: `${(completedSteps / SETUP_STEPS.length) * 100}%` }}
               />
             </div>
-            <span className="text-xs text-muted-foreground tabular-nums">
+            <span className="text-xs text-muted-foreground tabular-nums font-medium">
               {Math.round((completedSteps / SETUP_STEPS.length) * 100)}%
             </span>
           </div>
         </div>
 
         <div className="space-y-3">
-          {SETUP_STEPS.map(({ href, label, desc, done, step }) => {
+          {SETUP_STEPS.map(({ href, label, desc, time, done, step }) => {
             const isNext = nextStep?.step === step
 
             return (
@@ -205,6 +211,9 @@ export default async function DashboardPage() {
                       <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
                         {desc}
                       </p>
+                      {!done && (
+                        <p className="text-[10px] text-muted-foreground/50 mt-1 font-mono">{time}</p>
+                      )}
                     </div>
                   </div>
                 </div>

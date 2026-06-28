@@ -67,12 +67,18 @@ export function EmbedCodeDisplay({ publishableKey, widgetBaseUrl }: EmbedCodeDis
         ))}
 
         <TabsContent value="react">
-          <div className="rounded-lg border border-border bg-muted p-6 text-center space-y-2">
-            <p className="text-sm font-medium">@txid/react npm package</p>
-            <p className="text-xs text-muted-foreground">
-              Coming soon — the React package is in development.
-              Use the script tag or inline div embed in the meantime.
-            </p>
+          <div className="relative rounded-lg border border-border bg-muted">
+            <pre className="p-4 text-xs font-mono overflow-x-auto leading-relaxed">
+              {SNIPPETS.react}
+            </pre>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="absolute top-2 right-2"
+              onClick={() => copy("react", SNIPPETS.react)}
+            >
+              {copied === "react" ? <Check className="size-3.5 text-green-500" /> : <Copy className="size-3.5" />}
+            </Button>
           </div>
         </TabsContent>
       </Tabs>

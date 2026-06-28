@@ -38,7 +38,7 @@ export function Hero() {
                   variant="primary"
                   size="lg"
                 >
-                  Add it to your protocol
+                  Get started free
                   <ArrowRight className="w-4 h-4" />
                 </Button>
                 <Button href="/demo" variant="outline" size="lg">
@@ -49,9 +49,15 @@ export function Hero() {
             </FadeIn>
 
             <FadeIn delay={0.32}>
-              <p className="text-xs text-muted mt-4">
+              <p className="text-xs text-muted mt-4 mb-6">
                 No credit card required · Free tier includes 200 conversations/mo
               </p>
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                <span className="text-xs text-muted/50 uppercase tracking-widest font-mono">Chains</span>
+                {["Ethereum", "Base", "Arbitrum", "Polygon", "Optimism", "BNB"].map((chain) => (
+                  <span key={chain} className="text-xs text-muted/60 font-mono">{chain}</span>
+                ))}
+              </div>
             </FadeIn>
           </div>
 

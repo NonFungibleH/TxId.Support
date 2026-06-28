@@ -11,7 +11,7 @@ const PLANS = [
     period: null,
     badge: null,
     description: "Everything you need to go live",
-    cta: "Start Free Trial",
+    cta: "Get started free",
     ctaHref: `${APP_URL}/sign-up`,
     highlight: false,
     features: [
@@ -31,7 +31,7 @@ const PLANS = [
     period: "/mo",
     badge: "Most Popular",
     description: "For live protocols with real users",
-    cta: "Start Free Trial",
+    cta: "Try Pro free",
     ctaHref: `${APP_URL}/sign-up?plan=pro`,
     highlight: true,
     features: [

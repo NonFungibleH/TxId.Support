@@ -48,7 +48,11 @@ export function OnboardingForm() {
           </div>
           <h1 className="text-2xl font-bold">Create your project</h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            Give your protocol a name to get started.
+            {!ENABLE_TOKEN_MODE || mode === "support"
+              ? "Give your protocol a name to get started."
+              : mode === "token"
+              ? "Give your project a name to get started."
+              : "Choose a type, then give it a name to get started."}
           </p>
         </div>
 

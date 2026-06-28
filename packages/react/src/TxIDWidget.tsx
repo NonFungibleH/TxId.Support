@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react"
+import React, { useState, useEffect, useId } from "react"
 
 export interface TxIDWidgetProps {
   /** Your pk_... publishable key from the TxID Support dashboard */
@@ -33,8 +33,11 @@ export function TxIDWidget({
   buttonSize = 52,
 }: TxIDWidgetProps) {
   const [open, setOpen] = useState(defaultOpen)
+  const [mounted, setMounted] = useState(false)
+  const titleId = useId()
 
-  // Close on Escape
+  useEffect(() => { setMounted(true) }, [])
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false) }
     window.addEventListener("keydown", onKey)
@@ -82,20 +85,24 @@ export function TxIDWidget({
     pointerEvents: open ? "auto" : "none",
   }
 
+  if (!mounted) return null
+
   return (
     <>
-      {/* Always render iframe so it loads in background when closed */}
       <iframe
         src={widgetUrl}
         allow="clipboard-write"
         style={iframeStyle}
         title="TxID Support"
+        aria-labelledby={titleId}
+        aria-hidden={!open}
       />
       <button
         onClick={() => setOpen((o) => !o)}
         style={fabStyle}
         aria-label={open ? "Close support chat" : "Open support chat"}
         aria-expanded={open}
+        aria-controls={titleId}
       >
         {open ? SVG_CLOSE : SVG_CHAT}
       </button>

@@ -35,12 +35,23 @@ const TOKEN_NAV = [
   { href: "/dashboard/analytics", label: "Analytics",       icon: BarChart3 },
 ]
 
-export function Sidebar({ mode = "support" }: { mode?: string }) {
+interface SidebarProps {
+  mode?: string
+  isOpen?: boolean
+  onClose?: () => void
+}
+
+export function Sidebar({ mode = "support", isOpen = false, onClose }: SidebarProps) {
   const pathname = usePathname()
   const NAV_ITEMS = mode === "token" ? TOKEN_NAV : SUPPORT_NAV
 
   return (
-    <aside className="fixed inset-y-0 left-0 z-40 flex w-60 flex-col border-r border-border bg-background">
+    <aside
+      className={[
+        "fixed inset-y-0 left-0 z-40 flex w-60 flex-col border-r border-border bg-background transition-transform duration-200",
+        isOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0",
+      ].join(" ")}
+    >
       <div className="flex h-14 items-center gap-2 border-b border-border px-4">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/brand/txid-icon-64.png" alt="TxID Support" className="h-7 w-7" />
@@ -57,6 +68,7 @@ export function Sidebar({ mode = "support" }: { mode?: string }) {
             <Link
               key={href}
               href={href}
+              onClick={onClose}
               className={cn(
                 "flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-sm transition-colors",
                 isActive
