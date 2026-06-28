@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { PricingSection } from "@/components/sections/PricingSection";
+import { ClosingCTA } from "@/components/sections/ClosingCTA";
 import { FadeIn } from "@/components/ui/FadeIn";
 import { Check, Minus } from "lucide-react";
 // APP_URL is consumed by PricingSection — imported there directly
@@ -198,6 +199,8 @@ export default function PricingPage() {
             ))}
           </div>
         </div>
+
+        <ClosingCTA />
       </main>
       <Footer />
     </>

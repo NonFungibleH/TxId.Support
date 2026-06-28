@@ -73,3 +73,29 @@ export async function updateTicketNotes(ticketId: string, notes: string) {
 
   revalidatePath("/dashboard/tickets")
 }
+
+export interface WebhookLog {
+  id: string
+  project_id: string
+  ticket_ref: string
+  webhook_url: string
+  status_code: number | null
+  success: boolean
+  error_message: string | null
+  duration_ms: number | null
+  fired_at: string
+}
+
+export async function getWebhookLogs(projectId: string): Promise<WebhookLog[]> {
+  const { project } = await getProject()
+  if (!project || (project as unknown as { id: string }).id !== projectId) return []
+
+  const supabase = createServiceClient()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data } = await (supabase as any).from("webhook_logs")
+    .select("*")
+    .eq("project_id", projectId)
+    .order("fired_at", { ascending: false })
+    .limit(50)
+  return (data ?? []) as WebhookLog[]
+}

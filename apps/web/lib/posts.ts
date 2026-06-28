@@ -246,6 +246,293 @@ export const POSTS: Post[] = [
     ],
   },
   {
+    slug: "docs-qa-defi-protocol",
+    title: "How to set up docs Q&A for your DeFi protocol",
+    description:
+      "Paste your documentation URL and an AI support agent can answer user questions from it directly — but what you put in your docs, and how you structure them, determines whether the answers are actually good. Here's how to do it right.",
+    publishedAt: "2026-06-28",
+    readingMinutes: 7,
+    tags: ["DeFi operations", "Web3 support", "Documentation"],
+    content: [
+      {
+        type: "p",
+        text: "The pitch is simple: give your support agent a URL, it crawls your docs, and from that point on it can answer user questions based on what you've written. No manual Q&A pairs, no taxonomy work, no training data — just your existing documentation.",
+      },
+      {
+        type: "p",
+        text: "The pitch is accurate, but it glosses over some things that matter. The quality of the answers is directly proportional to the quality of the source material. A crawler can only work with what's there.",
+      },
+      {
+        type: "h2",
+        text: "What the crawler actually does",
+      },
+      {
+        type: "p",
+        text: "When you paste a documentation URL, the crawler fetches the page, extracts the text content, chunks it into overlapping segments, and stores those chunks as vector embeddings. When a user asks a question, the support agent retrieves the most relevant chunks and uses them to construct an answer.",
+      },
+      {
+        type: "p",
+        text: "This retrieval step — not the underlying language model — is where most docs Q&A systems fail. If the relevant content isn't in the index, the model will either hallucinate an answer or admit it doesn't know. The model can only work with what retrieval surfaces.",
+      },
+      {
+        type: "callout",
+        label: "The retrieval problem in plain terms",
+        text: "A docs Q&A system is only as good as its ability to find the right passage at query time. A brilliant language model paired with poor documentation retrieval produces confidently wrong answers. A mediocre model with well-structured docs retrieves the right passage and quotes it accurately.",
+      },
+      {
+        type: "h2",
+        text: "What kinds of docs work best",
+      },
+      {
+        type: "p",
+        text: "Not all documentation formats are equally indexable. HTML pages with clean semantic markup are ideal. The crawler can identify headings, paragraphs, code blocks, and lists, which gives it good signal for chunking — keeping related content together and avoiding splits in the middle of explanations.",
+      },
+      {
+        type: "p",
+        text: "Static site generators like Docusaurus, GitBook, and Nextra all produce well-structured HTML. If your docs are built with one of these, you're starting from a good place.",
+      },
+      {
+        type: "ul",
+        items: [
+          "Works well: HTML pages with semantic structure, Docusaurus, GitBook, Nextra, GitHub wikis, Notion (when published publicly)",
+          "Works with caveats: dynamically rendered pages (React/Next with client-side routing) — the crawler must execute JavaScript to see the content",
+          "Works poorly: PDFs embedded in iframes, documentation behind authentication walls, pages that require wallet connection to view",
+          "Does not work: PDFs without text layers (scanned documents), video content, images with text",
+        ],
+      },
+      {
+        type: "h2",
+        text: "What to include in your docs to help the AI",
+      },
+      {
+        type: "p",
+        text: "This is where protocol teams leave the most value on the table. Most DeFi documentation was written for humans who are actively trying to learn. But Q&A retrieval favors documentation written for humans who are confused and looking for a specific answer.",
+      },
+      {
+        type: "p",
+        text: "The practical difference: instead of a 2,000-word explanation of how your staking mechanism works, have a section that directly answers the questions users actually ask.",
+      },
+      {
+        type: "ul",
+        items: [
+          "Write explicit question-and-answer sections — 'Why did my transaction fail?' is a better heading than 'Transaction troubleshooting'",
+          "Include the exact error messages users will see, followed by what they mean — revert reasons like INSUFFICIENT_OUTPUT_AMOUNT should appear verbatim in your docs",
+          "Document edge cases separately — what happens at the lock expiry boundary, what happens if gas spikes mid-transaction, what happens when liquidity is low",
+          "Describe numbers explicitly — if your staking lock is 14 days, write '14 days' not 'two weeks'; units and precision matter for retrieval matching",
+          "Add a dedicated FAQ page that consolidates the most common support questions — even if they're answered elsewhere, a single high-density page retrieves well",
+        ],
+      },
+      {
+        type: "h2",
+        text: "Common pitfalls",
+      },
+      {
+        type: "h3",
+        text: "PDFs and protected content",
+      },
+      {
+        type: "p",
+        text: "PDFs are a significant failure mode. A PDF linked from your docs page won't be indexed unless you explicitly add it as a separate source. And PDFs created by scanning physical documents, or exported from tools that embed text as images, are opaque to a text-based crawler — the content simply isn't there.",
+      },
+      {
+        type: "p",
+        text: "The same problem applies to documentation behind authentication. If users need to log in to read your audit report, the crawler can't read it either. Either publish audits publicly as HTML, or paste the content directly into an indexable page.",
+      },
+      {
+        type: "h3",
+        text: "Dynamically rendered content",
+      },
+      {
+        type: "p",
+        text: "Single-page applications that render documentation client-side are a common trap. The crawler fetches the page URL and gets back an almost-empty HTML shell — the actual content loads via JavaScript after the initial response. Check what the crawler actually indexed: if it shows only your nav and footer text, your docs are rendering client-side and you need a crawler that executes JavaScript.",
+      },
+      {
+        type: "h3",
+        text: "Stale content",
+      },
+      {
+        type: "p",
+        text: "The index is a snapshot. If you update your docs and don't re-index, the support agent answers from the old version. Set a re-crawl schedule — weekly is reasonable for most protocols, daily if you're actively shipping changes. Some teams trigger re-indexing as part of their docs deployment pipeline, which is the cleanest solution.",
+      },
+      {
+        type: "h2",
+        text: "Structuring your docs for retrieval, not just for reading",
+      },
+      {
+        type: "p",
+        text: "The single most impactful structural change is moving from narrative documentation to reference documentation. Narrative docs tell a story — they're great for onboarding users who read sequentially. Reference docs answer specific questions — they're what retrieval systems find.",
+      },
+      {
+        type: "p",
+        text: "You don't have to choose between the two. Keep your getting-started guides and conceptual explanations. Add a separate reference section that's structured around the questions users will ask. Think of it as a page your support agent can quote directly.",
+      },
+      {
+        type: "quote",
+        text: "Write your reference docs as if you're writing the answer to a question, not explaining a concept. 'The lock period is 14 days from deposit date, after which you can withdraw without penalty' retrieves better than a paragraph explaining why lock periods exist.",
+      },
+      {
+        type: "h2",
+        text: "Testing your docs Q&A before launch",
+      },
+      {
+        type: "p",
+        text: "Before pointing real users at a docs-powered support agent, test it against your own support history. Take your last 20 inbound questions and run them through the agent. If it answers fewer than 14 or 15 correctly, the gap is almost always in the docs — not the model.",
+      },
+      {
+        type: "p",
+        text: "For questions where the agent hallucinates or says it doesn't know, add the answer explicitly to your documentation. The feedback loop between support questions and documentation gaps is the most useful quality signal you have.",
+      },
+    ],
+  },
+  {
+    slug: "wallet-aware-support-vs-generic-chatbots",
+    title: "Wallet-aware support vs generic chatbots: what's the difference",
+    description:
+      "Generic chatbots have no idea who your user is, what chain they're on, or what their last transaction did. Wallet-aware support does — and that changes everything about the quality of help it can provide.",
+    publishedAt: "2026-06-28",
+    readingMinutes: 6,
+    tags: ["Web3 support", "DeFi operations"],
+    content: [
+      {
+        type: "p",
+        text: "Put a generic chatbot in a DeFi app and you've improved on nothing. The user types 'my transaction failed', the bot says 'I'm sorry to hear that — could you tell me more about the transaction?', and the user immediately opens Discord to find a real answer.",
+      },
+      {
+        type: "p",
+        text: "This isn't a problem with the underlying AI. The problem is that the bot has no context. It doesn't know who the user is. It doesn't know what they were trying to do. It doesn't know what actually happened. Without that, the best it can do is ask questions — which is the last thing a frustrated user wants.",
+      },
+      {
+        type: "h2",
+        text: "What generic chatbots don't know",
+      },
+      {
+        type: "p",
+        text: "When a generic support chatbot receives a message, it has exactly one piece of information: the text the user typed. Everything else — wallet address, connected chain, token balances, transaction history, current contract state — is invisible to it.",
+      },
+      {
+        type: "p",
+        text: "In most support contexts that's fine. If you're building a support bot for a SaaS product, the user's identity is usually resolved via a session cookie, and their history lives in your database. The bot can be wired up to query it.",
+      },
+      {
+        type: "p",
+        text: "DeFi is structurally different. The user's identity is their wallet address. Their history is on-chain. Neither of those is in your database — they're on a public blockchain that your chatbot has to be explicitly connected to in order to read.",
+      },
+      {
+        type: "callout",
+        label: "The identity gap",
+        text: "In Web3, the user's wallet IS their identity. A support system that doesn't read the wallet doesn't know who it's talking to — and every question it receives is effectively from an anonymous stranger.",
+      },
+      {
+        type: "h2",
+        text: "How wallet-aware support works",
+      },
+      {
+        type: "p",
+        text: "A wallet-aware support agent reads the user's connected wallet state when the support session opens — silently, without asking for anything. No login, no copy-paste, no seed phrase. The user's wallet is already connected to your app; the support layer reads the same connection.",
+      },
+      {
+        type: "p",
+        text: "What it reads depends on what's relevant to your protocol, but at minimum: the wallet address, the currently connected chain ID, and recent transaction history. From that baseline, it can answer questions that a generic bot simply cannot.",
+      },
+      {
+        type: "h3",
+        text: "The failed transaction example",
+      },
+      {
+        type: "p",
+        text: "This is the clearest illustration of the difference. User sends: 'my swap failed'.",
+      },
+      {
+        type: "p",
+        text: "Generic chatbot: 'I'm sorry to hear your swap failed. Can you tell me what you were trying to swap, on which network, and what error message you saw?'",
+      },
+      {
+        type: "p",
+        text: "Wallet-aware support: 'Your swap of 500 USDC for ETH failed 4 minutes ago. The transaction reverted because the price moved outside your 0.5% slippage tolerance before the transaction was included. Try increasing slippage to 1% in settings, or wait for a period of lower volatility.'",
+      },
+      {
+        type: "p",
+        text: "The first response asks the user to describe something they don't understand. The second explains it. The information required to generate the second response — transaction hash, revert reason, token pair, slippage setting — was all available on-chain.",
+      },
+      {
+        type: "h3",
+        text: "The wrong-network example",
+      },
+      {
+        type: "p",
+        text: "User sends: 'nothing is loading, I can't see my balance'.",
+      },
+      {
+        type: "p",
+        text: "Generic chatbot: 'This can happen for a few reasons. Have you tried refreshing the page? Are you on the correct network?'",
+      },
+      {
+        type: "p",
+        text: "Wallet-aware support: 'Your wallet is connected to Arbitrum (chain ID 42161). This protocol runs on Ethereum Mainnet — please switch networks in MetaMask to continue.'",
+      },
+      {
+        type: "p",
+        text: "Again, the difference is context. The chain ID is available the moment the wallet is connected. A support system that reads it can give a specific answer instantly. One that doesn't gives generic troubleshooting steps.",
+      },
+      {
+        type: "h2",
+        text: "What wallet-aware support cannot do",
+      },
+      {
+        type: "p",
+        text: "It's worth being precise about what reading a wallet does and doesn't enable. The wallet connection used by your app exposes the address and chain. Reading transaction history requires an RPC call. Reading contract state — vesting schedules, lock expiries, reward balances — requires knowing which contracts to query.",
+      },
+      {
+        type: "p",
+        text: "There's also a meaningful privacy consideration. Users should know that the support agent can see their wallet activity. This should be disclosed in the UI — not buried in terms of service. In practice, most users are comfortable with it (the data is public on-chain regardless), but the disclosure matters for trust.",
+      },
+      {
+        type: "ul",
+        items: [
+          "What it can read: wallet address, chain ID, ETH balance, token balances, transaction history, contract state",
+          "What it cannot read without additional infrastructure: detailed event logs on high-throughput chains, historical prices, data from other protocols",
+          "What it should never read: seed phrases, private keys — these are never accessible via a standard wallet connection and any tool claiming otherwise is a scam",
+        ],
+      },
+      {
+        type: "h2",
+        text: "Why the default is still generic chatbots",
+      },
+      {
+        type: "p",
+        text: "Building wallet-aware support is harder than dropping a generic chatbot into a chat widget. It requires RPC access, wallet connection integration, on-chain data retrieval, and a support agent that knows how to use that context when formulating answers.",
+      },
+      {
+        type: "p",
+        text: "The generic chatbot option exists because it's easy to ship. You can deploy a knowledge-base chatbot in an afternoon. Connecting it to wallet state, transaction history, and contract reads takes significantly more infrastructure.",
+      },
+      {
+        type: "p",
+        text: "But the quality gap is real and users feel it. A support experience that asks them to describe their own transaction — something they don't understand and are asking for help with — is actively worse than no chatbot at all. It delays resolution and signals that the tool isn't really trying to help.",
+      },
+      {
+        type: "quote",
+        text: "The test for any support tool in DeFi is simple: can it answer 'why did my transaction fail' without asking the user a single follow-up question? If it can't, you're not deploying support — you're deploying a different way to collect information before escalating to a human.",
+      },
+      {
+        type: "h2",
+        text: "The right frame for evaluation",
+      },
+      {
+        type: "p",
+        text: "When you're evaluating support tooling for your protocol, don't ask 'does it have an AI chatbot?' Almost everything does now. Ask: what does it know about the user before they type their first message?",
+      },
+      {
+        type: "p",
+        text: "If the answer is 'nothing except what's in your documentation', you have a docs-retrieval system. That's useful for general questions but limited for the transaction-level issues that make up the majority of DeFi support volume.",
+      },
+      {
+        type: "p",
+        text: "If the answer is 'the connected wallet address, chain, recent transactions, and relevant contract state' — you have something that can actually help.",
+      },
+    ],
+  },
+  {
     slug: "on-chain-data-support-bot",
     title: "What on-chain data should your DeFi support bot actually read?",
     description:

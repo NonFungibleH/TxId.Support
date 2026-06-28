@@ -116,22 +116,50 @@ export async function POST(request: Request) {
       })
     }
 
-    // Optional webhook notification
+    // Optional webhook notification — fires async, logs delivery result
     const webhookUrl = config.webhookUrl
     if (webhookUrl) {
-      fetch(webhookUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ref,
-          project: typedProject.name,
-          summary,
-          reason: reason || null,
-          user: { name: name || null, email: email || null },
-          conversation: conversation ?? [],
-        }),
-        signal: AbortSignal.timeout(5000),
-      }).catch(() => { /* non-fatal */ })
+      const webhookPayload = JSON.stringify({
+        ref,
+        project: typedProject.name,
+        summary,
+        reason: reason || null,
+        user: { name: name || null, email: email || null },
+        conversation: conversation ?? [],
+      })
+      void (async () => {
+        const start = Date.now()
+        try {
+          const res = await fetch(webhookUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: webhookPayload,
+            signal: AbortSignal.timeout(5000),
+          })
+          const duration = Date.now() - start
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          await (supabase as any).from("webhook_logs").insert({
+            project_id: typedProject.id,
+            ticket_ref: ref,
+            webhook_url: webhookUrl,
+            status_code: res.status,
+            success: res.ok,
+            duration_ms: duration,
+          })
+        } catch (err) {
+          const duration = Date.now() - start
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          await (supabase as any).from("webhook_logs").insert({
+            project_id: typedProject.id,
+            ticket_ref: ref,
+            webhook_url: webhookUrl,
+            status_code: null,
+            success: false,
+            error_message: err instanceof Error ? err.message : "Unknown error",
+            duration_ms: duration,
+          }).catch(() => { /* non-fatal */ })
+        }
+      })()
     }
 
     // Optional email notification via Resend (no package needed — plain HTTP)
