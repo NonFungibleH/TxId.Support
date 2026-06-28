@@ -1,5 +1,8 @@
 "use server"
 
+import { auth } from "@clerk/nextjs/server"
+import { isPrivateUrl } from "@/lib/security"
+
 // ── Colour utilities ─────────────────────────────────────────────────────────
 
 function isValidHex(value: string): boolean {
@@ -61,8 +64,15 @@ export interface BrandColorResult {
 }
 
 export async function fetchBrandColors(rawUrl: string): Promise<BrandColorResult> {
+  const { userId } = await auth()
+  if (!userId) return { foundSignals: [], error: "Unauthenticated" }
+
   try {
     const url = rawUrl.startsWith("http") ? rawUrl : `https://${rawUrl}`
+
+    if (isPrivateUrl(url)) {
+      return { foundSignals: [], error: "Invalid URL" }
+    }
 
     const response = await fetch(url, {
       headers: {

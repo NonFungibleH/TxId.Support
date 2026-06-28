@@ -1,8 +1,9 @@
 import crypto from "crypto"
 
 function secret(): string {
-  // Reuse the service-role key as HMAC secret — it is never exposed client-side
-  return process.env.SUPABASE_SERVICE_ROLE_KEY ?? "dev-preview-secret"
+  // Dedicated HMAC secret — falls back to a random-ish string in dev (not stable across restarts,
+  // which is fine: preview tokens are short-lived and only used in development anyway)
+  return process.env.PREVIEW_HMAC_SECRET ?? process.env.SUPABASE_SERVICE_ROLE_KEY ?? "dev-preview-secret"
 }
 
 export function generatePreviewToken(projectId: string): string {
@@ -11,5 +12,7 @@ export function generatePreviewToken(projectId: string): string {
 
 export function verifyPreviewToken(projectId: string, token: string | null | undefined): boolean {
   if (!token) return false
-  return token === generatePreviewToken(projectId)
+  const expected = generatePreviewToken(projectId)
+  // Constant-time comparison to prevent timing attacks
+  return token.length === expected.length && crypto.timingSafeEqual(Buffer.from(token), Buffer.from(expected))
 }

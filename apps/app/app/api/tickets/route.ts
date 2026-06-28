@@ -1,8 +1,19 @@
+import crypto from "crypto"
 import { createServiceClient } from "@/lib/supabase/server"
 import type { ProjectConfig } from "@/lib/types/config"
 import type { Database } from "@/lib/supabase/types"
 
 type ProjectRow = Database["public"]["Tables"]["projects"]["Row"]
+
+const MAX_SUMMARY_LEN = 500
+const MAX_CONVERSATION_MSGS = 30
+const MAX_MSG_CONTENT_LEN = 2000
+
+function webhookSignature(payload: string): string {
+  const secret = process.env.WEBHOOK_SECRET ?? ""
+  if (!secret) return ""
+  return "sha256=" + crypto.createHmac("sha256", secret).update(payload).digest("hex")
+}
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
@@ -73,7 +84,7 @@ export async function POST(request: Request) {
 
     const { data: project, error: projectError } = await supabase
       .from("projects")
-      .select("id, name, config")
+      .select("id, name, config, is_active")
       .eq("publishable_key", key)
       .single()
 
@@ -84,8 +95,21 @@ export async function POST(request: Request) {
       })
     }
 
-    const typedProject = project as unknown as ProjectRow & { name: string }
+    const typedProject = project as unknown as ProjectRow & { name: string; is_active: boolean }
     const config = typedProject.config as unknown as ProjectConfig
+
+    if (!typedProject.is_active) {
+      return new Response(JSON.stringify({ error: "Project inactive" }), {
+        status: 403,
+        headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
+      })
+    }
+
+    // Truncate inputs to prevent unbounded storage / email abuse
+    const safeSummary = summary.slice(0, MAX_SUMMARY_LEN)
+    const safeConversation = (conversation ?? [])
+      .slice(0, MAX_CONVERSATION_MSGS)
+      .map(m => ({ ...m, content: m.content.slice(0, MAX_MSG_CONTENT_LEN) }))
 
     // Retry up to 3 times on ref collision (unique constraint added in migration 20260627000002)
     let ref = ""
@@ -98,9 +122,9 @@ export async function POST(request: Request) {
         ref,
         user_name: name || null,
         user_email: email || null,
-        summary,
+        summary: safeSummary,
         reason: reason || null,
-        conversation: conversation ? JSON.stringify(conversation) : null,
+        conversation: safeConversation.length ? JSON.stringify(safeConversation) : null,
         status: "open",
       })
       insertError = result.error
@@ -122,17 +146,21 @@ export async function POST(request: Request) {
       const webhookPayload = JSON.stringify({
         ref,
         project: typedProject.name,
-        summary,
+        summary: safeSummary,
         reason: reason || null,
         user: { name: name || null, email: email || null },
-        conversation: conversation ?? [],
+        conversation: safeConversation,
       })
+      const sig = webhookSignature(webhookPayload)
       void (async () => {
         const start = Date.now()
         try {
           const res = await fetch(webhookUrl, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: {
+              "Content-Type": "application/json",
+              ...(sig ? { "X-TxID-Signature": sig } : {}),
+            },
             body: webhookPayload,
             signal: AbortSignal.timeout(5000),
           })
@@ -165,7 +193,7 @@ export async function POST(request: Request) {
     // Optional email notification via Resend (no package needed — plain HTTP)
     const notificationEmail = config.notificationEmail
     if (notificationEmail && process.env.RESEND_API_KEY) {
-      const conversationText = (conversation ?? [])
+      const conversationText = safeConversation
         .map(m => `${m.role === "user" ? "User" : "Bot"}: ${m.content}`)
         .join("\n")
 
@@ -173,7 +201,7 @@ export async function POST(request: Request) {
         `New support ticket ${ref} from ${typedProject.name}\n\n` +
         `Name: ${name || "Anonymous"}\n` +
         `Email: ${email || "Not provided"}\n` +
-        `Issue: ${summary}\n\n` +
+        `Issue: ${safeSummary}\n\n` +
         (conversationText ? `--- Conversation ---\n${conversationText}` : "")
 
       fetch("https://api.resend.com/emails", {
@@ -185,7 +213,7 @@ export async function POST(request: Request) {
         body: JSON.stringify({
           from: "TxID Support <noreply@txid.support>",
           to: [notificationEmail],
-          subject: `[${ref}] New support ticket — ${summary.slice(0, 60)}`,
+          subject: `[${ref}] New support ticket — ${safeSummary.slice(0, 60)}`,
           text: emailBody,
         }),
       }).catch(() => { /* non-fatal */ })
@@ -195,8 +223,8 @@ export async function POST(request: Request) {
       headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
     })
   } catch (err) {
-    const msg = err instanceof Error ? err.message : "Internal error"
-    return new Response(JSON.stringify({ error: msg }), {
+    console.error("[tickets/POST]", err)
+    return new Response(JSON.stringify({ error: "Internal error" }), {
       status: 500,
       headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
     })

@@ -72,6 +72,13 @@ export async function POST(request: Request) {
       })
     }
 
+    // Cap message history to prevent context-stuffing / runaway LLM costs
+    const MAX_MESSAGES = 30
+    const MAX_CONTENT_LEN = 2000
+    const safeMessages = messages
+      .slice(-MAX_MESSAGES)
+      .map(m => ({ ...m, content: typeof m.content === "string" ? m.content.slice(0, MAX_CONTENT_LEN) : m.content }))
+
     // F2: validate wallet address format before it touches any downstream URL
     if (walletAddress && !/^0x[0-9a-fA-F]{40}$/.test(walletAddress)) {
       return new Response(JSON.stringify({ error: "Invalid wallet address" }), {
@@ -169,7 +176,7 @@ export async function POST(request: Request) {
 
           for await (const event of streamChatWithTools(
             systemPrompt,
-            messages,
+            safeMessages,
             walletConfig,
             configSnapshot.watchedContracts,
           )) {
@@ -189,7 +196,7 @@ export async function POST(request: Request) {
           // Generate contextual follow-up chips after the main response
           if (!wasEscalated && fullResponseText.length > 20) {
             try {
-              const items = await generateSuggestions(messages, fullResponseText)
+              const items = await generateSuggestions(safeMessages, fullResponseText)
               if (items.length > 0) {
                 controller.enqueue(
                   encoder.encode(`data: ${JSON.stringify({ suggestions: { items } })}\n\n`),
@@ -203,9 +210,8 @@ export async function POST(request: Request) {
           controller.enqueue(encoder.encode("data: [DONE]\n\n"))
         } catch (err) {
           console.error("[chat/stream]", err)
-          const msg = err instanceof Error ? err.message : "Stream error"
           controller.enqueue(
-            encoder.encode(`data: ${JSON.stringify({ error: msg })}\n\n`),
+            encoder.encode(`data: ${JSON.stringify({ error: "Stream error" })}\n\n`),
           )
         } finally {
           controller.close()
@@ -226,8 +232,7 @@ export async function POST(request: Request) {
     })
   } catch (err) {
     console.error("[chat/POST]", err)
-    const msg = err instanceof Error ? err.message : "Internal error"
-    return new Response(JSON.stringify({ error: msg }), {
+    return new Response(JSON.stringify({ error: "Internal error" }), {
       status: 500,
       headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
     })

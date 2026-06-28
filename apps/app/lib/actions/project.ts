@@ -166,6 +166,12 @@ export async function updateConfig(
 
   if (!org || current.org_id !== org.id) throw new Error("Forbidden")
 
+  // Validate webhookUrl before persisting — must be HTTPS + public IP
+  if (partial.webhookUrl) {
+    const { assertSafeWebhookUrl } = await import("@/lib/security")
+    assertSafeWebhookUrl(partial.webhookUrl)
+  }
+
   const merged = {
     ...(current.config as unknown as ProjectConfig),
     ...partial,
