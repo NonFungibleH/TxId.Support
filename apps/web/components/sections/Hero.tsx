@@ -55,20 +55,21 @@ export function Hero() {
               <div className="flex flex-nowrap items-center gap-x-3 gap-y-2 overflow-x-auto">
                 <span className="text-xs text-muted/50 font-mono shrink-0">Available on</span>
                 {[
-                  { name: "Ethereum", file: "Ethereum.png", whiteBg: false },
-                  { name: "Base",     file: "Base.png",     whiteBg: true  },
-                  { name: "Arbitrum", file: "Arbitrum.png", whiteBg: false },
-                  { name: "Polygon",  file: "Polygon.png",  whiteBg: true  },
-                  { name: "Optimism", file: "Optimism.png", whiteBg: false },
-                  { name: "BNB",      file: "BNB.png",      whiteBg: false },
-                ].map(({ name, file, whiteBg }) => (
+                  { name: "Ethereum", file: "Ethereum.png", whiteBg: false, square: false },
+                  { name: "Base",     file: "Base.png",     whiteBg: false, square: true  },
+                  { name: "Arbitrum", file: "Arbitrum.png", whiteBg: false, square: false },
+                  { name: "Polygon",  file: "Polygon.png",  whiteBg: true,  square: false },
+                  { name: "Optimism", file: "Optimism.png", whiteBg: false, square: false },
+                  { name: "BNB",      file: "BNB.png",      whiteBg: false, square: false },
+                ].map(({ name, file, whiteBg, square }) => (
                   <div key={name} className="flex items-center gap-1.5 shrink-0">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={`/chains/${file}`}
                       alt={name}
                       className={[
-                        "h-4 w-4 rounded-full object-contain",
+                        "h-4 w-4 object-contain",
+                        square ? "rounded-sm" : "rounded-full",
                         whiteBg ? "bg-white p-[1px]" : "",
                       ].join(" ")}
                     />
