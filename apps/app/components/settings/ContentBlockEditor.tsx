@@ -21,10 +21,11 @@ import { nanoid } from "nanoid"
 import { GripVertical, Trash2, Plus, ChevronDown } from "lucide-react"
 
 const BLOCK_TYPES: { value: ContentBlockType; label: string }[] = [
+  { value: "text",   label: "Text" },
   { value: "video",  label: "Video" },
-  { value: "text",   label: "Announcement" },
   { value: "link",   label: "Link" },
   { value: "image",  label: "Image" },
+  { value: "social", label: "Social Links" },
   { value: "html",   label: "HTML" },
 ]
 
@@ -48,6 +49,13 @@ const CONTENT_FIELDS: Partial<Record<ContentBlockType, FieldDef[]>> = {
   html: [
     { key: "code", label: "HTML", placeholder: "<p>Your custom content</p>", multiline: true },
   ],
+  social: [
+    { key: "twitter",  label: "X / Twitter (optional)", placeholder: "https://twitter.com/yourproject" },
+    { key: "discord",  label: "Discord (optional)",     placeholder: "https://discord.gg/yourserver" },
+    { key: "telegram", label: "Telegram (optional)",    placeholder: "https://t.me/yourgroup" },
+    { key: "github",   label: "GitHub (optional)",      placeholder: "https://github.com/yourorg" },
+    { key: "website",  label: "Website (optional)",     placeholder: "https://yourprotocol.com" },
+  ],
 }
 
 function getContent(block: ContentBlock): Record<string, string> {
@@ -62,6 +70,10 @@ function contentPreview(block: ContentBlock): string | null {
   if (block.type === "link") return c.url ?? null
   if (block.type === "image") return c.url ?? null
   if (block.type === "html") return c.code ? c.code.slice(0, 60) : null
+  if (block.type === "social") {
+    const set = [c.twitter, c.discord, c.telegram, c.github, c.website].filter(Boolean)
+    return set.length ? set.join(" · ") : null
+  }
   return null
 }
 

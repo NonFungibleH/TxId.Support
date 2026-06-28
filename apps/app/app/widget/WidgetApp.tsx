@@ -658,6 +658,18 @@ export function WidgetApp() {
     }
   }, [input, isStreaming, config, messages, apiKey, walletAddress, chainId, isPreview, previewToken])
 
+  // ── External prompt listener (for preview page clickable prompts) ─────────
+  const sendMessageRef = useRef(sendMessage)
+  useEffect(() => { sendMessageRef.current = sendMessage })
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const text = (e as CustomEvent<string>).detail
+      if (text) sendMessageRef.current(text)
+    }
+    window.addEventListener("txid-prompt", handler)
+    return () => window.removeEventListener("txid-prompt", handler)
+  }, [])
+
   // ── Error state ──────────────────────────────────────────────────────────
   if (configError) {
     return (
@@ -781,7 +793,7 @@ export function WidgetApp() {
       </div>
 
       {/* Tab content */}
-      <div className="flex flex-1 flex-col overflow-hidden">
+      <div className="flex flex-1 flex-col overflow-hidden min-h-0">
 
         {/* ── Token Mode tabs ────────────────────────────────────────────── */}
 
@@ -921,7 +933,7 @@ export function WidgetApp() {
 
         {isTokenMode && tab === "ask" && (
           <div className="flex h-full flex-col">
-            <div ref={messagesContainerRef} className="flex-1 space-y-3 overflow-y-auto p-3">
+            <div ref={messagesContainerRef} className="flex-1 min-h-0 space-y-3 overflow-y-auto p-3">
               {messages.length === 0 && (
                 <div
                   key="init-ask"
@@ -1045,7 +1057,7 @@ export function WidgetApp() {
 
         {!isTokenMode && tab === "chat" && (
           <div className="flex flex-1 flex-col">
-            <div ref={messagesContainerRef} className="flex-1 space-y-3 overflow-y-auto p-3">
+            <div ref={messagesContainerRef} className="flex-1 min-h-0 space-y-3 overflow-y-auto p-3">
               {messages.map((m) => (
                 <div
                   key={m.id}
