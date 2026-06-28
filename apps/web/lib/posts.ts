@@ -5,15 +5,20 @@ export interface Post {
   publishedAt: string
   readingMinutes: number
   tags: string[]
+  author: string
+  heroVariant: string
   content: PostSection[]
 }
 
-export interface PostSection {
-  type: "p" | "h2" | "h3" | "ul" | "callout" | "quote"
-  text?: string
-  items?: string[]
-  label?: string
-}
+export type PostSection =
+  | { type: "p"; text?: string }
+  | { type: "h2"; text?: string }
+  | { type: "h3"; text?: string }
+  | { type: "ul"; items?: string[] }
+  | { type: "callout"; label?: string; text?: string }
+  | { type: "quote"; text?: string }
+  | { type: "stat-grid"; stats: Array<{ value: string; label: string }> }
+  | { type: "comparison"; left: { title: string; items: string[] }; right: { title: string; items: string[] } }
 
 export const POSTS: Post[] = [
   {
@@ -24,6 +29,8 @@ export const POSTS: Post[] = [
     publishedAt: "2026-06-27",
     readingMinutes: 6,
     tags: ["Web3 support", "DeFi security", "Customer support"],
+    author: "Non_Fungible_Howard",
+    heroVariant: "discord-scam",
     content: [
       {
         type: "p",
@@ -138,6 +145,8 @@ export const POSTS: Post[] = [
     publishedAt: "2026-06-27",
     readingMinutes: 5,
     tags: ["DeFi operations", "Support automation"],
+    author: "Non_Fungible_Howard",
+    heroVariant: "ticket-reduction",
     content: [
       {
         type: "p",
@@ -146,6 +155,14 @@ export const POSTS: Post[] = [
       {
         type: "p",
         text: "That's actually good news. Predictable support is solvable support. Here's the breakdown of what works.",
+      },
+      {
+        type: "stat-grid",
+        stats: [
+          { value: "60–70%", label: "of tickets cluster in fewer than 5 topics" },
+          { value: "10–20%", label: "of questions need human judgment" },
+          { value: "60 days", label: "typical time to measurable reduction" },
+        ],
       },
       {
         type: "h2",
@@ -253,6 +270,8 @@ export const POSTS: Post[] = [
     publishedAt: "2026-06-28",
     readingMinutes: 7,
     tags: ["DeFi operations", "Web3 support", "Documentation"],
+    author: "Non_Fungible_Howard",
+    heroVariant: "docs-qa",
     content: [
       {
         type: "p",
@@ -392,6 +411,8 @@ export const POSTS: Post[] = [
     publishedAt: "2026-06-28",
     readingMinutes: 6,
     tags: ["Web3 support", "DeFi operations"],
+    author: "Non_Fungible_Howard",
+    heroVariant: "wallet-vs-generic",
     content: [
       {
         type: "p",
@@ -441,6 +462,29 @@ export const POSTS: Post[] = [
       {
         type: "p",
         text: "This is the clearest illustration of the difference. User sends: 'my swap failed'.",
+      },
+      {
+        type: "comparison",
+        left: {
+          title: "Generic chatbot",
+          items: [
+            "\"Can you tell me what you were trying to swap?\"",
+            "\"What error message did you see?\"",
+            "\"Which network are you on?\"",
+            "User has to describe what they don't understand",
+            "Resolution time: 10–20 minutes",
+          ],
+        },
+        right: {
+          title: "Wallet-aware support",
+          items: [
+            "Reads connected wallet on session open",
+            "Looks up the failed tx automatically",
+            "Decodes the revert reason",
+            "Gives a specific, actionable answer",
+            "Resolution time: under 30 seconds",
+          ],
+        },
       },
       {
         type: "p",
@@ -540,6 +584,8 @@ export const POSTS: Post[] = [
     publishedAt: "2026-06-28",
     readingMinutes: 6,
     tags: ["DeFi operations", "Web3 support"],
+    author: "Non_Fungible_Howard",
+    heroVariant: "on-chain-data",
     content: [
       {
         type: "p",
@@ -556,6 +602,14 @@ export const POSTS: Post[] = [
       {
         type: "p",
         text: "Not all on-chain data is equally useful for support. Here's what actually moves the needle.",
+      },
+      {
+        type: "stat-grid",
+        stats: [
+          { value: "4", label: "critical on-chain data sources" },
+          { value: "<2s", label: "to diagnose 'wrong network' errors" },
+          { value: "0", label: "follow-up questions needed" },
+        ],
       },
       {
         type: "h3",
