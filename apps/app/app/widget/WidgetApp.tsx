@@ -530,7 +530,7 @@ export function WidgetApp() {
   const submitFeedback = useCallback(async (messageId: string, value: 1 | -1) => {
     setMessageFeedback((prev) => ({ ...prev, [messageId]: value }))
     try {
-      await fetch(`${apiUrl}/api/widget/feedback`, {
+      await fetch(`/api/widget/feedback`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ key: apiKey, sessionId: sessionId.current, feedback: value }),
@@ -542,7 +542,7 @@ export function WidgetApp() {
         setEscalation({ summary: "A response wasn't helpful.", reason: "user_requested" })
       }, 600)
     }
-  }, [apiKey, apiUrl])
+  }, [apiKey])
 
   // ── Send message ─────────────────────────────────────────────────────────
   const sendMessage = useCallback(async (textArg?: string) => {
