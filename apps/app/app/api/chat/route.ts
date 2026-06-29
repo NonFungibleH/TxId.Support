@@ -330,7 +330,7 @@ async function persistMessages(
 
     if (!conv) return
 
-    const toInsert: { conversation_id: string; role: string; content: string }[] = []
+    const toInsert: { conversation_id: string; role: "user" | "assistant"; content: string }[] = []
 
     const latest = messages[messages.length - 1]
     if (latest?.role === "user") {
