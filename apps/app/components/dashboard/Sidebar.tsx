@@ -22,7 +22,6 @@ const SUPPORT_NAV = [
   { href: "/dashboard/conversations", label: "Conversations",  icon: MessagesSquare },
   { href: "/dashboard/tickets",      label: "Tickets",        icon: Ticket },
   { href: "/dashboard/analytics",    label: "Analytics",      icon: BarChart3 },
-  { href: "/dashboard/team",      label: "Team",            icon: Users },
 ]
 
 const TOKEN_NAV = [
