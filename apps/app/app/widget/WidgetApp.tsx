@@ -310,21 +310,6 @@ function MessageContent({
   )
 }
 
-// ─── Session ID (persisted per origin+key) ───────────────────────────────────
-
-function getSessionId(key: string): string {
-  try {
-    const storageKey = `txid_session_${key}`
-    let id = sessionStorage.getItem(storageKey)
-    if (!id) {
-      id = nanoid()
-      sessionStorage.setItem(storageKey, id)
-    }
-    return id
-  } catch {
-    return nanoid()
-  }
-}
 
 // ─── Wallet session helpers (module-level, no component state) ───────────────
 
@@ -361,7 +346,7 @@ export function WidgetApp() {
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState("")
   const [isStreaming, setIsStreaming] = useState(false)
-  const sessionId = useRef<string>("")
+  const sessionId = useRef<string>(nanoid())
   const messagesContainerRef = useRef<HTMLDivElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
@@ -387,12 +372,6 @@ export function WidgetApp() {
   const [dexData, setDexData] = useState<DexPair | null>(null)
   const [dexLoading, setDexLoading] = useState(false)
 
-  // ── Initialise session ID client-side (sessionStorage not available on server) ──
-  useEffect(() => {
-    if (!sessionId.current) {
-      sessionId.current = apiKey ? getSessionId(apiKey) : nanoid()
-    }
-  }, [apiKey])
 
   // ── Load config ──────────────────────────────────────────────────────────
   useEffect(() => {
@@ -1056,7 +1035,7 @@ export function WidgetApp() {
         {/* ── Support Mode tabs ─────────────────────────────────────────── */}
 
         {!isTokenMode && tab === "chat" && (
-          <div className="flex flex-1 flex-col">
+          <div className="flex flex-1 flex-col min-h-0 overflow-hidden">
             <div ref={messagesContainerRef} className="flex-1 min-h-0 space-y-3 overflow-y-auto p-3">
               {messages.map((m) => (
                 <div
