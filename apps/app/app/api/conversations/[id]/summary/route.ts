@@ -1,13 +1,11 @@
 import { NextRequest } from "next/server"
 import { auth } from "@clerk/nextjs/server"
-import Anthropic from "@anthropic-ai/sdk"
+import { summarizeConversation } from "@txid/ai"
 import { createServiceClient } from "@/lib/supabase/server"
 import { getProject } from "@/lib/actions/project"
 import type { Database } from "@/lib/supabase/types"
 
 type ProjectRow = Database["public"]["Tables"]["projects"]["Row"]
-
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
 export async function GET(
   _req: NextRequest,
@@ -38,25 +36,6 @@ export async function GET(
     .order("created_at", { ascending: true })
     .limit(20)
 
-  if (!messages || messages.length === 0) {
-    return Response.json({ summary: "No messages recorded." })
-  }
-
-  const transcript = messages
-    .map((m) => `${m.role === "user" ? "User" : "Support bot"}: ${m.content}`)
-    .join("\n")
-
-  const msg = await anthropic.messages.create({
-    model: "claude-haiku-4-5-20251001",
-    max_tokens: 80,
-    messages: [
-      {
-        role: "user",
-        content: `Summarise this crypto support conversation in one sentence (max 20 words). Focus on what the user needed and whether it was resolved.\n\n${transcript}`,
-      },
-    ],
-  })
-
-  const summary = msg.content[0]?.type === "text" ? msg.content[0].text.trim() : ""
+  const summary = await summarizeConversation(messages ?? [])
   return Response.json({ summary })
 }

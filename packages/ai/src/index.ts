@@ -6,6 +6,7 @@ export { streamChat, streamChatWithTools, completeChat } from "./stream"
 export type { StreamEvent } from "./stream"
 export { buildWalletTools, buildEscalationTool, executeTool, TOOL_LABELS } from "./tools"
 export { generateSuggestions } from "./suggestions"
+export { summarizeConversation } from "./summarize"
 export type { WalletConfig } from "./tools"
 export type {
   ChatMessage,

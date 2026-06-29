@@ -2,25 +2,36 @@ import { getProject } from "@/lib/actions/project"
 import { redirect } from "next/navigation"
 import { createServiceClient } from "@/lib/supabase/server"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
 import dynamic from "next/dynamic"
-import { MessageSquare, ThumbsUp, Zap, AlertCircle, CheckCircle2 } from "lucide-react"
+import { MessageSquare, CheckCircle2, AlertCircle, Zap } from "lucide-react"
 import Link from "next/link"
 import type { Database } from "@/lib/supabase/types"
+import { AnalyticsPeriodSelector } from "@/components/dashboard/AnalyticsPeriodSelector"
 
 const ConversationChart = dynamic(
   () => import("@/components/dashboard/ConversationChart").then((m) => m.ConversationChart),
-  { ssr: false }
+  { ssr: false },
 )
 
 type ProjectRow = Database["public"]["Tables"]["projects"]["Row"]
 type ConversationRow = Database["public"]["Tables"]["conversations"]["Row"]
 
-function formatDay(date: Date): string {
-  return date.toLocaleDateString("en-US", { weekday: "short", day: "numeric" })
+const CHAIN_NAMES: Record<string, string> = {
+  "1": "Ethereum", "8453": "Base", "42161": "Arbitrum",
+  "137": "Polygon", "10": "Optimism", "56": "BNB Chain",
+  "43114": "Avalanche", "250": "Fantom",
 }
 
-export default async function AnalyticsPage() {
+function formatDay(date: Date, totalDays: number): string {
+  if (totalDays <= 14) {
+    return date.toLocaleDateString("en-US", { weekday: "short", day: "numeric" })
+  }
+  return date.toLocaleDateString("en-US", { month: "short", day: "numeric" })
+}
+
+interface SearchParams { days?: string }
+
+export default async function AnalyticsPage({ searchParams }: { searchParams: SearchParams }) {
   const { project } = await getProject()
   if (!project) redirect("/dashboard")
 
@@ -28,19 +39,20 @@ export default async function AnalyticsPage() {
   const supabase = createServiceClient()
   const projectId = typedProject.id
 
-  // Date range: last 14 days
+  const days = Math.min(parseInt(searchParams.days ?? "14", 10) || 14, 90)
+
   const now = new Date()
   const since = new Date(now)
-  since.setDate(since.getDate() - 13)
+  since.setDate(since.getDate() - (days - 1))
   since.setHours(0, 0, 0, 0)
 
-  // Fetch conversations in range
+  // Conversations in selected period
   const { data: conversations } = await supabase
     .from("conversations")
-    .select("id, created_at")
+    .select("id, created_at, chain_id")
     .eq("project_id", projectId)
     .gte("created_at", since.toISOString())
-    .order("created_at") as { data: Pick<ConversationRow, "id" | "created_at">[] | null }
+    .order("created_at") as { data: Pick<ConversationRow, "id" | "created_at" | "chain_id">[] | null }
 
   // Total conversations ever
   const { count: totalConversations } = await supabase
@@ -48,7 +60,7 @@ export default async function AnalyticsPage() {
     .select("id", { count: "exact", head: true })
     .eq("project_id", projectId)
 
-  // Get all conversation IDs for message queries
+  // All conversation IDs for message queries
   const { data: allConvIds } = await supabase
     .from("conversations")
     .select("id")
@@ -56,54 +68,84 @@ export default async function AnalyticsPage() {
 
   const convIdList = (allConvIds ?? []).map((c) => c.id)
 
+  // Total messages ever
   let totalMessages = 0
-
   if (convIdList.length > 0) {
-    const { count: msgCount } = await supabase
+    const { count } = await supabase
       .from("messages")
       .select("id", { count: "exact", head: true })
       .in("conversation_id", convIdList)
-    totalMessages = msgCount ?? 0
+    totalMessages = count ?? 0
   }
 
-  // Build chart data: one entry per day for the last 14 days
+  // Resolved rate: last message role per conversation in the selected period
+  let resolvedRate: number | null = null
+  const periodConvIds = (conversations ?? []).map(c => c.id)
+  if (periodConvIds.length > 0) {
+    const { data: periodMsgs } = await supabase
+      .from("messages")
+      .select("conversation_id, role, created_at")
+      .in("conversation_id", periodConvIds)
+      .order("created_at", { ascending: false })
+
+    const seenConvs = new Set<string>()
+    let resolvedCount = 0
+    for (const msg of periodMsgs ?? []) {
+      if (seenConvs.has(msg.conversation_id)) continue
+      seenConvs.add(msg.conversation_id)
+      if (msg.role === "assistant") resolvedCount++
+    }
+    if (seenConvs.size > 0) {
+      resolvedRate = Math.round((resolvedCount / seenConvs.size) * 100)
+    }
+  }
+
+  // Chain breakdown (all-time)
+  const chainCounts = new Map<string, number>()
+  for (const conv of allConvIds ? (await supabase
+    .from("conversations")
+    .select("chain_id")
+    .eq("project_id", projectId)
+    .not("chain_id", "is", null)).data ?? [] : []) {
+    const id = (conv as { chain_id: string | null }).chain_id
+    if (id) chainCounts.set(id, (chainCounts.get(id) ?? 0) + 1)
+  }
+  const chainBreakdown = Array.from(chainCounts.entries())
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 6)
+    .map(([chainId, count]) => ({ chainId, name: CHAIN_NAMES[chainId] ?? chainId, count }))
+  const maxChainCount = chainBreakdown[0]?.count ?? 1
+
+  // Build chart data
   const dayMap = new Map<string, number>()
-  for (let i = 0; i < 14; i++) {
+  for (let i = 0; i < days; i++) {
     const d = new Date(since)
     d.setDate(since.getDate() + i)
     dayMap.set(d.toDateString(), 0)
   }
-
   for (const conv of conversations ?? []) {
     const key = new Date(conv.created_at).toDateString()
-    if (dayMap.has(key)) {
-      dayMap.set(key, (dayMap.get(key) ?? 0) + 1)
-    }
+    if (dayMap.has(key)) dayMap.set(key, (dayMap.get(key) ?? 0) + 1)
   }
-
-  const chartData = Array.from(dayMap.entries()).map(([dateStr, conversations]) => ({
-    date: formatDay(new Date(dateStr)),
-    conversations,
+  const chartData = Array.from(dayMap.entries()).map(([dateStr, count]) => ({
+    date: formatDay(new Date(dateStr), days),
+    conversations: count,
   }))
 
-
-  // P4: escalation metrics — requires tickets table
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: recentTickets, count: openTicketCount } = await (supabase as any)
-    .from("tickets")
-    .select("ref, summary, status, created_at", { count: "exact" })
-    .eq("project_id", projectId)
-    .eq("status", "open")
-    .order("created_at", { ascending: false })
-    .limit(5)
-
+  const periodConversations = (conversations ?? []).length
+  const avgMessages = periodConversations > 0
+    ? (totalMessages / (totalConversations ?? 1)).toFixed(1)
+    : "—"
   const hasData = (totalConversations ?? 0) > 0
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Analytics</h1>
-        <p className="text-muted-foreground mt-1">Conversation insights and satisfaction ratings.</p>
+      <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div>
+          <h1 className="text-2xl font-bold">Analytics</h1>
+          <p className="text-muted-foreground mt-1">Conversation insights for your support widget.</p>
+        </div>
+        <AnalyticsPeriodSelector current={days} />
       </div>
 
       {!hasData && (
@@ -134,14 +176,49 @@ export default async function AnalyticsPage() {
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold">{totalConversations ?? 0}</p>
-            <p className="text-xs text-muted-foreground mt-0.5">{totalMessages} messages</p>
+            <p className="text-xs text-muted-foreground mt-0.5">{totalMessages} messages total</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+              <MessageSquare className="size-3.5" />
+              This period
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold">{periodConversations}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">last {days} days · avg {avgMessages} msgs each</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+              <CheckCircle2 className="size-3.5" />
+              Resolved rate
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {resolvedRate !== null ? (
+              <>
+                <p className="text-2xl font-bold">{resolvedRate}%</p>
+                <p className="text-xs text-muted-foreground mt-0.5">AI had the last word this period</p>
+              </>
+            ) : (
+              <>
+                <p className="text-2xl font-bold text-muted-foreground">—</p>
+                <p className="text-xs text-muted-foreground mt-0.5">No data in this period</p>
+              </>
+            )}
           </CardContent>
         </Card>
 
         <Card className="opacity-50">
           <CardHeader className="pb-2">
             <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
-              <CheckCircle2 className="size-3.5" />
+              <AlertCircle className="size-3.5" />
               Satisfaction
               <span className="ml-auto text-[10px] font-medium bg-muted px-1.5 py-0.5 rounded-full">Roadmap</span>
             </CardTitle>
@@ -151,68 +228,37 @@ export default async function AnalyticsPage() {
             <p className="text-xs text-muted-foreground mt-0.5">Thumbs up / down coming soon</p>
           </CardContent>
         </Card>
-
-        <Card className="opacity-50">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
-              <AlertCircle className="size-3.5" />
-              Escalation rate
-              <span className="ml-auto text-[10px] font-medium bg-muted px-1.5 py-0.5 rounded-full">Roadmap</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold text-muted-foreground">—</p>
-            <p className="text-xs text-muted-foreground mt-0.5">Ticket escalation tracking coming soon</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
-              <ThumbsUp className="size-3.5" />
-              Open tickets
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold">{openTicketCount ?? 0}</p>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              <Link href="/dashboard/tickets" className="hover:underline">View all →</Link>
-            </p>
-          </CardContent>
-        </Card>
       </div>
 
       {/* Chart */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-sm font-medium">Conversations — last 14 days</CardTitle>
+          <CardTitle className="text-sm font-medium">Conversations — last {days} days</CardTitle>
         </CardHeader>
         <CardContent>
           <ConversationChart data={chartData} />
         </CardContent>
       </Card>
 
-      {/* P4: Top open escalations — what the AI is failing on */}
-      {(recentTickets ?? []).length > 0 && (
+      {/* Chain breakdown */}
+      {chainBreakdown.length > 0 && (
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-sm font-medium">Open escalations</CardTitle>
-            <Link href="/dashboard/tickets" className="text-xs text-muted-foreground hover:underline">
-              View all →
-            </Link>
+          <CardHeader>
+            <CardTitle className="text-sm font-medium">Users by network (all time)</CardTitle>
           </CardHeader>
-          <CardContent className="p-0">
-            <ul className="divide-y divide-border">
-              {(recentTickets as Array<{ ref: string; summary: string; status: string; created_at: string }>).map((t) => (
-                <li key={t.ref} className="flex items-start gap-3 px-6 py-3">
-                  <Badge variant="outline" className="text-[10px] shrink-0 mt-0.5 font-mono">{t.ref}</Badge>
-                  <p className="text-sm flex-1 leading-snug">{t.summary}</p>
-                  <span className="text-xs text-muted-foreground shrink-0">
-                    {new Date(t.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
-                  </span>
-                </li>
-              ))}
-            </ul>
+          <CardContent className="space-y-3">
+            {chainBreakdown.map(({ chainId, name, count }) => (
+              <div key={chainId} className="flex items-center gap-3">
+                <span className="text-xs text-muted-foreground w-24 shrink-0">{name}</span>
+                <div className="flex-1 bg-muted rounded-full h-2">
+                  <div
+                    className="bg-primary h-2 rounded-full transition-all"
+                    style={{ width: `${Math.round((count / maxChainCount) * 100)}%` }}
+                  />
+                </div>
+                <span className="text-xs tabular-nums text-muted-foreground w-6 text-right">{count}</span>
+              </div>
+            ))}
           </CardContent>
         </Card>
       )}
