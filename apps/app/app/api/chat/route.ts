@@ -226,7 +226,7 @@ export async function POST(request: Request) {
         : null
 
     // Build system prompt
-    const systemPrompt = buildSystemPrompt({
+    let systemPrompt = buildSystemPrompt({
       projectName: typedProject.name,
       config: configSnapshot,
       walletConfig,
@@ -235,6 +235,15 @@ export async function POST(request: Request) {
       tokenModeAsk: config.tokenModeAsk ?? undefined,
       persona: config.branding?.persona ?? "concise",
     })
+
+    // After 4 user turns without resolution, force the AI to escalate
+    const userTurnCount = messages.filter((m) => m.role === "user").length
+    if (userTurnCount >= 4) {
+      systemPrompt +=
+        `\n\n⚠️ ESCALATION REQUIRED: This user has now sent ${userTurnCount} messages. ` +
+        `Their issue is not yet resolved. You MUST call create_support_ticket in this response — ` +
+        `do not attempt another resolution. Acknowledge what you've tried and hand off to the team.`
+    }
 
     // Stream the response — Claude uses tools as needed for on-chain data
     const encoder = new TextEncoder()

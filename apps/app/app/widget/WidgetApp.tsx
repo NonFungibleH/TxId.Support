@@ -365,6 +365,9 @@ export function WidgetApp() {
   const [ticketSubmitting, setTicketSubmitting] = useState(false)
   const [ticketRef, setTicketRef] = useState<string | null>(null)
 
+  // Per-message feedback (thumbs up/down)
+  const [messageFeedback, setMessageFeedback] = useState<Record<string, 1 | -1>>({})
+
   // Quick-reply suggestion chips
   const [suggestions, setSuggestions] = useState<string[]>([])
 
@@ -522,6 +525,24 @@ export function WidgetApp() {
       setTicketSubmitting(false)
     }
   }, [escalation, ticketName, ticketEmail, apiKey, messages])
+
+  // ── Message feedback (thumbs up/down) ────────────────────────────────────
+  const submitFeedback = useCallback(async (messageId: string, value: 1 | -1) => {
+    setMessageFeedback((prev) => ({ ...prev, [messageId]: value }))
+    try {
+      await fetch(`${apiUrl}/api/widget/feedback`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ key: apiKey, sessionId: sessionId.current, feedback: value }),
+      })
+    } catch { /* non-fatal */ }
+    // Thumbs down → surface escalation after a short pause
+    if (value === -1) {
+      setTimeout(() => {
+        setEscalation({ summary: "A response wasn't helpful.", reason: "user_requested" })
+      }, 600)
+    }
+  }, [apiKey, apiUrl])
 
   // ── Send message ─────────────────────────────────────────────────────────
   const sendMessage = useCallback(async (textArg?: string) => {
@@ -1038,56 +1059,80 @@ export function WidgetApp() {
           <div className="flex flex-1 flex-col min-h-0 overflow-hidden">
             <div ref={messagesContainerRef} className="flex-1 min-h-0 space-y-3 overflow-y-auto p-3">
               {messages.map((m) => (
-                <div
-                  key={m.id}
-                  className={`flex items-start gap-2 ${m.role === "user" ? "justify-end" : ""}`}
-                >
-                  {m.role === "assistant" && (
-                    b.agentIconUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={b.agentIconUrl} alt={b.agentName || "AI"} className="size-6 shrink-0 rounded-full object-cover" />
-                    ) : (
-                      <div
-                        className="flex size-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold"
-                        style={{ backgroundColor: b.primaryColor, color: b.textColor }}
-                      >
-                        {b.agentName ? b.agentName.slice(0, 2).toUpperCase() : "AI"}
-                      </div>
-                    )
-                  )}
-                  <div
-                    className="max-w-[80%] rounded-2xl px-3 py-2 text-xs break-words"
-                    style={{
-                      backgroundColor: m.role === "user" ? b.primaryColor : b.secondaryColor,
-                      color: b.textColor,
-                      borderRadius: m.role === "user" ? "1rem 1rem 0.25rem 1rem" : "1rem 1rem 1rem 0.25rem",
-                      overflowWrap: "anywhere",
-                    }}
-                  >
-                    {m.content ? (
-                      m.role === "assistant" ? (
-                        <MessageContent text={m.content} primaryColor={b.primaryColor} textColor={b.textColor} />
-                      ) : m.content
-                    ) : (m.streaming && (
-                      m.toolCall ? (
-                        <span className="inline-flex items-center gap-1.5 opacity-70">
-                          <Loader2Icon className="size-2.5 animate-spin" />
-                          <span className="text-[11px]">
-                            {m.toolCall === "get_wallet_balance" && "Checking your balance…"}
-                            {m.toolCall === "get_recent_transactions" && "Looking up your transactions…"}
-                            {m.toolCall === "get_transaction_by_hash" && "Fetching transaction details…"}
-                            {!["get_wallet_balance","get_recent_transactions","get_transaction_by_hash"].includes(m.toolCall) && "Looking up data…"}
+                <div key={m.id}>
+                  <div className={`flex items-start gap-2 ${m.role === "user" ? "justify-end" : ""}`}>
+                    {m.role === "assistant" && (
+                      b.agentIconUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={b.agentIconUrl} alt={b.agentName || "AI"} className="size-6 shrink-0 rounded-full object-cover" />
+                      ) : (
+                        <div
+                          className="flex size-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold"
+                          style={{ backgroundColor: b.primaryColor, color: b.textColor }}
+                        >
+                          {b.agentName ? b.agentName.slice(0, 2).toUpperCase() : "AI"}
+                        </div>
+                      )
+                    )}
+                    <div
+                      className="max-w-[80%] rounded-2xl px-3 py-2 text-xs break-words"
+                      style={{
+                        backgroundColor: m.role === "user" ? b.primaryColor : b.secondaryColor,
+                        color: b.textColor,
+                        borderRadius: m.role === "user" ? "1rem 1rem 0.25rem 1rem" : "1rem 1rem 1rem 0.25rem",
+                        overflowWrap: "anywhere",
+                      }}
+                    >
+                      {m.content ? (
+                        m.role === "assistant" ? (
+                          <MessageContent text={m.content} primaryColor={b.primaryColor} textColor={b.textColor} />
+                        ) : m.content
+                      ) : (m.streaming && (
+                        m.toolCall ? (
+                          <span className="inline-flex items-center gap-1.5 opacity-70">
+                            <Loader2Icon className="size-2.5 animate-spin" />
+                            <span className="text-[11px]">
+                              {m.toolCall === "get_wallet_balance" && "Checking your balance…"}
+                              {m.toolCall === "get_recent_transactions" && "Looking up your transactions…"}
+                              {m.toolCall === "get_transaction_by_hash" && "Fetching transaction details…"}
+                              {!["get_wallet_balance","get_recent_transactions","get_transaction_by_hash"].includes(m.toolCall) && "Looking up data…"}
+                            </span>
                           </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 opacity-60">
+                            <span className="size-1 rounded-full animate-bounce bg-current" style={{ animationDelay: "0ms" }} />
+                            <span className="size-1 rounded-full animate-bounce bg-current" style={{ animationDelay: "150ms" }} />
+                            <span className="size-1 rounded-full animate-bounce bg-current" style={{ animationDelay: "300ms" }} />
+                          </span>
+                        )
+                      ))}
+                    </div>
+                  </div>
+                  {/* Thumbs up/down — shown after each completed AI response */}
+                  {m.role === "assistant" && !m.streaming && m.content && (
+                    <div className="flex items-center gap-2 mt-1 ml-8">
+                      {messageFeedback[m.id] ? (
+                        <span className="text-[10px]" style={{ color: b.textColor, opacity: 0.35 }}>
+                          {messageFeedback[m.id] === 1 ? "👍 Helpful" : "👎 Raising a ticket…"}
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1 opacity-60">
-                          <span className="size-1 rounded-full animate-bounce bg-current" style={{ animationDelay: "0ms" }} />
-                          <span className="size-1 rounded-full animate-bounce bg-current" style={{ animationDelay: "150ms" }} />
-                          <span className="size-1 rounded-full animate-bounce bg-current" style={{ animationDelay: "300ms" }} />
-                        </span>
-                      )
-                    ))}
-                  </div>
+                        <>
+                          <button
+                            onClick={() => submitFeedback(m.id, 1)}
+                            className="text-[11px] opacity-25 hover:opacity-60 transition-opacity"
+                            title="Helpful"
+                            style={{ color: b.textColor }}
+                          >👍</button>
+                          <button
+                            onClick={() => submitFeedback(m.id, -1)}
+                            className="text-[11px] opacity-25 hover:opacity-60 transition-opacity"
+                            title="Not helpful"
+                            style={{ color: b.textColor }}
+                          >👎</button>
+                        </>
+                      )}
+                    </div>
+                  )}
                 </div>
               ))}
               <div ref={messagesEndRef} />
@@ -1173,6 +1218,19 @@ export function WidgetApp() {
                     {s}
                   </button>
                 ))}
+              </div>
+            )}
+
+            {/* Speak to a person — always available once conversation has started */}
+            {!escalation && messages.length > 1 && !isStreaming && (
+              <div className="shrink-0 flex justify-center pb-1">
+                <button
+                  onClick={() => setEscalation({ summary: "User requested to speak with a person.", reason: "user_requested" })}
+                  className="text-[10px] transition-opacity hover:opacity-70"
+                  style={{ color: b.textColor, opacity: 0.28 }}
+                >
+                  Speak to a person →
+                </button>
               </div>
             )}
 

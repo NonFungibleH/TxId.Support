@@ -223,11 +223,12 @@ export function buildSystemPrompt(params: StreamChatParams): string {
 
     parts.push(
       `## Escalation\n` +
-      `You have a \`create_support_ticket\` tool. Use it only when:\n` +
+      `You have a \`create_support_ticket\` tool. Use it when:\n` +
       `- You have genuinely tried but cannot resolve the issue (missing docs, requires account access, billing question)\n` +
       `- The user explicitly asks to speak to a human, raise a ticket, or contact support\n` +
-      `- The issue is urgent\n\n` +
-      `Do NOT escalate just because you're uncertain — try to help first. Only escalate when you truly cannot resolve it.`
+      `- The issue is urgent\n` +
+      `- After 2–3 exchanges the issue is still unresolved — proactively offer to escalate rather than letting the user go in circles\n\n` +
+      `Try to help first, but do not keep the user looping. If you cannot resolve it within a few turns, call create_support_ticket and explain what you've tried.`
     )
 
     parts.push(UNIVERSAL_RULES)
