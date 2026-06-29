@@ -81,6 +81,10 @@
   * {
     @apply border-border;
   }
+  /* Prevent white flash before stylesheet resolves --background variable */
+  html {
+    background-color: hsl(222.2 84% 4.9%);
+  }
   body {
     @apply bg-background text-foreground;
   }
