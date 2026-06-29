@@ -10,39 +10,39 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
+    --background: 220 14% 96%;        /* soft blue-grey: ~#f3f4f8 */
     --foreground: 222.2 84% 4.9%;
-    --card: 0 0% 100%;
+    --card: 0 0% 100%;                 /* white cards pop against softer bg */
     --card-foreground: 222.2 84% 4.9%;
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
+    --primary: 239 84% 67%;            /* indigo-500 — matches brand */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 220 14% 92%;
     --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
+    --muted: 220 14% 92%;
     --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
+    --accent: 220 14% 92%;
     --accent-foreground: 222.2 47.4% 11.2%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 215.3 25% 26.7%;
-    --chart-1: 215 25% 27%;
-    --chart-2: 215.4 16.3% 46.9%;
-    --chart-3: 215.3 25% 26.7%;
-    --chart-4: 215 25% 27%;
-    --chart-5: 215.3 25% 26.7%;
+    --border: 220 14% 88%;
+    --input: 0 0% 100%;
+    --ring: 239 84% 67%;
+    --chart-1: 239 84% 67%;
+    --chart-2: 160 60% 45%;
+    --chart-3: 30 80% 55%;
+    --chart-4: 280 65% 60%;
+    --chart-5: 340 75% 55%;
     --radius: 0.5rem;
-    --sidebar: 210 40% 98%;
+    --sidebar: 220 14% 94%;
     --sidebar-foreground: 222.2 84% 4.9%;
-    --sidebar-primary: 222.2 47.4% 11.2%;
-    --sidebar-primary-foreground: 210 40% 98%;
-    --sidebar-accent: 210 40% 96.1%;
+    --sidebar-primary: 239 84% 67%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 220 14% 90%;
     --sidebar-accent-foreground: 222.2 47.4% 11.2%;
-    --sidebar-border: 214.3 31.8% 91.4%;
-    --sidebar-ring: 215.3 25% 26.7%;
+    --sidebar-border: 220 14% 88%;
+    --sidebar-ring: 239 84% 67%;
   }
   .dark {
     --background: 222.2 84% 4.9%;
