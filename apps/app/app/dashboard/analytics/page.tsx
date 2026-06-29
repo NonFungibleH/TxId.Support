@@ -57,8 +57,6 @@ export default async function AnalyticsPage() {
   const convIdList = (allConvIds ?? []).map((c) => c.id)
 
   let totalMessages = 0
-  let thumbsUp = 0
-  let thumbsDown = 0
 
   if (convIdList.length > 0) {
     const { count: msgCount } = await supabase
@@ -66,20 +64,6 @@ export default async function AnalyticsPage() {
       .select("id", { count: "exact", head: true })
       .in("conversation_id", convIdList)
     totalMessages = msgCount ?? 0
-
-    const { count: upCount } = await supabase
-      .from("messages")
-      .select("id", { count: "exact", head: true })
-      .in("conversation_id", convIdList)
-      .eq("feedback", 1)
-    thumbsUp = upCount ?? 0
-
-    const { count: downCount } = await supabase
-      .from("messages")
-      .select("id", { count: "exact", head: true })
-      .in("conversation_id", convIdList)
-      .eq("feedback", -1)
-    thumbsDown = downCount ?? 0
   }
 
   // Build chart data: one entry per day for the last 14 days
@@ -112,13 +96,6 @@ export default async function AnalyticsPage() {
     .eq("status", "open")
     .order("created_at", { ascending: false })
     .limit(5)
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { count: totalTickets } = await (supabase as any)
-    .from("tickets")
-    .select("id", { count: "exact", head: true })
-    .eq("project_id", projectId)
-
 
   const hasData = (totalConversations ?? 0) > 0
 
