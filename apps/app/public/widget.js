@@ -35,14 +35,14 @@
     "#txid-widget-btn svg{display:block}" +
     "#txid-widget-frame-wrap{" +
     "position:fixed;bottom:92px;right:24px;z-index:2147483645;" +
-    "width:380px;height:600px;border-radius:16px;" +
+    "width:380px;height:580px;max-height:calc(100vh - 112px);border-radius:16px;" +
     "box-shadow:0 8px 48px rgba(0,0,0,.45);" +
     "overflow:hidden;display:none;" +
     "}" +
     "#txid-widget-frame-wrap.open{display:block}" +
     "#txid-widget-frame{width:100%;height:100%;border:none;display:block}" +
     "@media(max-width:440px){" +
-    "#txid-widget-frame-wrap{right:0;bottom:80px;width:100%;border-radius:16px 16px 0 0}" +
+    "#txid-widget-frame-wrap{right:0;bottom:80px;width:100%;border-radius:16px 16px 0 0;max-height:calc(100vh - 100px)}" +
     "}";
   document.head.appendChild(style);
 
