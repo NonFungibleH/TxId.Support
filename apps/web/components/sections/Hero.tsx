@@ -20,7 +20,8 @@ export function Hero() {
           <div>
             <FadeIn delay={0.08}>
               <h1 className="font-display text-5xl lg:text-6xl font-bold text-white leading-[1.1] tracking-tight mb-6">
-                Expert support for every user.{" "}
+                Expert support for every user.
+                <br />
                 <span className="text-accent">No support team needed.</span>
               </h1>
             </FadeIn>
