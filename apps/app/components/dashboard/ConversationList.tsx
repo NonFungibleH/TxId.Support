@@ -1,7 +1,7 @@
 "use client"
 
-import { useState } from "react"
-import { ChevronDown, ChevronUp, ThumbsUp, ThumbsDown, Wallet, Download, Globe, MessageSquare, Bot } from "lucide-react"
+import { useState, useEffect, useRef } from "react"
+import { ChevronDown, ChevronUp, ThumbsUp, ThumbsDown, Wallet, Download, Globe, MessageSquare, Bot, Ticket, Loader2, CheckCircle2 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import type { ConversationWithMessages } from "@/app/dashboard/conversations/page"
 
@@ -49,8 +49,46 @@ function FeedbackIcon({ feedback }: { feedback: number }) {
   return null
 }
 
+type TicketStatus = "idle" | "loading" | "done" | "error"
+
 export function ConversationList({ conversations }: { conversations: ConversationWithMessages[] }) {
   const [expanded, setExpanded] = useState<string | null>(null)
+  const [summaries, setSummaries] = useState<Record<string, string>>({})
+  const [summaryLoading, setSummaryLoading] = useState<Record<string, boolean>>({})
+  const [ticketStatus, setTicketStatus] = useState<Record<string, TicketStatus>>({})
+  const [ticketRefs, setTicketRefs] = useState<Record<string, string>>({})
+  const fetchedSummaries = useRef<Set<string>>(new Set())
+
+  useEffect(() => {
+    if (!expanded) return
+    if (fetchedSummaries.current.has(expanded)) return
+    fetchedSummaries.current.add(expanded)
+
+    setSummaryLoading(prev => ({ ...prev, [expanded]: true }))
+    fetch(`/api/conversations/${expanded}/summary`)
+      .then(r => r.json())
+      .then(data => {
+        setSummaries(prev => ({ ...prev, [expanded]: data.summary ?? "" }))
+        setSummaryLoading(prev => ({ ...prev, [expanded]: false }))
+      })
+      .catch(() => setSummaryLoading(prev => ({ ...prev, [expanded]: false })))
+  }, [expanded])
+
+  async function raiseTicket(convId: string) {
+    setTicketStatus(prev => ({ ...prev, [convId]: "loading" }))
+    try {
+      const res = await fetch(`/api/conversations/${convId}/ticket`, { method: "POST" })
+      if (res.ok) {
+        const data = await res.json()
+        setTicketRefs(prev => ({ ...prev, [convId]: data.ref }))
+        setTicketStatus(prev => ({ ...prev, [convId]: "done" }))
+      } else {
+        setTicketStatus(prev => ({ ...prev, [convId]: "error" }))
+      }
+    } catch {
+      setTicketStatus(prev => ({ ...prev, [convId]: "error" }))
+    }
+  }
 
   return (
     <div className="space-y-4">
@@ -74,6 +112,14 @@ export function ConversationList({ conversations }: { conversations: Conversatio
         const hasNegative = conv.messages.some((m) => m.feedback === -1)
         const chainName = conv.chain_id ? (CHAIN_NAMES[conv.chain_id] ?? `Chain ${conv.chain_id}`) : null
 
+        const lastMsg = conv.messages[conv.messages.length - 1]
+        const outcome = lastMsg?.role === "assistant" ? "resolved" : "dropped"
+
+        const tStatus = ticketStatus[conv.id] ?? "idle"
+        const tRef = ticketRefs[conv.id]
+        const summary = summaries[conv.id]
+        const loadingSummary = summaryLoading[conv.id]
+
         return (
           <div
             key={conv.id}
@@ -84,13 +130,22 @@ export function ConversationList({ conversations }: { conversations: Conversatio
               className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-muted/40 transition-colors"
             >
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-0.5">
+                <div className="flex items-center gap-2 mb-0.5 flex-wrap">
                   <SessionBadge walletAddress={conv.wallet_address} />
                   {chainName && (
                     <span className="flex items-center gap-1 text-xs text-muted-foreground">
                       <Globe className="size-3" />
                       {chainName}
                     </span>
+                  )}
+                  {outcome === "resolved" ? (
+                    <Badge className="text-[10px] px-1.5 py-0.5 leading-none shrink-0 bg-green-500/10 text-green-400 border-green-500/20">
+                      Resolved
+                    </Badge>
+                  ) : (
+                    <Badge className="text-[10px] px-1.5 py-0.5 leading-none shrink-0 bg-amber-500/10 text-amber-400 border-amber-500/20">
+                      Dropped off
+                    </Badge>
                   )}
                   {hasNegative && (
                     <Badge variant="destructive" className="text-[10px] px-1.5 py-0.5 leading-none shrink-0">Low satisfaction</Badge>
@@ -132,11 +187,22 @@ export function ConversationList({ conversations }: { conversations: Conversatio
                   </div>
                 </div>
 
+                {/* AI summary */}
+                <div className="px-4 pt-3 pb-2">
+                  {loadingSummary ? (
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <Loader2 className="size-3 animate-spin" />
+                      Generating summary…
+                    </div>
+                  ) : summary ? (
+                    <div className="rounded-md bg-primary/5 border border-primary/10 px-3 py-2 text-xs text-foreground/80 italic">
+                      {summary}
+                    </div>
+                  ) : null}
+                </div>
+
                 {/* Transcript */}
-                <div className="px-4 pb-4 pt-3 space-y-2.5">
-                  {conv.messages.length === 0 && (
-                    <p className="text-xs text-muted-foreground">No messages recorded.</p>
-                  )}
+                <div className="px-4 pb-3 pt-1 space-y-2.5">
                   {conv.messages.map((msg, i) => (
                     <div
                       key={i}
@@ -164,6 +230,32 @@ export function ConversationList({ conversations }: { conversations: Conversatio
                       )}
                     </div>
                   ))}
+                </div>
+
+                {/* Raise ticket */}
+                <div className="px-4 pb-4 flex items-center justify-end gap-3">
+                  {tStatus === "done" ? (
+                    <span className="flex items-center gap-1.5 text-xs text-green-400">
+                      <CheckCircle2 className="size-3.5" />
+                      {tRef} raised —{" "}
+                      <a href="/dashboard/tickets" className="underline hover:no-underline">
+                        View tickets
+                      </a>
+                    </span>
+                  ) : tStatus === "error" ? (
+                    <span className="text-xs text-destructive">Failed to create ticket.</span>
+                  ) : (
+                    <button
+                      onClick={() => raiseTicket(conv.id)}
+                      disabled={tStatus === "loading"}
+                      className="inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-xs text-muted-foreground hover:bg-muted hover:text-foreground transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {tStatus === "loading"
+                        ? <><Loader2 className="size-3 animate-spin" /> Creating…</>
+                        : <><Ticket className="size-3" /> Raise ticket</>
+                      }
+                    </button>
+                  )}
                 </div>
               </div>
             )}

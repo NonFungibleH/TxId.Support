@@ -17,10 +17,21 @@ export interface ConversationWithMessages {
 }
 
 interface SearchParams {
+  q?: string
   wallet?: string
   chain?: string
   from?: string
   to?: string
+  limit?: string
+}
+
+function buildUrl(params: Record<string, string | undefined>) {
+  const p = new URLSearchParams()
+  for (const [k, v] of Object.entries(params)) {
+    if (v) p.set(k, v)
+  }
+  const qs = p.toString()
+  return `/dashboard/conversations${qs ? `?${qs}` : ""}`
 }
 
 export default async function ConversationsPage({
@@ -34,26 +45,53 @@ export default async function ConversationsPage({
   const typedProject = project as unknown as ProjectRow
   const supabase = createServiceClient()
 
-  const { wallet, chain, from, to } = searchParams
-  const isFiltered = !!(wallet || chain || from || to)
+  const { q, wallet, chain, from, to, limit: limitParam } = searchParams
+  const limit = Math.min(parseInt(limitParam ?? "50", 10) || 50, 500)
+  const isFiltered = !!(q || wallet || chain || from || to)
 
-  // Build query with optional filters
+  // If content search is active, find matching conversation IDs first
+  let contentMatchIds: string[] | null = null
+  if (q) {
+    const { data: allConvs } = await supabase
+      .from("conversations")
+      .select("id")
+      .eq("project_id", typedProject.id)
+
+    const allIds = (allConvs ?? []).map((c: { id: string }) => c.id)
+
+    if (allIds.length > 0) {
+      const { data: matchingMsgs } = await supabase
+        .from("messages")
+        .select("conversation_id")
+        .ilike("content", `%${q}%`)
+        .in("conversation_id", allIds)
+      contentMatchIds = [...new Set((matchingMsgs ?? []).map((m: { conversation_id: string }) => m.conversation_id))]
+    } else {
+      contentMatchIds = []
+    }
+  }
+
+  // Build main conversations query
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let q: any = supabase
+  let convQuery: any = supabase
     .from("conversations")
-    .select("id, session_id, wallet_address, chain_id, created_at")
+    .select("id, session_id, wallet_address, chain_id, created_at", { count: "exact" })
     .eq("project_id", typedProject.id)
     .order("created_at", { ascending: false })
-    .limit(isFiltered ? 200 : 50)
+    .limit(limit)
 
-  if (wallet) q = q.ilike("wallet_address", `%${wallet}%`)
-  if (chain) q = q.eq("chain_id", chain)
-  if (from) q = q.gte("created_at", `${from}T00:00:00.000Z`)
-  if (to) q = q.lte("created_at", `${to}T23:59:59.999Z`)
+  if (wallet) convQuery = convQuery.ilike("wallet_address", `%${wallet}%`)
+  if (chain) convQuery = convQuery.eq("chain_id", chain)
+  if (from) convQuery = convQuery.gte("created_at", `${from}T00:00:00.000Z`)
+  if (to) convQuery = convQuery.lte("created_at", `${to}T23:59:59.999Z`)
+  if (contentMatchIds !== null) {
+    const safeIds = contentMatchIds.length > 0 ? contentMatchIds : ["00000000-0000-0000-0000-000000000000"]
+    convQuery = convQuery.in("id", safeIds)
+  }
 
-  const { data: conversations } = await q
+  const { data: conversations, count: totalCount } = await convQuery
 
-  const filters = <ConversationFilters initial={{ wallet, chain, from, to }} />
+  const filters = <ConversationFilters initial={{ q, wallet, chain, from, to }} />
 
   if (!conversations || conversations.length === 0) {
     return (
@@ -85,7 +123,6 @@ export default async function ConversationsPage({
     .in("conversation_id", convIds)
     .order("created_at", { ascending: true })
 
-  // Group messages by conversation ID
   const msgByConv = new Map<string, typeof messages>()
   for (const msg of messages ?? []) {
     const existing = msgByConv.get(msg.conversation_id) ?? []
@@ -93,15 +130,21 @@ export default async function ConversationsPage({
     msgByConv.set(msg.conversation_id, existing)
   }
 
-  const data: ConversationWithMessages[] = conversations.map((c: ConversationWithMessages) => ({
-    ...c,
-    messages: (msgByConv.get(c.id) ?? []).map((m) => ({
-      role: m.role,
-      content: m.content,
-      feedback: m.feedback,
-      created_at: m.created_at,
-    })),
-  }))
+  // Build data array, filtering out 0-message ghost sessions
+  const data: ConversationWithMessages[] = conversations
+    .map((c: ConversationWithMessages) => ({
+      ...c,
+      messages: (msgByConv.get(c.id) ?? []).map((m) => ({
+        role: m.role,
+        content: m.content,
+        feedback: m.feedback,
+        created_at: m.created_at,
+      })),
+    }))
+    .filter((c: ConversationWithMessages) => c.messages.length > 0)
+
+  const shownCount = data.length
+  const total = totalCount ?? conversations.length
 
   return (
     <div className="space-y-6">
@@ -109,12 +152,23 @@ export default async function ConversationsPage({
         <h1 className="text-xl font-semibold">Conversations</h1>
         <p className="text-sm text-muted-foreground mt-1">
           {isFiltered
-            ? `${conversations.length} result${conversations.length !== 1 ? "s" : ""} — click any to expand the transcript.`
-            : `${conversations.length} recent session${conversations.length !== 1 ? "s" : ""} — click any to expand the transcript.`}
+            ? `${shownCount} result${shownCount !== 1 ? "s" : ""} — click any to expand the transcript.`
+            : `${shownCount} session${shownCount !== 1 ? "s" : ""}${total > shownCount ? ` of ${total}` : ""} — click any to expand the transcript.`}
         </p>
       </div>
       {filters}
       <ConversationList conversations={data} />
+      {total > conversations.length && (
+        <div className="flex flex-col items-center gap-2 py-4">
+          <p className="text-xs text-muted-foreground">Showing {conversations.length} of {total} sessions</p>
+          <a
+            href={buildUrl({ q, wallet, chain, from, to, limit: String(limit + 100) })}
+            className="rounded-md border border-border px-4 py-1.5 text-sm text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+          >
+            Load more
+          </a>
+        </div>
+      )}
     </div>
   )
 }
