@@ -57,7 +57,7 @@ export interface WatchedContract {
   description: string
 }
 
-export type ContentBlockType = "video" | "text" | "tokenomics" | "link" | "image" | "html" | "social"
+export type ContentBlockType = "video" | "text" | "tokenomics" | "link" | "image" | "html" | "social" | "faq"
 
 export interface ContentBlock {
   id: string

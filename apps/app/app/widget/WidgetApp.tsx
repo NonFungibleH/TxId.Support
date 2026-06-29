@@ -11,6 +11,7 @@ import {
   Loader2Icon,
   AlertCircleIcon,
   ExternalLinkIcon,
+  ChevronDownIcon,
 } from "lucide-react"
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -310,6 +311,34 @@ function MessageContent({
   )
 }
 
+
+// ─── FAQ accordion item ──────────────────────────────────────────────────────
+
+function FaqItem({ q, a, secondaryColor, backgroundColor, textColor }: {
+  q: string; a: string
+  secondaryColor: string; backgroundColor: string; textColor: string
+}) {
+  const [open, setOpen] = useState(false)
+  return (
+    <div className="rounded-xl overflow-hidden" style={{ backgroundColor: secondaryColor }}>
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="flex items-center justify-between w-full px-3 py-2.5 text-left gap-2"
+      >
+        <p className="text-xs font-medium flex-1" style={{ color: textColor }}>{q}</p>
+        <ChevronDownIcon
+          className={`size-3.5 shrink-0 opacity-50 transition-transform duration-150 ${open ? "rotate-180" : ""}`}
+          style={{ color: textColor }}
+        />
+      </button>
+      {open && (
+        <div className="px-3 pb-2.5 border-t" style={{ borderColor: backgroundColor }}>
+          <p className="text-[11px] opacity-75 leading-relaxed whitespace-pre-wrap pt-2" style={{ color: textColor }}>{a}</p>
+        </div>
+      )}
+    </div>
+  )
+}
 
 // ─── Wallet session helpers (module-level, no component state) ───────────────
 
@@ -1385,6 +1414,59 @@ export function WidgetApp() {
                         className="text-[11px]"
                         dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(c.code) }}
                       />
+                    )
+                  }
+
+                  if (block.type === "social") {
+                    const links = [
+                      c.twitter  && { key: "twitter",  label: "X / Twitter", url: c.twitter },
+                      c.discord  && { key: "discord",  label: "Discord",     url: c.discord },
+                      c.telegram && { key: "telegram", label: "Telegram",    url: c.telegram },
+                      c.github   && { key: "github",   label: "GitHub",      url: c.github },
+                      c.website  && { key: "website",  label: "Website",     url: c.website },
+                    ].filter(Boolean) as { key: string; label: string; url: string }[]
+                    if (links.length === 0) return null
+                    return (
+                      <div key={block.id} className="rounded-xl p-3" style={{ backgroundColor: b.secondaryColor }}>
+                        {block.title && <p className="text-xs font-semibold mb-2" style={{ color: b.textColor }}>{block.title}</p>}
+                        <div className="flex flex-wrap gap-2">
+                          {links.map(link => (
+                            <a
+                              key={link.key}
+                              href={link.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[10px] font-medium transition-opacity hover:opacity-75"
+                              style={{ backgroundColor: b.backgroundColor, color: b.textColor }}
+                            >
+                              {link.label}
+                              <ExternalLinkIcon className="size-2.5 opacity-50" />
+                            </a>
+                          ))}
+                        </div>
+                      </div>
+                    )
+                  }
+
+                  if (block.type === "faq") {
+                    const pairs = [1, 2, 3]
+                      .map(i => ({ q: c[`q${i}`], a: c[`a${i}`] }))
+                      .filter(p => p.q && p.a)
+                    if (pairs.length === 0) return null
+                    return (
+                      <div key={block.id} className="space-y-1.5">
+                        {block.title && <p className="text-[10px] uppercase tracking-wider opacity-60 mb-2" style={{ color: b.textColor }}>{block.title}</p>}
+                        {pairs.map((pair, i) => (
+                          <FaqItem
+                            key={i}
+                            q={pair.q}
+                            a={pair.a}
+                            secondaryColor={b.secondaryColor}
+                            backgroundColor={b.backgroundColor}
+                            textColor={b.textColor}
+                          />
+                        ))}
+                      </div>
                     )
                   }
 
