@@ -1,5 +1,6 @@
 import { getProject } from "@/lib/actions/project"
 import { redirect } from "next/navigation"
+import { createServiceClient } from "@/lib/supabase/server"
 import { ChainToggles } from "@/components/settings/ChainToggles"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import type { ProjectConfig } from "@/lib/types/config"
@@ -13,6 +14,23 @@ export default async function ChainsPage() {
 
   const typedProject = project as unknown as ProjectRow
   const config = typedProject.config as unknown as ProjectConfig
+  const supabase = createServiceClient()
+
+  // Count conversations per chain (all-time) for usage badges
+  const { data: chainConvs } = await supabase
+    .from("conversations")
+    .select("chain_id")
+    .eq("project_id", typedProject.id)
+    .not("chain_id", "is", null)
+
+  const chainUsage: Record<string, number> = {}
+  for (const row of chainConvs ?? []) {
+    const id = row.chain_id as string
+    if (id) chainUsage[id] = (chainUsage[id] ?? 0) + 1
+  }
+
+  const activeCount = config.chains.length
+  const totalCount = 7 // SUPPORTED_CHAINS length (excluding testnet from the "of N" count is fine)
 
   return (
     <div className="space-y-6">
@@ -22,11 +40,22 @@ export default async function ChainsPage() {
       </div>
       <Card>
         <CardHeader>
-          <CardTitle>Active chains</CardTitle>
-          <CardDescription>Toggle which chains are included in wallet history lookups.</CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Active chains</CardTitle>
+              <CardDescription>Toggle which chains are included in wallet history lookups.</CardDescription>
+            </div>
+            <span className="text-sm font-semibold tabular-nums text-muted-foreground">
+              {activeCount} <span className="font-normal">of</span> {totalCount}
+            </span>
+          </div>
         </CardHeader>
         <CardContent>
-          <ChainToggles projectId={typedProject.id} initialChains={config.chains} />
+          <ChainToggles
+            projectId={typedProject.id}
+            initialChains={config.chains}
+            chainUsage={chainUsage}
+          />
         </CardContent>
       </Card>
     </div>
