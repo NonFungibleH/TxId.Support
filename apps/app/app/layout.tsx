@@ -11,6 +11,10 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "TxID Support — Dashboard",
   description: "Configure your TxID Support widget",
+  icons: {
+    icon: "/brand/txid-icon-64.png",
+    apple: "/brand/txid-icon-128.png",
+  },
 };
 
 export default function RootLayout({

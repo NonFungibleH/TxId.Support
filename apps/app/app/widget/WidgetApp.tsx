@@ -751,7 +751,7 @@ export function WidgetApp() {
   } as React.CSSProperties
 
   return (
-    <div className="flex h-full flex-col overflow-hidden" style={cssVars}>
+    <div className="flex min-h-screen flex-col overflow-hidden" style={cssVars}>
       {/* Header */}
       <div
         className="flex shrink-0 items-center gap-2 px-4 py-3"
@@ -968,9 +968,9 @@ export function WidgetApp() {
                   key="init-ask"
                   className="flex items-start gap-2"
                 >
-                  {b.agentIconUrl ? (
+                  {(b.agentIconUrl || b.logoUrl) ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={b.agentIconUrl} alt={b.agentName || "AI"} className="size-6 shrink-0 rounded-full object-cover" />
+                    <img src={b.agentIconUrl ?? b.logoUrl!} alt={b.agentName || "AI"} className="size-6 shrink-0 rounded-full object-cover" />
                   ) : (
                     <div
                       className="flex size-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold"
@@ -997,9 +997,9 @@ export function WidgetApp() {
                   className={`flex items-start gap-2 ${m.role === "user" ? "justify-end" : ""}`}
                 >
                   {m.role === "assistant" && (
-                    b.agentIconUrl ? (
+                    (b.agentIconUrl || b.logoUrl) ? (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={b.agentIconUrl} alt={b.agentName || "AI"} className="size-6 shrink-0 rounded-full object-cover" />
+                      <img src={b.agentIconUrl ?? b.logoUrl!} alt={b.agentName || "AI"} className="size-6 shrink-0 rounded-full object-cover" />
                     ) : (
                       <div
                         className="flex size-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold"
@@ -1093,9 +1093,9 @@ export function WidgetApp() {
                 <div key={m.id}>
                   <div className={`flex items-start gap-2 ${m.role === "user" ? "justify-end" : ""}`}>
                     {m.role === "assistant" && (
-                      b.agentIconUrl ? (
+                      (b.agentIconUrl || b.logoUrl) ? (
                         // eslint-disable-next-line @next/next/no-img-element
-                        <img src={b.agentIconUrl} alt={b.agentName || "AI"} className="size-6 shrink-0 rounded-full object-cover" />
+                        <img src={b.agentIconUrl ?? b.logoUrl!} alt={b.agentName || "AI"} className="size-6 shrink-0 rounded-full object-cover" />
                       ) : (
                         <div
                           className="flex size-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold"

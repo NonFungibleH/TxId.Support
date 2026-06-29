@@ -44,8 +44,9 @@ function shortAddr(addr: string) {
 
 function AgentAvatar() {
   return (
-    <div className="w-7 h-7 rounded-full bg-accent/20 border border-accent/30 flex items-center justify-center shrink-0 mt-0.5">
-      <span className="text-[9px] text-accent font-semibold leading-none text-center">TX</span>
+    <div className="w-7 h-7 rounded-full bg-accent/20 border border-accent/30 shrink-0 mt-0.5 overflow-hidden">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src="/brand/txid-icon-64.png" alt="TxID Support" className="w-full h-full object-cover" />
     </div>
   )
 }
