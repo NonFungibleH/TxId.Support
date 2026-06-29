@@ -9,6 +9,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts"
+import { useTheme } from "next-themes"
 
 interface ChartDay {
   date: string   // "Mon 24"
@@ -20,6 +21,18 @@ interface ConversationChartProps {
 }
 
 export function ConversationChart({ data }: ConversationChartProps) {
+  const { resolvedTheme } = useTheme()
+  const isDark = resolvedTheme !== "light"
+
+  const c = {
+    grid:          isDark ? "#27272a" : "#e5e7eb",
+    tick:          isDark ? "#71717a" : "#9ca3af",
+    tooltipBg:     isDark ? "#18181b" : "#ffffff",
+    tooltipBorder: isDark ? "#27272a" : "#e5e7eb",
+    tooltipLabel:  isDark ? "#a1a1aa" : "#6b7280",
+    tooltipItem:   isDark ? "#818cf8" : "#6366f1",
+  }
+
   if (data.every((d) => d.conversations === 0)) {
     return (
       <div className="flex h-48 items-center justify-center text-sm text-muted-foreground">
@@ -37,28 +50,28 @@ export function ConversationChart({ data }: ConversationChartProps) {
             <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
           </linearGradient>
         </defs>
-        <CartesianGrid strokeDasharray="3 3" stroke="#27272a" vertical={false} />
+        <CartesianGrid strokeDasharray="3 3" stroke={c.grid} vertical={false} />
         <XAxis
           dataKey="date"
-          tick={{ fill: "#71717a", fontSize: 11 }}
+          tick={{ fill: c.tick, fontSize: 11 }}
           tickLine={false}
           axisLine={false}
         />
         <YAxis
           allowDecimals={false}
-          tick={{ fill: "#71717a", fontSize: 11 }}
+          tick={{ fill: c.tick, fontSize: 11 }}
           tickLine={false}
           axisLine={false}
         />
         <Tooltip
           contentStyle={{
-            background: "#18181b",
-            border: "1px solid #27272a",
+            background: c.tooltipBg,
+            border: `1px solid ${c.tooltipBorder}`,
             borderRadius: "8px",
             fontSize: "12px",
           }}
-          labelStyle={{ color: "#a1a1aa" }}
-          itemStyle={{ color: "#818cf8" }}
+          labelStyle={{ color: c.tooltipLabel }}
+          itemStyle={{ color: c.tooltipItem }}
           cursor={{ stroke: "#6366f1", strokeWidth: 1 }}
         />
         <Area

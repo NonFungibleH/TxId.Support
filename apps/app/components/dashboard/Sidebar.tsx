@@ -5,7 +5,9 @@ import { usePathname } from "next/navigation"
 import {
   LayoutDashboard, Paintbrush, FileCode2, BookOpen,
   Link2, LayoutList, Code2, BarChart3, Globe, MessageSquare, Eye, Ticket, MessagesSquare, ExternalLink,
+  Sun, Moon,
 } from "lucide-react"
+import { useTheme } from "next-themes"
 import { cn } from "@/lib/utils"
 
 const WEB_URL = process.env.NEXT_PUBLIC_WEB_URL ?? "https://txid.support"
@@ -42,6 +44,7 @@ interface SidebarProps {
 
 export function Sidebar({ mode = "support", isOpen = false, onClose }: SidebarProps) {
   const pathname = usePathname()
+  const { resolvedTheme, setTheme } = useTheme()
   const NAV_ITEMS = mode === "token" ? TOKEN_NAV : SUPPORT_NAV
 
   return (
@@ -86,6 +89,16 @@ export function Sidebar({ mode = "support", isOpen = false, onClose }: SidebarPr
       </nav>
 
       <div className="border-t border-border px-4 py-3 space-y-2">
+        <button
+          type="button"
+          onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
+          className="flex items-center gap-2 rounded-md px-2.5 py-1.5 text-xs text-muted-foreground hover:bg-accent/50 hover:text-foreground transition-colors w-full"
+        >
+          {resolvedTheme === "dark"
+            ? <><Sun className="size-3.5 shrink-0" /> Light mode</>
+            : <><Moon className="size-3.5 shrink-0" /> Dark mode</>
+          }
+        </button>
         <p className="text-xs text-muted-foreground">© {new Date().getFullYear()} TxID Support</p>
         <div className="flex flex-wrap gap-x-3 gap-y-1">
           <a href={`${WEB_URL}/terms`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-0.5 text-[11px] text-muted-foreground hover:text-foreground transition-colors">

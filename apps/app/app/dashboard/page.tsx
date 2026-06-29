@@ -8,6 +8,7 @@ import { GoLiveToggle } from "@/components/dashboard/GoLiveToggle"
 import { ProjectNameEditor } from "@/components/dashboard/ProjectNameEditor"
 import type { ProjectConfig } from "@/lib/types/config"
 import type { Database } from "@/lib/supabase/types"
+import { cn } from "@/lib/utils"
 
 type ProjectRow = Database["public"]["Tables"]["projects"]["Row"]
 
@@ -155,36 +156,21 @@ export default async function DashboardPage() {
                 className="block group"
               >
                 <div
-                  className="rounded-xl border p-5 transition-all hover:border-primary/50"
-                  style={{
-                    borderColor: done
-                      ? "rgba(34,197,94,0.2)"
-                      : isNext
-                      ? "rgba(99,102,241,0.4)"
-                      : undefined,
-                    background: done
-                      ? "rgba(34,197,94,0.04)"
-                      : isNext
-                      ? "rgba(99,102,241,0.06)"
-                      : undefined,
-                  }}
+                  className={cn(
+                    "rounded-xl border p-5 transition-all hover:border-primary/50",
+                    done  ? "border-green-500/20 bg-green-500/[0.04]" :
+                    isNext ? "border-indigo-500/40 bg-indigo-500/[0.06]" : ""
+                  )}
                 >
                   <div className="flex items-start gap-4">
                     {/* Step indicator */}
                     <div
-                      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-bold"
-                      style={{
-                        background: done
-                          ? "rgba(34,197,94,0.15)"
-                          : isNext
-                          ? "rgba(99,102,241,0.2)"
-                          : "rgba(255,255,255,0.05)",
-                        color: done
-                          ? "rgb(34,197,94)"
-                          : isNext
-                          ? "rgb(129,140,248)"
-                          : "rgba(255,255,255,0.3)",
-                      }}
+                      className={cn(
+                        "flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-bold",
+                        done  ? "bg-green-500/15 text-green-500" :
+                        isNext ? "bg-indigo-500/20 text-indigo-400" :
+                        "bg-muted/50 text-muted-foreground/30"
+                      )}
                     >
                       {done ? <CheckCircle2 className="size-5" /> : step}
                     </div>

@@ -2,6 +2,7 @@
 
 import type { BrandingConfig } from "@/lib/types/config"
 import { MessageCircleIcon, XIcon, SendIcon } from "lucide-react"
+import { useTheme } from "next-themes"
 
 interface WidgetPreviewProps {
   branding: BrandingConfig
@@ -22,6 +23,8 @@ export function WidgetPreview({
   projectName = "Support",
 }: WidgetPreviewProps) {
   const fontFamily = FONT_CSS[branding.font] ?? "'Inter', sans-serif"
+  const { resolvedTheme } = useTheme()
+  const isDark = resolvedTheme !== "light"
 
   const positionClass =
     branding.position === "bottom-left"
@@ -32,15 +35,16 @@ export function WidgetPreview({
 
   return (
     <div
-      className={`relative flex h-[480px] w-full overflow-hidden rounded-xl border border-border bg-zinc-950 p-4 ${positionClass}`}
+      className={`relative flex h-[480px] w-full overflow-hidden rounded-xl border border-border p-4 ${positionClass} ${isDark ? "bg-zinc-950" : "bg-zinc-100"}`}
       aria-label="Widget preview"
     >
       {/* Grid texture */}
       <div
         className="pointer-events-none absolute inset-0 opacity-20"
         style={{
-          backgroundImage:
-            "linear-gradient(to right, #ffffff10 1px, transparent 1px), linear-gradient(to bottom, #ffffff10 1px, transparent 1px)",
+          backgroundImage: isDark
+            ? "linear-gradient(to right, #ffffff10 1px, transparent 1px), linear-gradient(to bottom, #ffffff10 1px, transparent 1px)"
+            : "linear-gradient(to right, #00000008 1px, transparent 1px), linear-gradient(to bottom, #00000008 1px, transparent 1px)",
           backgroundSize: "24px 24px",
         }}
       />
