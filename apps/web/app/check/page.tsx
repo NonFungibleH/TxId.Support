@@ -27,8 +27,6 @@ const CHAINS = [
 const STARTER_PROMPTS = [
   "Why did my last transaction fail?",
   "Where are my tokens?",
-  "Am I on the right network?",
-  "What's wrong with my wallet?",
 ]
 
 // ── Types ─────────────────────────────────────────────────────────────────────
