@@ -102,10 +102,6 @@ export default async function AnalyticsPage() {
     conversations,
   }))
 
-  const _satisfactionRate =
-    thumbsUp + thumbsDown > 0
-      ? Math.round((thumbsUp / (thumbsUp + thumbsDown)) * 100)
-      : null
 
   // P4: escalation metrics — requires tickets table
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -123,10 +119,6 @@ export default async function AnalyticsPage() {
     .select("id", { count: "exact", head: true })
     .eq("project_id", projectId)
 
-  const _escalationRate =
-    (totalConversations ?? 0) > 0 && (totalTickets ?? 0) > 0
-      ? Math.round(((totalTickets ?? 0) / (totalConversations ?? 1)) * 100)
-      : null
 
   const hasData = (totalConversations ?? 0) > 0
 
