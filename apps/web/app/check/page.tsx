@@ -24,10 +24,6 @@ const CHAINS = [
   { id: "56",    name: "BNB Chain", logo: "/chains/BNB.png"      },
 ]
 
-const STARTER_PROMPTS = [
-  "Why did my last transaction fail?",
-  "Where are my tokens?",
-]
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -425,17 +421,6 @@ export default function CheckPage() {
               )}
             </div>
 
-            <div className="mt-8">
-              <p className="text-xs text-muted text-center mb-3 font-mono">Common questions</p>
-              <div className="flex flex-wrap justify-center gap-2">
-                {STARTER_PROMPTS.map(p => (
-                  <span key={p} className="rounded-full border border-[#1e1e3a] px-3 py-1.5 text-xs text-muted">
-                    {p}
-                  </span>
-                ))}
-              </div>
-            </div>
-
             <p className="text-center text-xs text-muted/50 mt-8">
               Reads on-chain data only · Private keys never required · Powered by{" "}
               <span className="text-accent font-mono">TxID Support</span>
@@ -491,21 +476,6 @@ export default function CheckPage() {
             {messages.map((msg, i) => (
               <ChatMessage key={i} msg={msg} />
             ))}
-
-            {/* Suggestion chips — show after greeting, before user sends anything */}
-            {!loading && messages.length === 1 && (
-              <div className="flex flex-wrap gap-2 pt-1 pl-10">
-                {STARTER_PROMPTS.map(p => (
-                  <button
-                    key={p}
-                    onClick={() => handleSend(p)}
-                    className="rounded-full border border-[#1e1e3a] hover:border-accent/40 hover:bg-accent/5 px-3 py-1.5 text-xs text-muted hover:text-white transition-colors"
-                  >
-                    {p}
-                  </button>
-                ))}
-              </div>
-            )}
 
             <div ref={messagesEnd} />
           </div>

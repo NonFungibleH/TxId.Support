@@ -1058,7 +1058,9 @@ export function WidgetApp() {
         {!isTokenMode && tab === "chat" && (
           <div className="flex flex-1 flex-col min-h-0 overflow-hidden">
             <div ref={messagesContainerRef} className="flex-1 min-h-0 space-y-3 overflow-y-auto p-3">
-              {messages.map((m) => (
+              {(() => {
+                const lastAiIdx = messages.reduce((acc, m, i) => m.role === "assistant" && !m.streaming && m.content ? i : acc, -1)
+                return messages.map((m, idx) => (
                 <div key={m.id}>
                   <div className={`flex items-start gap-2 ${m.role === "user" ? "justify-end" : ""}`}>
                     {m.role === "assistant" && (
@@ -1108,8 +1110,8 @@ export function WidgetApp() {
                       ))}
                     </div>
                   </div>
-                  {/* Thumbs up/down — shown after each completed AI response */}
-                  {m.role === "assistant" && !m.streaming && m.content && (
+                  {/* Thumbs up/down — only on the last completed AI message */}
+                  {m.role === "assistant" && !m.streaming && m.content && idx === lastAiIdx && (
                     <div className="flex items-center gap-2 mt-1 ml-8">
                       {messageFeedback[m.id] ? (
                         <span className="text-[10px]" style={{ color: b.textColor, opacity: 0.35 }}>
@@ -1134,7 +1136,8 @@ export function WidgetApp() {
                     </div>
                   )}
                 </div>
-              ))}
+              ))
+              })()}
               <div ref={messagesEndRef} />
             </div>
 
