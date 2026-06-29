@@ -208,6 +208,9 @@ export async function POST(request: Request) {
           }
 
           controller.enqueue(encoder.encode("data: [DONE]\n\n"))
+
+          // Persist user message + assistant response after stream completes
+          void persistMessages(supabase, typedProject.id, sessionId, messages, walletAddress, chainId, fullResponseText || undefined)
         } catch (err) {
           console.error("[chat/stream]", err)
           controller.enqueue(
@@ -218,9 +221,6 @@ export async function POST(request: Request) {
         }
       },
     })
-
-    // Persist conversation asynchronously (fire and forget)
-    void persistMessages(supabase, typedProject.id, sessionId, messages, walletAddress, chainId)
 
     return new Response(stream, {
       headers: {
@@ -246,6 +246,7 @@ async function persistMessages(
   messages: ChatMessage[],
   walletAddress?: string,
   chainId?: string,
+  assistantResponse?: string,
 ) {
   try {
     const { data: conv } = await supabase
@@ -259,11 +260,17 @@ async function persistMessages(
 
     if (!conv) return
 
+    const toInsert: { conversation_id: string; role: string; content: string }[] = []
+
     const latest = messages[messages.length - 1]
     if (latest?.role === "user") {
-      await supabase
-        .from("messages")
-        .insert({ conversation_id: conv.id, role: "user", content: latest.content })
+      toInsert.push({ conversation_id: conv.id, role: "user", content: latest.content })
+    }
+    if (assistantResponse) {
+      toInsert.push({ conversation_id: conv.id, role: "assistant", content: assistantResponse })
+    }
+    if (toInsert.length > 0) {
+      await supabase.from("messages").insert(toInsert)
     }
   } catch {
     // Non-fatal

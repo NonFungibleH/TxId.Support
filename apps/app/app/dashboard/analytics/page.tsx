@@ -169,35 +169,31 @@ export default async function AnalyticsPage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="opacity-50">
           <CardHeader className="pb-2">
             <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
               <CheckCircle2 className="size-3.5" />
               Satisfaction
+              <span className="ml-auto text-[10px] font-medium bg-muted px-1.5 py-0.5 rounded-full">Roadmap</span>
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold">
-              {satisfactionRate !== null ? `${satisfactionRate}%` : "—"}
-            </p>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              {thumbsUp} helpful · {thumbsDown} not
-            </p>
+            <p className="text-2xl font-bold text-muted-foreground">—</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Thumbs up / down coming soon</p>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="opacity-50">
           <CardHeader className="pb-2">
             <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
               <AlertCircle className="size-3.5" />
               Escalation rate
+              <span className="ml-auto text-[10px] font-medium bg-muted px-1.5 py-0.5 rounded-full">Roadmap</span>
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold">
-              {escalationRate !== null ? `${escalationRate}%` : "—"}
-            </p>
-            <p className="text-xs text-muted-foreground mt-0.5">{totalTickets ?? 0} tickets total</p>
+            <p className="text-2xl font-bold text-muted-foreground">—</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Ticket escalation tracking coming soon</p>
           </CardContent>
         </Card>
 
