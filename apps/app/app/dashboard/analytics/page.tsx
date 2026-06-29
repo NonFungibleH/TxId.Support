@@ -102,7 +102,7 @@ export default async function AnalyticsPage() {
     conversations,
   }))
 
-  const satisfactionRate =
+  const _satisfactionRate =
     thumbsUp + thumbsDown > 0
       ? Math.round((thumbsUp / (thumbsUp + thumbsDown)) * 100)
       : null
@@ -123,7 +123,7 @@ export default async function AnalyticsPage() {
     .select("id", { count: "exact", head: true })
     .eq("project_id", projectId)
 
-  const escalationRate =
+  const _escalationRate =
     (totalConversations ?? 0) > 0 && (totalTickets ?? 0) > 0
       ? Math.round(((totalTickets ?? 0) / (totalConversations ?? 1)) * 100)
       : null

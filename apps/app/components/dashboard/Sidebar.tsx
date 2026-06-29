@@ -4,7 +4,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import {
   LayoutDashboard, Paintbrush, FileCode2, BookOpen,
-  Link2, LayoutList, Code2, BarChart3, Users, Globe, MessageSquare, Eye, Ticket, MessagesSquare, ExternalLink,
+  Link2, LayoutList, Code2, BarChart3, Globe, MessageSquare, Eye, Ticket, MessagesSquare, ExternalLink,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 

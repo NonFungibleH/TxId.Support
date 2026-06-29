@@ -61,15 +61,37 @@ export async function POST(request: Request) {
       chainId?: string
       preview?: boolean
       previewToken?: string
+      turnstileToken?: string
     }
 
-    const { key, sessionId, messages, walletAddress, chainId, preview, previewToken } = body
+    const { key, sessionId, messages, walletAddress, chainId, preview, previewToken, turnstileToken } = body
 
     if (!key || !sessionId || !Array.isArray(messages) || messages.length === 0) {
       return new Response(JSON.stringify({ error: "Invalid request" }), {
         status: 400,
         headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
       })
+    }
+
+    // ── Layer 2: Turnstile bot validation (when token provided by client) ──────
+    // Only enforced when TURNSTILE_SECRET_KEY is configured. Requests without a
+    // token are allowed through so embedded protocol widgets aren't affected.
+    if (turnstileToken && process.env.TURNSTILE_SECRET_KEY) {
+      const verifyRes = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          secret: process.env.TURNSTILE_SECRET_KEY,
+          response: turnstileToken,
+        }),
+      })
+      const verifyData = await verifyRes.json() as { success: boolean }
+      if (!verifyData.success) {
+        return new Response(JSON.stringify({ error: "Bot check failed. Please try again." }), {
+          status: 403,
+          headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
+        })
+      }
     }
 
     // Cap message history to prevent context-stuffing / runaway LLM costs
@@ -110,6 +132,54 @@ export async function POST(request: Request) {
       if (!preview || !verifyPreviewToken(typedProject.id, previewToken)) {
         return new Response(JSON.stringify({ error: "Project is inactive" }), {
           status: 403,
+          headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
+        })
+      }
+    }
+
+    // ── Layer 3: Monthly conversation quota per project ───────────────────────
+    // Free tier: 200 conversations/month. Only applied to new sessions (existing
+    // sessions already counted when their first message created the conversation row).
+    const MONTHLY_FREE_LIMIT = 200
+    const existingConv = await supabase
+      .from("conversations")
+      .select("id")
+      .eq("session_id", sessionId)
+      .maybeSingle()
+
+    if (!existingConv.data) {
+      // New session — check monthly count before allowing it to start
+      const startOfMonth = new Date()
+      startOfMonth.setUTCDate(1)
+      startOfMonth.setUTCHours(0, 0, 0, 0)
+      const { count: monthlyCount } = await supabase
+        .from("conversations")
+        .select("id", { count: "exact", head: true })
+        .eq("project_id", typedProject.id)
+        .gte("created_at", startOfMonth.toISOString())
+      if ((monthlyCount ?? 0) >= MONTHLY_FREE_LIMIT) {
+        return new Response(JSON.stringify({ error: "Monthly conversation limit reached. Upgrade to continue." }), {
+          status: 429,
+          headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
+        })
+      }
+    }
+
+    // ── Layer 1: Per-session message cap ──────────────────────────────────────
+    // Prevents a single session from draining token budget. Stricter for the
+    // public demo key (NEXT_PUBLIC_DEMO_WIDGET_KEY).
+    const isDemoKey = key === process.env.DEMO_WIDGET_KEY
+    const SESSION_MSG_LIMIT = isDemoKey ? 10 : 30
+
+    if (existingConv.data) {
+      const { count: msgCount } = await supabase
+        .from("messages")
+        .select("id", { count: "exact", head: true })
+        .eq("conversation_id", existingConv.data.id)
+        .eq("role", "user")
+      if ((msgCount ?? 0) >= SESSION_MSG_LIMIT) {
+        return new Response(JSON.stringify({ error: "Session message limit reached. Start a new conversation to continue." }), {
+          status: 429,
           headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
         })
       }

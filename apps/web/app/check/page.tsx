@@ -1,10 +1,11 @@
 "use client"
 
 import { useState, useRef, useEffect, useCallback } from "react"
+import Script from "next/script"
 import Link from "next/link"
 import { Navbar } from "@/components/layout/Navbar"
 import { Footer } from "@/components/layout/Footer"
-import { ArrowRight, Wallet, RotateCcw, Send, AlertCircle, CheckCircle2, ChevronDown } from "lucide-react"
+import { ArrowRight, Wallet, RotateCcw, Send, AlertCircle, CheckCircle2, ChevronDown, Loader2 } from "lucide-react"
 import { APP_URL } from "@/lib/config"
 import { clsx } from "clsx"
 
@@ -12,6 +13,7 @@ import { clsx } from "clsx"
 
 const API_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://app.txid.support"
 const DEMO_KEY = process.env.NEXT_PUBLIC_DEMO_WIDGET_KEY ?? ""
+const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? ""
 
 const CHAINS = [
   { id: "1",     name: "Ethereum",  logo: "/chains/Ethereum.png" },
@@ -35,6 +37,7 @@ interface Message {
   role: "user" | "assistant"
   content: string
   streaming?: boolean
+  toolCall?: string | null
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -45,15 +48,19 @@ function shortAddr(addr: string) {
 
 // ── Sub-components ────────────────────────────────────────────────────────────
 
+function AgentAvatar() {
+  return (
+    <div className="w-7 h-7 rounded-full bg-accent/20 border border-accent/30 flex items-center justify-center shrink-0 mt-0.5">
+      <span className="text-[9px] text-accent font-semibold leading-none text-center">TX</span>
+    </div>
+  )
+}
+
 function ChatMessage({ msg }: { msg: Message }) {
   const isUser = msg.role === "user"
   return (
     <div className={clsx("flex gap-3", isUser ? "justify-end" : "justify-start")}>
-      {!isUser && (
-        <div className="w-7 h-7 rounded-full bg-accent/20 border border-accent/30 flex items-center justify-center shrink-0 mt-0.5">
-          <span className="text-[10px] text-accent font-mono font-bold">AI</span>
-        </div>
-      )}
+      {!isUser && <AgentAvatar />}
       <div
         className={clsx(
           "max-w-[80%] rounded-2xl px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap",
@@ -62,30 +69,43 @@ function ChatMessage({ msg }: { msg: Message }) {
             : "bg-[#0f0f1a] border border-[#1e1e3a] text-[#94a3b8] rounded-bl-sm"
         )}
       >
-        {msg.content}
-        {msg.streaming && (
-          <span className="inline-block w-1 h-3.5 bg-accent/60 ml-0.5 animate-pulse align-middle" />
-        )}
+        {msg.toolCall ? (
+          <span className="inline-flex items-center gap-1.5 opacity-70 text-xs">
+            <Loader2 className="w-3 h-3 animate-spin" />
+            {msg.toolCall === "get_wallet_balance" && "Checking your balance…"}
+            {msg.toolCall === "get_recent_transactions" && "Looking up your transactions…"}
+            {msg.toolCall === "get_transaction_by_hash" && "Fetching transaction details…"}
+            {!["get_wallet_balance","get_recent_transactions","get_transaction_by_hash"].includes(msg.toolCall) && "Looking up on-chain data…"}
+          </span>
+        ) : msg.content ? (
+          <>
+            {msg.content}
+            {msg.streaming && (
+              <span className="inline-block w-1 h-3.5 bg-accent/60 ml-0.5 animate-pulse align-middle" />
+            )}
+          </>
+        ) : msg.streaming ? (
+          <span className="inline-flex items-center gap-1 opacity-60">
+            <span className="w-1.5 h-1.5 rounded-full bg-current animate-bounce" style={{ animationDelay: "0ms" }} />
+            <span className="w-1.5 h-1.5 rounded-full bg-current animate-bounce" style={{ animationDelay: "150ms" }} />
+            <span className="w-1.5 h-1.5 rounded-full bg-current animate-bounce" style={{ animationDelay: "300ms" }} />
+          </span>
+        ) : null}
       </div>
     </div>
   )
 }
 
-function TypingIndicator() {
-  return (
-    <div className="flex gap-3 justify-start">
-      <div className="w-7 h-7 rounded-full bg-accent/20 border border-accent/30 flex items-center justify-center shrink-0">
-        <span className="text-[10px] text-accent font-mono font-bold">AI</span>
-      </div>
-      <div className="bg-[#0f0f1a] border border-[#1e1e3a] rounded-2xl rounded-bl-sm px-4 py-3">
-        <div className="flex gap-1 items-center h-4">
-          <span className="w-1.5 h-1.5 rounded-full bg-accent/50 animate-bounce" style={{ animationDelay: "0ms" }} />
-          <span className="w-1.5 h-1.5 rounded-full bg-accent/50 animate-bounce" style={{ animationDelay: "150ms" }} />
-          <span className="w-1.5 h-1.5 rounded-full bg-accent/50 animate-bounce" style={{ animationDelay: "300ms" }} />
-        </div>
-      </div>
-    </div>
-  )
+// ── Turnstile token helper ────────────────────────────────────────────────────
+
+declare global {
+  interface Window {
+    turnstile?: {
+      render: (container: string | HTMLElement, params: Record<string, unknown>) => string
+      getResponse: (widgetId?: string) => string | undefined
+      reset: (widgetId?: string) => void
+    }
+  }
 }
 
 // ── Main page ─────────────────────────────────────────────────────────────────
@@ -104,7 +124,8 @@ export default function CheckPage() {
   const sessionId = useRef(crypto.randomUUID())
   const messagesEnd = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
-  const hasGreeted = useRef(false)
+  const turnstileWidgetId = useRef<string | null>(null)
+  const turnstileContainerRef = useRef<HTMLDivElement>(null)
 
   const chain = CHAINS.find(c => c.id === chainId) ?? CHAINS[0]
 
@@ -112,27 +133,56 @@ export default function CheckPage() {
     messagesEnd.current?.scrollIntoView({ behavior: "smooth" })
   }, [messages, loading])
 
-  // ── Auto-greeting when wallet connects ──────────────────────────────────────
+  // ── Render Turnstile widget when script loads ─────────────────────────────
+
+  function renderTurnstile() {
+    if (!window.turnstile || !TURNSTILE_SITE_KEY || !turnstileContainerRef.current || turnstileWidgetId.current) return
+    turnstileWidgetId.current = window.turnstile.render(turnstileContainerRef.current, {
+      sitekey: TURNSTILE_SITE_KEY,
+      size: "invisible",
+    })
+  }
+
+  function getTurnstileToken(): string {
+    if (!window.turnstile || !turnstileWidgetId.current) return ""
+    const token = window.turnstile.getResponse(turnstileWidgetId.current) ?? ""
+    if (token) window.turnstile.reset(turnstileWidgetId.current)
+    return token
+  }
+
+  // ── Send to API ───────────────────────────────────────────────────────────
 
   const sendToAI = useCallback(async (userText: string) => {
-    const userMsg: Message = { role: "user", content: userText }
-    setMessages(prev => [...prev, userMsg, { role: "assistant", content: "", streaming: true }])
+    const assistantId = crypto.randomUUID()
+    setMessages(prev => [
+      ...prev,
+      { role: "user", content: userText },
+      { role: "assistant", content: "", streaming: true, toolCall: null },
+    ])
     setLoading(true)
 
     try {
+      const turnstileToken = getTurnstileToken()
       const res = await fetch(`${API_URL}/api/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           key: DEMO_KEY,
           sessionId: sessionId.current,
-          messages: [{ role: "user", content: userText }],
-          walletAddress: wallet || manualAddress,
+          messages: [
+            ...messages.map(m => ({ role: m.role, content: m.content })),
+            { role: "user", content: userText },
+          ],
+          walletAddress: wallet || manualAddress || undefined,
           chainId,
+          ...(turnstileToken ? { turnstileToken } : {}),
         }),
       })
 
-      if (!res.ok || !res.body) throw new Error("API error")
+      if (!res.ok || !res.body) {
+        const errData = await res.json().catch(() => ({})) as { error?: string }
+        throw new Error(errData.error ?? "API error")
+      }
 
       const reader = res.body.getReader()
       const decoder = new TextDecoder()
@@ -150,12 +200,32 @@ export default function CheckPage() {
           const raw = line.slice(6).trim()
           if (raw === "[DONE]") break
           try {
-            const parsed = JSON.parse(raw)
-            if (parsed.token) {
-              assistantText += parsed.token
+            const parsed = JSON.parse(raw) as {
+              text?: string
+              tool_call?: string
+              error?: string
+              suggestions?: { items: string[] }
+            }
+            if (parsed.error) {
               setMessages(prev => {
                 const next = [...prev]
-                next[next.length - 1] = { role: "assistant", content: assistantText, streaming: true }
+                next[next.length - 1] = { role: "assistant", content: `Error: ${parsed.error}`, streaming: false }
+                return next
+              })
+              break
+            }
+            if (parsed.tool_call) {
+              setMessages(prev => {
+                const next = [...prev]
+                next[next.length - 1] = { ...next[next.length - 1], toolCall: parsed.tool_call ?? null }
+                return next
+              })
+            }
+            if (parsed.text) {
+              assistantText += parsed.text
+              setMessages(prev => {
+                const next = [...prev]
+                next[next.length - 1] = { role: "assistant", content: assistantText, streaming: true, toolCall: null }
                 return next
               })
             }
@@ -165,32 +235,36 @@ export default function CheckPage() {
 
       setMessages(prev => {
         const next = [...prev]
-        next[next.length - 1] = { role: "assistant", content: assistantText, streaming: false }
+        next[next.length - 1] = { role: "assistant", content: assistantText || "Sorry, I didn't get a response. Please try again.", streaming: false, toolCall: null }
         return next
       })
-    } catch {
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Something went wrong. Please try again."
       setMessages(prev => {
         const next = [...prev]
-        next[next.length - 1] = { role: "assistant", content: "Something went wrong connecting to the AI. Please try again.", streaming: false }
+        next[next.length - 1] = { role: "assistant", content: msg, streaming: false, toolCall: null }
         return next
       })
     } finally {
       setLoading(false)
+      void assistantId // suppress unused warning
     }
-  }, [wallet, manualAddress, chainId])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [wallet, manualAddress, chainId, messages])
 
-  useEffect(() => {
-    if (step === "chat" && !hasGreeted.current && DEMO_KEY) {
-      hasGreeted.current = true
-      const addr = wallet || manualAddress
-      const chainName = chain.name
-      sendToAI(
-        `Hi! My wallet address is ${addr} and I'm on ${chainName}. Please check my recent transactions and let me know if there's anything I should know about — failed txs, stuck funds, anything unusual.`
-      )
-    }
-  }, [step, wallet, manualAddress, chain.name, sendToAI])
+  // ── Enter chat — show greeting without API call ───────────────────────────
 
-  // ── Wallet connect ──────────────────────────────────────────────────────────
+  function enterChat(addr: string) {
+    const displayChain = chain.name
+    const short = shortAddr(addr)
+    setMessages([{
+      role: "assistant",
+      content: `Hi! I'm TxID Support. I can see your wallet ${short} is connected on ${displayChain}.\n\nWhat's going on — did a transaction fail, are funds missing, or is something else not looking right?`,
+    }])
+    setStep("chat")
+  }
+
+  // ── Wallet connect ────────────────────────────────────────────────────────
 
   async function connectMetaMask() {
     setConnectError("")
@@ -202,7 +276,7 @@ export default function CheckPage() {
     try {
       const accounts = await eth.request({ method: "eth_requestAccounts" }) as string[]
       setWallet(accounts[0])
-      setStep("chat")
+      enterChat(accounts[0])
     } catch {
       setConnectError("Wallet connection was rejected.")
     }
@@ -214,10 +288,10 @@ export default function CheckPage() {
       setConnectError("Enter a valid Ethereum address (0x…)")
       return
     }
-    setStep("chat")
+    enterChat(addr)
   }
 
-  // ── Send message ────────────────────────────────────────────────────────────
+  // ── Send message ──────────────────────────────────────────────────────────
 
   async function handleSend(text?: string) {
     const msg = (text ?? input).trim()
@@ -240,19 +314,24 @@ export default function CheckPage() {
     setMessages([])
     setConnectError("")
     sessionId.current = crypto.randomUUID()
-    hasGreeted.current = false
+    if (window.turnstile && turnstileWidgetId.current) {
+      window.turnstile.reset(turnstileWidgetId.current)
+    }
   }
 
-  // ── Connect step ────────────────────────────────────────────────────────────
+  // ── Connect step ──────────────────────────────────────────────────────────
 
   if (step === "connect") {
     return (
       <>
+        <Script
+          src="https://challenges.cloudflare.com/turnstile/v0/api.js"
+          onLoad={renderTurnstile}
+        />
         <Navbar />
         <main className="min-h-screen pt-28 pb-24">
           <div className="max-w-xl mx-auto px-6">
 
-            {/* Hero */}
             <div className="text-center mb-12">
               <span className="inline-flex items-center gap-1.5 rounded-full bg-accent/10 border border-accent/20 px-3 py-1 text-xs font-mono text-accent mb-5">
                 <CheckCircle2 className="w-3 h-3" /> Free · No sign-up · No private keys
@@ -261,14 +340,12 @@ export default function CheckPage() {
                 Diagnose any crypto transaction
               </h1>
               <p className="text-muted text-base leading-relaxed">
-                Connect your wallet and ask the AI anything — why a transaction failed, where your tokens went, what a revert reason means.
+                Connect your wallet and ask TxID Support anything — why a transaction failed, where your tokens went, what a revert reason means.
               </p>
             </div>
 
-            {/* Connect card */}
             <div className="rounded-2xl border border-[#1e1e3a] bg-[#0f0f1a] p-8 space-y-6">
 
-              {/* MetaMask button */}
               <button
                 onClick={connectMetaMask}
                 className="w-full flex items-center justify-center gap-3 rounded-xl bg-accent hover:bg-accent/90 active:bg-accent/80 text-white font-semibold py-3.5 transition-colors"
@@ -283,7 +360,6 @@ export default function CheckPage() {
                 <div className="flex-1 h-px bg-[#1e1e3a]" />
               </div>
 
-              {/* Manual address */}
               <div className="space-y-3">
                 <input
                   type="text"
@@ -294,7 +370,6 @@ export default function CheckPage() {
                   className="w-full bg-[#07070d] border border-[#1e1e3a] rounded-xl px-4 py-3 text-white font-mono text-sm placeholder:text-muted focus:outline-none focus:border-accent transition-colors"
                 />
 
-                {/* Chain selector */}
                 <div className="relative">
                   <button
                     onClick={() => setChainOpen(o => !o)}
@@ -352,7 +427,6 @@ export default function CheckPage() {
               )}
             </div>
 
-            {/* Starter prompt chips */}
             <div className="mt-8">
               <p className="text-xs text-muted text-center mb-3 font-mono">Common questions</p>
               <div className="flex flex-wrap justify-center gap-2">
@@ -364,7 +438,6 @@ export default function CheckPage() {
               </div>
             </div>
 
-            {/* Trust line */}
             <p className="text-center text-xs text-muted/50 mt-8">
               Reads on-chain data only · Private keys never required · Powered by{" "}
               <span className="text-accent font-mono">TxID Support</span>
@@ -376,12 +449,19 @@ export default function CheckPage() {
     )
   }
 
-  // ── Chat step ───────────────────────────────────────────────────────────────
+  // ── Chat step ─────────────────────────────────────────────────────────────
 
   const displayAddr = wallet || manualAddress
 
   return (
     <>
+      <Script
+        src="https://challenges.cloudflare.com/turnstile/v0/api.js"
+        onLoad={renderTurnstile}
+      />
+      {/* Invisible Turnstile widget */}
+      <div ref={turnstileContainerRef} className="hidden" />
+
       <Navbar />
       <main className="min-h-screen flex flex-col pt-16">
 
@@ -410,19 +490,13 @@ export default function CheckPage() {
         <div className="flex-1 overflow-y-auto">
           <div className="max-w-3xl mx-auto px-6 py-8 space-y-5">
 
-            {messages.length === 0 && loading && <TypingIndicator />}
-
             {messages.map((msg, i) => (
               <ChatMessage key={i} msg={msg} />
             ))}
 
-            {loading && !messages[messages.length - 1]?.streaming && (
-              <TypingIndicator />
-            )}
-
-            {/* Starter prompts after greeting */}
-            {!loading && messages.length >= 2 && messages.length < 4 && (
-              <div className="flex flex-wrap gap-2 pt-2">
+            {/* Suggestion chips — show after greeting, before user sends anything */}
+            {!loading && messages.length === 1 && (
+              <div className="flex flex-wrap gap-2 pt-1 pl-10">
                 {STARTER_PROMPTS.map(p => (
                   <button
                     key={p}
@@ -459,7 +533,7 @@ export default function CheckPage() {
                 disabled={!input.trim() || loading}
                 className="rounded-xl bg-accent text-white p-2 hover:bg-accent/90 disabled:opacity-40 disabled:cursor-not-allowed transition-colors shrink-0"
               >
-                <Send className="w-4 h-4" />
+                {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
               </button>
             </div>
             <p className="text-[11px] text-muted/40 text-center mt-2 font-mono">
