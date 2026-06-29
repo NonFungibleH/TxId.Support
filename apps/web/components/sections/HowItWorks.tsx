@@ -17,8 +17,8 @@ const STEPS = [
     title: "Configure",
     description:
       "Set your brand colours, paste your logo URL, and add your docs link. Preview updates in real time before you go live.",
-    iconBg: "bg-[rgba(245,158,11,0.12)]",
-    iconColor: "text-[var(--yellow)]",
+    iconBg: "bg-accent-muted",
+    iconColor: "text-accent",
   },
   {
     icon: Rocket,
@@ -26,8 +26,8 @@ const STEPS = [
     title: "Go Live",
     description:
       "Your users get instant AI support — wallet detection, transaction diagnosis, docs Q&A — all in your brand.",
-    iconBg: "bg-[rgba(34,197,94,0.12)]",
-    iconColor: "text-[var(--green)]",
+    iconBg: "bg-accent-muted",
+    iconColor: "text-accent",
   },
 ];
 
