@@ -35,7 +35,7 @@
     "#txid-widget-btn svg{display:block}" +
     "#txid-widget-frame-wrap{" +
     "position:fixed;bottom:92px;right:24px;z-index:2147483645;" +
-    "width:380px;height:580px;max-height:calc(100vh - 112px);border-radius:16px;" +
+    "width:380px;height:500px;max-height:calc(100vh - 152px);border-radius:16px;" +
     "box-shadow:0 8px 48px rgba(0,0,0,.45);" +
     "overflow:hidden;display:none;" +
     "}" +
