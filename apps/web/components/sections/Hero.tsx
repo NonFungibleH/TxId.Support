@@ -62,17 +62,23 @@ export function Hero() {
                   { name: "Optimism", file: "Optimism.png", whiteBg: false },
                   { name: "BNB",      file: "BNB.png",      whiteBg: false },
                 ].map(({ name, file, whiteBg }) => (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
+                  <div
                     key={name}
-                    src={`/chains/${file}`}
-                    alt={name}
                     title={name}
                     className={[
-                      "h-5 w-5 shrink-0 object-contain rounded-full",
-                      whiteBg ? "bg-white p-[3px]" : "",
+                      "h-5 w-5 shrink-0 rounded-full flex items-center justify-center",
+                      whiteBg
+                        ? "bg-white p-[3px]"          // white circle, no overflow-hidden so square stays square
+                        : "overflow-hidden",           // clip any non-circular logos to circle
                     ].join(" ")}
-                  />
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={`/chains/${file}`}
+                      alt={name}
+                      className="w-full h-full object-contain"
+                    />
+                  </div>
                 ))}
               </div>
             </FadeIn>
