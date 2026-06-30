@@ -42,20 +42,25 @@ export function HowItWorks() {
           {/* Connector line between steps on desktop */}
           <div
             aria-hidden="true"
-            className="hidden md:block absolute top-5 left-[calc(100%/6)] right-[calc(100%/6)] h-px bg-gradient-to-r from-accent/40 via-accent/20 to-accent/40"
+            className="hidden md:block absolute top-[2.75rem] left-[calc(100%/6)] right-[calc(100%/6)] h-px bg-gradient-to-r from-accent/50 via-accent/20 to-accent/50"
           />
 
           {STEPS.map((step, i) => (
             <FadeIn key={step.number} delay={i * 0.12}>
               <div className="flex flex-col items-center text-center">
-                {/* Numbered icon circle */}
-                <div className="relative z-10 w-11 h-11 rounded-full bg-accent-muted border border-accent/30 flex items-center justify-center mb-5">
+                {/* Large step number */}
+                <span
+                  aria-hidden="true"
+                  className="font-mono text-7xl font-bold leading-none text-accent/20 select-none mb-1"
+                >
+                  {step.number}
+                </span>
+
+                {/* Icon circle */}
+                <div className="relative z-10 w-11 h-11 rounded-full bg-accent/20 border border-accent/50 flex items-center justify-center mb-5">
                   <step.icon className="w-5 h-5 text-accent" />
                 </div>
 
-                <p className="font-mono text-[10px] text-accent/50 tracking-widest mb-2">
-                  {step.number}
-                </p>
                 <h3 className="font-display text-lg font-semibold text-white mb-2">
                   {step.title}
                 </h3>
