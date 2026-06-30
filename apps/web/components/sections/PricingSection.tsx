@@ -41,7 +41,7 @@ const PLANS = [
       { label: "Token price + chart", soon: false },
       { label: "Escalation webhooks", soon: false },
       { label: "Priority support", soon: false },
-      { label: "CSV export", soon: true },
+      { label: "CSV export", soon: false },
     ],
   },
   {
