@@ -37,7 +37,7 @@
     "position:fixed;bottom:92px;right:24px;z-index:2147483645;" +
     "width:380px;height:420px;max-height:calc(100vh - 152px);border-radius:16px;" +
     "box-shadow:0 8px 48px rgba(0,0,0,.45);" +
-    "overflow:hidden;display:none;" +
+    "overflow:hidden;display:none;background-color:#0a0a0f;" +
     "}" +
     "#txid-widget-frame-wrap.open{display:block}" +
     "#txid-widget-frame{width:100%;height:100%;border:none;display:block}" +
