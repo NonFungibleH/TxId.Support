@@ -8,8 +8,6 @@ const STEPS = [
     title: "Embed",
     description:
       "Add one script tag to your site. Works with React, Next.js, or plain HTML. Takes under a minute.",
-    iconBg: "bg-accent-muted",
-    iconColor: "text-accent",
   },
   {
     icon: Settings,
@@ -17,8 +15,6 @@ const STEPS = [
     title: "Configure",
     description:
       "Set your brand colours, paste your logo URL, and add your docs link. Preview updates in real time before you go live.",
-    iconBg: "bg-accent-muted",
-    iconColor: "text-accent",
   },
   {
     icon: Rocket,
@@ -26,15 +22,13 @@ const STEPS = [
     title: "Go Live",
     description:
       "Your users get instant AI support — wallet detection, transaction diagnosis, docs Q&A — all in your brand.",
-    iconBg: "bg-accent-muted",
-    iconColor: "text-accent",
   },
 ];
 
 export function HowItWorks() {
   return (
     <section className="py-24">
-      <div className="max-w-6xl mx-auto px-6">
+      <div className="max-w-4xl mx-auto px-6">
         <FadeIn>
           <div className="text-center mb-16">
             <p className="font-mono text-sm text-accent mb-3">{`// How it works`}</p>
@@ -44,18 +38,24 @@ export function HowItWorks() {
           </div>
         </FadeIn>
 
-        <div className="grid md:grid-cols-3 gap-6">
+        <div className="relative grid md:grid-cols-3 gap-10 md:gap-6">
+          {/* Connector line between steps on desktop */}
+          <div
+            aria-hidden="true"
+            className="hidden md:block absolute top-5 left-[calc(100%/6)] right-[calc(100%/6)] h-px bg-gradient-to-r from-accent/40 via-accent/20 to-accent/40"
+          />
+
           {STEPS.map((step, i) => (
-            <FadeIn key={step.number} delay={i * 0.1}>
-              <div className="relative bg-[var(--bg-surface)] border border-[var(--border)] rounded-2xl p-6 hover:border-[var(--border-accent)] transition-colors group">
-                <div className="flex items-start justify-between mb-4">
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${step.iconBg}`}>
-                    <step.icon className={`w-5 h-5 ${step.iconColor}`} />
-                  </div>
-                  <span aria-hidden="true" className="font-mono text-3xl font-bold text-white/5 group-hover:text-white/10 transition-colors select-none">
-                    {step.number}
-                  </span>
+            <FadeIn key={step.number} delay={i * 0.12}>
+              <div className="flex flex-col items-center text-center">
+                {/* Numbered icon circle */}
+                <div className="relative z-10 w-11 h-11 rounded-full bg-accent-muted border border-accent/30 flex items-center justify-center mb-5">
+                  <step.icon className="w-5 h-5 text-accent" />
                 </div>
+
+                <p className="font-mono text-[10px] text-accent/50 tracking-widest mb-2">
+                  {step.number}
+                </p>
                 <h3 className="font-display text-lg font-semibold text-white mb-2">
                   {step.title}
                 </h3>

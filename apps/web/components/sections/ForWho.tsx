@@ -32,7 +32,7 @@ const PROJECT_TYPES = [
 export function ForWho() {
   return (
     <section className="py-24">
-      <div className="max-w-5xl mx-auto px-6">
+      <div className="max-w-4xl mx-auto px-6">
         <FadeIn>
           <div className="text-center mb-12">
             <p className="font-mono text-sm text-accent mb-3">{"// Who it's for"}</p>
@@ -47,14 +47,14 @@ export function ForWho() {
         </FadeIn>
 
         <FadeIn delay={0.1}>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-10">
+          <div className="grid sm:grid-cols-2 gap-x-16 gap-y-5 mb-10">
             {PROJECT_TYPES.map((type) => (
-              <div
-                key={type.label}
-                className="rounded-xl border border-[var(--border)] bg-[var(--bg-surface)] px-5 py-4"
-              >
-                <p className="text-sm font-semibold text-white mb-1">{type.label}</p>
-                <p className="text-xs text-muted leading-relaxed">{type.description}</p>
+              <div key={type.label} className="flex items-start gap-3">
+                <span className="mt-[7px] w-1.5 h-1.5 rounded-full bg-accent shrink-0" />
+                <div>
+                  <p className="text-sm font-semibold text-white">{type.label}</p>
+                  <p className="text-xs text-muted mt-0.5 leading-relaxed">{type.description}</p>
+                </div>
               </div>
             ))}
           </div>
