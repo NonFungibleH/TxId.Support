@@ -5,41 +5,41 @@ import { APP_URL } from "@/lib/config";
 
 const SEGMENTS = [
   {
-    badge: "Support tool",
-    heading: "DeFi protocols",
-    subheading: "Support your existing users",
+    badge: "DeFi protocols",
+    heading: "Support your users on-chain",
+    subheading: "When things go wrong, your agent already knows why",
     description:
-      "When users hit a failed swap, wrong-network error, or a question your docs should answer — they need help that already knows their on-chain context. Not a generic chatbot.",
+      "Failed swaps, wrong-network errors, reverted transactions — your agent reads the wallet context and explains what happened in plain English. No ticket queues, no copy-pasting hashes.",
     features: [
       "Transaction diagnostics — failed swaps explained in plain English",
       "Wallet-aware — the agent already knows what the user's wallet did",
-      "Docs Q&A — trained on your protocol documentation",
+      "Knowledge base Q&A — trained on your protocol documentation",
       "Escalation tickets — clean hand-off when the agent can't resolve",
     ],
-    cta: "Add to your protocol",
+    cta: "Get started free",
     ctaHref: `${APP_URL}/sign-up`,
     dotColor: "bg-accent",
     textColor: "text-accent",
-    cardClass: "bg-accent-muted border-accent shadow-lg shadow-accent/10",
+    cardClass: "bg-[var(--bg-surface)] border-[var(--border)] hover:border-accent/50 transition-colors",
     buttonVariant: "primary" as const,
   },
   {
-    badge: "Discovery hub",
-    heading: "Token projects",
-    subheading: "Educate and onboard your community",
+    badge: "Token communities",
+    heading: "Onboard your community automatically",
+    subheading: "Answer every new member question without lifting a finger",
     description:
-      "New community members want to know where to buy, how to stake, what the tokenomics look like, and where to get involved. Answer all of it automatically — embedded in your site.",
+      "New holders want to know where to buy, how to stake, what the tokenomics look like, and where to get involved. Your agent handles all of it — embedded in your site, always up to date.",
     features: [
       "Token price & DEX links — live data, always current",
       "Tokenomics explainer — supply, distribution, vesting",
       "Staking & rewards — how to participate, what to expect",
       "Community links — Discord, Telegram, Twitter, whitepaper",
     ],
-    cta: "Set up your hub",
+    cta: "Get started free",
     ctaHref: `${APP_URL}/sign-up`,
     dotColor: "bg-[var(--yellow)]",
     textColor: "text-[var(--yellow)]",
-    cardClass: "bg-[var(--bg-surface)] border-[var(--border)]",
+    cardClass: "bg-[var(--bg-surface)] border-[var(--border)] hover:border-[var(--yellow)]/50 transition-colors",
     buttonVariant: "outline" as const,
   },
 ];
@@ -52,11 +52,11 @@ export function ForWho() {
           <div className="text-center mb-14">
             <p className="font-mono text-sm text-accent mb-3">{"// Who it's for"}</p>
             <h2 className="font-display text-4xl font-bold text-white mb-4">
-              Two types of project. One agent.
+              Built for any crypto project
             </h2>
             <p className="text-muted max-w-xl mx-auto">
-              Whether you&apos;re running a live protocol or launching a token community,
-              TxID Support fits the same way — embedded in your site, trained on your content.
+              Whether you&apos;re running a live protocol or growing a token community,
+              one agent handles it all — embedded in your site, trained on your content.
             </p>
           </div>
         </FadeIn>
