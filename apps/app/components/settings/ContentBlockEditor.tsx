@@ -96,6 +96,17 @@ async function fetchVideoTitle(url: string): Promise<string | null> {
   }
 }
 
+function deriveTitle(type: ContentBlockType, content: Record<string, string>): string {
+  if (type === "link" && content.url) {
+    try { return new URL(content.url).hostname } catch { /* fall through */ }
+  }
+  const defaults: Partial<Record<ContentBlockType, string>> = {
+    video: "Video", text: "Announcement", image: "Image",
+    faq: "FAQ", social: "Social Links", html: "Custom Content", link: "Link",
+  }
+  return defaults[type] ?? "Content Block"
+}
+
 function contentPreview(block: ContentBlock): string | null {
   const c = getContent(block)
   if (block.type === "video")  return c.url ?? null
@@ -357,10 +368,33 @@ export function ContentBlockEditor({ projectId, initialBlocks }: ContentBlockEdi
   }
 
   function save() {
+    // If the add-form has any content, include it as a new block automatically
+    const hasPending = newTitle.trim() !== "" || Object.values(newContent).some(v => v.trim() !== "")
+
+    let finalBlocks = blocks
+    if (hasPending) {
+      if (blocks.length >= 10) {
+        toast.error("Maximum 10 content blocks")
+        return
+      }
+      const title = newTitle.trim() || deriveTitle(newType, newContent)
+      const block: ContentBlock = {
+        id: nanoid(),
+        type: newType,
+        title,
+        content: newContent,
+        order: blocks.length,
+      }
+      finalBlocks = [...blocks, block]
+      setBlocks(finalBlocks)
+      setNewTitle("")
+      setNewContent({})
+    }
+
     startTransition(async () => {
       try {
-        await updateConfig(projectId, { contentBlocks: blocks })
-        toast.success("Content saved")
+        await updateConfig(projectId, { contentBlocks: finalBlocks })
+        toast.success(hasPending ? "Block added" : "Content saved")
       } catch {
         toast.error("Failed to save content")
       }
