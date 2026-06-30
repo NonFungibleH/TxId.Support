@@ -21,7 +21,7 @@ const COMPARISON = [
       { feature: "Wallet detection", starter: true, pro: true, enterprise: true },
       { feature: "Transaction diagnostics", starter: true, pro: true, enterprise: true },
       { feature: "Revert reason explainer", starter: true, pro: true, enterprise: true },
-      { feature: "Docs Q&A (RAG)", starter: true, pro: true, enterprise: true },
+      { feature: "Knowledge base Q&A", starter: true, pro: true, enterprise: true },
     ],
   },
   {
@@ -30,6 +30,7 @@ const COMPARISON = [
       { feature: "TxID Support branding", starter: true, pro: false, enterprise: false },
       { feature: "Custom colours + font", starter: false, pro: true, enterprise: true },
       { feature: "Custom logo", starter: false, pro: true, enterprise: true },
+      { feature: "Custom agent name + avatar", starter: false, pro: true, enterprise: true },
       { feature: "Token price + chart", starter: false, pro: true, enterprise: true },
     ],
   },
@@ -38,7 +39,6 @@ const COMPARISON = [
     rows: [
       { feature: "Script tag embed", starter: true, pro: true, enterprise: true },
       { feature: "Inline iframe embed", starter: true, pro: true, enterprise: true },
-      { feature: "React npm package", starter: false, pro: true, enterprise: true },
       { feature: "Multi-chain support", starter: true, pro: true, enterprise: true },
       { feature: "Custom chains", starter: false, pro: false, enterprise: true },
     ],
@@ -65,7 +65,7 @@ const COMPARISON = [
 const FAQ = [
   {
     q: "What does the free trial include?",
-    a: "The Starter plan is free forever — no trial expiry. You get 200 conversations/month, wallet detection, transaction diagnostics, docs Q&A, and a full analytics dashboard. No credit card required.",
+    a: "The Starter plan is free forever — no trial expiry. You get 200 conversations/month, wallet detection, transaction diagnostics, knowledge base Q&A, and a full analytics dashboard. No credit card required.",
   },
   {
     q: "What counts as a conversation?",
