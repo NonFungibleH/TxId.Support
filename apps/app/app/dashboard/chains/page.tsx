@@ -4,7 +4,7 @@ import { createServiceClient } from "@/lib/supabase/server"
 import { ChainToggles } from "@/components/settings/ChainToggles"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import type { ProjectConfig } from "@/lib/types/config"
-import { PLAN_CHAIN_LIMITS, SUPPORTED_CHAINS } from "@/lib/types/config"
+import { PLAN_CHAIN_LIMITS } from "@/lib/types/config"
 import type { Database } from "@/lib/supabase/types"
 
 type ProjectRow = Database["public"]["Tables"]["projects"]["Row"]
