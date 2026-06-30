@@ -6,6 +6,12 @@ export const PLAN_CHAIN_LIMITS: Record<Plan, number> = {
   enterprise: Infinity,
 }
 
+export const PLAN_CONV_LIMITS: Record<Plan, number> = {
+  starter:    200,
+  pro:        5000,
+  enterprise: Infinity,
+}
+
 export const SUPPORTED_CHAINS = [
   { id: "0xaa36a7", name: "Sepolia (Testnet)",  explorer: "sepolia.etherscan.io" },
   { id: "0x1",      name: "Ethereum",          explorer: "etherscan.io" },
