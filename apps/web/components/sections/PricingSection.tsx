@@ -145,6 +145,17 @@ export function PricingSection({ compact }: { compact?: boolean }) {
             </FadeIn>
           ))}
         </div>
+
+        {compact && (
+          <FadeIn delay={0.25}>
+            <p className="text-center text-sm text-muted mt-8">
+              Need to compare plans?{" "}
+              <a href="/pricing" className="text-accent hover:underline underline-offset-2">
+                See the full feature breakdown →
+              </a>
+            </p>
+          </FadeIn>
+        )}
       </div>
     </section>
   );
