@@ -492,7 +492,7 @@ export default function CheckPage() {
                 value={input}
                 onChange={e => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder="Ask anything about your wallet…"
+                placeholder="Ask anything…"
                 disabled={loading}
                 className="flex-1 bg-transparent resize-none text-sm text-white placeholder:text-muted focus:outline-none leading-relaxed max-h-40 disabled:opacity-50"
                 style={{ scrollbarWidth: "none" }}
