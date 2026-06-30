@@ -73,7 +73,7 @@ const FAQ = [
   },
   {
     q: "How does the Pro plan work?",
-    a: "Pro is designed for protocols with active on-chain users — the kind of traffic that pushes past 200 conversations/month quickly. It unlocks 5,000 conversations/month, removes TxID Support branding, adds full custom branding (colours, font, logo, agent name), escalation webhooks, and CSV export. $499/mo, no long-term contract, cancel anytime.",
+    a: "Pro is designed for protocols with active on-chain users — the kind of traffic that pushes past 200 conversations/month quickly. It unlocks 5,000 conversations/month, removes TxID Support branding, adds full custom branding (colours, font, logo, agent name), escalation webhooks, and CSV export. $699/mo, no long-term contract, cancel anytime.",
   },
   {
     q: "What chains are supported?",
