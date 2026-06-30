@@ -292,10 +292,16 @@ export function ContentBlockEditor({ projectId, initialBlocks }: ContentBlockEdi
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event
     if (over && active.id !== over.id) {
-      setBlocks(prev => {
-        const oldIndex = prev.findIndex(b => b.id === active.id)
-        const newIndex = prev.findIndex(b => b.id === over.id)
-        return arrayMove(prev, oldIndex, newIndex).map((b, i) => ({ ...b, order: i }))
+      const oldIndex = blocks.findIndex(b => b.id === active.id)
+      const newIndex = blocks.findIndex(b => b.id === over.id)
+      const reordered = arrayMove(blocks, oldIndex, newIndex).map((b, i) => ({ ...b, order: i }))
+      setBlocks(reordered)
+      startTransition(async () => {
+        try {
+          await updateConfig(projectId, { contentBlocks: reordered })
+        } catch {
+          toast.error("Failed to save order")
+        }
       })
     }
   }

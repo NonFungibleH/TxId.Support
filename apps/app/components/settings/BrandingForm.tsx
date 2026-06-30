@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useTransition, useEffect } from "react"
+import { useState, useTransition, useEffect, useRef } from "react"
 import { toast } from "sonner"
 import { Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -34,14 +34,31 @@ export function BrandingForm({ projectId, initial, onBrandingChange }: BrandingF
   const [isPending, startTransition] = useTransition()
   const [fetchingColors, setFetchingColors] = useState(false)
   const [colorFetchMsg, setColorFetchMsg] = useState<{ ok: boolean; text: string } | null>(null)
+  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout>>()
+  const hasMountedRef = useRef(false)
 
   function update<K extends keyof BrandingConfig>(key: K, val: BrandingConfig[K]) {
     setBranding(prev => ({ ...prev, [key]: val }))
   }
 
-  // Notify parent of live branding changes for preview
+  // Notify parent of live changes for preview + debounced auto-save
   useEffect(() => {
     onBrandingChange?.(branding)
+    if (!hasMountedRef.current) {
+      hasMountedRef.current = true
+      return
+    }
+    clearTimeout(saveTimeoutRef.current)
+    saveTimeoutRef.current = setTimeout(() => {
+      startTransition(async () => {
+        try {
+          await updateConfig(projectId, { branding })
+        } catch {
+          toast.error("Auto-save failed — click Save to retry")
+        }
+      })
+    }, 800)
+    return () => clearTimeout(saveTimeoutRef.current)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [JSON.stringify(branding)])
 
@@ -295,9 +312,12 @@ export function BrandingForm({ projectId, initial, onBrandingChange }: BrandingF
         </div>
       </div>
 
-      <Button onClick={save} disabled={isPending}>
-        {isPending ? "Saving…" : "Save branding"}
-      </Button>
+      <div className="flex items-center gap-3">
+        <Button onClick={save} disabled={isPending}>
+          {isPending ? "Saving…" : "Save branding"}
+        </Button>
+        <p className="text-xs text-muted-foreground">Changes save automatically</p>
+      </div>
     </div>
   )
 }
