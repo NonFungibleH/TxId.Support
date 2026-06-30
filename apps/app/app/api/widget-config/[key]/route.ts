@@ -104,7 +104,7 @@ export async function GET(
     headers: {
       ...CORS_HEADERS,
       "Content-Type": "application/json",
-      "Cache-Control": "public, max-age=60",
+      "Cache-Control": "public, max-age=15",
     },
   })
 }

@@ -275,7 +275,7 @@ interface ContentBlockEditorProps {
 
 export function ContentBlockEditor({ projectId, initialBlocks }: ContentBlockEditorProps) {
   const [blocks, setBlocks] = useState<ContentBlock[]>(
-    [...initialBlocks].sort((a, b) => a.order - b.order)
+    [...(initialBlocks ?? [])].sort((a, b) => a.order - b.order)
   )
   const [newType, setNewType] = useState<ContentBlockType>("video")
   const [newTitle, setNewTitle] = useState("")
