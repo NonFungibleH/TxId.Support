@@ -1,3 +1,11 @@
+export type Plan = "starter" | "pro" | "enterprise"
+
+export const PLAN_CHAIN_LIMITS: Record<Plan, number> = {
+  starter:    1,
+  pro:        3,
+  enterprise: Infinity,
+}
+
 export const SUPPORTED_CHAINS = [
   { id: "0xaa36a7", name: "Sepolia (Testnet)",  explorer: "sepolia.etherscan.io" },
   { id: "0x1",      name: "Ethereum",          explorer: "etherscan.io" },
@@ -89,6 +97,7 @@ export interface ProjectConfig {
   previewConfirmed: boolean
   notificationEmail?: string | null
   webhookUrl?: string | null
+  plan?: Plan
 }
 
 export const DEFAULT_CONFIG: ProjectConfig = {

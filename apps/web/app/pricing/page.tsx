@@ -39,7 +39,7 @@ const COMPARISON = [
     rows: [
       { feature: "Script tag embed", starter: true, pro: true, enterprise: true },
       { feature: "Inline iframe embed", starter: true, pro: true, enterprise: true },
-      { feature: "Multi-chain support", starter: true, pro: true, enterprise: true },
+      { feature: "Chains supported", starter: "1", pro: "Up to 3", enterprise: "Unlimited" },
       { feature: "Custom chains", starter: false, pro: false, enterprise: true },
     ],
   },
@@ -77,7 +77,7 @@ const FAQ = [
   },
   {
     q: "What chains are supported?",
-    a: "Ethereum, Sepolia (testnet), Base, BNB Chain, Polygon, Arbitrum, and Optimism are supported. Enterprise plans can add custom chains.",
+    a: "Ethereum, Sepolia (testnet), Base, BNB Chain, Polygon, Arbitrum, and Optimism are supported. Starter plans include 1 chain, Pro includes up to 3, and Enterprise unlocks all chains plus custom ones.",
   },
   {
     q: "How does the docs Q&A work?",

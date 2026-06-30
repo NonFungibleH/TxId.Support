@@ -2,10 +2,10 @@
 
 import { useState, useTransition, useRef } from "react"
 import { toast } from "sonner"
-import { AlertCircle } from "lucide-react"
+import { AlertCircle, Lock } from "lucide-react"
 import { updateConfig } from "@/lib/actions/project"
 import { SUPPORTED_CHAINS } from "@/lib/types/config"
-import type { ChainId } from "@/lib/types/config"
+import type { ChainId, Plan } from "@/lib/types/config"
 
 // Chains stored in DB may be hex ("0x1") or decimal ("1") — support both
 const CHAIN_LOGOS: Record<string, string> = {
@@ -27,26 +27,41 @@ interface ChainTogglesProps {
   projectId: string
   initialChains: ChainId[]
   chainUsage: Record<string, number>
+  plan: Plan
+  chainLimit: number
 }
 
-export function ChainToggles({ projectId, initialChains, chainUsage }: ChainTogglesProps) {
+export function ChainToggles({ projectId, initialChains, chainUsage, plan, chainLimit }: ChainTogglesProps) {
   const [chains, setChains] = useState<ChainId[]>(initialChains)
   const [, startTransition] = useTransition()
   const saveTimeout = useRef<ReturnType<typeof setTimeout>>()
 
   const activeMainnets = MAINNETS.filter(c => chains.includes(c.id as ChainId)).length
+  const atLimit = chainLimit !== Infinity && activeMainnets >= chainLimit
+
+  const upgradeLabel = plan === "starter"
+    ? "Upgrade to Pro to enable up to 3 chains"
+    : "Contact us to enable more chains"
 
   function toggle(chainId: ChainId) {
+    const isEnabled = chains.includes(chainId)
+    const isTestnet = TESTNETS.has(chainId)
+
+    // Block enabling a mainnet chain when at the plan limit
+    if (!isEnabled && !isTestnet && atLimit) {
+      toast.error(upgradeLabel)
+      return
+    }
+
     setChains(prev => {
       const next = prev.includes(chainId)
         ? prev.filter(c => c !== chainId)
         : [...prev, chainId]
 
-      // Debounced auto-save
       clearTimeout(saveTimeout.current)
       saveTimeout.current = setTimeout(() => {
         const mainnetCount = MAINNETS.filter(c => next.includes(c.id as ChainId)).length
-        if (mainnetCount === 0 && !TESTNETS.has(chainId)) {
+        if (mainnetCount === 0 && !isTestnet) {
           toast.error("At least one mainnet chain must be enabled")
           return
         }
@@ -65,6 +80,8 @@ export function ChainToggles({ projectId, initialChains, chainUsage }: ChainTogg
 
   function ChainRow({ chain }: { chain: typeof SUPPORTED_CHAINS[number] }) {
     const enabled = chains.includes(chain.id as ChainId)
+    const isTestnet = TESTNETS.has(chain.id)
+    const locked = !enabled && !isTestnet && atLimit
     const usage = chainUsage[chain.id] ?? 0
     const logo = CHAIN_LOGOS[chain.id]
 
@@ -72,7 +89,7 @@ export function ChainToggles({ projectId, initialChains, chainUsage }: ChainTogg
       <button
         type="button"
         onClick={() => toggle(chain.id as ChainId)}
-        className="flex items-center gap-3 w-full rounded-lg border px-4 py-3 text-left transition-colors hover:bg-accent/40"
+        className={`flex items-center gap-3 w-full rounded-lg border px-4 py-3 text-left transition-colors ${locked ? "opacity-50 cursor-not-allowed" : "hover:bg-accent/40"}`}
         style={{ borderColor: enabled ? "rgba(99,102,241,0.5)" : undefined }}
       >
         {/* Chain logo */}
@@ -91,27 +108,44 @@ export function ChainToggles({ projectId, initialChains, chainUsage }: ChainTogg
         </div>
 
         {/* Usage badge */}
-        {usage > 0 && (
+        {usage > 0 && !locked && (
           <span className="text-xs text-muted-foreground tabular-nums shrink-0">
             {usage.toLocaleString()} {usage === 1 ? "convo" : "convos"}
           </span>
         )}
 
-        {/* Toggle */}
-        <div
-          className={`relative inline-flex h-5 w-9 shrink-0 rounded-full transition-colors duration-200 ${enabled ? "bg-indigo-500" : "bg-muted-foreground/25"}`}
-        >
-          <span
-            className="pointer-events-none inline-block h-4 w-4 rounded-full bg-white shadow-sm transition-transform duration-200"
-            style={{ transform: enabled ? "translate(18px, 2px)" : "translate(2px, 2px)" }}
-          />
-        </div>
+        {/* Lock icon or toggle */}
+        {locked ? (
+          <Lock className="w-4 h-4 text-muted-foreground shrink-0" />
+        ) : (
+          <div
+            className={`relative inline-flex h-5 w-9 shrink-0 rounded-full transition-colors duration-200 ${enabled ? "bg-indigo-500" : "bg-muted-foreground/25"}`}
+          >
+            <span
+              className="pointer-events-none inline-block h-4 w-4 rounded-full bg-white shadow-sm transition-transform duration-200"
+              style={{ transform: enabled ? "translate(18px, 2px)" : "translate(2px, 2px)" }}
+            />
+          </div>
+        )}
       </button>
     )
   }
 
   return (
     <div className="space-y-6">
+      {/* Plan limit banner */}
+      {atLimit && (
+        <div className="flex items-start gap-3 rounded-lg border border-indigo-500/30 bg-indigo-500/10 px-4 py-3">
+          <Lock className="size-4 text-indigo-400 shrink-0 mt-0.5" />
+          <p className="text-sm text-indigo-300">
+            {plan === "starter"
+              ? <>You&apos;re on the Starter plan — 1 chain included. <a href="/pricing" className="underline underline-offset-2 hover:text-white">Upgrade to Pro</a> to enable up to 3 chains.</>
+              : <>You&apos;ve reached the Pro limit of 3 chains. <a href="mailto:hello@txid.support" className="underline underline-offset-2 hover:text-white">Contact us</a> for Enterprise access with more chains.</>
+            }
+          </p>
+        </div>
+      )}
+
       {/* All-mainnets-off warning */}
       {activeMainnets === 0 && (
         <div className="flex items-start gap-3 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3">

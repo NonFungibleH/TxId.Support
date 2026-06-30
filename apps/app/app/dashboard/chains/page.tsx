@@ -4,6 +4,7 @@ import { createServiceClient } from "@/lib/supabase/server"
 import { ChainToggles } from "@/components/settings/ChainToggles"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import type { ProjectConfig } from "@/lib/types/config"
+import { PLAN_CHAIN_LIMITS, SUPPORTED_CHAINS } from "@/lib/types/config"
 import type { Database } from "@/lib/supabase/types"
 
 type ProjectRow = Database["public"]["Tables"]["projects"]["Row"]
@@ -29,8 +30,11 @@ export default async function ChainsPage() {
     if (id) chainUsage[id] = (chainUsage[id] ?? 0) + 1
   }
 
-  const activeCount = config.chains.length
-  const totalCount = 7 // SUPPORTED_CHAINS length (excluding testnet from the "of N" count is fine)
+  const plan = config.plan ?? "starter"
+  const chainLimit = PLAN_CHAIN_LIMITS[plan]
+  const TESTNETS = new Set(["0xaa36a7"])
+  const activeMainnetCount = config.chains.filter(c => !TESTNETS.has(c)).length
+  const limitLabel = chainLimit === Infinity ? "∞" : String(chainLimit)
 
   return (
     <div className="space-y-6">
@@ -46,7 +50,7 @@ export default async function ChainsPage() {
               <CardDescription>Toggle which chains are included in wallet history lookups.</CardDescription>
             </div>
             <span className="text-sm font-semibold tabular-nums text-muted-foreground">
-              {activeCount} <span className="font-normal">of</span> {totalCount}
+              {activeMainnetCount} <span className="font-normal">of</span> {limitLabel}
             </span>
           </div>
         </CardHeader>
@@ -55,6 +59,8 @@ export default async function ChainsPage() {
             projectId={typedProject.id}
             initialChains={config.chains}
             chainUsage={chainUsage}
+            plan={plan}
+            chainLimit={chainLimit}
           />
         </CardContent>
       </Card>
