@@ -34,9 +34,8 @@ export default async function DashboardPage() {
   const typedProject = project as unknown as ProjectRow
   const supabase = createServiceClient()
 
-  const monthStart = new Date()
-  monthStart.setDate(1)
-  monthStart.setHours(0, 0, 0, 0)
+  const now = new Date()
+  const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1))
 
   const [convResult, docsResult, walletsResult, monthlyResult, recentResult] = await Promise.all([
     supabase

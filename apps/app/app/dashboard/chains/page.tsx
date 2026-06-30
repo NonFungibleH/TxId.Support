@@ -31,10 +31,9 @@ export default async function ChainsPage() {
   }
 
   const plan = config.plan ?? "starter"
-  const chainLimit = PLAN_CHAIN_LIMITS[plan]
-  const TESTNETS = new Set(["0xaa36a7"])
-  const activeMainnetCount = config.chains.filter(c => !TESTNETS.has(c)).length
-  const limitLabel = chainLimit === Infinity ? "∞" : String(chainLimit)
+  // Infinity cannot cross the server→client boundary (JSON.stringify → null), use -1 as sentinel
+  const chainLimitRaw = PLAN_CHAIN_LIMITS[plan]
+  const chainLimit = chainLimitRaw === Infinity ? -1 : chainLimitRaw
 
   return (
     <div className="space-y-6">
@@ -44,15 +43,8 @@ export default async function ChainsPage() {
       </div>
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>Active chains</CardTitle>
-              <CardDescription>Toggle which chains are included in wallet history lookups.</CardDescription>
-            </div>
-            <span className="text-sm font-semibold tabular-nums text-muted-foreground">
-              {activeMainnetCount} <span className="font-normal">of</span> {limitLabel}
-            </span>
-          </div>
+          <CardTitle>Active chains</CardTitle>
+          <CardDescription>Toggle which chains are included in wallet history lookups.</CardDescription>
         </CardHeader>
         <CardContent>
           <ChainToggles
@@ -60,7 +52,7 @@ export default async function ChainsPage() {
             initialChains={config.chains}
             chainUsage={chainUsage}
             plan={plan}
-            chainLimit={chainLimit}
+            chainLimit={chainLimit}  // -1 = unlimited
           />
         </CardContent>
       </Card>

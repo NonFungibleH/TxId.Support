@@ -2,6 +2,7 @@
 
 import { useState, useTransition, useRef } from "react"
 import { toast } from "sonner"
+import Link from "next/link"
 import { AlertCircle, Lock } from "lucide-react"
 import { updateConfig } from "@/lib/actions/project"
 import { SUPPORTED_CHAINS } from "@/lib/types/config"
@@ -28,7 +29,7 @@ interface ChainTogglesProps {
   initialChains: ChainId[]
   chainUsage: Record<string, number>
   plan: Plan
-  chainLimit: number
+  chainLimit: number  // -1 = unlimited (enterprise); Infinity cannot cross the server→client boundary
 }
 
 export function ChainToggles({ projectId, initialChains, chainUsage, plan, chainLimit }: ChainTogglesProps) {
@@ -37,7 +38,8 @@ export function ChainToggles({ projectId, initialChains, chainUsage, plan, chain
   const saveTimeout = useRef<ReturnType<typeof setTimeout>>()
 
   const activeMainnets = MAINNETS.filter(c => chains.includes(c.id as ChainId)).length
-  const atLimit = chainLimit !== Infinity && activeMainnets >= chainLimit
+  const atLimit = chainLimit !== -1 && activeMainnets >= chainLimit
+  const limitLabel = chainLimit === -1 ? "∞" : String(chainLimit)
 
   const upgradeLabel = plan === "starter"
     ? "Upgrade to Pro to enable up to 3 chains"
@@ -47,10 +49,19 @@ export function ChainToggles({ projectId, initialChains, chainUsage, plan, chain
     const isEnabled = chains.includes(chainId)
     const isTestnet = TESTNETS.has(chainId)
 
-    // Block enabling a mainnet chain when at the plan limit
+    // Block enabling beyond plan limit
     if (!isEnabled && !isTestnet && atLimit) {
       toast.error(upgradeLabel)
       return
+    }
+
+    // Block disabling the last mainnet — validate before state update so DB and UI stay in sync
+    if (isEnabled && !isTestnet) {
+      const currentMainnets = MAINNETS.filter(c => chains.includes(c.id as ChainId)).length
+      if (currentMainnets <= 1) {
+        toast.error("At least one mainnet chain must be enabled")
+        return
+      }
     }
 
     setChains(prev => {
@@ -58,13 +69,15 @@ export function ChainToggles({ projectId, initialChains, chainUsage, plan, chain
         ? prev.filter(c => c !== chainId)
         : [...prev, chainId]
 
+      // Safety guard against rapid double-toggle: enforce limit against the actual next state,
+      // not the closure value of `atLimit` which may be stale.
+      if (!isEnabled && !isTestnet && chainLimit !== -1) {
+        const nextMainnets = MAINNETS.filter(c => next.includes(c.id as ChainId)).length
+        if (nextMainnets > chainLimit) return prev
+      }
+
       clearTimeout(saveTimeout.current)
       saveTimeout.current = setTimeout(() => {
-        const mainnetCount = MAINNETS.filter(c => next.includes(c.id as ChainId)).length
-        if (mainnetCount === 0 && !isTestnet) {
-          toast.error("At least one mainnet chain must be enabled")
-          return
-        }
         startTransition(async () => {
           try {
             await updateConfig(projectId, { chains: next })
@@ -133,14 +146,22 @@ export function ChainToggles({ projectId, initialChains, chainUsage, plan, chain
 
   return (
     <div className="space-y-6">
+      {/* Live counter — reads client state so it updates instantly on toggle */}
+      <div className="flex items-center justify-between text-sm">
+        <span className="text-muted-foreground">Active mainnet chains</span>
+        <span className="font-semibold tabular-nums">
+          {activeMainnets} <span className="font-normal text-muted-foreground">of</span> {limitLabel}
+        </span>
+      </div>
+
       {/* Plan limit banner */}
       {atLimit && (
         <div className="flex items-start gap-3 rounded-lg border border-indigo-500/30 bg-indigo-500/10 px-4 py-3">
           <Lock className="size-4 text-indigo-400 shrink-0 mt-0.5" />
           <p className="text-sm text-indigo-300">
             {plan === "starter"
-              ? <>You&apos;re on the Starter plan — 1 chain included. <a href="/pricing" className="underline underline-offset-2 hover:text-white">Upgrade to Pro</a> to enable up to 3 chains.</>
-              : <>You&apos;ve reached the Pro limit of 3 chains. <a href="mailto:hello@txid.support" className="underline underline-offset-2 hover:text-white">Contact us</a> for Enterprise access with more chains.</>
+              ? <><Link href="/pricing" className="underline underline-offset-2 hover:text-white">Upgrade to Pro</Link> to enable up to 3 chains.</>
+              : <>You&apos;ve reached the Pro limit of 3 chains. <a href="mailto:hello@txid.support" className="underline underline-offset-2 hover:text-white">Contact us</a> for Enterprise access.</>
             }
           </p>
         </div>
@@ -161,7 +182,7 @@ export function ChainToggles({ projectId, initialChains, chainUsage, plan, chain
         {MAINNETS.map(chain => <ChainRow key={chain.id} chain={chain} />)}
       </div>
 
-      {/* Testnets — collapsible section */}
+      {/* Testnets */}
       <div>
         <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Testnets</p>
         <div className="space-y-2">
