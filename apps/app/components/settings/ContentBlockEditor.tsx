@@ -318,9 +318,18 @@ export function ContentBlockEditor({ projectId, initialBlocks }: ContentBlockEdi
       content: newContent,
       order: blocks.length,
     }
-    setBlocks(prev => [...prev, block])
+    const updated = [...blocks, block]
+    setBlocks(updated)
     setNewTitle("")
     setNewContent({})
+    startTransition(async () => {
+      try {
+        await updateConfig(projectId, { contentBlocks: updated })
+        toast.success("Block added")
+      } catch {
+        toast.error("Failed to save block")
+      }
+    })
   }
 
   function updateBlock(id: string, updates: Partial<ContentBlock>) {
