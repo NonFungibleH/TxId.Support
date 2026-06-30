@@ -328,8 +328,17 @@ export function ContentBlockEditor({ projectId, initialBlocks }: ContentBlockEdi
   }
 
   function removeBlock(id: string) {
-    setBlocks(prev => prev.filter(b => b.id !== id).map((b, i) => ({ ...b, order: i })))
+    const updated = blocks.filter(b => b.id !== id).map((b, i) => ({ ...b, order: i }))
+    setBlocks(updated)
     if (editingId === id) setEditingId(null)
+    startTransition(async () => {
+      try {
+        await updateConfig(projectId, { contentBlocks: updated })
+        toast.success("Block removed")
+      } catch {
+        toast.error("Failed to remove block")
+      }
+    })
   }
 
   function save() {
