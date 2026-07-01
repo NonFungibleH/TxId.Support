@@ -427,6 +427,7 @@ export function WidgetApp() {
   const sessionId = useRef<string>(nanoid())
   const messagesContainerRef = useRef<HTMLDivElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
 
   // Wallet state
   const [walletAddress, setWalletAddress] = useState<string | null>(null)
@@ -728,6 +729,11 @@ export function WidgetApp() {
     window.addEventListener("txid-prompt", handler)
     return () => window.removeEventListener("txid-prompt", handler)
   }, [])
+
+  // Re-focus the chat input whenever the bot finishes streaming
+  useEffect(() => {
+    if (!isStreaming) inputRef.current?.focus()
+  }, [isStreaming])
 
   // ── Error state ──────────────────────────────────────────────────────────
   if (configError) {
@@ -1105,6 +1111,7 @@ export function WidgetApp() {
               style={{ borderColor: `var(--w-border)` }}
             >
               <input
+                ref={inputRef}
                 value={input}
                 onChange={(e) => { setInput(e.target.value); if (suggestions.length) setSuggestions([]) }}
                 onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && sendMessage()}
@@ -1294,6 +1301,7 @@ export function WidgetApp() {
                 style={{ borderColor: `var(--w-border)` }}
               >
                 <input
+                  ref={inputRef}
                   value={input}
                   onChange={(e) => { setInput(e.target.value); if (suggestions.length) setSuggestions([]) }}
                   onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && sendMessage()}
