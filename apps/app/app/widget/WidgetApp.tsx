@@ -1507,7 +1507,7 @@ export function WidgetApp() {
                         .replace("/app/", "/widget-chart/")
                         .replace("/pair-explorer/", "/pe-light/")
                         .split("?")[0] +
-                        "?theme=dark&chartType=1&chartResolution=1D&drawingToolbars=false"
+                        "?theme=dark&chartType=2&chartResolution=1D&drawingToolbars=false"
                     } else {
                       // DexScreener embed
                       embedUrl = c.url.includes("?")
