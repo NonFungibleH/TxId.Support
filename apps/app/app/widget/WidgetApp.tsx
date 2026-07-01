@@ -62,6 +62,7 @@ interface WidgetConfig {
     announcement: string | null
   } | null
   tokenModeAsk?: string | null
+  welcomeMessage?: string | null
   contentBlocks?: ContentBlockData[]
 }
 
@@ -472,7 +473,7 @@ export function WidgetApp() {
               {
                 id: nanoid(),
                 role: "assistant",
-                content: `Hi! I'm here to help with ${data.projectName}. Ask me about the protocol, token, smart contracts, or transactions.`,
+                content: data.welcomeMessage?.trim() || `Hi! I'm here to help with ${data.projectName}. Ask me about the protocol, token, smart contracts, or transactions.`,
               },
             ])
           }

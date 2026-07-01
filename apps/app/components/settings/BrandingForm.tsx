@@ -6,6 +6,7 @@ import { Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ColorPicker } from "./ColorPicker"
 import { updateConfig } from "@/lib/actions/project"
@@ -310,6 +311,20 @@ export function BrandingForm({ projectId, initial, onBrandingChange }: BrandingF
             </div>
           )}
         </div>
+      </div>
+
+      <div className="space-y-3">
+        <div>
+          <h3 className="text-sm font-semibold">Opening message</h3>
+          <p className="text-xs text-muted-foreground mt-0.5">The first message users see when they open the widget. Leave blank to use the default greeting.</p>
+        </div>
+        <Textarea
+          placeholder="Hi! I'm here to help. Ask me about the protocol, transactions, or anything else."
+          value={branding.welcomeMessage ?? ""}
+          onChange={e => update("welcomeMessage", e.target.value || null)}
+          rows={3}
+          className="text-sm resize-none"
+        />
       </div>
 
       <div className="flex items-center gap-3">

@@ -15,9 +15,12 @@ import { cn } from "@/lib/utils"
 
 type ProjectRow = Database["public"]["Tables"]["projects"]["Row"]
 
-const CHAIN_NAMES: Record<string, string> = Object.fromEntries(
-  SUPPORTED_CHAINS.map(c => [c.id, c.name])
-)
+// Include both hex and decimal chain ID forms — DB may store either
+const CHAIN_NAMES: Record<string, string> = {
+  ...Object.fromEntries(SUPPORTED_CHAINS.map(c => [c.id, c.name])),
+  "1": "Ethereum", "8453": "Base", "56": "BNB Chain",
+  "137": "Polygon", "42161": "Arbitrum", "10": "Optimism",
+}
 
 function timeAgo(dateStr: string): string {
   const diff = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000)

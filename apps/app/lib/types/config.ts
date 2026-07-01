@@ -67,6 +67,7 @@ export interface BrandingConfig {
   agentName?: string | null
   agentIconUrl?: string | null
   websiteUrl?: string | null
+  welcomeMessage?: string | null
 }
 
 export interface TokenConfig {

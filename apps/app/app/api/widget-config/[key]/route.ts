@@ -119,6 +119,7 @@ export async function GET(
       : null,
     community: config.community ?? null,
     tokenModeAsk: config.tokenModeAsk ?? null,
+    welcomeMessage: config.branding?.welcomeMessage ?? null,
     watchedContracts: (config.watchedContracts ?? []).map((c) => ({
       id: c.id,
       name: c.name,
