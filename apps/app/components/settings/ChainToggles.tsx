@@ -41,7 +41,7 @@ export function ChainToggles({ projectId, initialChains, chainUsage, plan, chain
   const atLimit = chainLimit !== -1 && activeMainnets >= chainLimit
   const limitLabel = chainLimit === -1 ? String(MAINNETS.length) : String(chainLimit)
 
-  const upgradeLabel = plan === "starter"
+  const upgradeLabel = plan === "free" || plan === "starter"
     ? "Upgrade to Pro to enable up to 3 chains"
     : "Contact us to enable more chains"
 
@@ -158,8 +158,8 @@ export function ChainToggles({ projectId, initialChains, chainUsage, plan, chain
         <div className="flex items-start gap-3 rounded-lg border border-indigo-500/30 bg-indigo-500/10 px-4 py-3">
           <Lock className="size-4 text-indigo-400 shrink-0 mt-0.5" />
           <p className="text-sm text-indigo-300">
-            {plan === "starter"
-              ? <><Link href="/pricing" className="underline underline-offset-2 hover:text-white">Upgrade to Pro</Link> to enable up to 3 chains.</>
+            {plan === "free" || plan === "starter"
+              ? <><Link href="/dashboard/account" className="underline underline-offset-2 hover:text-white">Upgrade to Pro</Link> to unlock up to 3 chains.</>
               : <>You&apos;ve reached the Pro limit of 3 chains. <a href="mailto:hello@txid.support" className="underline underline-offset-2 hover:text-white">Contact us</a> for Enterprise access.</>
             }
           </p>

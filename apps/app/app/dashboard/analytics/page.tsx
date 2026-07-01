@@ -16,10 +16,26 @@ const ConversationChart = dynamic(
 type ProjectRow = Database["public"]["Tables"]["projects"]["Row"]
 type ConversationRow = Database["public"]["Tables"]["conversations"]["Row"]
 
+// DB stores chain IDs as hex (0x1, 0x89, …) — map both forms for robustness
 const CHAIN_NAMES: Record<string, string> = {
-  "1": "Ethereum", "8453": "Base", "42161": "Arbitrum",
-  "137": "Polygon", "10": "Optimism", "56": "BNB Chain",
-  "43114": "Avalanche", "250": "Fantom",
+  "0x1": "Ethereum",    "1":      "Ethereum",
+  "0x2105": "Base",     "8453":   "Base",
+  "0xa4b1": "Arbitrum", "42161":  "Arbitrum",
+  "0x89": "Polygon",    "137":    "Polygon",
+  "0xa": "Optimism",    "10":     "Optimism",
+  "0x38": "BNB Chain",  "56":     "BNB Chain",
+  "0xa86a": "Avalanche","43114":  "Avalanche",
+  "0xfa": "Fantom",     "250":    "Fantom",
+  "0xaa36a7": "Sepolia",
+}
+
+const CHAIN_LOGOS: Record<string, string> = {
+  "0x1": "/chains/Ethereum.png",    "1":     "/chains/Ethereum.png",
+  "0x2105": "/chains/Base.png",     "8453":  "/chains/Base.png",
+  "0xa4b1": "/chains/Arbitrum.png", "42161": "/chains/Arbitrum.png",
+  "0x89": "/chains/Polygon.png",    "137":   "/chains/Polygon.png",
+  "0xa": "/chains/Optimism.png",    "10":    "/chains/Optimism.png",
+  "0x38": "/chains/BNB.png",        "56":    "/chains/BNB.png",
 }
 
 function formatDay(date: Date, totalDays: number): string {
@@ -247,18 +263,29 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Se
             <CardTitle className="text-sm font-medium">Users by network (all time)</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            {chainBreakdown.map(({ chainId, name, count }) => (
-              <div key={chainId} className="flex items-center gap-3">
-                <span className="text-xs text-muted-foreground w-24 shrink-0">{name}</span>
-                <div className="flex-1 bg-muted rounded-full h-2">
-                  <div
-                    className="bg-primary h-2 rounded-full transition-all"
-                    style={{ width: `${Math.round((count / maxChainCount) * 100)}%` }}
-                  />
+            {chainBreakdown.map(({ chainId, name, count }) => {
+              const logo = CHAIN_LOGOS[chainId]
+              return (
+                <div key={chainId} className="flex items-center gap-3">
+                  <div className="flex items-center gap-2 w-28 shrink-0">
+                    {logo ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={logo} alt={name} className="size-4 rounded-full object-contain shrink-0" />
+                    ) : (
+                      <div className="size-4 rounded-full bg-muted shrink-0" />
+                    )}
+                    <span className="text-xs font-medium truncate">{name}</span>
+                  </div>
+                  <div className="flex-1 bg-muted rounded-full h-1.5">
+                    <div
+                      className="bg-primary h-1.5 rounded-full transition-all"
+                      style={{ width: `${Math.round((count / maxChainCount) * 100)}%` }}
+                    />
+                  </div>
+                  <span className="text-xs tabular-nums text-muted-foreground w-6 text-right">{count}</span>
                 </div>
-                <span className="text-xs tabular-nums text-muted-foreground w-6 text-right">{count}</span>
-              </div>
-            ))}
+              )
+            })}
           </CardContent>
         </Card>
       )}
