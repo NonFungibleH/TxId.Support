@@ -201,6 +201,7 @@ export async function updateConfig(
     .from("projects")
     .update({ config: merged as unknown as Json })
     .eq("id", projectId)
+    .eq("org_id", org.id)
 
   if (updateError) throw new Error(`Update failed: ${updateError.message}`)
 
@@ -246,6 +247,7 @@ export async function confirmPreview(projectId: string) {
     .from("projects")
     .update({ config: updated as unknown as import("@/lib/supabase/types").Json })
     .eq("id", projectId)
+    .eq("org_id", org.id)
 
   if (error) throw new Error(error.message)
   revalidatePath("/dashboard")

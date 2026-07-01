@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation"
 import { getProject } from "@/lib/actions/project"
 import { getTickets, getWebhookLogs } from "@/lib/actions/tickets"
 import { TicketList } from "@/components/dashboard/TicketList"
@@ -9,7 +10,7 @@ type ProjectRow = Database["public"]["Tables"]["projects"]["Row"]
 
 export default async function TicketsPage() {
   const { project } = await getProject()
-  if (!project) return null
+  if (!project) redirect("/dashboard")
 
   const typedProject = project as unknown as ProjectRow & { name: string }
   const config = typedProject.config as unknown as ProjectConfig

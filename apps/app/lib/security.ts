@@ -1,11 +1,20 @@
 // Shared security utilities — pure helpers, no "use server" needed
 
-const PRIVATE_IP_RE = /^(127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|169\.254\.|::1$|fc00:|fd)/
+const PRIVATE_IP_RE = /^(127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|169\.254\.|0\.0\.0\.0$|::1$|fc00:|fd|fe80:)/
+
+// Well-known cloud metadata and loopback hostnames not covered by the IP regex
+const BLOCKED_HOSTNAMES = new Set([
+  "localhost",
+  "0.0.0.0",
+  "metadata.google.internal",
+  "metadata.azure.internal",
+])
 
 export function isPrivateUrl(raw: string): boolean {
   try {
     const { hostname } = new URL(raw)
-    return PRIVATE_IP_RE.test(hostname) || hostname === "localhost"
+    const h = hostname.toLowerCase()
+    return PRIVATE_IP_RE.test(h) || BLOCKED_HOSTNAMES.has(h)
   } catch {
     return true // unparseable = blocked
   }

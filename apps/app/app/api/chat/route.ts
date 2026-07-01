@@ -1,7 +1,8 @@
 import { createServiceClient } from "@/lib/supabase/server"
 import { buildSystemPrompt, retrieveContext, streamChatWithTools, generateSuggestions } from "@txid/ai"
 import type { ChatMessage, ProjectConfigSnapshot } from "@txid/ai"
-import type { ProjectConfig } from "@/lib/types/config"
+import type { ProjectConfig, Plan } from "@/lib/types/config"
+import { PLAN_CONV_LIMITS } from "@/lib/types/config"
 import type { Database } from "@/lib/supabase/types"
 import { verifyPreviewToken } from "@/lib/preview-token"
 
@@ -138,13 +139,17 @@ export async function POST(request: Request) {
     }
 
     // ── Layer 3: Monthly conversation quota per project ───────────────────────
-    // Free tier: 200 conversations/month. Only applied to new sessions (existing
-    // sessions already counted when their first message created the conversation row).
-    const MONTHLY_FREE_LIMIT = 200
+    // Quota is determined by the project's plan (free=50, starter=200, pro=2500, enterprise=∞).
+    // Only applied to new sessions — existing sessions already counted when their first message
+    // created the conversation row.
+    const rawConfig = typedProject.config as unknown as ProjectConfig
+    const monthlyLimit = PLAN_CONV_LIMITS[(rawConfig.plan ?? "free") as Plan]
+
     const existingConv = await supabase
       .from("conversations")
       .select("id")
       .eq("session_id", sessionId)
+      .eq("project_id", typedProject.id)
       .maybeSingle()
 
     if (!existingConv.data) {
@@ -157,7 +162,7 @@ export async function POST(request: Request) {
         .select("id", { count: "exact", head: true })
         .eq("project_id", typedProject.id)
         .gte("created_at", startOfMonth.toISOString())
-      if ((monthlyCount ?? 0) >= MONTHLY_FREE_LIMIT) {
+      if (monthlyLimit !== Infinity && (monthlyCount ?? 0) >= monthlyLimit) {
         return new Response(JSON.stringify({ error: "Monthly conversation limit reached. Upgrade to continue." }), {
           status: 429,
           headers: { ...CORS_HEADERS, "Content-Type": "application/json" },

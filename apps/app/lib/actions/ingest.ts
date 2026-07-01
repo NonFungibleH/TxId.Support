@@ -5,6 +5,7 @@ import { createServiceClient } from "@/lib/supabase/server"
 import { chunkText, embedBatch } from "@txid/ai"
 import { revalidatePath } from "next/cache"
 import type { Json } from "@/lib/supabase/types"
+import { isPrivateUrl } from "@/lib/security"
 
 /**
  * Ingest plain text into the project's knowledge base.
@@ -170,7 +171,7 @@ export async function crawlAndIngest(
   projectId: string,
   rootUrl: string,
 ): Promise<{ ok: boolean; pagesIndexed?: number; chunksInserted?: number; discovered?: number; error?: string }> {
-  const { userId } = await auth()
+  const { orgId, userId } = await auth()
   if (!userId) return { ok: false, error: "Unauthorized" }
 
   let parsed: URL
@@ -180,6 +181,18 @@ export async function crawlAndIngest(
   } catch {
     return { ok: false, error: "Invalid URL" }
   }
+
+  if (isPrivateUrl(rootUrl)) return { ok: false, error: "Invalid URL" }
+
+  // Ownership check before any network fetches to prevent auth-bypass SSRF
+  const orgKey = orgId ?? userId
+  const supabase = createServiceClient()
+
+  const { data: project } = await supabase.from("projects").select("id, org_id").eq("id", projectId).single()
+  if (!project) return { ok: false, error: "Project not found" }
+
+  const { data: org } = await supabase.from("organisations").select("id").eq("id", project.org_id).eq("clerk_org_id", orgKey).single()
+  if (!org) return { ok: false, error: "Forbidden" }
 
   const origin = parsed.origin
   const MAX_PAGES = 60
@@ -267,17 +280,6 @@ export async function crawlAndIngest(
   }
   if (pageTexts.length === 0) return { ok: false, error: "No content found on any discovered pages" }
 
-  // ── Auth + org check (once for the whole crawl) ───────────────────────────
-  const { orgId } = await auth()
-  const orgKey = orgId ?? userId
-  const supabase = createServiceClient()
-
-  const { data: project } = await supabase.from("projects").select("id, org_id").eq("id", projectId).single()
-  if (!project) return { ok: false, error: "Project not found" }
-
-  const { data: org } = await supabase.from("organisations").select("id").eq("id", project.org_id).eq("clerk_org_id", orgKey).single()
-  if (!org) return { ok: false, error: "Forbidden" }
-
   // Remove any existing docs from these sources
   await supabase.from("documents").delete().eq("project_id", projectId).in("source_url", pageTexts.map(p => p.url))
 
@@ -342,6 +344,8 @@ export async function fetchAndIngest(
   } catch {
     return { ok: false, error: "Invalid URL — must start with http:// or https://" }
   }
+
+  if (isPrivateUrl(url)) return { ok: false, error: "Invalid URL — must start with http:// or https://" }
 
   // Use Jina Reader to fetch + render the page (handles JS-heavy sites)
   // r.jina.ai renders the full page and returns clean markdown text — no API key needed

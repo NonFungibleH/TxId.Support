@@ -155,6 +155,7 @@ export async function fetchBrandColors(rawUrl: string): Promise<BrandColorResult
       if (manifestMatch?.[1]) {
         try {
           const manifestUrl = new URL(manifestMatch[1], url).href
+          if (isPrivateUrl(manifestUrl)) throw new Error("blocked")
           const mRes = await fetch(manifestUrl, { signal: AbortSignal.timeout(3000) })
           if (mRes.ok) {
             const manifest = (await mRes.json()) as { theme_color?: string; background_color?: string }

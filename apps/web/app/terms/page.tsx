@@ -3,7 +3,7 @@ import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 
 export const metadata: Metadata = {
-  title: "Terms of Service — TxID Support",
+  title: "Terms of Service | TxID Support",
 };
 
 const LAST_UPDATED = "April 2025";

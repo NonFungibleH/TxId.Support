@@ -1,9 +1,9 @@
 import crypto from "crypto"
 
 function secret(): string {
-  // Dedicated HMAC secret — falls back to a random-ish string in dev (not stable across restarts,
-  // which is fine: preview tokens are short-lived and only used in development anyway)
-  return process.env.PREVIEW_HMAC_SECRET ?? process.env.SUPABASE_SERVICE_ROLE_KEY ?? "dev-preview-secret"
+  const s = process.env.PREVIEW_HMAC_SECRET ?? process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (!s) throw new Error("PREVIEW_HMAC_SECRET is not configured")
+  return s
 }
 
 export function generatePreviewToken(projectId: string): string {

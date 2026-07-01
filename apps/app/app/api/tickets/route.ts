@@ -213,7 +213,7 @@ export async function POST(request: Request) {
         body: JSON.stringify({
           from: "TxID Support <noreply@txid.support>",
           to: [notificationEmail],
-          subject: `[${ref}] New support ticket — ${safeSummary.slice(0, 60)}`,
+          subject: `[${ref}] New support ticket: ${safeSummary.slice(0, 60)}`,
           text: emailBody,
         }),
       }).catch(() => { /* non-fatal */ })
