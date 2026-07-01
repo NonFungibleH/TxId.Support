@@ -279,7 +279,7 @@ export function DocsForm({ projectId, docCount, pastedChunkCount, pastedLastInde
                       {source.url}
                     </span>
                     {source.lastIndexedAt && (
-                      <span className="text-[11px] text-muted-foreground/60 shrink-0" title={new Date(source.lastIndexedAt).toLocaleString()}>
+                      <span suppressHydrationWarning className="text-[11px] text-muted-foreground/60 shrink-0" title={new Date(source.lastIndexedAt).toLocaleString()}>
                         {timeAgo(source.lastIndexedAt)}
                       </span>
                     )}
@@ -309,7 +309,7 @@ export function DocsForm({ projectId, docCount, pastedChunkCount, pastedLastInde
                     <Globe className="size-3.5 text-muted-foreground shrink-0" />
                     <span className="flex-1 text-xs font-medium text-foreground truncate">{group.hostname}</span>
                     {group.sources[0]?.lastIndexedAt && (
-                      <span className="text-[11px] text-muted-foreground/60 shrink-0" title="Last indexed">
+                      <span suppressHydrationWarning className="text-[11px] text-muted-foreground/60 shrink-0" title="Last indexed">
                         {timeAgo(group.sources.reduce((latest, s) => s.lastIndexedAt > latest ? s.lastIndexedAt : latest, ""))}
                       </span>
                     )}
@@ -354,7 +354,7 @@ export function DocsForm({ projectId, docCount, pastedChunkCount, pastedLastInde
                 <FileText className="size-3.5 text-muted-foreground shrink-0" />
                 <span className="flex-1 text-xs text-muted-foreground italic">Pasted content</span>
                 {pastedLastIndexedAt && (
-                  <span className="text-[11px] text-muted-foreground/60 shrink-0" title={new Date(pastedLastIndexedAt).toLocaleString()}>
+                  <span suppressHydrationWarning className="text-[11px] text-muted-foreground/60 shrink-0" title={new Date(pastedLastIndexedAt).toLocaleString()}>
                     {timeAgo(pastedLastIndexedAt)}
                   </span>
                 )}

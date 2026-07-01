@@ -151,7 +151,7 @@ export function ConversationList({ conversations }: { conversations: Conversatio
               </div>
               <div className="flex items-center gap-3 shrink-0">
                 <span className="text-xs text-muted-foreground">{msgCount} msg{msgCount !== 1 ? "s" : ""}</span>
-                <span className="text-xs text-muted-foreground">{timeAgo(conv.created_at)}</span>
+                <span suppressHydrationWarning className="text-xs text-muted-foreground">{timeAgo(conv.created_at)}</span>
                 {isOpen ? <ChevronUp className="size-4 text-muted-foreground" /> : <ChevronDown className="size-4 text-muted-foreground" />}
               </div>
             </button>
