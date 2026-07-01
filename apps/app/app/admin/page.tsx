@@ -12,6 +12,7 @@ const PLAN_COLOR: Record<string, string> = {
   starter:    "bg-indigo-500/20 text-indigo-400",
   pro:        "bg-amber-500/20 text-amber-400",
   enterprise: "bg-purple-500/20 text-purple-400",
+  custom:     "bg-emerald-500/20 text-emerald-400",
 }
 
 function fmt(n: number | bigint) {

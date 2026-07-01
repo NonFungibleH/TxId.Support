@@ -43,6 +43,7 @@ const PLAN_BADGE: Record<string, { label: string; cls: string }> = {
   starter:    { label: "Starter",    cls: "bg-indigo-500/20 text-indigo-400" },
   pro:        { label: "Pro",        cls: "bg-amber-500/20 text-amber-400" },
   enterprise: { label: "Enterprise", cls: "bg-purple-500/20 text-purple-400" },
+  custom:     { label: "Custom",     cls: "bg-emerald-500/20 text-emerald-400" },
 }
 
 interface SidebarProps {

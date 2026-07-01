@@ -1,10 +1,11 @@
-export type Plan = "free" | "starter" | "pro" | "enterprise"
+export type Plan = "free" | "starter" | "pro" | "enterprise" | "custom"
 
 export const PLAN_CHAIN_LIMITS: Record<Plan, number> = {
   free:       1,
   starter:    1,
   pro:        3,
   enterprise: Infinity,
+  custom:     Infinity,
 }
 
 export const PLAN_CONV_LIMITS: Record<Plan, number> = {
@@ -12,6 +13,7 @@ export const PLAN_CONV_LIMITS: Record<Plan, number> = {
   starter:    200,
   pro:        5000,
   enterprise: Infinity,
+  custom:     Infinity,
 }
 
 export const PLAN_LABELS: Record<Plan, string> = {
@@ -19,9 +21,10 @@ export const PLAN_LABELS: Record<Plan, string> = {
   starter:    "Starter",
   pro:        "Pro",
   enterprise: "Enterprise",
+  custom:     "Custom",
 }
 
-export const PAID_PLANS: Plan[] = ["starter", "pro", "enterprise"]
+export const PAID_PLANS: Plan[] = ["starter", "pro", "enterprise", "custom"]
 
 export const SUPPORTED_CHAINS = [
   { id: "0xaa36a7", name: "Sepolia (Testnet)",  explorer: "sepolia.etherscan.io" },
