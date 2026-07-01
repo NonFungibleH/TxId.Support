@@ -15,6 +15,15 @@ export interface NativeBalance {
   symbol: string
 }
 
+export interface DecodedRevert {
+  cause: "out_of_gas" | "revert_reason" | "custom_error" | "panic" | "unknown_revert"
+  reason: string           // raw error string or description
+  errorName?: string       // e.g. "SlippageTooHigh" — used to match error glossary entries
+  errorSignature?: string  // e.g. "SlippageTooHigh(uint256,uint256)"
+  rawHex?: string
+  gasInfo: { used: number; limit: number; percentUsed: number }
+}
+
 export interface Transaction {
   hash: string
   blockNumber: string
@@ -26,6 +35,7 @@ export interface Transaction {
   gasUsed: string        // actual gas consumed (gasUsed ≈ gasLimit → out-of-gas)
   status: "success" | "failed"
   summary: string        // human-readable one-liner
+  decodedRevert?: DecodedRevert  // present for failed transactions
 }
 
 export interface ChainConfig {

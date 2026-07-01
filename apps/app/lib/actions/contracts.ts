@@ -5,7 +5,7 @@ import { createServiceClient } from "@/lib/supabase/server"
 import { nanoid } from "nanoid"
 import { revalidatePath } from "next/cache"
 import { z } from "zod"
-import type { ProjectConfig, WatchedContract } from "@/lib/types/config"
+import type { ProjectConfig, WatchedContract, ErrorGlossaryEntry } from "@/lib/types/config"
 import type { Database, Json } from "@/lib/supabase/types"
 
 type ProjectRow = Database["public"]["Tables"]["projects"]["Row"]
@@ -83,6 +83,71 @@ export async function addContract(
   if (error) throw new Error(error.message)
   revalidatePath("/dashboard/contracts")
   return newContract
+}
+
+const GlossaryEntrySchema = z.object({
+  error: z.string().min(1).max(200),
+  explanation: z.string().min(1).max(500),
+})
+
+export async function upsertGlossaryEntry(
+  projectId: string,
+  contractId: string,
+  entry: ErrorGlossaryEntry,
+) {
+  const parsed = GlossaryEntrySchema.safeParse(entry)
+  if (!parsed.success) throw new Error(parsed.error.issues[0].message)
+
+  const project = await resolveProjectWithOwnership(projectId)
+  const config = project.config as unknown as ProjectConfig
+
+  const updated: ProjectConfig = {
+    ...config,
+    watchedContracts: (config.watchedContracts ?? []).map((c) => {
+      if (c.id !== contractId) return c
+      const existing = c.errorGlossary ?? []
+      const idx = existing.findIndex((e) => e.error === parsed.data.error)
+      const newGlossary = idx >= 0
+        ? existing.map((e, i) => (i === idx ? parsed.data : e))
+        : [...existing, parsed.data]
+      return { ...c, errorGlossary: newGlossary }
+    }),
+  }
+
+  const supabase = createServiceClient()
+  const { error } = await supabase
+    .from("projects")
+    .update({ config: updated as unknown as Json })
+    .eq("id", projectId)
+
+  if (error) throw new Error(error.message)
+  revalidatePath("/dashboard/contracts")
+}
+
+export async function removeGlossaryEntry(
+  projectId: string,
+  contractId: string,
+  errorName: string,
+) {
+  const project = await resolveProjectWithOwnership(projectId)
+  const config = project.config as unknown as ProjectConfig
+
+  const updated: ProjectConfig = {
+    ...config,
+    watchedContracts: (config.watchedContracts ?? []).map((c) => {
+      if (c.id !== contractId) return c
+      return { ...c, errorGlossary: (c.errorGlossary ?? []).filter((e) => e.error !== errorName) }
+    }),
+  }
+
+  const supabase = createServiceClient()
+  const { error } = await supabase
+    .from("projects")
+    .update({ config: updated as unknown as Json })
+    .eq("id", projectId)
+
+  if (error) throw new Error(error.message)
+  revalidatePath("/dashboard/contracts")
 }
 
 export async function removeContract(projectId: string, contractId: string) {

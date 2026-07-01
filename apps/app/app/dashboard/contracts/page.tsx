@@ -36,19 +36,22 @@ export default async function ContractsPage() {
           <AddContractDialog projectId={typedProject.id} />
         </CardHeader>
         <CardContent>
-          <ContractList projectId={typedProject.id} contracts={contracts} />
+          <ContractList projectId={typedProject.id} contracts={contracts} showGlossary />
         </CardContent>
       </Card>
 
       <Card className="border-dashed">
         <CardContent className="pt-6">
-          <div className="space-y-2">
-            <p className="text-sm font-medium">How it works</p>
+          <div className="space-y-3">
+            <p className="text-sm font-medium">Error glossary</p>
+            <p className="text-sm text-muted-foreground">
+              When a user&apos;s transaction fails, the AI decodes the revert reason automatically. Add error
+              explanations to each contract so the AI uses your exact wording — not a generic guess.
+            </p>
             <ul className="text-sm text-muted-foreground space-y-1.5 list-disc list-inside">
-              <li>A user asks about their token lock status</li>
-              <li>The AI matches the question to your contract using its name and description</li>
-              <li>The AI calls the contract on-chain with the user&apos;s wallet address</li>
-              <li>The result is returned to the user in plain English</li>
+              <li>The error name (e.g. <code className="font-mono text-xs">SlippageTooHigh</code>) is matched against the decoded revert</li>
+              <li>Your explanation replaces any AI-generated guess</li>
+              <li>Works for Solidity custom errors, standard revert strings, and panic codes</li>
             </ul>
           </div>
         </CardContent>

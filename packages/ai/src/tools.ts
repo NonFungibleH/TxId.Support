@@ -177,5 +177,5 @@ export function buildEscalationTool(): Anthropic.Tool {
 export const TOOL_LABELS: Record<string, string> = {
   get_wallet_balance: "Checking your balance…",
   get_recent_transactions: "Looking up your transactions…",
-  get_transaction_by_hash: "Fetching transaction details…",
+  get_transaction_by_hash: "Diagnosing transaction…",
 }

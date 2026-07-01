@@ -1,4 +1,5 @@
 export { getNativeBalance, getTokenBalances, getRecentTransactions, getTransactionByHash } from "./wallet"
+export { decodeTxRevert } from "./decoder"
 export {
   getExplorerUrl,
   getTxUrl,
@@ -12,5 +13,6 @@ export type {
   NativeBalance,
   Transaction,
   ChainConfig,
+  DecodedRevert,
 } from "./types"
 export { CHAIN_CONFIGS } from "./types"

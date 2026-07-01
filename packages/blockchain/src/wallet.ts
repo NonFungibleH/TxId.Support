@@ -1,5 +1,6 @@
 import { CHAIN_CONFIGS } from "./types"
-import type { TokenBalance, NativeBalance, Transaction } from "./types"
+import type { TokenBalance, NativeBalance, Transaction, DecodedRevert } from "./types"
+import { decodeTxRevert } from "./decoder"
 
 const MORALIS_BASE = "https://deep-index.moralis.io/api/v2.2"
 
@@ -7,7 +8,7 @@ function moralisChain(chainId: string): string {
   return CHAIN_CONFIGS[chainId]?.moralisChain ?? "eth"
 }
 
-function moralisHeaders(): HeadersInit {
+function moralisHeaders(): Record<string, string> {
   const apiKey = process.env.MORALIS_API_KEY
   if (!apiKey) throw new Error("MORALIS_API_KEY is not set")
   return { "X-API-Key": apiKey, "Content-Type": "application/json" }
@@ -94,6 +95,7 @@ export async function getTransactionByHash(
     to_address: string | null
     value: string
     gas: string
+    input: string | null
     receipt_gas_used: string | null
     receipt_status: string | null
   }
@@ -101,7 +103,26 @@ export async function getTransactionByHash(
     maximumFractionDigits: 6,
   })
   const symbol = CHAIN_CONFIGS[chainId]?.nativeCurrency ?? "ETH"
-  const statusStr = tx.receipt_status === "1" ? "success" : "failed"
+  const isFailed = tx.receipt_status !== "1"
+  const statusStr = isFailed ? "failed" : "success"
+  const gasUsed = tx.receipt_gas_used ?? "0"
+
+  // For failed transactions, decode the revert reason in the background.
+  // decodeTxRevert does an eth_call replay — gracefully returns "unknown" on any error.
+  let decodedRevert: DecodedRevert | undefined
+  if (isFailed && tx.to_address) {
+    decodedRevert = await decodeTxRevert({
+      from: tx.from_address,
+      to: tx.to_address,
+      value: tx.value ?? "0",
+      input: tx.input ?? "0x",
+      blockNumber: tx.block_number,
+      gasUsed,
+      gasLimit: tx.gas,
+      chainId,
+    }).catch(() => undefined)
+  }
+
   return {
     hash: tx.hash,
     blockNumber: tx.block_number,
@@ -110,9 +131,10 @@ export async function getTransactionByHash(
     to: tx.to_address,
     value: `${valueEth} ${symbol}`,
     gasLimit: tx.gas,
-    gasUsed: tx.receipt_gas_used ?? "0",
+    gasUsed,
     status: statusStr,
-    summary: `Transaction ${statusStr} — ${valueEth} ${symbol} to ${tx.to_address ?? "contract creation"}`,
+    summary: `Transaction ${statusStr}: ${valueEth} ${symbol} to ${tx.to_address ?? "contract creation"}`,
+    ...(decodedRevert ? { decodedRevert } : {}),
   }
 }
 
@@ -147,7 +169,25 @@ export async function getRecentTransactions(
     })
     const symbol = CHAIN_CONFIGS[chainId]?.nativeCurrency ?? "ETH"
     const isOut = tx.from_address.toLowerCase() === address.toLowerCase()
+    const isFailed = tx.receipt_status !== "1"
     const summary = `${isOut ? "Sent" : "Received"} ${valueEth} ${symbol} ${isOut ? "to" : "from"} ${isOut ? (tx.to_address ?? "contract") : tx.from_address}`
+
+    // Detect out-of-gas locally (no RPC call needed — just compare gas figures).
+    // For other failure causes, call get_transaction_by_hash for a full decode.
+    let decodedRevert: DecodedRevert | undefined
+    if (isFailed) {
+      const used = parseInt(tx.receipt_gas_used, 10) || 0
+      const limit = parseInt(tx.gas, 10) || 0
+      const pct = limit > 0 ? Math.round((used / limit) * 100) : 0
+      if (pct >= 99) {
+        decodedRevert = {
+          cause: "out_of_gas",
+          reason: `Out of gas: ${used.toLocaleString()} of ${limit.toLocaleString()} units consumed (${pct}%).`,
+          gasInfo: { used, limit, percentUsed: pct },
+        }
+      }
+    }
+
     return {
       hash: tx.hash,
       blockNumber: tx.block_number,
@@ -157,8 +197,9 @@ export async function getRecentTransactions(
       value: `${valueEth} ${symbol}`,
       gasLimit: tx.gas,
       gasUsed: tx.receipt_gas_used,
-      status: tx.receipt_status === "1" ? "success" : "failed",
+      status: isFailed ? "failed" : "success",
       summary,
+      ...(decodedRevert !== undefined ? { decodedRevert } : {}),
     }
   })
 }

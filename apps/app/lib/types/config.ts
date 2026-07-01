@@ -78,12 +78,18 @@ export interface TokenConfig {
   name: string | null
 }
 
+export interface ErrorGlossaryEntry {
+  error: string         // error name or revert string to match, e.g. "SlippageTooHigh"
+  explanation: string   // plain-English explanation shown to the user
+}
+
 export interface WatchedContract {
   id: string
   name: string
   address: string
   chain: ChainId
   description: string
+  errorGlossary?: ErrorGlossaryEntry[]
 }
 
 export type ContentBlockType = "video" | "text" | "tokenomics" | "link" | "image" | "html" | "social" | "faq" | "dexscreener"

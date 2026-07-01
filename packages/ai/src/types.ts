@@ -3,12 +3,18 @@ export interface ChatMessage {
   content: string
 }
 
+export interface ErrorGlossaryEntry {
+  error: string         // error name or revert string, e.g. "SlippageTooHigh"
+  explanation: string   // plain-English explanation set by the protocol team
+}
+
 export interface WatchedContractSnapshot {
   id: string
   name: string
   address: string
   chain: string
   description: string
+  errorGlossary?: ErrorGlossaryEntry[]
 }
 
 export interface TokenConfigSnapshot {

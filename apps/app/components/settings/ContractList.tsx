@@ -8,6 +8,7 @@ import { removeContract } from "@/lib/actions/contracts"
 import type { WatchedContract } from "@/lib/types/config"
 import { SUPPORTED_CHAINS } from "@/lib/types/config"
 import { Trash2, ExternalLink } from "lucide-react"
+import { ErrorGlossaryManager } from "./ErrorGlossaryManager"
 
 function chainName(id: string) {
   return SUPPORTED_CHAINS.find(c => c.id === id)?.name ?? id
@@ -22,9 +23,10 @@ function explorerUrl(contract: WatchedContract) {
 interface ContractListProps {
   projectId: string
   contracts: WatchedContract[]
+  showGlossary?: boolean
 }
 
-export function ContractList({ projectId, contracts }: ContractListProps) {
+export function ContractList({ projectId, contracts, showGlossary }: ContractListProps) {
   const [isPending, startTransition] = useTransition()
 
   function remove(contractId: string) {
@@ -51,7 +53,8 @@ export function ContractList({ projectId, contracts }: ContractListProps) {
       {contracts.map(contract => {
         const url = explorerUrl(contract)
         return (
-          <div key={contract.id} className="flex items-start justify-between rounded-lg border border-border px-4 py-3 gap-4">
+          <div key={contract.id} className="rounded-lg border border-border px-4 py-3">
+            <div className="flex items-start justify-between gap-4">
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-1">
                 <p className="font-medium text-sm">{contract.name}</p>
@@ -80,6 +83,10 @@ export function ContractList({ projectId, contracts }: ContractListProps) {
                 <Trash2 className="size-3.5" />
               </Button>
             </div>
+            </div>
+            {showGlossary && (
+              <ErrorGlossaryManager projectId={projectId} contract={contract} />
+            )}
           </div>
         )
       })}

@@ -167,6 +167,12 @@ export function buildSystemPrompt(params: StreamChatParams): string {
       const lines = ["## Smart Contracts"]
       for (const c of config.watchedContracts) {
         lines.push(`- **${c.name}** (\`${c.address}\` on chain ${c.chain}): ${c.description}`)
+        if (c.errorGlossary && c.errorGlossary.length > 0) {
+          lines.push(`  Error glossary for ${c.name}:`)
+          for (const entry of c.errorGlossary) {
+            lines.push(`  - \`${entry.error}\` → ${entry.explanation}`)
+          }
+        }
       }
       parts.push(lines.join("\n"))
     }
@@ -188,9 +194,16 @@ export function buildSystemPrompt(params: StreamChatParams): string {
         `- Never ask the user for a transaction hash or any technical data — look it up yourself\n` +
         `- Find the relevant transaction yourself (most recent failed or relevant one). Never ask the user to identify it.\n` +
         `- If the protocol's contract address is known (Smart Contracts section), pass it as contract_address to filter results\n` +
-        `- Diagnose in plain English: "the transaction ran out of gas fee" not "OOG error"; "wrong network" not "chainId mismatch"\n` +
-        `- If gasUsed equals or nearly equals gasLimit on a failed tx, the cause is out-of-gas\n` +
-        `- Do not tell the user to check a block explorer — you are the block explorer`
+        `- Do not tell the user to check a block explorer — you are the block explorer\n\n` +
+        `**Interpreting failed transactions — decodedRevert field:**\n` +
+        `Failed transactions may include a \`decodedRevert\` object. Use it as follows:\n` +
+        `- \`cause: "out_of_gas"\` → The wallet's gas limit was too low. Tell the user to increase the gas limit in their wallet settings (this is NOT about having more ETH — it is the gas limit number, found in wallet advanced settings). Do not say "OOG".\n` +
+        `- \`cause: "revert_reason"\` → The \`reason\` field has the contract's raw error string (e.g. "ERC20: insufficient allowance"). Translate to plain English: what does this mean for what the user was trying to do, and what should they do next?\n` +
+        `- \`cause: "custom_error"\` → The \`errorName\` field has the Solidity error name (e.g. "SlippageTooHigh"). FIRST check the Error Glossary in the Smart Contracts section above — if the error name matches a glossary entry, use that explanation verbatim. If no glossary entry, use your DeFi knowledge to explain it in plain English.\n` +
+        `- \`cause: "panic"\` → A programming-level error in the contract. Explain what happened in context of what the user was trying to do (e.g. "the contract tried to divide by zero — this is a bug, not something you did wrong").\n` +
+        `- \`cause: "unknown_revert"\` → No specific reason available. Describe what the user was trying to do and list the most common causes for that action on this protocol.\n\n` +
+        `**If the transaction cannot be found on-chain at all:**\n` +
+        `The likely causes are: (1) wallet RPC failure — advise the user to switch to a public RPC endpoint in their wallet settings (Chainlist.org lists them); (2) stuck pending nonce — a previous transaction is blocking the queue; (3) gas price too low — the transaction is in the mempool but not picked up by validators.`
       )
     } else {
       // No wallet connected
