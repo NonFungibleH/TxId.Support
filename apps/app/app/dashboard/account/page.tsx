@@ -8,6 +8,7 @@ import type { ProjectConfig, Plan } from "@/lib/types/config"
 import { PLAN_LABELS, PLAN_CHAIN_LIMITS, PLAN_CONV_LIMITS, PAID_PLANS } from "@/lib/types/config"
 import { cn } from "@/lib/utils"
 import type { Database } from "@/lib/supabase/types"
+import { OrgNameEditor } from "@/components/dashboard/OrgNameEditor"
 
 type ProjectRow = Database["public"]["Tables"]["projects"]["Row"]
 
@@ -20,7 +21,7 @@ const PLAN_COLOR: Record<Plan, string> = {
 }
 
 export default async function AccountPage() {
-  const { project } = await getProject()
+  const { org, project } = await getProject()
   if (!project) redirect("/dashboard")
 
   const typedProject = project as unknown as ProjectRow
@@ -62,9 +63,11 @@ export default async function AccountPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Account & Billing</h1>
-        <p className="text-muted-foreground mt-1">Your plan, usage, and billing details.</p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <OrgNameEditor initialName={org.name} />
+          <p className="text-muted-foreground mt-1">Plan, usage, and billing details.</p>
+        </div>
       </div>
 
       {/* Current plan */}

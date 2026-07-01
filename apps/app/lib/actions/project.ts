@@ -112,6 +112,26 @@ export async function createProjectWithMode(name: string, mode: "support" | "tok
   return project
 }
 
+export async function renameOrg(name: string) {
+  const { orgId, userId } = await auth()
+  if (!userId) throw new Error("Unauthenticated")
+  const orgKey = orgId ?? userId
+
+  const trimmed = name.trim()
+  if (!trimmed || trimmed.length > 80) throw new Error("Name must be 1–80 characters")
+
+  const supabase = createServiceClient()
+
+  const { error } = await supabase
+    .from("organisations")
+    .update({ name: trimmed })
+    .eq("clerk_org_id", orgKey)
+
+  if (error) throw new Error(error.message)
+  revalidatePath("/dashboard")
+  revalidatePath("/dashboard/account")
+}
+
 export async function renameProject(projectId: string, name: string) {
   const { orgId, userId } = await auth()
   if (!userId) throw new Error("Unauthenticated")
