@@ -52,6 +52,29 @@ function isNearWhite(hex: string): boolean {
   return (0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2]) / 255 > 0.92
 }
 
+// ── CSS scanning helpers ──────────────────────────────────────────────────────
+
+const CSS_VAR_CANDIDATES = [
+  "--primary-color", "--brand-color", "--accent-color", "--color-primary",
+  "--primary", "--brand", "--accent", "--theme-color", "--main-color",
+  "--color-brand", "--color-accent",
+]
+
+function extractPrimaryFromCss(cssText: string): string | undefined {
+  for (const v of CSS_VAR_CANDIDATES) {
+    const escaped = v.replace(/[-]/g, "\\-")
+    const match = cssText.match(new RegExp(`${escaped}\\s*:\\s*(#[0-9a-fA-F]{3,8})`, "i"))
+    if (match?.[1] && isValidHex(match[1]) && !isNearBlack(match[1]) && !isNearWhite(match[1])) {
+      return normalizeHex(match[1])
+    }
+  }
+}
+
+function extractBgFromCss(cssText: string): string | undefined {
+  const m = cssText.match(/body\s*\{[^}]*background(?:-color)?\s*:\s*(#[0-9a-fA-F]{3,8})/i)
+  if (m?.[1] && isValidHex(m[1])) return normalizeHex(m[1])
+}
+
 // ── Main export ───────────────────────────────────────────────────────────────
 
 export interface BrandColorResult {
@@ -151,36 +174,52 @@ export async function fetchBrandColors(rawUrl: string): Promise<BrandColorResult
       }
     }
 
-    // 3. CSS custom properties in <style> blocks
+    // 3. CSS custom properties in inline <style> blocks
     if (!primaryColor) {
       const styleContent = [...html.matchAll(/<style[^>]*>([\s\S]*?)<\/style>/gi)]
         .map(m => m[1])
         .join("\n")
 
-      const cssVarCandidates = [
-        "--primary-color", "--brand-color", "--accent-color", "--color-primary",
-        "--primary", "--brand", "--accent", "--theme-color", "--main-color",
-        "--color-brand", "--color-accent",
-      ]
-
-      for (const v of cssVarCandidates) {
-        const escaped = v.replace(/[-]/g, "\\-")
-        const match = styleContent.match(new RegExp(`${escaped}\\s*:\\s*(#[0-9a-fA-F]{3,8})`, "i"))
-        if (match?.[1] && isValidHex(match[1]) && !isNearBlack(match[1]) && !isNearWhite(match[1])) {
-          primaryColor = normalizeHex(match[1])
-          foundSignals.push(`CSS var ${v}`)
-          break
-        }
+      const found = extractPrimaryFromCss(styleContent)
+      if (found) {
+        primaryColor = found
+        foundSignals.push("CSS var in inline style")
       }
 
-      // Body background from inline <style>
       if (!backgroundColor) {
-        const bodyBgMatch = styleContent.match(
-          /body\s*\{[^}]*background(?:-color)?\s*:\s*(#[0-9a-fA-F]{3,8})/i
-        )
-        if (bodyBgMatch?.[1] && isValidHex(bodyBgMatch[1])) {
-          backgroundColor = normalizeHex(bodyBgMatch[1])
-          foundSignals.push("body background-color")
+        const bg = extractBgFromCss(styleContent)
+        if (bg) { backgroundColor = bg; foundSignals.push("body background-color") }
+      }
+    }
+
+    // 4. External stylesheets — most modern sites put CSS variables here
+    if (!primaryColor) {
+      const sheetMatches = [...html.matchAll(/<link[^>]*rel=["']stylesheet["'][^>]*href=["']([^"']+)["']/gi)]
+      const sheetUrls = sheetMatches
+        .map(m => { try { return new URL(m[1], url).href } catch { return null } })
+        .filter((u): u is string => u !== null && !isPrivateUrl(u))
+        .slice(0, 4)
+
+      for (const sheetUrl of sheetUrls) {
+        try {
+          const res = await fetch(sheetUrl, {
+            headers: { "User-Agent": "Mozilla/5.0 (compatible; TxIDSupport/1.0)" },
+            signal: AbortSignal.timeout(4000),
+          })
+          if (!res.ok) continue
+          const cssText = await res.text()
+          const found = extractPrimaryFromCss(cssText)
+          if (found) {
+            primaryColor = found
+            foundSignals.push("CSS var in external stylesheet")
+            if (!backgroundColor) {
+              const bg = extractBgFromCss(cssText)
+              if (bg) { backgroundColor = bg; foundSignals.push("body bg in external stylesheet") }
+            }
+            break
+          }
+        } catch {
+          // non-fatal
         }
       }
     }

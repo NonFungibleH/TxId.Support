@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation"
 import {
   LayoutDashboard, Paintbrush, FileCode2, BookOpen,
   Link2, LayoutList, Code2, BarChart3, Globe, MessageSquare, Eye, Ticket, MessagesSquare, ExternalLink,
-  Sun, Moon, CreditCard, Zap,
+  Sun, Moon, Zap,
 } from "lucide-react"
 import { useTheme } from "next-themes"
 import { cn } from "@/lib/utils"
@@ -46,11 +46,6 @@ const SUPPORT_GROUPS: NavGroup[] = [
       { href: "/dashboard/analytics",     label: "Analytics",     icon: BarChart3 },
     ],
   },
-  {
-    items: [
-      { href: "/dashboard/account", label: "Account", icon: CreditCard },
-    ],
-  },
 ]
 
 const TOKEN_GROUPS: NavGroup[] = [
@@ -78,11 +73,6 @@ const TOKEN_GROUPS: NavGroup[] = [
     label: "Monitor",
     items: [
       { href: "/dashboard/analytics", label: "Analytics", icon: BarChart3 },
-    ],
-  },
-  {
-    items: [
-      { href: "/dashboard/account", label: "Account", icon: CreditCard },
     ],
   },
 ]
