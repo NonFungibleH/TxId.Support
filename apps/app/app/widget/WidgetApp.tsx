@@ -1491,9 +1491,21 @@ export function WidgetApp() {
                   }
 
                   if (block.type === "dexscreener" && c.url) {
-                    const embedUrl = c.url.includes("?")
-                      ? `${c.url}&embed=1&theme=dark&info=0`
-                      : `${c.url}?embed=1&theme=dark&info=0`
+                    let embedUrl: string
+                    if (c.url.includes("dextools.io")) {
+                      // Convert DexTools pair-explorer URL to widget-chart URL
+                      // e.g. /app/en/ether/pair-explorer/0x… → /widget-chart/en/ether/pe-light/0x…
+                      embedUrl = c.url
+                        .replace("/app/", "/widget-chart/")
+                        .replace("/pair-explorer/", "/pe-light/")
+                        .split("?")[0] +
+                        "?theme=dark&chartType=2&chartResolution=30&drawingToolbars=false"
+                    } else {
+                      // DexScreener embed
+                      embedUrl = c.url.includes("?")
+                        ? `${c.url}&embed=1&theme=dark&info=0`
+                        : `${c.url}?embed=1&theme=dark&info=0`
+                    }
                     return (
                       <div key={block.id}>
                         {block.title && <p className="text-[10px] uppercase tracking-wider opacity-60 mb-1" style={{ color: b.textColor }}>{block.title}</p>}
