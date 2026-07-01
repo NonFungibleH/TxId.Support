@@ -67,7 +67,7 @@ export function FeatureGrid() {
       <div className="max-w-6xl mx-auto px-6">
         <FadeIn>
           <div className="text-center mb-16">
-            <p className="font-mono text-sm text-accent mb-3">{`// Features`}</p>
+            <p className="font-mono text-sm text-accent mb-3">{`Features`}</p>
             <h2 className="font-display text-4xl font-bold text-white mb-4">
               Everything your protocol needs to stop firefighting support
             </h2>

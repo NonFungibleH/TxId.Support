@@ -72,7 +72,7 @@ export function PricingSection({ compact }: { compact?: boolean }) {
         {compact && (
           <FadeIn>
             <div className="text-center mb-12">
-              <p className="font-mono text-sm text-accent mb-3">{"// Pricing"}</p>
+              <p className="font-mono text-sm text-accent mb-3">{"Pricing"}</p>
               <h2 className="font-display text-4xl font-bold text-white mb-4">
                 Simple, transparent pricing
               </h2>

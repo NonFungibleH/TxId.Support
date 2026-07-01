@@ -78,7 +78,7 @@ export function EmbedPreview() {
       <div className="max-w-6xl mx-auto px-6">
         <FadeIn>
           <div className="text-center mb-12">
-            <p className="font-mono text-sm text-accent mb-3">{`// Integration`}</p>
+            <p className="font-mono text-sm text-accent mb-3">{`Integration`}</p>
             <h2 className="font-display text-4xl font-bold text-white mb-4">
               Embed in 30 seconds
             </h2>

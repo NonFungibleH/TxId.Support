@@ -14,7 +14,7 @@ export default function PrivacyPage() {
       <Navbar />
       <main className="pt-24 pb-20">
         <div className="max-w-2xl mx-auto px-6">
-          <p className="font-mono text-sm text-accent mb-3">{"// Legal"}</p>
+          <p className="font-mono text-sm text-accent mb-3">{"Legal"}</p>
           <h1 className="font-display text-4xl font-bold text-white mb-2">
             Privacy Policy
           </h1>

@@ -286,7 +286,7 @@ export default function DemoPage() {
 
           {/* Header */}
           <div className="text-center mb-16">
-            <p className="font-mono text-sm text-accent mb-3">{"// Interactive demo"}</p>
+            <p className="font-mono text-sm text-accent mb-3">{"Interactive demo"}</p>
             <h1 className="font-display text-5xl font-bold text-white mb-4">
               See it in action
             </h1>

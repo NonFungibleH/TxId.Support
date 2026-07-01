@@ -8,7 +8,7 @@ export default function NotFound() {
       <Navbar />
       <main className="min-h-screen flex items-center justify-center pt-16">
         <div className="text-center px-6">
-          <p className="font-mono text-sm text-accent mb-4">{'// 404'}</p>
+          <p className="font-mono text-sm text-accent mb-4">{'404'}</p>
           <h1 className="font-display text-6xl font-bold text-white mb-4">
             Page not found
           </h1>

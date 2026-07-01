@@ -52,7 +52,7 @@ export default function BlogPage({
       <main className="min-h-screen pt-28 pb-24">
         <div className="max-w-2xl mx-auto px-6">
           <FadeIn>
-            <p className="font-mono text-sm text-accent mb-3">{"// Blog"}</p>
+            <p className="font-mono text-sm text-accent mb-3">{"Blog"}</p>
             <h1 className="font-display text-4xl font-bold text-white mb-4">
               Web3 support, explained
             </h1>

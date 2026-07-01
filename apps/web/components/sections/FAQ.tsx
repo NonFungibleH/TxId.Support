@@ -34,7 +34,7 @@ export function FAQ() {
       <div className="max-w-3xl mx-auto px-6">
         <FadeIn>
           <div className="text-center mb-14">
-            <p className="font-mono text-sm text-accent mb-3">{"// FAQ"}</p>
+            <p className="font-mono text-sm text-accent mb-3">{"FAQ"}</p>
             <h2 className="font-display text-4xl font-bold text-white mb-4">
               Common questions
             </h2>

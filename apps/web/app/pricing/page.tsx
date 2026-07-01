@@ -118,7 +118,7 @@ export default function PricingPage() {
       <main className="pt-24">
         <div className="max-w-6xl mx-auto px-6 text-center py-16">
           <FadeIn>
-            <p className="font-mono text-sm text-accent mb-3">{"// Pricing"}</p>
+            <p className="font-mono text-sm text-accent mb-3">{"Pricing"}</p>
             <h1 className="font-display text-5xl font-bold text-white mb-4">
               Start free. Scale when ready.
             </h1>

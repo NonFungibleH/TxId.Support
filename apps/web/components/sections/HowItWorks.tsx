@@ -37,7 +37,7 @@ export function HowItWorks() {
       <div className="max-w-6xl mx-auto px-6">
         <FadeIn>
           <div className="text-center mb-16">
-            <p className="font-mono text-sm text-accent mb-3">{`// How it works`}</p>
+            <p className="font-mono text-sm text-accent mb-3">{`How it works`}</p>
             <h2 className="font-display text-4xl font-bold text-white">
               Live in three steps
             </h2>
