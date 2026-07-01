@@ -67,7 +67,7 @@ const PLANS = [
 
 export function PricingSection({ compact }: { compact?: boolean }) {
   return (
-    <section className={clsx("py-24", compact && "pb-0")}>
+    <section className={clsx("py-16", compact && "pb-0")}>
       <div className="max-w-6xl mx-auto px-6">
         {compact && (
           <FadeIn>

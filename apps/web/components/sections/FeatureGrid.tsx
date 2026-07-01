@@ -63,7 +63,7 @@ const FEATURES = [
 
 export function FeatureGrid() {
   return (
-    <section id="features" className="py-24">
+    <section id="features" className="py-16">
       <div className="max-w-6xl mx-auto px-6">
         <FadeIn>
           <div className="text-center mb-16">

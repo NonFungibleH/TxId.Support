@@ -50,7 +50,7 @@ const MODES = [
 
 export function ThreeModes() {
   return (
-    <section className="py-24">
+    <section className="py-16">
       <div className="max-w-6xl mx-auto px-6">
         <FadeIn>
           <div className="text-center mb-12">

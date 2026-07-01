@@ -5,7 +5,7 @@ import { APP_URL } from "@/lib/config";
 
 export function ClosingCTA() {
   return (
-    <section className="py-20 border-t border-[var(--border)]">
+    <section className="py-14 border-t border-[var(--border)]">
       <div className="max-w-3xl mx-auto px-6 text-center">
         <FadeIn>
           <h2 className="font-display text-4xl font-bold text-white mb-4">
