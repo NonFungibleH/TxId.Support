@@ -79,7 +79,7 @@ export default async function DashboardPage() {
   const plan = config.plan ?? "free"
   const chainLimit = PLAN_CHAIN_LIMITS[plan]
   const convLimit = PLAN_CONV_LIMITS[plan]
-  const chainLimitLabel = chainLimit === Infinity ? "∞" : String(chainLimit)
+  const chainLimitLabel = chainLimit === Infinity ? String(SUPPORTED_CHAINS.length) : String(chainLimit)
   const convLimitLabel = convLimit === Infinity ? null : convLimit.toLocaleString()
   const usagePct = convLimit === Infinity ? 0 : Math.round((monthlyCount / convLimit) * 100)
 

@@ -1,17 +1,17 @@
 export type Plan = "free" | "starter" | "pro" | "enterprise" | "custom"
 
 export const PLAN_CHAIN_LIMITS: Record<Plan, number> = {
-  free:       1,
-  starter:    1,
-  pro:        3,
+  free:       0,        // no blockchain on free
+  starter:    1,        // legacy — treated like free
+  pro:        1,
   enterprise: Infinity,
   custom:     Infinity,
 }
 
 export const PLAN_CONV_LIMITS: Record<Plan, number> = {
   free:       50,
-  starter:    200,
-  pro:        5000,
+  starter:    200,      // legacy
+  pro:        2500,
   enterprise: Infinity,
   custom:     Infinity,
 }

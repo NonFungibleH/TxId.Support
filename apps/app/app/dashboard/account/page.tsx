@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Zap, CreditCard, BarChart3 } from "lucide-react"
 import Link from "next/link"
 import type { ProjectConfig, Plan } from "@/lib/types/config"
-import { PLAN_LABELS, PLAN_CHAIN_LIMITS, PLAN_CONV_LIMITS, PAID_PLANS } from "@/lib/types/config"
+import { PLAN_LABELS, PLAN_CHAIN_LIMITS, PLAN_CONV_LIMITS, PAID_PLANS, SUPPORTED_CHAINS } from "@/lib/types/config"
 import { cn } from "@/lib/utils"
 import type { Database } from "@/lib/supabase/types"
 import { OrgNameEditor } from "@/components/dashboard/OrgNameEditor"
@@ -55,7 +55,7 @@ export default async function AccountPage() {
   const convLimit = PLAN_CONV_LIMITS[plan]
   const chainLimit = PLAN_CHAIN_LIMITS[plan]
   const convLimitLabel = convLimit === Infinity ? "Unlimited" : convLimit.toLocaleString()
-  const chainLimitLabel = chainLimit === Infinity ? "Unlimited" : String(chainLimit)
+  const chainLimitLabel = chainLimit === Infinity ? String(SUPPORTED_CHAINS.length) : String(chainLimit)
   const usagePct = convLimit === Infinity ? 0 : Math.round((monthlyCount / convLimit) * 100)
   const chainsUsed = config.chains.length
 

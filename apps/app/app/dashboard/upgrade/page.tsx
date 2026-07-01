@@ -3,7 +3,6 @@ import { redirect } from "next/navigation"
 import { CheckCircle2, Zap } from "lucide-react"
 import Link from "next/link"
 import type { ProjectConfig, Plan } from "@/lib/types/config"
-import { PLAN_CONV_LIMITS } from "@/lib/types/config"
 import { cn } from "@/lib/utils"
 
 type PlanDef = {
@@ -11,8 +10,6 @@ type PlanDef = {
   label: string
   price: string
   priceSub: string
-  chains: string
-  convs: string
   features: string[]
   cta: string
   ctaHref: string
@@ -25,13 +22,10 @@ const PLANS: PlanDef[] = [
     label: "Free",
     price: "$0",
     priceSub: "forever",
-    chains: "1 chain",
-    convs: `${PLAN_CONV_LIMITS.free} conversations/mo`,
     features: [
-      "1 blockchain",
       "50 conversations / month",
+      "No blockchain support",
       "Content blocks",
-      "Smart contract lookups",
       "Docs & knowledge base",
       "Community support",
     ],
@@ -40,39 +34,18 @@ const PLANS: PlanDef[] = [
     highlight: false,
   },
   {
-    id: "starter",
-    label: "Starter",
-    price: "Contact us",
-    priceSub: "per month",
-    chains: "1 chain",
-    convs: `${PLAN_CONV_LIMITS.starter.toLocaleString()} conversations/mo`,
-    features: [
-      "1 blockchain",
-      "200 conversations / month",
-      "All content blocks",
-      "Smart contract lookups",
-      "Docs & knowledge base",
-      "Email support",
-    ],
-    cta: "Get Starter",
-    ctaHref: "mailto:hello@txid.support?subject=Upgrade to Starter",
-    highlight: false,
-  },
-  {
     id: "pro",
     label: "Pro",
-    price: "$699",
+    price: "$999",
     priceSub: "per month",
-    chains: "3 chains",
-    convs: `${PLAN_CONV_LIMITS.pro.toLocaleString()} conversations/mo`,
     features: [
-      "3 blockchains",
-      "5,000 conversations / month",
+      "2,500 conversations / month",
+      "1 blockchain",
+      "Wallet & transaction lookups",
       "All content blocks",
-      "Smart contract lookups",
       "Docs & knowledge base",
       "Priority support",
-      "Advanced analytics",
+      "Analytics",
     ],
     cta: "Get Pro",
     ctaHref: "mailto:hello@txid.support?subject=Upgrade to Pro",
@@ -83,13 +56,11 @@ const PLANS: PlanDef[] = [
     label: "Enterprise",
     price: "Custom",
     priceSub: "tailored pricing",
-    chains: "Unlimited chains",
-    convs: "Unlimited conversations",
     features: [
-      "Unlimited blockchains",
       "Unlimited conversations",
+      "Multiple blockchains",
+      "Wallet & transaction lookups",
       "All content blocks",
-      "Smart contract lookups",
       "Docs & knowledge base",
       "Dedicated support",
       "Custom integrations",
@@ -117,9 +88,9 @@ export default async function UpgradePage() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         {PLANS.map((plan) => {
-          const isCurrent = plan.id === currentPlan
+          const isCurrent = plan.id === currentPlan || (plan.id === "free" && (currentPlan === "starter" || !currentPlan))
           return (
             <div
               key={plan.id}
