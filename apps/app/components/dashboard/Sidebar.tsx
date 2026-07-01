@@ -12,30 +12,79 @@ import { cn } from "@/lib/utils"
 
 const WEB_URL = process.env.NEXT_PUBLIC_WEB_URL ?? "https://txid.support"
 
-const SUPPORT_NAV = [
-  { href: "/dashboard",                label: "Overview",        icon: LayoutDashboard },
-  { href: "/dashboard/branding",       label: "Branding",        icon: Paintbrush },
-  { href: "/dashboard/contracts",      label: "Smart Contracts", icon: FileCode2 },
-  { href: "/dashboard/docs",           label: "Docs & KB",       icon: BookOpen },
-  { href: "/dashboard/chains",         label: "Chains",          icon: Link2 },
-  { href: "/dashboard/content",        label: "Content",         icon: LayoutList },
-  { href: "/dashboard/preview",        label: "Preview",         icon: Eye },
-  { href: "/dashboard/embed",          label: "Embed & Go Live", icon: Code2 },
-  { href: "/dashboard/conversations",  label: "Conversations",   icon: MessagesSquare },
-  { href: "/dashboard/tickets",        label: "Tickets",         icon: Ticket },
-  { href: "/dashboard/analytics",      label: "Analytics",       icon: BarChart3 },
-  { href: "/dashboard/account",        label: "Account",         icon: CreditCard },
+type NavItem = { href: string; label: string; icon: React.ElementType }
+type NavGroup = { label?: string; items: NavItem[] }
+
+const SUPPORT_GROUPS: NavGroup[] = [
+  {
+    items: [
+      { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
+    ],
+  },
+  {
+    label: "Setup",
+    items: [
+      { href: "/dashboard/branding",  label: "Branding",        icon: Paintbrush },
+      { href: "/dashboard/contracts", label: "Smart Contracts",  icon: FileCode2 },
+      { href: "/dashboard/docs",      label: "Docs & KB",        icon: BookOpen },
+      { href: "/dashboard/chains",    label: "Chains",           icon: Link2 },
+      { href: "/dashboard/content",   label: "Content",          icon: LayoutList },
+    ],
+  },
+  {
+    label: "Launch",
+    items: [
+      { href: "/dashboard/preview", label: "Preview",         icon: Eye },
+      { href: "/dashboard/embed",   label: "Embed & Go Live", icon: Code2 },
+    ],
+  },
+  {
+    label: "Monitor",
+    items: [
+      { href: "/dashboard/conversations", label: "Conversations", icon: MessagesSquare },
+      { href: "/dashboard/tickets",       label: "Tickets",       icon: Ticket },
+      { href: "/dashboard/analytics",     label: "Analytics",     icon: BarChart3 },
+    ],
+  },
+  {
+    items: [
+      { href: "/dashboard/account", label: "Account", icon: CreditCard },
+    ],
+  },
 ]
 
-const TOKEN_NAV = [
-  { href: "/dashboard",               label: "Overview",        icon: LayoutDashboard },
-  { href: "/dashboard/branding",      label: "Branding",        icon: Paintbrush },
-  { href: "/dashboard/community",     label: "Community",       icon: Globe },
-  { href: "/dashboard/ask",           label: "Ask AI",          icon: MessageSquare },
-  { href: "/dashboard/preview",       label: "Preview",         icon: Eye },
-  { href: "/dashboard/embed",         label: "Embed & Go Live", icon: Code2 },
-  { href: "/dashboard/analytics",     label: "Analytics",       icon: BarChart3 },
-  { href: "/dashboard/account",       label: "Account",         icon: CreditCard },
+const TOKEN_GROUPS: NavGroup[] = [
+  {
+    items: [
+      { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
+    ],
+  },
+  {
+    label: "Setup",
+    items: [
+      { href: "/dashboard/branding",  label: "Branding",  icon: Paintbrush },
+      { href: "/dashboard/community", label: "Community", icon: Globe },
+      { href: "/dashboard/ask",       label: "Ask AI",    icon: MessageSquare },
+    ],
+  },
+  {
+    label: "Launch",
+    items: [
+      { href: "/dashboard/preview", label: "Preview",         icon: Eye },
+      { href: "/dashboard/embed",   label: "Embed & Go Live", icon: Code2 },
+    ],
+  },
+  {
+    label: "Monitor",
+    items: [
+      { href: "/dashboard/analytics", label: "Analytics", icon: BarChart3 },
+    ],
+  },
+  {
+    items: [
+      { href: "/dashboard/account", label: "Account", icon: CreditCard },
+    ],
+  },
 ]
 
 const PLAN_BADGE: Record<string, { label: string; cls: string }> = {
@@ -56,7 +105,7 @@ interface SidebarProps {
 export function Sidebar({ mode = "support", plan = "free", isOpen = false, onClose }: SidebarProps) {
   const pathname = usePathname()
   const { resolvedTheme, setTheme } = useTheme()
-  const NAV_ITEMS = mode === "token" ? TOKEN_NAV : SUPPORT_NAV
+  const GROUPS = mode === "token" ? TOKEN_GROUPS : SUPPORT_GROUPS
   const badge = PLAN_BADGE[plan] ?? PLAN_BADGE.free
   const showUpgrade = plan === "free" || plan === "starter"
 
@@ -73,32 +122,41 @@ export function Sidebar({ mode = "support", plan = "free", isOpen = false, onClo
         <span className="font-semibold text-sm">TxID Support</span>
       </div>
 
-      <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto px-2 py-3">
-        {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
-          const isActive = href === "/dashboard"
-            ? pathname === "/dashboard"
-            : (pathname ?? "").startsWith(href)
+      <nav className="flex flex-1 flex-col overflow-y-auto px-2 py-3 gap-4">
+        {GROUPS.map((group, gi) => (
+          <div key={gi} className="flex flex-col gap-0.5">
+            {group.label && (
+              <p className="px-2.5 pb-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/50">
+                {group.label}
+              </p>
+            )}
+            {group.items.map(({ href, label, icon: Icon }) => {
+              const isActive = href === "/dashboard"
+                ? pathname === "/dashboard"
+                : (pathname ?? "").startsWith(href)
 
-          return (
-            <Link
-              key={href}
-              href={href}
-              onClick={onClose}
-              className={cn(
-                "relative flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-sm transition-colors",
-                isActive
-                  ? "bg-primary/10 text-primary font-semibold"
-                  : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
-              )}
-            >
-              {isActive && (
-                <span className="absolute left-0 inset-y-1 w-0.5 bg-primary rounded-r-full" />
-              )}
-              <Icon className="size-4 shrink-0" />
-              {label}
-            </Link>
-          )
-        })}
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  onClick={onClose}
+                  className={cn(
+                    "relative flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-sm transition-colors",
+                    isActive
+                      ? "bg-primary/10 text-primary font-semibold"
+                      : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
+                  )}
+                >
+                  {isActive && (
+                    <span className="absolute left-0 inset-y-1 w-0.5 bg-primary rounded-r-full" />
+                  )}
+                  <Icon className="size-4 shrink-0" />
+                  {label}
+                </Link>
+              )
+            })}
+          </div>
+        ))}
       </nav>
 
       <div className="border-t border-border px-3 py-3 space-y-2">
