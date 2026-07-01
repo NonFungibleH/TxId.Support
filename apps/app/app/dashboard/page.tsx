@@ -73,7 +73,7 @@ export default async function DashboardPage() {
   const monthlyCount = monthlyResult.count ?? 0
   const recentConvs = recentResult.data ?? []
 
-  const plan = config.plan ?? "starter"
+  const plan = config.plan ?? "free"
   const chainLimit = PLAN_CHAIN_LIMITS[plan]
   const convLimit = PLAN_CONV_LIMITS[plan]
   const chainLimitLabel = chainLimit === Infinity ? "∞" : String(chainLimit)

@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation"
 import {
   LayoutDashboard, Paintbrush, FileCode2, BookOpen,
   Link2, LayoutList, Code2, BarChart3, Globe, MessageSquare, Eye, Ticket, MessagesSquare, ExternalLink,
-  Sun, Moon,
+  Sun, Moon, CreditCard, Zap,
 } from "lucide-react"
 import { useTheme } from "next-themes"
 import { cn } from "@/lib/utils"
@@ -13,39 +13,51 @@ import { cn } from "@/lib/utils"
 const WEB_URL = process.env.NEXT_PUBLIC_WEB_URL ?? "https://txid.support"
 
 const SUPPORT_NAV = [
-  { href: "/dashboard",           label: "Overview",        icon: LayoutDashboard },
-  { href: "/dashboard/branding",  label: "Branding",        icon: Paintbrush },
-  { href: "/dashboard/contracts", label: "Smart Contracts", icon: FileCode2 },
-  { href: "/dashboard/docs",      label: "Docs & KB",       icon: BookOpen },
-  { href: "/dashboard/chains",    label: "Chains",          icon: Link2 },
-  { href: "/dashboard/content",   label: "Content",         icon: LayoutList },
-  { href: "/dashboard/preview",   label: "Preview",         icon: Eye },
-  { href: "/dashboard/embed",     label: "Embed & Go Live", icon: Code2 },
-  { href: "/dashboard/conversations", label: "Conversations",  icon: MessagesSquare },
-  { href: "/dashboard/tickets",      label: "Tickets",        icon: Ticket },
-  { href: "/dashboard/analytics",    label: "Analytics",      icon: BarChart3 },
+  { href: "/dashboard",                label: "Overview",        icon: LayoutDashboard },
+  { href: "/dashboard/branding",       label: "Branding",        icon: Paintbrush },
+  { href: "/dashboard/contracts",      label: "Smart Contracts", icon: FileCode2 },
+  { href: "/dashboard/docs",           label: "Docs & KB",       icon: BookOpen },
+  { href: "/dashboard/chains",         label: "Chains",          icon: Link2 },
+  { href: "/dashboard/content",        label: "Content",         icon: LayoutList },
+  { href: "/dashboard/preview",        label: "Preview",         icon: Eye },
+  { href: "/dashboard/embed",          label: "Embed & Go Live", icon: Code2 },
+  { href: "/dashboard/conversations",  label: "Conversations",   icon: MessagesSquare },
+  { href: "/dashboard/tickets",        label: "Tickets",         icon: Ticket },
+  { href: "/dashboard/analytics",      label: "Analytics",       icon: BarChart3 },
+  { href: "/dashboard/account",        label: "Account",         icon: CreditCard },
 ]
 
 const TOKEN_NAV = [
-  { href: "/dashboard",           label: "Overview",        icon: LayoutDashboard },
-  { href: "/dashboard/branding",  label: "Branding",        icon: Paintbrush },
-  { href: "/dashboard/community", label: "Community",       icon: Globe },
-  { href: "/dashboard/ask",       label: "Ask AI",          icon: MessageSquare },
-  { href: "/dashboard/preview",   label: "Preview",         icon: Eye },
-  { href: "/dashboard/embed",     label: "Embed & Go Live", icon: Code2 },
-  { href: "/dashboard/analytics", label: "Analytics",       icon: BarChart3 },
+  { href: "/dashboard",               label: "Overview",        icon: LayoutDashboard },
+  { href: "/dashboard/branding",      label: "Branding",        icon: Paintbrush },
+  { href: "/dashboard/community",     label: "Community",       icon: Globe },
+  { href: "/dashboard/ask",           label: "Ask AI",          icon: MessageSquare },
+  { href: "/dashboard/preview",       label: "Preview",         icon: Eye },
+  { href: "/dashboard/embed",         label: "Embed & Go Live", icon: Code2 },
+  { href: "/dashboard/analytics",     label: "Analytics",       icon: BarChart3 },
+  { href: "/dashboard/account",       label: "Account",         icon: CreditCard },
 ]
+
+const PLAN_BADGE: Record<string, { label: string; cls: string }> = {
+  free:       { label: "Free",       cls: "bg-muted text-muted-foreground" },
+  starter:    { label: "Starter",    cls: "bg-indigo-500/20 text-indigo-400" },
+  pro:        { label: "Pro",        cls: "bg-amber-500/20 text-amber-400" },
+  enterprise: { label: "Enterprise", cls: "bg-purple-500/20 text-purple-400" },
+}
 
 interface SidebarProps {
   mode?: string
+  plan?: string
   isOpen?: boolean
   onClose?: () => void
 }
 
-export function Sidebar({ mode = "support", isOpen = false, onClose }: SidebarProps) {
+export function Sidebar({ mode = "support", plan = "free", isOpen = false, onClose }: SidebarProps) {
   const pathname = usePathname()
   const { resolvedTheme, setTheme } = useTheme()
   const NAV_ITEMS = mode === "token" ? TOKEN_NAV : SUPPORT_NAV
+  const badge = PLAN_BADGE[plan] ?? PLAN_BADGE.free
+  const showUpgrade = plan === "free" || plan === "starter"
 
   return (
     <aside
@@ -88,7 +100,27 @@ export function Sidebar({ mode = "support", isOpen = false, onClose }: SidebarPr
         })}
       </nav>
 
-      <div className="border-t border-border px-4 py-3 space-y-2">
+      <div className="border-t border-border px-3 py-3 space-y-2">
+        {/* Plan badge */}
+        <div className="flex items-center justify-between rounded-lg border border-border px-3 py-2">
+          <div className="flex items-center gap-2">
+            <span className={cn("rounded-full px-2 py-0.5 text-[11px] font-semibold", badge.cls)}>
+              {badge.label}
+            </span>
+            <span className="text-xs text-muted-foreground">plan</span>
+          </div>
+          {showUpgrade && (
+            <Link
+              href="/dashboard/upgrade"
+              onClick={onClose}
+              className="flex items-center gap-1 text-[11px] font-medium text-primary hover:text-primary/80 transition-colors"
+            >
+              <Zap className="size-3" />
+              Upgrade
+            </Link>
+          )}
+        </div>
+
         <button
           type="button"
           onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
@@ -99,8 +131,8 @@ export function Sidebar({ mode = "support", isOpen = false, onClose }: SidebarPr
             : <><Moon className="size-3.5 shrink-0" /> Dark mode</>
           }
         </button>
-        <p className="text-xs text-muted-foreground">© {new Date().getFullYear()} TxID Support</p>
-        <div className="flex flex-wrap gap-x-3 gap-y-1">
+        <p className="text-xs text-muted-foreground px-1">© {new Date().getFullYear()} TxID Support</p>
+        <div className="flex flex-wrap gap-x-3 gap-y-1 px-1">
           <a href={`${WEB_URL}/terms`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-0.5 text-[11px] text-muted-foreground hover:text-foreground transition-colors">
             Terms <ExternalLink className="size-2.5 opacity-40" />
           </a>

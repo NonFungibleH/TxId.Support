@@ -30,7 +30,7 @@ export default async function ChainsPage() {
     if (id) chainUsage[id] = (chainUsage[id] ?? 0) + 1
   }
 
-  const plan = config.plan ?? "starter"
+  const plan = config.plan ?? "free"
   // Infinity cannot cross the server→client boundary (JSON.stringify → null), use -1 as sentinel
   const chainLimitRaw = PLAN_CHAIN_LIMITS[plan]
   const chainLimit = chainLimitRaw === Infinity ? -1 : chainLimitRaw
