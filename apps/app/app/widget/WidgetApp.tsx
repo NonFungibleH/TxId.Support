@@ -395,8 +395,6 @@ export function WidgetApp() {
   const [ticketSubmitting, setTicketSubmitting] = useState(false)
   const [ticketRef, setTicketRef] = useState<string | null>(null)
 
-  // Per-message feedback (thumbs up/down)
-  const [messageFeedback, setMessageFeedback] = useState<Record<string, 1 | -1>>({})
 
   // Quick-reply suggestion chips
   const [suggestions, setSuggestions] = useState<string[]>([])
@@ -556,23 +554,6 @@ export function WidgetApp() {
     }
   }, [escalation, ticketName, ticketEmail, apiKey, messages])
 
-  // ── Message feedback (thumbs up/down) ────────────────────────────────────
-  const submitFeedback = useCallback(async (messageId: string, value: 1 | -1) => {
-    setMessageFeedback((prev) => ({ ...prev, [messageId]: value }))
-    try {
-      await fetch(`/api/widget/feedback`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ key: apiKey, sessionId: sessionId.current, feedback: value }),
-      })
-    } catch { /* non-fatal */ }
-    // Thumbs down → surface escalation after a short pause
-    if (value === -1) {
-      setTimeout(() => {
-        setEscalation({ summary: "A response wasn't helpful.", reason: "user_requested" })
-      }, 600)
-    }
-  }, [apiKey])
 
   // ── Send message ─────────────────────────────────────────────────────────
   const sendMessage = useCallback(async (textArg?: string) => {
@@ -1089,8 +1070,7 @@ export function WidgetApp() {
           <div className="flex flex-1 flex-col min-h-0 overflow-hidden">
             <div ref={messagesContainerRef} className="flex-1 min-h-0 space-y-3 overflow-y-auto p-3">
               {(() => {
-                const lastAiIdx = messages.reduce((acc, m, i) => m.role === "assistant" && !m.streaming && m.content ? i : acc, -1)
-                return messages.map((m, idx) => (
+                return messages.map((m) => (
                 <div key={m.id}>
                   <div className={`flex items-start gap-2 ${m.role === "user" ? "justify-end" : ""}`}>
                     {m.role === "assistant" && (
@@ -1140,31 +1120,6 @@ export function WidgetApp() {
                       ))}
                     </div>
                   </div>
-                  {/* Thumbs up/down — only on the last completed AI message */}
-                  {m.role === "assistant" && !m.streaming && m.content && idx === lastAiIdx && (
-                    <div className="flex items-center gap-2 mt-1 ml-8">
-                      {messageFeedback[m.id] ? (
-                        <span className="text-[10px]" style={{ color: b.textColor, opacity: 0.35 }}>
-                          {messageFeedback[m.id] === 1 ? "👍 Helpful" : "👎 Raising a ticket…"}
-                        </span>
-                      ) : (
-                        <>
-                          <button
-                            onClick={() => submitFeedback(m.id, 1)}
-                            className="text-[11px] opacity-25 hover:opacity-60 transition-opacity"
-                            title="Helpful"
-                            style={{ color: b.textColor }}
-                          >👍</button>
-                          <button
-                            onClick={() => submitFeedback(m.id, -1)}
-                            className="text-[11px] opacity-25 hover:opacity-60 transition-opacity"
-                            title="Not helpful"
-                            style={{ color: b.textColor }}
-                          >👎</button>
-                        </>
-                      )}
-                    </div>
-                  )}
                 </div>
               ))
               })()}

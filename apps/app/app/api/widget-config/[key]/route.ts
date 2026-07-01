@@ -1,6 +1,6 @@
 import { createServiceClient } from "@/lib/supabase/server"
 import type { ProjectConfig } from "@/lib/types/config"
-import type { Database } from "@/lib/supabase/types"
+import type { Database, Json } from "@/lib/supabase/types"
 import { verifyPreviewToken } from "@/lib/preview-token"
 
 type ProjectRow = Database["public"]["Tables"]["projects"]["Row"]
@@ -10,6 +10,16 @@ const CORS_HEADERS = {
   "Access-Control-Allow-Methods": "GET, OPTIONS",
   "Access-Control-Allow-Headers": "Content-Type",
 }
+
+function extractHostname(originOrReferer: string): string | null {
+  try {
+    return new URL(originOrReferer).hostname.toLowerCase()
+  } catch {
+    return null
+  }
+}
+
+const EXEMPT_HOSTS = new Set(["localhost", "127.0.0.1", "::1"])
 
 export async function OPTIONS() {
   return new Response(null, { status: 204, headers: CORS_HEADERS })
@@ -64,6 +74,33 @@ export async function GET(
   }
 
   const config = typedProject.config as unknown as ProjectConfig
+
+  // ── Domain enforcement ──────────────────────────────────────────────────
+  // Skip for preview requests (dashboard preview uses a signed token)
+  if (!preview) {
+    const originHeader = request.headers.get("origin") ?? request.headers.get("referer")
+    const requestHost = originHeader ? extractHostname(originHeader) : null
+
+    if (requestHost && !EXEMPT_HOSTS.has(requestHost)) {
+      const allowed = config.allowedDomains ?? []
+      if (allowed.length === 0) {
+        // Auto-register: first external domain to call this key claims it
+        const updated = { ...config, allowedDomains: [requestHost] }
+        await supabase
+          .from("projects")
+          .update({ config: updated as unknown as Json })
+          .eq("id", typedProject.id)
+      } else {
+        const normalised = allowed.map((d) => d.replace(/^https?:\/\//, "").toLowerCase())
+        if (!normalised.includes(requestHost)) {
+          return new Response(JSON.stringify({ error: "Domain not registered for this key" }), {
+            status: 403,
+            headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
+          })
+        }
+      }
+    }
+  }
 
   // Only return safe fields — never secret_key, org_id, etc.
   const publicConfig = {

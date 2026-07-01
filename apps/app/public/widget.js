@@ -91,8 +91,8 @@
   iframe.id = "txid-widget-frame";
   iframe.setAttribute("allow", "clipboard-write");
   iframe.setAttribute("title", "Support chat");
-  // Lazy-load: only set src when first opened
-  var loaded = false;
+  // Eager-load: start loading immediately so widget is ready when first opened
+  iframe.src = BASE + "/widget?key=" + encodeURIComponent(key);
 
   wrap.appendChild(iframe);
   root.appendChild(btn);
@@ -106,10 +106,6 @@
   btn.addEventListener("click", function () {
     open = !open;
     if (open) {
-      if (!loaded) {
-        iframe.src = BASE + "/widget?key=" + encodeURIComponent(key);
-        loaded = true;
-      }
       wrap.classList.add("open");
       btn.innerHTML = CLOSE_ICON;
       btn.setAttribute("aria-label", "Close support chat");
