@@ -9,6 +9,7 @@ import type { WatchedContract } from "@/lib/types/config"
 import { SUPPORTED_CHAINS } from "@/lib/types/config"
 import { Trash2, ExternalLink } from "lucide-react"
 import { ErrorGlossaryManager } from "./ErrorGlossaryManager"
+import { AbiManager } from "./AbiManager"
 
 function chainName(id: string) {
   return SUPPORTED_CHAINS.find(c => c.id === id)?.name ?? id
@@ -85,7 +86,10 @@ export function ContractList({ projectId, contracts, showGlossary }: ContractLis
             </div>
             </div>
             {showGlossary && (
-              <ErrorGlossaryManager projectId={projectId} contract={contract} />
+              <>
+                <AbiManager projectId={projectId} contract={contract} />
+                <ErrorGlossaryManager projectId={projectId} contract={contract} />
+              </>
             )}
           </div>
         )

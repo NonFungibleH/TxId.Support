@@ -76,27 +76,46 @@ async function lookup4Byte(selector: string): Promise<string | null> {
   }
 }
 
-/** Fetch error entries from a block explorer's ABI endpoint. */
-async function fetchContractErrors(
-  address: string,
-  chainId: string,
-): Promise<Array<{ name: string; inputs: Array<{ name: string; type: string }> }>> {
-  const explorerCfg = EXPLORER_APIS[chainId]
-  if (!explorerCfg) return []
-  const apiKey = process.env[explorerCfg.keyEnv]
-  if (!apiKey) return []
+type AbiErrorEntry = { name: string; inputs: Array<{ name: string; type: string }> }
+type RawAbiEntry = { type: string; name?: string; inputs?: Array<{ name: string; type: string }> }
+
+function parseAbiErrors(abiJson: string): AbiErrorEntry[] {
   try {
-    const url = `${explorerCfg.url}?module=contract&action=getabi&address=${address}&apikey=${apiKey}`
-    const res = await fetch(url, { signal: AbortSignal.timeout(5000) })
-    const data = (await res.json()) as { status: string; result: string }
-    if (data.status !== "1") return []
-    const abi = JSON.parse(data.result) as Array<{ type: string; name?: string; inputs?: Array<{ name: string; type: string }> }>
+    const abi = JSON.parse(abiJson) as RawAbiEntry[]
     return abi
-      .filter((entry) => entry.type === "error" && entry.name)
+      .filter((e) => e.type === "error" && e.name)
       .map((e) => ({ name: e.name!, inputs: e.inputs ?? [] }))
   } catch {
     return []
   }
+}
+
+/**
+ * Fetch the full ABI JSON string for a contract from its block explorer.
+ * Returns null if the contract is unverified or the API key is missing.
+ */
+export async function fetchAbiFromExplorer(address: string, chainId: string): Promise<string | null> {
+  const explorerCfg = EXPLORER_APIS[chainId]
+  if (!explorerCfg) return null
+  const apiKey = process.env[explorerCfg.keyEnv]
+  if (!apiKey) return null
+  try {
+    const url = `${explorerCfg.url}?module=contract&action=getabi&address=${address}&apikey=${apiKey}`
+    const res = await fetch(url, { signal: AbortSignal.timeout(6000) })
+    const data = (await res.json()) as { status: string; result: string }
+    if (data.status !== "1") return null
+    // Validate it's parseable JSON
+    JSON.parse(data.result)
+    return data.result
+  } catch {
+    return null
+  }
+}
+
+/** Fetch error entries from a block explorer's ABI endpoint. */
+async function fetchContractErrors(address: string, chainId: string): Promise<AbiErrorEntry[]> {
+  const abiJson = await fetchAbiFromExplorer(address, chainId)
+  return abiJson ? parseAbiErrors(abiJson) : []
 }
 
 /** Decode ABI-encoded Error(string) — strips 4-byte selector, reads string value. */
@@ -139,8 +158,10 @@ export async function decodeTxRevert(params: {
   gasUsed: string
   gasLimit: string
   chainId: string
+  /** Pre-loaded ABI JSON string — skips block explorer fetch if provided */
+  preloadedAbi?: string
 }): Promise<DecodedRevert> {
-  const { from, to, value, input, blockNumber, gasUsed, gasLimit, chainId } = params
+  const { from, to, value, input, blockNumber, gasUsed, gasLimit, chainId, preloadedAbi } = params
   const chain = CHAIN_CONFIGS[chainId]
 
   const gasUsedN = parseInt(gasUsed, 10) || 0
@@ -189,10 +210,11 @@ export async function decodeTxRevert(params: {
     }
   }
 
-  // Custom error — try 4byte.directory, then block explorer ABI in parallel
+  // Custom error — use preloaded ABI first, otherwise fetch in parallel with 4byte
+  const preloadedErrors = preloadedAbi ? parseAbiErrors(preloadedAbi) : null
   const [sig4byte, explorerErrors] = await Promise.all([
     lookup4Byte(selector),
-    fetchContractErrors(to, chainId),
+    preloadedErrors !== null ? Promise.resolve(preloadedErrors) : fetchContractErrors(to, chainId),
   ])
 
   // Match by name from ABI (if we got the ABI and the 4byte sig)

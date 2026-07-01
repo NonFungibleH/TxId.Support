@@ -46,7 +46,9 @@ async function cohereEmbedQuery(text: string): Promise<number[]> {
     throw new Error(`Cohere embed error ${response.status}: ${body}`)
   }
   const data = (await response.json()) as { embeddings: { float: number[][] } }
-  return data.embeddings.float[0]
+  const embedding = data.embeddings.float[0]
+  if (!embedding) throw new Error("Cohere returned no embedding")
+  return embedding
 }
 
 async function voyageEmbed(texts: string[]): Promise<number[][]> {
@@ -73,7 +75,9 @@ export async function embedText(text: string): Promise<number[]> {
   }
   if (!process.env.VOYAGE_API_KEY) throw new Error("No embedding API key set (COHERE_API_KEY or VOYAGE_API_KEY)")
   const rows = await voyageEmbed([text])
-  return rows[0]
+  const embedding = rows[0]
+  if (!embedding) throw new Error("Voyage returned no embedding")
+  return embedding
 }
 
 export async function embedBatch(texts: string[]): Promise<number[][]> {

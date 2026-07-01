@@ -1,5 +1,5 @@
 export { getNativeBalance, getTokenBalances, getRecentTransactions, getTransactionByHash } from "./wallet"
-export { decodeTxRevert } from "./decoder"
+export { decodeTxRevert, fetchAbiFromExplorer } from "./decoder"
 export {
   getExplorerUrl,
   getTxUrl,

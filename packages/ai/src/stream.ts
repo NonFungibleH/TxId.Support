@@ -128,13 +128,13 @@ export async function* streamChatWithTools(
             yield { type: "tool_call", tool: tc.function.name }
           }
 
-          groqMessages.push({ role: "assistant", content: msg.content ?? null, tool_calls: msg.tool_calls })
+          groqMessages.push({ role: "assistant", content: msg.content ?? null, ...(msg.tool_calls ? { tool_calls: msg.tool_calls } : {}) })
 
           const toolResults = await Promise.all(
             fnCalls.map(async (tc) => {
               try {
                 const input = JSON.parse(tc.function.arguments || "{}") as Record<string, unknown>
-                const result = await executeTool(tc.function.name, input, walletConfig!)
+                const result = await executeTool(tc.function.name, input, walletConfig!, watchedContracts)
                 return { role: "tool" as const, tool_call_id: tc.id, content: JSON.stringify(result, null, 2) }
               } catch (err) {
                 return { role: "tool" as const, tool_call_id: tc.id, content: `Error: ${err instanceof Error ? err.message : "Tool failed"}` }
@@ -203,7 +203,7 @@ export async function* streamChatWithTools(
       max_tokens: maxTokens,
       system: systemPrompt,
       messages: currentMessages,
-      tools: tools.length > 0 ? tools : undefined,
+      ...(tools.length > 0 ? { tools } : {}),
     })
 
     let hasToolCalls = false
@@ -252,6 +252,7 @@ export async function* streamChatWithTools(
             block.name,
             block.input as Record<string, unknown>,
             walletConfig!,
+            watchedContracts,
           )
           return {
             type: "tool_result" as const,

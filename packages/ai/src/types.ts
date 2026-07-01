@@ -15,6 +15,8 @@ export interface WatchedContractSnapshot {
   chain: string
   description: string
   errorGlossary?: ErrorGlossaryEntry[]
+  abi?: string          // ABI JSON string — auto-fetched from explorer or user-uploaded
+  abiSource?: "explorer" | "uploaded"
 }
 
 export interface TokenConfigSnapshot {

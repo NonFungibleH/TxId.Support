@@ -98,6 +98,7 @@ export async function executeTool(
   name: string,
   input: Record<string, unknown>,
   wallet: WalletConfig,
+  watchedContracts: WatchedContractSnapshot[] = [],
 ): Promise<unknown> {
   switch (name) {
     case "get_wallet_balance": {
@@ -133,7 +134,12 @@ export async function executeTool(
       if (typeof hash !== "string" || !hash) {
         throw new Error("hash is required and must be a string")
       }
-      return getTransactionByHash(hash, wallet.chainId)
+      // Build address→ABI map from watched contracts that have a stored ABI
+      const knownAbis: Record<string, string> = {}
+      for (const c of watchedContracts) {
+        if (c.abi) knownAbis[c.address.toLowerCase()] = c.abi
+      }
+      return getTransactionByHash(hash, wallet.chainId, knownAbis)
     }
 
     default:

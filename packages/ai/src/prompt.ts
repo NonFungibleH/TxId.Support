@@ -96,7 +96,7 @@ You are data-first. Raw values lead, interpretation follows.
 
 function personaStyle(persona: string | null | undefined): string {
   const key = persona && PERSONA_STYLE[persona] ? persona : "concise"
-  return PERSONA_STYLE[key]
+  return PERSONA_STYLE[key] ?? PERSONA_STYLE["concise"]!
 }
 
 /**
@@ -201,7 +201,7 @@ export function buildSystemPrompt(params: StreamChatParams): string {
         `- \`cause: "revert_reason"\` → The \`reason\` field has the contract's raw error string (e.g. "ERC20: insufficient allowance"). Translate to plain English: what does this mean for what the user was trying to do, and what should they do next?\n` +
         `- \`cause: "custom_error"\` → The \`errorName\` field has the Solidity error name (e.g. "SlippageTooHigh"). FIRST check the Error Glossary in the Smart Contracts section above — if the error name matches a glossary entry, use that explanation verbatim. If no glossary entry, use your DeFi knowledge to explain it in plain English.\n` +
         `- \`cause: "panic"\` → A programming-level error in the contract. Explain what happened in context of what the user was trying to do (e.g. "the contract tried to divide by zero — this is a bug, not something you did wrong").\n` +
-        `- \`cause: "unknown_revert"\` → No specific reason available. Describe what the user was trying to do and list the most common causes for that action on this protocol.\n\n` +
+        `- \`cause: "unknown_revert"\` → No specific reason could be decoded. If \`rawHex\` is present in the decodedRevert, the contract uses a private custom error that isn't in the public database — mention that diagnostics would improve if the protocol team uploads the contract ABI in their TxID Support dashboard. If \`rawHex\` is absent, just describe common causes for what the user was attempting.\n\n` +
         `**If the transaction cannot be found on-chain at all:**\n` +
         `The likely causes are: (1) wallet RPC failure — advise the user to switch to a public RPC endpoint in their wallet settings (Chainlist.org lists them); (2) stuck pending nonce — a previous transaction is blocking the queue; (3) gas price too low — the transaction is in the mempool but not picked up by validators.`
       )

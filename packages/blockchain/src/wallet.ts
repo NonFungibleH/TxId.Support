@@ -76,10 +76,15 @@ export async function getTokenBalances(
   })
 }
 
-/** Get the full details of a single transaction by hash */
+/**
+ * Get the full details of a single transaction by hash.
+ * Pass knownAbis (address → ABI JSON) so the decoder can use a pre-stored ABI
+ * instead of fetching from the block explorer at decode time.
+ */
 export async function getTransactionByHash(
   hash: string,
   chainId: string,
+  knownAbis: Record<string, string> = {},
 ): Promise<Transaction | null> {
   const chain = moralisChain(chainId)
   const res = await fetch(
@@ -111,6 +116,7 @@ export async function getTransactionByHash(
   // decodeTxRevert does an eth_call replay — gracefully returns "unknown" on any error.
   let decodedRevert: DecodedRevert | undefined
   if (isFailed && tx.to_address) {
+    const abi = knownAbis[tx.to_address.toLowerCase()]
     decodedRevert = await decodeTxRevert({
       from: tx.from_address,
       to: tx.to_address,
@@ -120,6 +126,7 @@ export async function getTransactionByHash(
       gasUsed,
       gasLimit: tx.gas,
       chainId,
+      ...(abi ? { preloadedAbi: abi } : {}),
     }).catch(() => undefined)
   }
 

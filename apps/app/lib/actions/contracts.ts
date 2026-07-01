@@ -7,6 +7,7 @@ import { revalidatePath } from "next/cache"
 import { z } from "zod"
 import type { ProjectConfig, WatchedContract, ErrorGlossaryEntry } from "@/lib/types/config"
 import type { Database, Json } from "@/lib/supabase/types"
+import { fetchAbiFromExplorer } from "@txid/blockchain"
 
 type ProjectRow = Database["public"]["Tables"]["projects"]["Row"]
 
@@ -61,12 +62,19 @@ export async function addContract(
 
   if (existing.length >= 20) throw new Error("Maximum of 20 watched contracts per project")
 
+  // Try to fetch ABI from the block explorer automatically
+  const abi = await fetchAbiFromExplorer(
+    parsed.data.address.toLowerCase(),
+    parsed.data.chain,
+  ).catch(() => null)
+
   const newContract: WatchedContract = {
     id: nanoid(),
     name: parsed.data.name,
     address: parsed.data.address.toLowerCase(),
     chain: parsed.data.chain as WatchedContract["chain"],
     description: parsed.data.description,
+    ...(abi ? { abi, abiSource: "explorer" as const } : {}),
   }
 
   const updated: ProjectConfig = {
@@ -83,6 +91,85 @@ export async function addContract(
   if (error) throw new Error(error.message)
   revalidatePath("/dashboard/contracts")
   return newContract
+}
+
+export async function refreshContractAbi(projectId: string, contractId: string) {
+  const project = await resolveProjectWithOwnership(projectId)
+  const config = project.config as unknown as ProjectConfig
+  const contract = (config.watchedContracts ?? []).find((c) => c.id === contractId)
+  if (!contract) throw new Error("Contract not found")
+
+  const abi = await fetchAbiFromExplorer(contract.address, contract.chain)
+
+  const updated: ProjectConfig = {
+    ...config,
+    watchedContracts: (config.watchedContracts ?? []).map((c) =>
+      c.id !== contractId
+        ? c
+        : abi
+        ? { ...c, abi, abiSource: "explorer" as const }
+        : { ...c, abi: undefined, abiSource: undefined },
+    ),
+  }
+
+  const supabase = createServiceClient()
+  const { error } = await supabase
+    .from("projects")
+    .update({ config: updated as unknown as Json })
+    .eq("id", projectId)
+
+  if (error) throw new Error(error.message)
+  revalidatePath("/dashboard/contracts")
+  return { found: !!abi }
+}
+
+export async function saveContractAbi(projectId: string, contractId: string, abi: string) {
+  // Validate it's parseable JSON
+  try {
+    JSON.parse(abi)
+  } catch {
+    throw new Error("Invalid ABI: must be a JSON array")
+  }
+
+  const project = await resolveProjectWithOwnership(projectId)
+  const config = project.config as unknown as ProjectConfig
+
+  const updated: ProjectConfig = {
+    ...config,
+    watchedContracts: (config.watchedContracts ?? []).map((c) =>
+      c.id !== contractId ? c : { ...c, abi, abiSource: "uploaded" as const },
+    ),
+  }
+
+  const supabase = createServiceClient()
+  const { error } = await supabase
+    .from("projects")
+    .update({ config: updated as unknown as Json })
+    .eq("id", projectId)
+
+  if (error) throw new Error(error.message)
+  revalidatePath("/dashboard/contracts")
+}
+
+export async function clearContractAbi(projectId: string, contractId: string) {
+  const project = await resolveProjectWithOwnership(projectId)
+  const config = project.config as unknown as ProjectConfig
+
+  const updated: ProjectConfig = {
+    ...config,
+    watchedContracts: (config.watchedContracts ?? []).map((c) =>
+      c.id !== contractId ? c : { ...c, abi: undefined, abiSource: undefined },
+    ),
+  }
+
+  const supabase = createServiceClient()
+  const { error } = await supabase
+    .from("projects")
+    .update({ config: updated as unknown as Json })
+    .eq("id", projectId)
+
+  if (error) throw new Error(error.message)
+  revalidatePath("/dashboard/contracts")
 }
 
 const GlossaryEntrySchema = z.object({

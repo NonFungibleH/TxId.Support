@@ -90,6 +90,8 @@ export interface WatchedContract {
   chain: ChainId
   description: string
   errorGlossary?: ErrorGlossaryEntry[]
+  abi?: string
+  abiSource?: "explorer" | "uploaded"
 }
 
 export type ContentBlockType = "video" | "text" | "tokenomics" | "link" | "image" | "html" | "social" | "faq" | "dexscreener"
