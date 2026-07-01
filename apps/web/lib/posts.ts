@@ -25,7 +25,7 @@ export const POSTS: Post[] = [
     slug: "defi-discord-support-scam-vector",
     title: "Why your DeFi protocol's Discord support is a scam vector",
     description:
-      "Discord became the de-facto support channel for DeFi protocols — and scammers know it. Here's why the model is broken and what protocols are doing instead.",
+      "Discord became the de-facto support channel for DeFi protocols, and scammers know it. Here's why the model is broken and what protocols are doing instead.",
     publishedAt: "2026-06-27",
     readingMinutes: 6,
     tags: ["Web3 support", "DeFi security", "Customer support"],
@@ -34,7 +34,7 @@ export const POSTS: Post[] = [
     content: [
       {
         type: "p",
-        text: "In 2025 alone, crypto users lost an estimated $17 billion to scams. A significant share of that happened inside Discord — the platform that became the default support channel for almost every DeFi protocol launched in the last four years.",
+        text: "In 2025 alone, crypto users lost an estimated $17 billion to scams. A significant share of that happened inside Discord, the platform that became the default support channel for almost every DeFi protocol launched in the last four years.",
       },
       {
         type: "p",
@@ -46,7 +46,7 @@ export const POSTS: Post[] = [
       },
       {
         type: "p",
-        text: "The pattern is almost always the same. A user posts in #support saying their transaction failed, or their funds are stuck, or they can't connect their wallet. Within minutes — sometimes seconds — a fake moderator slides into their DMs.",
+        text: "The pattern is almost always the same. A user posts in #support saying their transaction failed, or their funds are stuck, or they can't connect their wallet. Within minutes (sometimes seconds) a fake moderator slides into their DMs.",
       },
       {
         type: "p",
@@ -55,10 +55,10 @@ export const POSTS: Post[] = [
       {
         type: "ul",
         items: [
-          "Discord usernames can be set to any string — impersonating 'Admin' or 'Support Team' costs nothing",
+          "Discord usernames can be set to any string: impersonating 'Admin' or 'Support Team' costs nothing",
           "DMs cannot be disabled by server admins without breaking legitimate outreach",
           "Bots can scrape #support channels in real time and DM users faster than any human moderator can respond",
-          "There is no verified-sender concept in Discord — every message looks equally legitimate",
+          "There is no verified-sender concept in Discord: every message looks equally legitimate",
         ],
       },
       {
@@ -75,12 +75,12 @@ export const POSTS: Post[] = [
       },
       {
         type: "p",
-        text: "The mitigations protocols try — pinning 'we will never DM you first' messages, adding bot-detection, banning scam accounts — are all reactive. They address symptoms. The root issue is that public Discord support is open-world by design: anyone can see who needs help, and anyone can respond.",
+        text: "The mitigations protocols try, including pinning 'we will never DM you first' messages, adding bot-detection, and banning scam accounts, are all reactive. They address symptoms. The root issue is that public Discord support is open-world by design: anyone can see who needs help, and anyone can respond.",
       },
       {
         type: "callout",
         label: "The core problem",
-        text: "When support is public and open, it's not just your team that can see a user in distress. Every scammer watching the channel can see them too — and respond faster.",
+        text: "When support is public and open, it's not just your team that can see a user in distress. Every scammer watching the channel can see them too, and respond faster.",
       },
       {
         type: "h2",
@@ -88,11 +88,11 @@ export const POSTS: Post[] = [
       },
       {
         type: "p",
-        text: "The most effective change a protocol can make is moving support inside the application itself. Not a link to Discord, not a 'contact us' email — an actual support interface embedded in your app, at the point where the user is confused.",
+        text: "The most effective change a protocol can make is moving support inside the application itself. Not a link to Discord, not a 'contact us' email: an actual support interface embedded in your app, at the point where the user is confused.",
       },
       {
         type: "p",
-        text: "This matters for one reason above all others: authenticity. When the support agent is embedded inside app.yourprotocol.xyz, the user knows they're talking to you. There is no vector for a scammer to insert themselves between the user and the interface — the interface is your interface.",
+        text: "This matters for one reason above all others: authenticity. When the support agent is embedded inside app.yourprotocol.xyz, the user knows they're talking to you. There is no vector for a scammer to insert themselves between the user and the interface. The interface is your interface.",
       },
       {
         type: "ul",
@@ -113,7 +113,7 @@ export const POSTS: Post[] = [
       },
       {
         type: "p",
-        text: "An in-app support agent connected to the user's wallet already knows. It can look up the failed transaction, read the revert reason, and explain exactly what happened — before the user finishes typing their first message.",
+        text: "An in-app support agent connected to the user's wallet already knows. It can look up the failed transaction, read the revert reason, and explain exactly what happened, before the user finishes typing their first message.",
       },
       {
         type: "quote",
@@ -125,7 +125,7 @@ export const POSTS: Post[] = [
       },
       {
         type: "p",
-        text: "Moving support in-app doesn't mean shutting down your Discord. Community building, governance discussion, announcements — Discord is fine for all of that. The change is specifically about support: questions from confused users who need accurate, timely help.",
+        text: "Moving support in-app doesn't mean shutting down your Discord. Community building, governance discussion, announcements: Discord is fine for all of that. The change is specifically about support: questions from confused users who need accurate, timely help.",
       },
       {
         type: "p",
@@ -150,7 +150,7 @@ export const POSTS: Post[] = [
     content: [
       {
         type: "p",
-        text: "The average DeFi protocol's support queue is predictable to a fault. Transaction failed — why? Where are my tokens? How do I bridge? Is the contract safe? These four questions make up the majority of inbound volume for almost every protocol we've spoken to.",
+        text: "The average DeFi protocol's support queue is predictable to a fault. Transaction failed. Why? Where are my tokens? How do I bridge? Is the contract safe? These four questions make up the majority of inbound volume for almost every protocol we've spoken to.",
       },
       {
         type: "p",
@@ -170,7 +170,7 @@ export const POSTS: Post[] = [
       },
       {
         type: "p",
-        text: "Before you can fix anything, you need data. Pull your last 200 support tickets — Discord threads, email, Telegram, wherever they come in — and categorize them by topic. You'll almost certainly find that 60–70% cluster around fewer than five categories.",
+        text: "Before you can fix anything, you need data. Pull your last 200 support tickets (Discord threads, email, Telegram, wherever they come in) and categorize them by topic. You'll almost certainly find that 60–70% cluster around fewer than five categories.",
       },
       {
         type: "p",
@@ -179,11 +179,11 @@ export const POSTS: Post[] = [
       {
         type: "ul",
         items: [
-          "Failed or pending transactions — slippage, gas, revert reasons",
-          "Missing or bridged tokens — cross-chain delays, wrong network",
-          "Staking and reward questions — APY calculations, lock periods",
-          "Wallet connection issues — MetaMask, WalletConnect, mobile",
-          "Security questions — contract verification, audit status, rug risk",
+          "Failed or pending transactions: slippage, gas, revert reasons",
+          "Missing or bridged tokens: cross-chain delays, wrong network",
+          "Staking and reward questions: APY calculations, lock periods",
+          "Wallet connection issues: MetaMask, WalletConnect, mobile",
+          "Security questions: contract verification, audit status, rug risk",
         ],
       },
       {
@@ -201,7 +201,7 @@ export const POSTS: Post[] = [
       {
         type: "callout",
         label: "High-impact example",
-        text: "If 30% of your tickets are about failed transactions, adding a clear slippage warning in your swap UI — before the user submits — eliminates a third of your queue without touching your support tooling.",
+        text: "If 30% of your tickets are about failed transactions, adding a clear slippage warning in your swap UI before the user submits eliminates a third of your queue without touching your support tooling.",
       },
       {
         type: "p",
@@ -217,11 +217,11 @@ export const POSTS: Post[] = [
       },
       {
         type: "p",
-        text: "The first type — documentation questions — should be answered automatically. If your docs cover staking mechanics and users are still asking about it, the problem isn't the docs: it's that users can't find or search them at the moment they need them.",
+        text: "Documentation questions should be answered automatically. If your docs cover staking mechanics and users are still asking about it, the problem isn't the docs: it's that users can't find or search them at the moment they need them.",
       },
       {
         type: "p",
-        text: "An AI support layer trained on your documentation handles this without any moderation overhead. It answers the question, in context, at the exact moment the user is confused — which is inside your app, not in a Discord search box.",
+        text: "An AI support layer trained on your documentation handles this without any moderation overhead. It answers the question, in context, at the exact moment the user is confused, inside your app rather than a Discord search box.",
       },
       {
         type: "h2",
@@ -233,15 +233,15 @@ export const POSTS: Post[] = [
       },
       {
         type: "p",
-        text: "These need to reach your team fast and with context. The worst outcome is a human hand-off that loses the conversation history — the user has to re-explain everything, trust drops, and resolution time doubles.",
+        text: "These need to reach your team fast and with context. The worst outcome is a human hand-off that loses the conversation history. The user has to re-explain everything, trust drops, and resolution time doubles.",
       },
       {
         type: "ul",
         items: [
-          "Capture a conversation summary at escalation time — not after",
+          "Capture a conversation summary at escalation time, not after",
           "Include wallet address and relevant transaction history with the ticket",
           "Route by category: security issues need different handling than UX confusion",
-          "Set and display response time expectations — silence reads as abandonment",
+          "Set and display response time expectations: silence reads as abandonment",
         ],
       },
       {
@@ -254,7 +254,7 @@ export const POSTS: Post[] = [
       },
       {
         type: "quote",
-        text: "The goal isn't to deflect users — it's to make sure the right answer reaches them as fast as possible, and that your team only sees the problems they're actually equipped to solve.",
+        text: "The goal isn't to deflect users, it's to make sure the right answer reaches them as fast as possible, and that your team only sees the problems they're actually equipped to solve.",
       },
       {
         type: "p",
@@ -266,7 +266,7 @@ export const POSTS: Post[] = [
     slug: "docs-qa-defi-protocol",
     title: "How to set up docs Q&A for your DeFi protocol",
     description:
-      "Paste your documentation URL and an AI support agent can answer user questions from it directly — but what you put in your docs, and how you structure them, determines whether the answers are actually good. Here's how to do it right.",
+      "Paste your documentation URL and an AI support agent can answer user questions from it directly, but what you put in your docs, and how you structure them, determines whether the answers are actually good. Here's how to do it right.",
     publishedAt: "2026-06-28",
     readingMinutes: 7,
     tags: ["DeFi operations", "Web3 support", "Documentation"],
@@ -275,7 +275,7 @@ export const POSTS: Post[] = [
     content: [
       {
         type: "p",
-        text: "The pitch is simple: give your support agent a URL, it crawls your docs, and from that point on it can answer user questions based on what you've written. No manual Q&A pairs, no taxonomy work, no training data — just your existing documentation.",
+        text: "The pitch is simple: give your support agent a URL, it crawls your docs, and from that point on it can answer user questions based on what you've written. No manual Q&A pairs, no taxonomy work, no training data, just your existing documentation.",
       },
       {
         type: "p",
@@ -291,7 +291,7 @@ export const POSTS: Post[] = [
       },
       {
         type: "p",
-        text: "This retrieval step — not the underlying language model — is where most docs Q&A systems fail. If the relevant content isn't in the index, the model will either hallucinate an answer or admit it doesn't know. The model can only work with what retrieval surfaces.",
+        text: "This retrieval step (not the underlying language model) is where most docs Q&A systems fail. If the relevant content isn't in the index, the model will either hallucinate an answer or admit it doesn't know. The model can only work with what retrieval surfaces.",
       },
       {
         type: "callout",
@@ -304,7 +304,7 @@ export const POSTS: Post[] = [
       },
       {
         type: "p",
-        text: "Not all documentation formats are equally indexable. HTML pages with clean semantic markup are ideal. The crawler can identify headings, paragraphs, code blocks, and lists, which gives it good signal for chunking — keeping related content together and avoiding splits in the middle of explanations.",
+        text: "Not all documentation formats are equally indexable. HTML pages with clean semantic markup are ideal. The crawler can identify headings, paragraphs, code blocks, and lists, which gives it good signal for chunking, keeping related content together and avoiding splits in the middle of explanations.",
       },
       {
         type: "p",
@@ -314,7 +314,7 @@ export const POSTS: Post[] = [
         type: "ul",
         items: [
           "Works well: HTML pages with semantic structure, Docusaurus, GitBook, Nextra, GitHub wikis, Notion (when published publicly)",
-          "Works with caveats: dynamically rendered pages (React/Next with client-side routing) — the crawler must execute JavaScript to see the content",
+          "Works with caveats: dynamically rendered pages (React/Next with client-side routing); the crawler must execute JavaScript to see the content",
           "Works poorly: PDFs embedded in iframes, documentation behind authentication walls, pages that require wallet connection to view",
           "Does not work: PDFs without text layers (scanned documents), video content, images with text",
         ],
@@ -334,11 +334,11 @@ export const POSTS: Post[] = [
       {
         type: "ul",
         items: [
-          "Write explicit question-and-answer sections — 'Why did my transaction fail?' is a better heading than 'Transaction troubleshooting'",
-          "Include the exact error messages users will see, followed by what they mean — revert reasons like INSUFFICIENT_OUTPUT_AMOUNT should appear verbatim in your docs",
-          "Document edge cases separately — what happens at the lock expiry boundary, what happens if gas spikes mid-transaction, what happens when liquidity is low",
-          "Describe numbers explicitly — if your staking lock is 14 days, write '14 days' not 'two weeks'; units and precision matter for retrieval matching",
-          "Add a dedicated FAQ page that consolidates the most common support questions — even if they're answered elsewhere, a single high-density page retrieves well",
+          "Write explicit question-and-answer sections. 'Why did my transaction fail?' is a better heading than 'Transaction troubleshooting'",
+          "Include the exact error messages users will see, followed by what they mean. Revert reasons like INSUFFICIENT_OUTPUT_AMOUNT should appear verbatim in your docs",
+          "Document edge cases separately: what happens at the lock expiry boundary, what happens if gas spikes mid-transaction, what happens when liquidity is low",
+          "Describe numbers explicitly: if your staking lock is 14 days, write '14 days' not 'two weeks'; units and precision matter for retrieval matching",
+          "Add a dedicated FAQ page that consolidates the most common support questions. Even if they're answered elsewhere, a single high-density page retrieves well",
         ],
       },
       {
@@ -351,7 +351,7 @@ export const POSTS: Post[] = [
       },
       {
         type: "p",
-        text: "PDFs are a significant failure mode. A PDF linked from your docs page won't be indexed unless you explicitly add it as a separate source. And PDFs created by scanning physical documents, or exported from tools that embed text as images, are opaque to a text-based crawler — the content simply isn't there.",
+        text: "PDFs are a significant failure mode. A PDF linked from your docs page won't be indexed unless you explicitly add it as a separate source. And PDFs created by scanning physical documents, or exported from tools that embed text as images, are opaque to a text-based crawler. The content simply isn't there.",
       },
       {
         type: "p",
@@ -363,7 +363,7 @@ export const POSTS: Post[] = [
       },
       {
         type: "p",
-        text: "Single-page applications that render documentation client-side are a common trap. The crawler fetches the page URL and gets back an almost-empty HTML shell — the actual content loads via JavaScript after the initial response. Check what the crawler actually indexed: if it shows only your nav and footer text, your docs are rendering client-side and you need a crawler that executes JavaScript.",
+        text: "Single-page applications that render documentation client-side are a common trap. The crawler fetches the page URL and gets back an almost-empty HTML shell. The actual content loads via JavaScript after the initial response. Check what the crawler actually indexed: if it shows only your nav and footer text, your docs are rendering client-side and you need a crawler that executes JavaScript.",
       },
       {
         type: "h3",
@@ -371,7 +371,7 @@ export const POSTS: Post[] = [
       },
       {
         type: "p",
-        text: "The index is a snapshot. If you update your docs and don't re-index, the support agent answers from the old version. Set a re-crawl schedule — weekly is reasonable for most protocols, daily if you're actively shipping changes. Some teams trigger re-indexing as part of their docs deployment pipeline, which is the cleanest solution.",
+        text: "The index is a snapshot. If you update your docs and don't re-index, the support agent answers from the old version. Set a re-crawl schedule. Weekly is reasonable for most protocols, daily if you're actively shipping changes. Some teams trigger re-indexing as part of their docs deployment pipeline, which is the cleanest solution.",
       },
       {
         type: "h2",
@@ -379,7 +379,7 @@ export const POSTS: Post[] = [
       },
       {
         type: "p",
-        text: "The single most impactful structural change is moving from narrative documentation to reference documentation. Narrative docs tell a story — they're great for onboarding users who read sequentially. Reference docs answer specific questions — they're what retrieval systems find.",
+        text: "The single most impactful structural change is moving from narrative documentation to reference documentation. Narrative docs tell a story: they're great for onboarding users who read sequentially. Reference docs answer specific questions: they're what retrieval systems find.",
       },
       {
         type: "p",
@@ -395,7 +395,7 @@ export const POSTS: Post[] = [
       },
       {
         type: "p",
-        text: "Before pointing real users at a docs-powered support agent, test it against your own support history. Take your last 20 inbound questions and run them through the agent. If it answers fewer than 14 or 15 correctly, the gap is almost always in the docs — not the model.",
+        text: "Before pointing real users at a docs-powered support agent, test it against your own support history. Take your last 20 inbound questions and run them through the agent. If it answers fewer than 14 or 15 correctly, the gap is almost always in the docs, not the model.",
       },
       {
         type: "p",
@@ -407,7 +407,7 @@ export const POSTS: Post[] = [
     slug: "wallet-aware-support-vs-generic-chatbots",
     title: "Wallet-aware support vs generic chatbots: what's the difference",
     description:
-      "Generic chatbots have no idea who your user is, what chain they're on, or what their last transaction did. Wallet-aware support does — and that changes everything about the quality of help it can provide.",
+      "Generic chatbots have no idea who your user is, what chain they're on, or what their last transaction did. Wallet-aware support does, and that changes everything about the quality of help it can provide.",
     publishedAt: "2026-06-28",
     readingMinutes: 6,
     tags: ["Web3 support", "DeFi operations"],
@@ -416,11 +416,11 @@ export const POSTS: Post[] = [
     content: [
       {
         type: "p",
-        text: "Put a generic chatbot in a DeFi app and you've improved on nothing. The user types 'my transaction failed', the bot says 'I'm sorry to hear that — could you tell me more about the transaction?', and the user immediately opens Discord to find a real answer.",
+        text: "Put a generic chatbot in a DeFi app and you've improved on nothing. The user types 'my transaction failed', the bot says 'I'm sorry to hear that. Could you tell me more about the transaction?', and the user immediately opens Discord to find a real answer.",
       },
       {
         type: "p",
-        text: "This isn't a problem with the underlying AI. The problem is that the bot has no context. It doesn't know who the user is. It doesn't know what they were trying to do. It doesn't know what actually happened. Without that, the best it can do is ask questions — which is the last thing a frustrated user wants.",
+        text: "This isn't a problem with the underlying AI. The problem is that the bot has no context. It doesn't know who the user is. It doesn't know what they were trying to do. It doesn't know what actually happened. Without that, the best it can do is ask questions, which is the last thing a frustrated user wants.",
       },
       {
         type: "h2",
@@ -428,7 +428,7 @@ export const POSTS: Post[] = [
       },
       {
         type: "p",
-        text: "When a generic support chatbot receives a message, it has exactly one piece of information: the text the user typed. Everything else — wallet address, connected chain, token balances, transaction history, current contract state — is invisible to it.",
+        text: "When a generic support chatbot receives a message, it has exactly one piece of information: the text the user typed. Everything else (wallet address, connected chain, token balances, transaction history, current contract state) is invisible to it.",
       },
       {
         type: "p",
@@ -436,12 +436,12 @@ export const POSTS: Post[] = [
       },
       {
         type: "p",
-        text: "DeFi is structurally different. The user's identity is their wallet address. Their history is on-chain. Neither of those is in your database — they're on a public blockchain that your chatbot has to be explicitly connected to in order to read.",
+        text: "DeFi is structurally different. The user's identity is their wallet address. Their history is on-chain. Neither of those is in your database. They're on a public blockchain that your chatbot has to be explicitly connected to in order to read.",
       },
       {
         type: "callout",
         label: "The identity gap",
-        text: "In Web3, the user's wallet IS their identity. A support system that doesn't read the wallet doesn't know who it's talking to — and every question it receives is effectively from an anonymous stranger.",
+        text: "In Web3, the user's wallet IS their identity. A support system that doesn't read the wallet doesn't know who it's talking to. Every question it receives is effectively from an anonymous stranger.",
       },
       {
         type: "h2",
@@ -449,7 +449,7 @@ export const POSTS: Post[] = [
       },
       {
         type: "p",
-        text: "A wallet-aware support agent reads the user's connected wallet state when the support session opens — silently, without asking for anything. No login, no copy-paste, no seed phrase. The user's wallet is already connected to your app; the support layer reads the same connection.",
+        text: "A wallet-aware support agent reads the user's connected wallet state when the support session opens, silently, without asking for anything. No login, no copy-paste, no seed phrase. The user's wallet is already connected to your app; the support layer reads the same connection.",
       },
       {
         type: "p",
@@ -496,7 +496,7 @@ export const POSTS: Post[] = [
       },
       {
         type: "p",
-        text: "The first response asks the user to describe something they don't understand. The second explains it. The information required to generate the second response — transaction hash, revert reason, token pair, slippage setting — was all available on-chain.",
+        text: "The first response asks the user to describe something they don't understand. The second explains it. The information required to generate the second response (transaction hash, revert reason, token pair, slippage setting) was all available on-chain.",
       },
       {
         type: "h3",
@@ -512,7 +512,7 @@ export const POSTS: Post[] = [
       },
       {
         type: "p",
-        text: "Wallet-aware support: 'Your wallet is connected to Arbitrum (chain ID 42161). This protocol runs on Ethereum Mainnet — please switch networks in MetaMask to continue.'",
+        text: "Wallet-aware support: 'Your wallet is connected to Arbitrum (chain ID 42161). This protocol runs on Ethereum Mainnet. Please switch networks in MetaMask to continue.'",
       },
       {
         type: "p",
@@ -524,18 +524,18 @@ export const POSTS: Post[] = [
       },
       {
         type: "p",
-        text: "It's worth being precise about what reading a wallet does and doesn't enable. The wallet connection used by your app exposes the address and chain. Reading transaction history requires an RPC call. Reading contract state — vesting schedules, lock expiries, reward balances — requires knowing which contracts to query.",
+        text: "It's worth being precise about what reading a wallet does and doesn't enable. The wallet connection used by your app exposes the address and chain. Reading transaction history requires an RPC call. Reading contract state (vesting schedules, lock expiries, reward balances) requires knowing which contracts to query.",
       },
       {
         type: "p",
-        text: "There's also a meaningful privacy consideration. Users should know that the support agent can see their wallet activity. This should be disclosed in the UI — not buried in terms of service. In practice, most users are comfortable with it (the data is public on-chain regardless), but the disclosure matters for trust.",
+        text: "There's also a meaningful privacy consideration. Users should know that the support agent can see their wallet activity. This should be disclosed in the UI, not buried in terms of service. In practice, most users are comfortable with it (the data is public on-chain regardless), but the disclosure matters for trust.",
       },
       {
         type: "ul",
         items: [
           "What it can read: wallet address, chain ID, ETH balance, token balances, transaction history, contract state",
           "What it cannot read without additional infrastructure: detailed event logs on high-throughput chains, historical prices, data from other protocols",
-          "What it should never read: seed phrases, private keys — these are never accessible via a standard wallet connection and any tool claiming otherwise is a scam",
+          "What it should never read: seed phrases or private keys. These are never accessible via a standard wallet connection and any tool claiming otherwise is a scam",
         ],
       },
       {
@@ -552,11 +552,11 @@ export const POSTS: Post[] = [
       },
       {
         type: "p",
-        text: "But the quality gap is real and users feel it. A support experience that asks them to describe their own transaction — something they don't understand and are asking for help with — is actively worse than no chatbot at all. It delays resolution and signals that the tool isn't really trying to help.",
+        text: "But the quality gap is real and users feel it. A support experience that asks them to describe their own transaction (something they don't understand and are asking for help with) is actively worse than no chatbot at all. It delays resolution and signals that the tool isn't really trying to help.",
       },
       {
         type: "quote",
-        text: "The test for any support tool in DeFi is simple: can it answer 'why did my transaction fail' without asking the user a single follow-up question? If it can't, you're not deploying support — you're deploying a different way to collect information before escalating to a human.",
+        text: "The test for any support tool in DeFi is simple: can it answer 'why did my transaction fail' without asking the user a single follow-up question? If it can't, you're not deploying support. You're deploying a different way to collect information before escalating to a human.",
       },
       {
         type: "h2",
@@ -572,7 +572,7 @@ export const POSTS: Post[] = [
       },
       {
         type: "p",
-        text: "If the answer is 'the connected wallet address, chain, recent transactions, and relevant contract state' — you have something that can actually help.",
+        text: "If the answer is 'the connected wallet address, chain, recent transactions, and relevant contract state': you have something that can actually help.",
       },
     ],
   },
@@ -593,7 +593,7 @@ export const POSTS: Post[] = [
       },
       {
         type: "p",
-        text: "The difference in user experience is enormous. A doc-only bot can tell a user what slippage is. A context-aware bot can tell them that their specific swap failed because their 0.5% slippage tolerance was too tight for the ETH/USDC pool at that moment — and suggest what to try instead.",
+        text: "The difference in user experience is enormous. A doc-only bot can tell a user what slippage is. A context-aware bot can tell them that their specific swap failed because their 0.5% slippage tolerance was too tight for the ETH/USDC pool at that moment, and suggest what to try instead.",
       },
       {
         type: "h2",
@@ -621,7 +621,7 @@ export const POSTS: Post[] = [
       },
       {
         type: "p",
-        text: "Revert reasons like INSUFFICIENT_OUTPUT_AMOUNT, EXPIRED, or TRANSFER_FROM_FAILED are machine-readable — a bot can translate them directly. Without transaction history, the bot has to ask the user to describe something they don't understand, which is the worst possible support interaction.",
+        text: "Revert reasons like INSUFFICIENT_OUTPUT_AMOUNT, EXPIRED, or TRANSFER_FROM_FAILED are machine-readable: a bot can translate them directly. Without transaction history, the bot has to ask the user to describe something they don't understand, which is the worst possible support interaction.",
       },
       {
         type: "h3",
@@ -642,11 +642,11 @@ export const POSTS: Post[] = [
       },
       {
         type: "p",
-        text: "Wrong-network errors are one of the most common DeFi support issues and one of the easiest to diagnose automatically. If a user is on Polygon but trying to interact with an Ethereum contract, the bot can detect this immediately from the wallet's current chain ID and tell them exactly what to do — without any user input.",
+        text: "Wrong-network errors are one of the most common DeFi support issues and one of the easiest to diagnose automatically. If a user is on Polygon but trying to interact with an Ethereum contract, the bot can detect this immediately from the wallet's current chain ID and tell them exactly what to do, without any user input.",
       },
       {
         type: "p",
-        text: "This is obvious in hindsight, but most support bots have no idea what chain the user is on. They respond with generic 'make sure you're on the right network' instructions instead of 'you're currently on Polygon (0x89) — please switch to Ethereum Mainnet to use this protocol'.",
+        text: "This is obvious in hindsight, but most support bots have no idea what chain the user is on. They respond with generic 'make sure you're on the right network' instructions instead of 'you're currently on Polygon (0x89): please switch to Ethereum Mainnet to use this protocol'.",
       },
       {
         type: "h3",
@@ -654,11 +654,11 @@ export const POSTS: Post[] = [
       },
       {
         type: "p",
-        text: "For protocols with locking, vesting, or staking mechanics, users frequently ask about their position: 'When does my lock expire?', 'How much have I earned?', 'Why can't I withdraw?'. These are not documentation questions — they're questions about that specific user's on-chain state.",
+        text: "For protocols with locking, vesting, or staking mechanics, users frequently ask about their position: 'When does my lock expire?', 'How much have I earned?', 'Why can't I withdraw?'. These are not documentation questions. They're questions about that specific user's on-chain state.",
       },
       {
         type: "p",
-        text: "A bot connected to your watched contracts can read lock expiry dates, vesting schedules, and reward accruals directly. A doc-only bot can only explain what vesting is in general — not when this user's tokens vest.",
+        text: "A bot connected to your watched contracts can read lock expiry dates, vesting schedules, and reward accruals directly. A doc-only bot can only explain what vesting is in general, not when this user's tokens vest.",
       },
       {
         type: "h2",
@@ -671,10 +671,10 @@ export const POSTS: Post[] = [
       {
         type: "ul",
         items: [
-          "Full ERC-20 token lists — irrelevant tokens distract from the protocol's own assets",
-          "Historical prices — usually not what the user is asking, and can be misleading",
-          "Gas price history — useful context for 'why was my gas so high?' but rarely the root question",
-          "Other protocols' state — a user of your staking protocol doesn't need Uniswap LP data in their support context",
+          "Full ERC-20 token lists: irrelevant tokens distract from the protocol's own assets",
+          "Historical prices: usually not what the user is asking, and can be misleading",
+          "Gas price history: useful context for 'why was my gas so high?' but rarely the root question",
+          "Other protocols' state: a user of your staking protocol doesn't need Uniswap LP data in their support context",
         ],
       },
       {
@@ -691,7 +691,7 @@ export const POSTS: Post[] = [
       },
       {
         type: "quote",
-        text: "The gap between a doc-retrieval chatbot and a genuinely useful Web3 support agent is almost entirely about data access — not model quality. A GPT-4 with no wallet context is worse for DeFi support than a smaller model that knows what the user's wallet just did.",
+        text: "The gap between a doc-retrieval chatbot and a genuinely useful Web3 support agent is almost entirely about data access, not model quality. A GPT-4 with no wallet context is worse for DeFi support than a smaller model that knows what the user's wallet just did.",
       },
       {
         type: "p",
@@ -712,7 +712,7 @@ export const POSTS: Post[] = [
     content: [
       {
         type: "p",
-        text: "Telegram became the second pillar of DeFi community infrastructure, right behind Discord. And for good reason: it's faster, more mobile-friendly, and communities tend to be more engaged. But the way most protocols use it for support is almost identical to Discord — which means the same structural problems follow.",
+        text: "Telegram became the second pillar of DeFi community infrastructure, right behind Discord. And for good reason: it's faster, more mobile-friendly, and communities tend to be more engaged. But the way most protocols use it for support is almost identical to Discord, which means the same structural problems follow.",
       },
       {
         type: "p",
@@ -720,7 +720,7 @@ export const POSTS: Post[] = [
       },
       {
         type: "h2",
-        text: "The Telegram support problem isn't moderation — it's context",
+        text: "The Telegram support problem isn't moderation: it's context",
       },
       {
         type: "p",
@@ -728,7 +728,7 @@ export const POSTS: Post[] = [
       },
       {
         type: "p",
-        text: "When someone posts 'my transaction failed' in a group, no one in that group — mod or scammer — knows anything about what actually happened. Which wallet. Which chain. Which contract. What the revert reason was. The user doesn't know either, which is why they're asking.",
+        text: "When someone posts 'my transaction failed' in a group, no one in that group (mod or scammer) knows anything about what actually happened. Which wallet. Which chain. Which contract. What the revert reason was. The user doesn't know either, which is why they're asking.",
       },
       {
         type: "callout",
@@ -741,7 +741,7 @@ export const POSTS: Post[] = [
       },
       {
         type: "p",
-        text: "A context-aware bot added to your Telegram group changes the dynamic entirely. When a user shares their wallet address and says their transaction failed, the bot can look up what actually happened — the revert reason, the contract that rejected the call, the exact cause in plain English — without a single follow-up question.",
+        text: "A context-aware bot added to your Telegram group changes the dynamic entirely. When a user shares their wallet address and says their transaction failed, the bot can look up what actually happened (the revert reason, the contract that rejected the call, the exact cause in plain English), without a single follow-up question.",
       },
       {
         type: "p",
@@ -751,9 +751,9 @@ export const POSTS: Post[] = [
         type: "ul",
         items: [
           "User shares wallet address → bot fetches their recent failed transactions automatically",
-          "Revert reason decoded: INSUFFICIENT_OUTPUT_AMOUNT becomes 'your slippage tolerance was too tight — increase it to 1% and try again'",
-          "Wrong network detected in seconds: 'you're on Arbitrum, this contract is on Base — switch networks in MetaMask'",
-          "Missing approval identified: 'you haven't approved the router to spend your USDC — go to Approvals in your wallet and approve the contract first'",
+          "Revert reason decoded: INSUFFICIENT_OUTPUT_AMOUNT becomes 'your slippage tolerance was too tight. Increase it to 1% and try again'",
+          "Wrong network detected in seconds: 'you're on Arbitrum, this contract is on Base. Switch networks in MetaMask'",
+          "Missing approval identified: 'you haven't approved the router to spend your USDC. Go to Approvals in your wallet and approve the contract first'",
         ],
       },
       {
@@ -770,7 +770,7 @@ export const POSTS: Post[] = [
       },
       {
         type: "p",
-        text: "There's a secondary effect too. A bot that gives a specific answer — 'your transaction hash 0x1a2b… failed because the price moved outside your slippage tolerance' — is immediately recognisable as legitimate. A scammer DM that says 'I can help you recover your funds, please visit this site' is recognisably illegitimate by comparison. The contrast matters.",
+        text: "There's a secondary effect too. A bot that gives a specific answer: 'your transaction hash 0x1a2b… failed because the price moved outside your slippage tolerance', is immediately recognisable as legitimate. A scammer DM that says 'I can help you recover your funds, please visit this site' is recognisably illegitimate by comparison. The contrast matters.",
       },
       {
         type: "h2",
@@ -778,7 +778,7 @@ export const POSTS: Post[] = [
       },
       {
         type: "p",
-        text: "There are two ways to add on-chain support to a Telegram group. You can build and host your own bot — full control, but significant infrastructure work. Or you can add a shared support bot that's already configured to understand your project's smart contracts, documentation, and error messages.",
+        text: "There are two ways to add on-chain support to a Telegram group. You can build and host your own bot (full control, but significant infrastructure work). Or you can add a shared support bot that's already configured to understand your project's smart contracts, documentation, and error messages.",
       },
       {
         type: "comparison",
@@ -805,7 +805,7 @@ export const POSTS: Post[] = [
       },
       {
         type: "p",
-        text: "For most protocols, the shared bot approach makes more sense at the start. The time-to-value is vastly faster, and the infrastructure maintenance cost is zero. The limitation is branding — the bot isn't @YourProtocolBot, it's a shared support bot that's been configured for your project.",
+        text: "For most protocols, the shared bot approach makes more sense at the start. The time-to-value is vastly faster, and the infrastructure maintenance cost is zero. The limitation is branding: the bot isn't @YourProtocolBot, it's a shared support bot that's been configured for your project.",
       },
       {
         type: "h2",
@@ -818,10 +818,10 @@ export const POSTS: Post[] = [
       {
         type: "ul",
         items: [
-          "Smart contract addresses on each chain you support — so the bot can filter transactions to your protocol specifically",
-          "ABI or block explorer verification for each contract — enables decoding custom revert errors, not just generic ones",
-          "Your documentation URL — so the bot can answer questions about how your protocol works, not just about failed transactions",
-          "A custom error glossary for your most common revert reasons — SLIPPAGE_TOO_HIGH becomes a plain-English explanation tailored to your UX",
+          "Smart contract addresses on each chain you support, so the bot can filter transactions to your protocol specifically",
+          "ABI or block explorer verification for each contract, enabling decoding of custom revert errors, not just generic ones",
+          "Your documentation URL, so the bot can answer questions about how your protocol works, not just about failed transactions",
+          "A custom error glossary for your most common revert reasons. SLIPPAGE_TOO_HIGH becomes a plain-English explanation tailored to your UX",
         ],
       },
       {
@@ -834,11 +834,11 @@ export const POSTS: Post[] = [
       },
       {
         type: "p",
-        text: "One concern protocols raise is whether a shared bot could be abused — what stops a free user from inviting the bot to twenty groups? The answer is project-level connection: the bot connects to a group only when a valid project key is provided, and each project can connect to one group. A downgrade or cancellation immediately stops the bot from responding in that group.",
+        text: "One concern protocols raise is whether a shared bot could be abused. What stops a free user from inviting the bot to twenty groups? The answer is project-level connection: the bot connects to a group only when a valid project key is provided, and each project can connect to one group. A downgrade or cancellation immediately stops the bot from responding in that group.",
       },
       {
         type: "p",
-        text: "This is different from how most Telegram bots work, which are invite-and-go. The requirement to connect via a project key means access is always tied to an active subscription — not just whoever knows how to invite a bot.",
+        text: "This is different from how most Telegram bots work, which are invite-and-go. The requirement to connect via a project key means access is always tied to an active subscription, not just whoever knows how to invite a bot.",
       },
       {
         type: "h2",
@@ -846,11 +846,11 @@ export const POSTS: Post[] = [
       },
       {
         type: "p",
-        text: "Two years ago, the baseline for DeFi community support was a mod team and a set of pinned messages. That baseline has moved. Users in 2026 expect quick, specific answers — not 'please share your transaction hash and we'll look into it'.",
+        text: "Two years ago, the baseline for DeFi community support was a mod team and a set of pinned messages. That baseline has moved. Users in 2026 expect quick, specific answers, not 'please share your transaction hash and we'll look into it'.",
       },
       {
         type: "quote",
-        text: "The protocols winning on support aren't the ones with the most moderators. They're the ones where users get a specific answer in under 30 seconds — in the group chat, before anyone has to DM them.",
+        text: "The protocols winning on support aren't the ones with the most moderators. They're the ones where users get a specific answer in under 30 seconds, in the group chat, before anyone has to DM them.",
       },
       {
         type: "p",

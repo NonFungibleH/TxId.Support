@@ -58,7 +58,7 @@ function DiscordScamSVG() {
       {/* Scam DM popup */}
       <g className="ds_scam">
         <rect x="30" y="128" width="290" height="120" rx="8" fill="#1c0f0f" stroke="#ef4444" strokeWidth="1.5" />
-        <text x="42" y="148" fontFamily="monospace" fontSize="8" fill="#ef4444" fontWeight="bold">⚠ Direct Message — FakeAdmin_Support</text>
+        <text x="42" y="148" fontFamily="monospace" fontSize="8" fill="#ef4444" fontWeight="bold">⚠ Direct Message: FakeAdmin_Support</text>
         <line x1="30" y1="155" x2="320" y2="155" stroke="#ef4444" strokeWidth="0.5" strokeOpacity="0.4" />
         <circle cx="47" cy="172" r="10" fill="#7f1d1d" />
         <text x="42" y="176" fontFamily="monospace" fontSize="9" fill="#fca5a5" fontWeight="bold">F</text>

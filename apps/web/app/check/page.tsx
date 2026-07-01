@@ -259,7 +259,7 @@ export default function CheckPage() {
       : ""
     setMessages([{
       role: "assistant",
-      content: `Hi! I'm TxID Support. I can see your wallet ${short} is connected on ${displayChain}.${contractNote}\n\nWhat's going on — did a transaction fail, are funds missing, or is something else not looking right?`,
+      content: `Hi! I'm TxID Support. I can see your wallet ${short} is connected on ${displayChain}.${contractNote}\n\nWhat's going on? Did a transaction fail, are funds missing, or is something else not looking right?`,
     }])
     setStep("chat")
   }
@@ -346,7 +346,7 @@ export default function CheckPage() {
                 Diagnose any crypto transaction
               </h1>
               <p className="text-muted text-base leading-relaxed">
-                Connect your wallet and ask TxID Support anything — why a transaction failed, where your tokens went, what a revert reason means.
+                Connect your wallet and ask TxID Support anything: why a transaction failed, where your tokens went, what a revert reason means.
               </p>
             </div>
 
@@ -437,7 +437,7 @@ export default function CheckPage() {
 
               {!DEMO_KEY && (
                 <p className="text-center text-xs text-muted/60">
-                  Live AI not configured — set <code className="font-mono">NEXT_PUBLIC_DEMO_WIDGET_KEY</code> to enable.
+                  Live AI not configured. Set <code className="font-mono">NEXT_PUBLIC_DEMO_WIDGET_KEY</code> to enable.
                 </p>
               )}
             </div>
@@ -542,7 +542,7 @@ export default function CheckPage() {
           <div className="max-w-3xl mx-auto px-6 py-5 flex flex-col sm:flex-row items-center justify-between gap-4">
             <div>
               <p className="text-sm font-semibold text-white">Want this inside your protocol?</p>
-              <p className="text-xs text-muted mt-0.5">Embed wallet-aware AI support in your app — one script tag.</p>
+              <p className="text-xs text-muted mt-0.5">Embed wallet-aware AI support in your app. One script tag.</p>
             </div>
             <Link
               href={`${APP_URL}/sign-up`}

@@ -18,7 +18,7 @@ export async function generateMetadata({
   const doc = getDoc(params.slug)
   if (!doc) return {}
   return {
-    title: `${doc.title} — TxID Support Docs`,
+    title: `${doc.title} | TxID Support Docs`,
     description: doc.description,
   }
 }

@@ -16,26 +16,33 @@ const ConversationChart = dynamic(
 type ProjectRow = Database["public"]["Tables"]["projects"]["Row"]
 type ConversationRow = Database["public"]["Tables"]["conversations"]["Row"]
 
-// DB stores chain IDs as hex (0x1, 0x89, …) — map both forms for robustness
+// Normalize hex or decimal chain ID to a canonical decimal string
+function normalizeChainId(id: string): string {
+  if (id.startsWith("0x") || id.startsWith("0X")) {
+    return String(parseInt(id, 16))
+  }
+  return id
+}
+
 const CHAIN_NAMES: Record<string, string> = {
-  "0x1": "Ethereum",    "1":      "Ethereum",
-  "0x2105": "Base",     "8453":   "Base",
-  "0xa4b1": "Arbitrum", "42161":  "Arbitrum",
-  "0x89": "Polygon",    "137":    "Polygon",
-  "0xa": "Optimism",    "10":     "Optimism",
-  "0x38": "BNB Chain",  "56":     "BNB Chain",
-  "0xa86a": "Avalanche","43114":  "Avalanche",
-  "0xfa": "Fantom",     "250":    "Fantom",
-  "0xaa36a7": "Sepolia",
+  "1": "Ethereum",
+  "8453": "Base",
+  "42161": "Arbitrum",
+  "137": "Polygon",
+  "10": "Optimism",
+  "56": "BNB Chain",
+  "43114": "Avalanche",
+  "250": "Fantom",
+  "11155111": "Sepolia",
 }
 
 const CHAIN_LOGOS: Record<string, string> = {
-  "0x1": "/chains/Ethereum.png",    "1":     "/chains/Ethereum.png",
-  "0x2105": "/chains/Base.png",     "8453":  "/chains/Base.png",
-  "0xa4b1": "/chains/Arbitrum.png", "42161": "/chains/Arbitrum.png",
-  "0x89": "/chains/Polygon.png",    "137":   "/chains/Polygon.png",
-  "0xa": "/chains/Optimism.png",    "10":    "/chains/Optimism.png",
-  "0x38": "/chains/BNB.png",        "56":    "/chains/BNB.png",
+  "1": "/chains/Ethereum.png",
+  "8453": "/chains/Base.png",
+  "42161": "/chains/Arbitrum.png",
+  "137": "/chains/Polygon.png",
+  "10": "/chains/Optimism.png",
+  "56": "/chains/BNB.png",
 }
 
 function formatDay(date: Date, totalDays: number): string {
@@ -116,21 +123,28 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Se
     }
   }
 
-  // Chain breakdown (all-time)
+  // Chain breakdown (all-time) — normalize hex IDs before counting to avoid duplicates
   const chainCounts = new Map<string, number>()
   for (const conv of allConvIds ? (await supabase
     .from("conversations")
     .select("chain_id")
     .eq("project_id", projectId)
     .not("chain_id", "is", null)).data ?? [] : []) {
-    const id = (conv as { chain_id: string | null }).chain_id
-    if (id) chainCounts.set(id, (chainCounts.get(id) ?? 0) + 1)
+    const raw = (conv as { chain_id: string | null }).chain_id
+    if (!raw) continue
+    const id = normalizeChainId(raw)
+    chainCounts.set(id, (chainCounts.get(id) ?? 0) + 1)
   }
+  const totalChainConvs = Array.from(chainCounts.values()).reduce((a, b) => a + b, 0)
   const chainBreakdown = Array.from(chainCounts.entries())
     .sort((a, b) => b[1] - a[1])
     .slice(0, 6)
-    .map(([chainId, count]) => ({ chainId, name: CHAIN_NAMES[chainId] ?? chainId, count }))
-  const maxChainCount = chainBreakdown[0]?.count ?? 1
+    .map(([chainId, count]) => ({
+      chainId,
+      name: CHAIN_NAMES[chainId] ?? `Chain ${chainId}`,
+      count,
+      pct: totalChainConvs > 0 ? Math.round((count / totalChainConvs) * 100) : 0,
+    }))
 
   // Build chart data
   const dayMap = new Map<string, number>()
@@ -249,7 +263,7 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Se
       {/* Chart */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-sm font-medium">Conversations — last {days} days</CardTitle>
+          <CardTitle className="text-sm font-medium">Conversations: last {days} days</CardTitle>
         </CardHeader>
         <CardContent>
           <ConversationChart data={chartData} />
@@ -260,32 +274,34 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Se
       {chainBreakdown.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-sm font-medium">Users by network (all time)</CardTitle>
+            <CardTitle className="text-sm font-medium">Conversations by network (all time)</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3">
-            {chainBreakdown.map(({ chainId, name, count }) => {
-              const logo = CHAIN_LOGOS[chainId]
-              return (
-                <div key={chainId} className="flex items-center gap-3">
-                  <div className="flex items-center gap-2 w-28 shrink-0">
+          <CardContent>
+            <div className="flex flex-wrap gap-3">
+              {chainBreakdown.map(({ chainId, name, count, pct }) => {
+                const logo = CHAIN_LOGOS[chainId]
+                return (
+                  <div
+                    key={chainId}
+                    className="flex items-center gap-2.5 rounded-xl border border-border bg-muted/40 px-4 py-3 min-w-[140px]"
+                  >
                     {logo ? (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={logo} alt={name} className="size-4 rounded-full object-contain shrink-0" />
+                      <img src={logo} alt={name} className="size-5 rounded-full object-contain shrink-0" />
                     ) : (
-                      <div className="size-4 rounded-full bg-muted shrink-0" />
+                      <div className="size-5 rounded-full bg-muted shrink-0" />
                     )}
-                    <span className="text-xs font-medium truncate">{name}</span>
+                    <div>
+                      <p className="text-xs font-medium leading-none">{name}</p>
+                      <p className="text-lg font-bold tabular-nums leading-tight mt-0.5">
+                        {count}
+                        <span className="text-xs font-normal text-muted-foreground ml-1">{pct}%</span>
+                      </p>
+                    </div>
                   </div>
-                  <div className="flex-1 bg-muted rounded-full h-1.5">
-                    <div
-                      className="bg-primary h-1.5 rounded-full transition-all"
-                      style={{ width: `${Math.round((count / maxChainCount) * 100)}%` }}
-                    />
-                  </div>
-                  <span className="text-xs tabular-nums text-muted-foreground w-6 text-right">{count}</span>
-                </div>
-              )
-            })}
+                )
+              })}
+            </div>
           </CardContent>
         </Card>
       )}

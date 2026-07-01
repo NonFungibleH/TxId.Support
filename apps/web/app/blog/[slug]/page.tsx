@@ -19,7 +19,7 @@ export async function generateMetadata({
   const post = getPost(params.slug)
   if (!post) return {}
   return {
-    title: `${post.title} — TxID Support`,
+    title: `${post.title} | TxID Support`,
     description: post.description,
     openGraph: {
       title: post.title,
@@ -209,13 +209,13 @@ export default function BlogPostPage({ params }: { params: { slug: string } }) {
               Ready to move support in-app?
             </p>
             <p className="text-sm text-muted mb-5">
-              TxID Support gives your protocol an AI support agent that already knows what your users&apos; wallets did — embedded in your app, not Discord.
+              TxID Support gives your protocol an AI support agent that already knows what your users&apos; wallets did, embedded in your app, not Discord.
             </p>
             <a
               href="https://app.txid.support/sign-up"
               className="inline-flex items-center gap-2 rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-white hover:opacity-90 transition-opacity"
             >
-              Start free — 200 conversations/month
+              Start free: 200 conversations/month
             </a>
           </div>
         </div>

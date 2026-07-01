@@ -7,8 +7,8 @@ import { getDocsByCategory } from "@/lib/docs"
 import { ArrowRight, BookOpen, Zap, Paintbrush, FileCode2, BookMarked, Link2, LayoutList, Eye, Code2, MessagesSquare, Ticket, BarChart3 } from "lucide-react"
 
 export const metadata: Metadata = {
-  title: "Documentation — TxID Support",
-  description: "Guides and reference for every TxID Support feature — branding, smart contracts, knowledge base, content blocks, and more.",
+  title: "Documentation | TxID Support",
+  description: "Guides and reference for every TxID Support feature: branding, smart contracts, knowledge base, content blocks, and more.",
 }
 
 const ICONS: Record<string, React.ElementType> = {
@@ -106,7 +106,7 @@ export default function DocsPage() {
                 Something missing?
               </p>
               <p className="text-sm text-[var(--text-muted)] mb-5">
-                If you can&apos;t find what you need, reach out — we&apos;re happy to help.
+                If you can&apos;t find what you need, reach out. We&apos;re happy to help.
               </p>
               <a
                 href="mailto:hello@txid.support"

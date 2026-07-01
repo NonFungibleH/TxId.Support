@@ -3,7 +3,7 @@ import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 
 export const metadata: Metadata = {
-  title: "Privacy Policy — TxID Support",
+  title: "Privacy Policy | TxID Support",
 };
 
 const LAST_UPDATED = "June 2025";
@@ -26,10 +26,10 @@ export default function PrivacyPage() {
               <h2 className="font-display text-lg font-semibold text-white mb-3">What we collect</h2>
               <p>When you use TxID Support, we collect:</p>
               <ul className="list-disc pl-5 space-y-1 mt-2">
-                <li><strong className="text-white/80">Account data</strong> — your email address and name, via Clerk authentication</li>
-                <li><strong className="text-white/80">Project configuration</strong> — branding settings, smart contract addresses, and documentation you index</li>
-                <li><strong className="text-white/80">Agent conversations</strong> — messages sent by your end-users to the agent, stored to power analytics and improve the AI</li>
-                <li><strong className="text-white/80">Usage data</strong> — conversation counts, timestamps, and satisfaction ratings</li>
+                <li><strong className="text-white/80">Account data:</strong> your email address and name, via Clerk authentication</li>
+                <li><strong className="text-white/80">Project configuration:</strong> branding settings, smart contract addresses, and documentation you index</li>
+                <li><strong className="text-white/80">Agent conversations:</strong> messages sent by your end-users to the agent, stored to power analytics and improve the AI</li>
+                <li><strong className="text-white/80">Usage data:</strong> conversation counts, timestamps, and satisfaction ratings</li>
               </ul>
             </section>
 
@@ -54,12 +54,12 @@ export default function PrivacyPage() {
               <h2 className="font-display text-lg font-semibold text-white mb-3">Third parties</h2>
               <p>We use the following sub-processors:</p>
               <ul className="list-disc pl-5 space-y-1 mt-2">
-                <li><strong className="text-white/80">Anthropic</strong> — AI inference (Claude)</li>
-                <li><strong className="text-white/80">Voyage AI</strong> — document embeddings</li>
-                <li><strong className="text-white/80">Supabase</strong> — database and storage</li>
-                <li><strong className="text-white/80">Clerk</strong> — authentication</li>
-                <li><strong className="text-white/80">Moralis</strong> — on-chain data</li>
-                <li><strong className="text-white/80">Vercel</strong> — hosting</li>
+                <li><strong className="text-white/80">Anthropic:</strong> AI inference (Claude)</li>
+                <li><strong className="text-white/80">Voyage AI:</strong> document embeddings</li>
+                <li><strong className="text-white/80">Supabase:</strong> database and storage</li>
+                <li><strong className="text-white/80">Clerk:</strong> authentication</li>
+                <li><strong className="text-white/80">Moralis:</strong> on-chain data</li>
+                <li><strong className="text-white/80">Vercel:</strong> hosting</li>
               </ul>
             </section>
 
@@ -83,21 +83,21 @@ export default function PrivacyPage() {
             <section id="cookies">
               <h2 className="font-display text-lg font-semibold text-white mb-3">Cookies</h2>
               <p className="mb-3">
-                We use only essential cookies — those strictly necessary to operate the service. We do not use advertising, tracking, or analytics cookies.
+                We use only essential cookies: those strictly necessary to operate the service. We do not use advertising, tracking, or analytics cookies.
               </p>
               <ul className="list-disc pl-5 space-y-2 mt-2">
                 <li>
-                  <strong className="text-white/80">Authentication cookies</strong> — set by Clerk to keep you signed in to the dashboard. These expire when you sign out or after 30 days of inactivity.
+                  <strong className="text-white/80">Authentication cookies:</strong> set by Clerk to keep you signed in to the dashboard. These expire when you sign out or after 30 days of inactivity.
                 </li>
                 <li>
-                  <strong className="text-white/80">Session preference</strong> — a single <code className="text-xs bg-white/10 px-1 rounded">localStorage</code> entry records that you have acknowledged this notice. It contains no personal data and is stored in your browser only.
+                  <strong className="text-white/80">Session preference:</strong> a single <code className="text-xs bg-white/10 px-1 rounded">localStorage</code> entry records that you have acknowledged this notice. It contains no personal data and is stored in your browser only.
                 </li>
               </ul>
               <p className="mt-3">
                 The support agent uses <code className="text-xs bg-white/10 px-1 rounded">sessionStorage</code> (not cookies) to hold the active conversation. This is cleared automatically when the browser tab is closed and is never sent to our servers except as part of a conversation message.
               </p>
               <p className="mt-3">
-                Because we use only essential cookies, no consent is required under UK/EU law — but we show a notice as good practice. You can clear cookies at any time through your browser settings; this will sign you out of the dashboard.
+                Because we use only essential cookies, no consent is required under UK/EU law, but we show a notice as good practice. You can clear cookies at any time through your browser settings; this will sign you out of the dashboard.
               </p>
             </section>
 

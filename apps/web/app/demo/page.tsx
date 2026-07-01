@@ -20,11 +20,11 @@ const SCENARIOS = [
     id: "tx",
     icon: Activity,
     label: "Failed Transaction",
-    description: "User's swap reverted — AI explains why and what to do",
+    description: "User's swap reverted: AI explains why and what to do",
     messages: [
       {
         role: "ai" as const,
-        text: "Hi 👋 I can see your wallet 0x1a2b...3c4d is connected. Looks like you had a failed transaction 3 hours ago — want me to explain what happened?",
+        text: "Hi 👋 I can see your wallet 0x1a2b...3c4d is connected. Looks like you had a failed transaction 3 hours ago. Want me to explain what happened?",
         delay: 0,
       },
       {
@@ -34,7 +34,7 @@ const SCENARIOS = [
       },
       {
         role: "ai" as const,
-        text: "Your swap of 1.5 ETH → USDC failed due to slippage. The price moved 1.8% while your transaction was pending — but your slippage tolerance was set to 0.5%.\n\nFix: increase slippage to 2% and retry. If the pool is volatile, use 3%.",
+        text: "Your swap of 1.5 ETH → USDC failed due to slippage. The price moved 1.8% while your transaction was pending, but your slippage tolerance was set to 0.5%.\n\nFix: increase slippage to 2% and retry. If the pool is volatile, use 3%.",
         delay: 5000,
       },
       {
@@ -44,7 +44,7 @@ const SCENARIOS = [
       },
       {
         role: "ai" as const,
-        text: "Yes — gas is charged even on failed transactions (~$4.20 at current prices). Miners are paid for computation regardless of outcome.\n\nTip: retry during off-peak hours (UTC midnight–6am) when fees are 40–60% lower.",
+        text: "Yes, gas is charged even on failed transactions (~$4.20 at current prices). Miners are paid for computation regardless of outcome.\n\nTip: retry during off-peak hours (UTC midnight–6am) when fees are 40–60% lower.",
         delay: 11500,
       },
     ],
@@ -77,7 +77,7 @@ const SCENARIOS = [
       },
       {
         role: "ai" as const,
-        text: "No — unvested tokens are locked in the smart contract. Any transfer attempt will revert.\n\nSome protocols offer early unlock at a penalty — I don't see that option in the current docs. Check with the team on Discord for the latest.",
+        text: "No, unvested tokens are locked in the smart contract. Any transfer attempt will revert.\n\nSome protocols offer early unlock at a penalty. I don't see that option in the current docs. Check with the team on Discord for the latest.",
         delay: 12000,
       },
     ],
@@ -110,7 +110,7 @@ const SCENARIOS = [
       },
       {
         role: "ai" as const,
-        text: "Yes — verified on Etherscan at 0x4a3b...9e2f.\n\n✓ Deployed 14 months ago\n✓ Ownership renounced\n✓ No mint function\n✓ Liquidity locked until Dec 2025\n\nAll green flags.",
+        text: "Yes, verified on Etherscan at 0x4a3b...9e2f.\n\n✓ Deployed 14 months ago\n✓ Ownership renounced\n✓ No mint function\n✓ Liquidity locked until Dec 2025\n\nAll green flags.",
         delay: 11000,
       },
     ],
@@ -266,7 +266,7 @@ function LiveWidget() {
         width={340}
         height={520}
         style={{ border: "none", borderRadius: "1rem" }}
-        title="TxID Support — live demo"
+        title="TxID Support: live demo"
         allow="clipboard-write"
       />
     </div>
@@ -291,7 +291,7 @@ export default function DemoPage() {
               See it in action
             </h1>
             <p className="text-lg text-muted max-w-lg mx-auto">
-              Watch how your users get instant answers — inside your own brand.
+              Watch how your users get instant answers, right inside your own brand.
             </p>
           </div>
 

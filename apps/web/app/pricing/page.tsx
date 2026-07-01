@@ -9,7 +9,7 @@ import { Check, Minus } from "lucide-react";
 // APP_URL is consumed by PricingSection — imported there directly
 
 export const metadata: Metadata = {
-  title: "Pricing — TxID Support",
+  title: "Pricing | TxID Support",
   description: "Start free. Upgrade when your protocol is ready.",
 };
 
@@ -65,7 +65,7 @@ const COMPARISON = [
 const FAQ = [
   {
     q: "What does the free trial include?",
-    a: "The Starter plan is free forever — no trial expiry. You get 200 conversations/month, the full feature set (wallet detection, transaction diagnostics, knowledge base Q&A, token widget), and a full analytics dashboard. No credit card required. Token communities and early-stage protocols rarely need more than this.",
+    a: "The Starter plan is free forever: no trial expiry. You get 200 conversations/month, the full feature set (wallet detection, transaction diagnostics, knowledge base Q&A, token widget), and a full analytics dashboard. No credit card required. Token communities and early-stage protocols rarely need more than this.",
   },
   {
     q: "What counts as a conversation?",
@@ -73,7 +73,7 @@ const FAQ = [
   },
   {
     q: "How does the Pro plan work?",
-    a: "Pro is designed for protocols with active on-chain users — the kind of traffic that pushes past 200 conversations/month quickly. It unlocks 5,000 conversations/month, removes TxID Support branding, adds full custom branding (colours, font, logo, agent name), escalation webhooks, and CSV export. $699/mo, no long-term contract, cancel anytime.",
+    a: "Pro is designed for protocols with active on-chain users: the kind of traffic that pushes past 200 conversations/month quickly. It unlocks 5,000 conversations/month, removes TxID Support branding, adds full custom branding (colours, font, logo, agent name), escalation webhooks, and CSV export. $699/mo, no long-term contract, cancel anytime.",
   },
   {
     q: "What chains are supported?",
@@ -81,11 +81,11 @@ const FAQ = [
   },
   {
     q: "How does the docs Q&A work?",
-    a: "You paste your docs URL in the dashboard. The system crawls and indexes it automatically using RAG (retrieval-augmented generation). The AI answers questions grounded in your documentation — not hallucinated.",
+    a: "You paste your docs URL in the dashboard. The system crawls and indexes it automatically using RAG (retrieval-augmented generation). The AI answers questions grounded in your documentation, not hallucinated.",
   },
   {
     q: "Can I use my own branding?",
-    a: "Yes — set your colours, font, and logo URL in the dashboard. The free tier includes a small 'Powered by TxID Support' footer note. Removing that is a Pro plan feature.",
+    a: "Yes. Set your colours, font, and logo URL in the dashboard. The free tier includes a small 'Powered by TxID Support' footer note. Removing that is a Pro plan feature.",
   },
 ];
 
@@ -123,7 +123,7 @@ export default function PricingPage() {
               Start free. Scale when ready.
             </h1>
             <p className="text-lg text-muted max-w-xl mx-auto">
-              No credit card required. The free tier is genuinely useful —
+              No credit card required. The free tier is genuinely useful,
               not a 7-day trial.
             </p>
           </FadeIn>
