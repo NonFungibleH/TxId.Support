@@ -92,7 +92,7 @@ export default async function PreviewPage() {
 
       {/* Confirm */}
       <Card className={previewConfirmed ? "border-green-500/30 bg-green-500/5" : "border-primary/30 bg-primary/5"}>
-        <CardContent className="pt-6">
+        <CardContent className="pt-4">
           <div className="flex items-center justify-between gap-6">
             <div>
               <p className="font-semibold">

@@ -118,8 +118,11 @@
 
   // Close when iframe posts a "txid-close" message
   window.addEventListener("message", function (e) {
-    if (e.data === "txid-close" && open) {
-      btn.click();
-    }
+    if (e.data !== "txid-close") return;
+    // Force-close regardless of open state to guard against any state drift
+    open = false;
+    wrap.classList.remove("open");
+    btn.innerHTML = CHAT_ICON;
+    btn.setAttribute("aria-label", "Open support chat");
   });
 })();

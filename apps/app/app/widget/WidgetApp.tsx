@@ -520,29 +520,12 @@ export function WidgetApp() {
     const session = loadWalletSession(apiKey)
     if (!session) return
 
-    if ((session.setup === "connected" || session.setup === "manual") && session.address) {
-      if (session.setup === "connected") {
-        // Try to silently re-connect MetaMask (no popup)
-        const win = window as unknown as { ethereum?: { request: (a: { method: string }) => Promise<string[]> } }
-        if (win.ethereum) {
-          win.ethereum.request({ method: "eth_accounts" })
-            .then((accounts) => {
-              if (accounts[0]) {
-                setWalletAddress(accounts[0])
-                setChainId(session.chainId ?? "0x1")
-                setWalletSetup("connected")
-                setTab("chat")
-              }
-            })
-            .catch(() => { /* stay on prompt */ })
-        }
-      } else {
-        // Manual address — restore directly, no fetch needed
-        setWalletAddress(session.address)
-        setChainId(session.chainId ?? "0x1")
-        setWalletSetup("manual")
-        setTab("chat")
-      }
+    // Only auto-restore manual addresses — never auto-call MetaMask (triggers popup)
+    if (session.setup === "manual" && session.address) {
+      setWalletAddress(session.address)
+      setChainId(session.chainId ?? "0x1")
+      setWalletSetup("manual")
+      setTab("chat")
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [apiKey, config])
@@ -1455,7 +1438,7 @@ export function WidgetApp() {
                     ].filter(Boolean) as { key: string; label: string; url: string }[]
                     if (links.length === 0) return null
                     return (
-                      <div key={block.id} className="rounded-xl overflow-hidden" style={{ backgroundColor: b.secondaryColor, border: `1px solid ${b.primaryColor}22` }}>
+                      <div key={block.id} className="rounded-xl overflow-hidden" style={{ backgroundColor: b.backgroundColor, border: `1px solid ${b.primaryColor}22` }}>
                         <div className="h-0.5" style={{ background: `linear-gradient(90deg, ${b.primaryColor}, ${b.primaryColor}30)` }} />
                         {block.title && (
                           <p className="text-[10px] font-bold uppercase tracking-widest px-3 pt-2.5 pb-1" style={{ color: adaptiveText, opacity: 0.5 }}>{block.title}</p>
@@ -1524,7 +1507,7 @@ export function WidgetApp() {
                         .replace("/app/", "/widget-chart/")
                         .replace("/pair-explorer/", "/pe-light/")
                         .split("?")[0] +
-                        "?theme=dark&chartType=2&chartResolution=30&drawingToolbars=false"
+                        "?theme=dark&chartType=1&chartResolution=1D&drawingToolbars=false"
                     } else {
                       // DexScreener embed
                       embedUrl = c.url.includes("?")
