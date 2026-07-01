@@ -1470,6 +1470,20 @@ export function WidgetApp() {
                     )
                   }
 
+                  if (block.type === "dexscreener" && c.url) {
+                    const embedUrl = c.url.includes("?")
+                      ? `${c.url}&embed=1&theme=dark&info=0`
+                      : `${c.url}?embed=1&theme=dark&info=0`
+                    return (
+                      <div key={block.id}>
+                        {block.title && <p className="text-[10px] uppercase tracking-wider opacity-60 mb-1" style={{ color: b.textColor }}>{block.title}</p>}
+                        <div className="rounded-xl overflow-hidden" style={{ height: "360px" }}>
+                          <iframe src={embedUrl} className="w-full h-full border-0" title={block.title || "Token Chart"} />
+                        </div>
+                      </div>
+                    )
+                  }
+
                   return null
                 })}
               </div>

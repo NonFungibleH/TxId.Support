@@ -23,13 +23,14 @@ import { GripVertical, Trash2, Plus, ChevronDown, Loader2 } from "lucide-react"
 const TITLE_MAX = 50
 
 const BLOCK_TYPES: { value: ContentBlockType; label: string }[] = [
-  { value: "video",  label: "Video" },
-  { value: "text",   label: "Text / Announcement" },
-  { value: "link",   label: "Link" },
-  { value: "faq",    label: "FAQ" },
-  { value: "image",  label: "Image" },
-  { value: "social", label: "Social Links" },
-  { value: "html",   label: "HTML" },
+  { value: "video",       label: "Video" },
+  { value: "text",        label: "Text / Announcement" },
+  { value: "link",        label: "Link" },
+  { value: "faq",         label: "FAQ" },
+  { value: "image",       label: "Image" },
+  { value: "social",      label: "Social Links" },
+  { value: "dexscreener", label: "DexScreener Chart" },
+  { value: "html",        label: "HTML" },
 ]
 
 type FieldDef = { key: string; label: string; placeholder: string; multiline?: boolean }
@@ -56,6 +57,9 @@ const CONTENT_FIELDS: Partial<Record<ContentBlockType, FieldDef[]>> = {
     { key: "a2", label: "Answer 2",             placeholder: "Your answer…", multiline: true },
     { key: "q3", label: "Question 3 (optional)", placeholder: "Another question?" },
     { key: "a3", label: "Answer 3",             placeholder: "Your answer…", multiline: true },
+  ],
+  dexscreener: [
+    { key: "url", label: "DexScreener Pair URL", placeholder: "https://dexscreener.com/ethereum/0x…" },
   ],
   html: [
     { key: "code", label: "HTML", placeholder: "<p>Your custom content</p>", multiline: true },
@@ -103,6 +107,7 @@ function deriveTitle(type: ContentBlockType, content: Record<string, string>): s
   const defaults: Partial<Record<ContentBlockType, string>> = {
     video: "Video", text: "Announcement", image: "Image",
     faq: "FAQ", social: "Social Links", html: "Custom Content", link: "Link",
+    dexscreener: "Token Chart",
   }
   return defaults[type] ?? "Content Block"
 }
@@ -113,7 +118,8 @@ function contentPreview(block: ContentBlock): string | null {
   if (block.type === "text")   return c.body ? c.body.slice(0, 80) : null
   if (block.type === "link")   return c.url ?? null
   if (block.type === "image")  return c.url ?? null
-  if (block.type === "html")   return c.code ? c.code.slice(0, 60) : null
+  if (block.type === "html")        return c.code ? c.code.slice(0, 60) : null
+  if (block.type === "dexscreener") return c.url ?? null
   if (block.type === "faq") {
     const count = [c.q1, c.q2, c.q3].filter(Boolean).length
     return count ? `${count} question${count !== 1 ? "s" : ""}` : null

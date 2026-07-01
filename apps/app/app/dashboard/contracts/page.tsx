@@ -19,9 +19,9 @@ export default async function ContractsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Smart Contracts</h1>
+        <h1 className="text-2xl font-bold">Add Contract Addresses</h1>
         <p className="text-muted-foreground mt-1">
-          Add your protocol&apos;s smart contracts so the AI can look them up when users ask about lock status, vesting, staking, and more.
+          Add any contract addresses the AI should be able to look up — smart contracts, your token contract, treasury wallets, vesting contracts, and more. The AI uses the name and description to decide when to query each one.
         </p>
       </div>
 
