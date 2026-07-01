@@ -1,19 +1,21 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
+import { useRouter } from "next/navigation"
 import { ChevronDown, ChevronUp, ThumbsUp, ThumbsDown, Wallet, Download, Globe, MessageSquare, Bot, Ticket, Loader2, CheckCircle2 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import type { ConversationWithMessages } from "@/app/dashboard/conversations/page"
 
 const CHAIN_NAMES: Record<string, string> = {
-  "1":     "Ethereum",
-  "8453":  "Base",
-  "42161": "Arbitrum",
-  "137":   "Polygon",
-  "10":    "Optimism",
-  "56":    "BNB Chain",
-  "43114": "Avalanche",
+  "1":     "Ethereum",   "0x1":      "Ethereum",
+  "8453":  "Base",       "0x2105":   "Base",
+  "42161": "Arbitrum",   "0xa4b1":   "Arbitrum",
+  "137":   "Polygon",    "0x89":     "Polygon",
+  "10":    "Optimism",   "0xa":      "Optimism",
+  "56":    "BNB Chain",  "0x38":     "BNB Chain",
+  "43114": "Avalanche",  "0xa86a":   "Avalanche",
   "250":   "Fantom",
+  "0xaa36a7": "Sepolia (Testnet)",
 }
 
 function timeAgo(dateStr: string): string {
@@ -33,10 +35,17 @@ function formatDate(dateStr: string): string {
   })
 }
 
-function SessionBadge({ walletAddress }: { walletAddress: string | null }) {
+function SessionBadge({ walletAddress, onClick }: { walletAddress: string | null; onClick?: (e: React.MouseEvent) => void }) {
   if (!walletAddress) return <span className="text-xs text-muted-foreground">Anonymous</span>
   return (
-    <span className="flex items-center gap-1 text-xs font-mono text-muted-foreground">
+    <span
+      role="button"
+      tabIndex={0}
+      onClick={onClick}
+      onKeyDown={e => e.key === "Enter" && onClick?.(e as unknown as React.MouseEvent)}
+      className="flex items-center gap-1 text-xs font-mono text-muted-foreground hover:text-primary hover:underline underline-offset-2 cursor-pointer transition-colors"
+      title="Filter by this wallet"
+    >
       <Wallet className="size-3" />
       {walletAddress.slice(0, 6)}…{walletAddress.slice(-4)}
     </span>
@@ -52,6 +61,7 @@ function FeedbackIcon({ feedback }: { feedback: number }) {
 type TicketStatus = "idle" | "loading" | "done" | "error"
 
 export function ConversationList({ conversations }: { conversations: ConversationWithMessages[] }) {
+  const router = useRouter()
   const [expanded, setExpanded] = useState<string | null>(null)
   const [summaries, setSummaries] = useState<Record<string, string>>({})
   const [summaryLoading, setSummaryLoading] = useState<Record<string, boolean>>({})
@@ -131,7 +141,13 @@ export function ConversationList({ conversations }: { conversations: Conversatio
             >
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-0.5 flex-wrap">
-                  <SessionBadge walletAddress={conv.wallet_address} />
+                  <SessionBadge
+                    walletAddress={conv.wallet_address}
+                    onClick={conv.wallet_address ? (e) => {
+                      e.stopPropagation()
+                      router.push(`/dashboard/conversations?wallet=${encodeURIComponent(conv.wallet_address!)}`)
+                    } : undefined}
+                  />
                   {chainName && (
                     <span className="flex items-center gap-1 text-xs text-muted-foreground">
                       <Globe className="size-3" />
@@ -163,7 +179,15 @@ export function ConversationList({ conversations }: { conversations: Conversatio
                   <div>
                     <p className="text-[10px] uppercase tracking-wide text-muted-foreground/60 mb-0.5">Wallet</p>
                     {conv.wallet_address
-                      ? <p className="text-xs font-mono text-foreground break-all">{conv.wallet_address}</p>
+                      ? (
+                        <button
+                          onClick={() => router.push(`/dashboard/conversations?wallet=${encodeURIComponent(conv.wallet_address!)}`)}
+                          className="text-xs font-mono text-foreground break-all text-left hover:text-primary hover:underline underline-offset-2 transition-colors"
+                          title="Filter by this wallet"
+                        >
+                          {conv.wallet_address}
+                        </button>
+                      )
                       : <p className="text-xs text-muted-foreground">Anonymous</p>}
                   </div>
                   <div>
