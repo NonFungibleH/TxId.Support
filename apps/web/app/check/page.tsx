@@ -110,6 +110,7 @@ export default function CheckPage() {
   const [wallet, setWallet] = useState("")
   const [chainId, setChainId] = useState("1")
   const [manualAddress, setManualAddress] = useState("")
+  const [contractAddress, setContractAddress] = useState("")
   const [connectError, setConnectError] = useState("")
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState("")
@@ -170,6 +171,7 @@ export default function CheckPage() {
           ],
           walletAddress: wallet || manualAddress || undefined,
           chainId,
+          ...(contractAddress ? { contractAddress } : {}),
           ...(turnstileToken ? { turnstileToken } : {}),
         }),
       })
@@ -245,16 +247,19 @@ export default function CheckPage() {
       void assistantId // suppress unused warning
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [wallet, manualAddress, chainId, messages])
+  }, [wallet, manualAddress, contractAddress, chainId, messages])
 
   // ── Enter chat — show greeting without API call ───────────────────────────
 
   function enterChat(addr: string) {
     const displayChain = chain.name
     const short = shortAddr(addr)
+    const contractNote = contractAddress
+      ? `\n\nI'll focus on your interactions with contract ${shortAddr(contractAddress)}.`
+      : ""
     setMessages([{
       role: "assistant",
-      content: `Hi! I'm TxID Support. I can see your wallet ${short} is connected on ${displayChain}.\n\nWhat's going on — did a transaction fail, are funds missing, or is something else not looking right?`,
+      content: `Hi! I'm TxID Support. I can see your wallet ${short} is connected on ${displayChain}.${contractNote}\n\nWhat's going on — did a transaction fail, are funds missing, or is something else not looking right?`,
     }])
     setStep("chat")
   }
@@ -283,6 +288,11 @@ export default function CheckPage() {
       setConnectError("Enter a valid Ethereum address (0x…)")
       return
     }
+    const contract = contractAddress.trim()
+    if (contract && !/^0x[0-9a-fA-F]{40}$/.test(contract)) {
+      setConnectError("Enter a valid contract address (0x…)")
+      return
+    }
     enterChat(addr)
   }
 
@@ -306,6 +316,7 @@ export default function CheckPage() {
     setStep("connect")
     setWallet("")
     setManualAddress("")
+    setContractAddress("")
     setMessages([])
     setConnectError("")
     sessionId.current = crypto.randomUUID()
@@ -358,9 +369,18 @@ export default function CheckPage() {
               <div className="space-y-3">
                 <input
                   type="text"
-                  placeholder="0x1a2b3c4d…"
+                  placeholder="Your wallet address (0x…)"
                   value={manualAddress}
                   onChange={e => { setManualAddress(e.target.value); setConnectError("") }}
+                  onKeyDown={e => e.key === "Enter" && goWithManual()}
+                  className="w-full bg-[#07070d] border border-[#1e1e3a] rounded-xl px-4 py-3 text-white font-mono text-sm placeholder:text-muted focus:outline-none focus:border-accent transition-colors"
+                />
+
+                <input
+                  type="text"
+                  placeholder="Smart contract address (optional)"
+                  value={contractAddress}
+                  onChange={e => { setContractAddress(e.target.value); setConnectError("") }}
                   onKeyDown={e => e.key === "Enter" && goWithManual()}
                   className="w-full bg-[#07070d] border border-[#1e1e3a] rounded-xl px-4 py-3 text-white font-mono text-sm placeholder:text-muted focus:outline-none focus:border-accent transition-colors"
                 />
@@ -459,6 +479,12 @@ export default function CheckPage() {
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={chain.logo} alt={chain.name} className="w-3.5 h-3.5 object-contain rounded-full" />
               <span className="text-xs text-muted">{chain.name}</span>
+              {contractAddress && (
+                <>
+                  <span className="text-muted/40">·</span>
+                  <span className="text-xs font-mono text-muted/70">contract {shortAddr(contractAddress)}</span>
+                </>
+              )}
             </div>
             <button
               onClick={reset}

@@ -19,6 +19,7 @@ const heroGradients: Record<string, string> = {
   "docs-qa": "linear-gradient(135deg, #6366f1, #8b5cf6)",
   "wallet-vs-generic": "linear-gradient(135deg, #10b981, #06b6d4)",
   "on-chain-data": "linear-gradient(135deg, #6366f1, #06b6d4)",
+  "telegram-community-support": "linear-gradient(135deg, #0088cc, #6366f1)",
 }
 
 export default function BlogPage({

@@ -699,6 +699,165 @@ export const POSTS: Post[] = [
       },
     ],
   },
+  {
+    slug: "telegram-community-support",
+    title: "Why your DeFi community's Telegram group needs on-chain AI support",
+    description:
+      "Pinned FAQs and mods can't scale with a growing DeFi community. Here's how Telegram groups can deliver wallet-aware support without creating another scam vector.",
+    publishedAt: "2026-07-01",
+    readingMinutes: 6,
+    tags: ["Web3 support", "DeFi operations", "Customer support"],
+    author: "Non_Fungible_Howard",
+    heroVariant: "telegram-community-support",
+    content: [
+      {
+        type: "p",
+        text: "Telegram became the second pillar of DeFi community infrastructure, right behind Discord. And for good reason: it's faster, more mobile-friendly, and communities tend to be more engaged. But the way most protocols use it for support is almost identical to Discord — which means the same structural problems follow.",
+      },
+      {
+        type: "p",
+        text: "A user posts that their transaction failed. Mods scramble to respond. Scammers DM the user first with a fake 'recovery tool'. The protocol team writes another pinned message reminding everyone that 'we will never DM you first'. The cycle repeats.",
+      },
+      {
+        type: "h2",
+        text: "The Telegram support problem isn't moderation — it's context",
+      },
+      {
+        type: "p",
+        text: "Most protocols treat Telegram support as a moderation problem. They add more mods, create more rules, pin more warnings. But the real issue is that Telegram support is context-free by design.",
+      },
+      {
+        type: "p",
+        text: "When someone posts 'my transaction failed' in a group, no one in that group — mod or scammer — knows anything about what actually happened. Which wallet. Which chain. Which contract. What the revert reason was. The user doesn't know either, which is why they're asking.",
+      },
+      {
+        type: "callout",
+        label: "The information gap",
+        text: "In a Telegram support channel, everyone is equally blind. The honest mod has to ask questions the user can't answer. The scammer just skips to the DM and offers to 'help'. Context-free support always favours bad actors.",
+      },
+      {
+        type: "h2",
+        text: "What on-chain AI support in Telegram actually looks like",
+      },
+      {
+        type: "p",
+        text: "A context-aware bot added to your Telegram group changes the dynamic entirely. When a user shares their wallet address and says their transaction failed, the bot can look up what actually happened — the revert reason, the contract that rejected the call, the exact cause in plain English — without a single follow-up question.",
+      },
+      {
+        type: "p",
+        text: "This isn't a chatbot reciting your FAQ. It's a system that reads public blockchain data, interprets it in the context of your protocol's smart contracts, and gives the user a specific answer about their specific situation.",
+      },
+      {
+        type: "ul",
+        items: [
+          "User shares wallet address → bot fetches their recent failed transactions automatically",
+          "Revert reason decoded: INSUFFICIENT_OUTPUT_AMOUNT becomes 'your slippage tolerance was too tight — increase it to 1% and try again'",
+          "Wrong network detected in seconds: 'you're on Arbitrum, this contract is on Base — switch networks in MetaMask'",
+          "Missing approval identified: 'you haven't approved the router to spend your USDC — go to Approvals in your wallet and approve the contract first'",
+        ],
+      },
+      {
+        type: "h2",
+        text: "Why this closes the scam vector",
+      },
+      {
+        type: "p",
+        text: "Scams in Telegram (and Discord) work because there's a window of opportunity: the user posts asking for help, and there's a delay before they get a legitimate answer. That window is where the fake mod slides in.",
+      },
+      {
+        type: "p",
+        text: "An AI bot that responds in seconds with a specific, accurate answer closes that window. The user gets a real answer before a scammer can reach them. There's nothing to intercept.",
+      },
+      {
+        type: "p",
+        text: "There's a secondary effect too. A bot that gives a specific answer — 'your transaction hash 0x1a2b… failed because the price moved outside your slippage tolerance' — is immediately recognisable as legitimate. A scammer DM that says 'I can help you recover your funds, please visit this site' is recognisably illegitimate by comparison. The contrast matters.",
+      },
+      {
+        type: "h2",
+        text: "The setup question: shared bots vs custom bots",
+      },
+      {
+        type: "p",
+        text: "There are two ways to add on-chain support to a Telegram group. You can build and host your own bot — full control, but significant infrastructure work. Or you can add a shared support bot that's already configured to understand your project's smart contracts, documentation, and error messages.",
+      },
+      {
+        type: "comparison",
+        left: {
+          title: "Custom bot",
+          items: [
+            "Full control over behaviour",
+            "Your bot username and branding",
+            "Requires: hosting, API integrations, maintenance",
+            "Weeks to build and test",
+            "You own the infrastructure",
+          ],
+        },
+        right: {
+          title: "Shared support bot",
+          items: [
+            "Configured for your contracts and docs",
+            "Add to group with one command",
+            "Zero infrastructure required",
+            "Live in minutes",
+            "Automatically updated as chains evolve",
+          ],
+        },
+      },
+      {
+        type: "p",
+        text: "For most protocols, the shared bot approach makes more sense at the start. The time-to-value is vastly faster, and the infrastructure maintenance cost is zero. The limitation is branding — the bot isn't @YourProtocolBot, it's a shared support bot that's been configured for your project.",
+      },
+      {
+        type: "h2",
+        text: "What to configure before adding the bot",
+      },
+      {
+        type: "p",
+        text: "An on-chain support bot is only as good as what it knows about your project. Before adding it to your group, make sure you've given it what it needs.",
+      },
+      {
+        type: "ul",
+        items: [
+          "Smart contract addresses on each chain you support — so the bot can filter transactions to your protocol specifically",
+          "ABI or block explorer verification for each contract — enables decoding custom revert errors, not just generic ones",
+          "Your documentation URL — so the bot can answer questions about how your protocol works, not just about failed transactions",
+          "A custom error glossary for your most common revert reasons — SLIPPAGE_TOO_HIGH becomes a plain-English explanation tailored to your UX",
+        ],
+      },
+      {
+        type: "p",
+        text: "Each of these takes a few minutes to set up. Together they're what separates a generic blockchain bot from one that actually understands your protocol.",
+      },
+      {
+        type: "h2",
+        text: "Plan gating and abuse prevention",
+      },
+      {
+        type: "p",
+        text: "One concern protocols raise is whether a shared bot could be abused — what stops a free user from inviting the bot to twenty groups? The answer is project-level connection: the bot connects to a group only when a valid project key is provided, and each project can connect to one group. A downgrade or cancellation immediately stops the bot from responding in that group.",
+      },
+      {
+        type: "p",
+        text: "This is different from how most Telegram bots work, which are invite-and-go. The requirement to connect via a project key means access is always tied to an active subscription — not just whoever knows how to invite a bot.",
+      },
+      {
+        type: "h2",
+        text: "The floor for community support in DeFi has moved",
+      },
+      {
+        type: "p",
+        text: "Two years ago, the baseline for DeFi community support was a mod team and a set of pinned messages. That baseline has moved. Users in 2026 expect quick, specific answers — not 'please share your transaction hash and we'll look into it'.",
+      },
+      {
+        type: "quote",
+        text: "The protocols winning on support aren't the ones with the most moderators. They're the ones where users get a specific answer in under 30 seconds — in the group chat, before anyone has to DM them.",
+      },
+      {
+        type: "p",
+        text: "Telegram isn't going away as a community platform. The question is whether your protocol's presence there looks like a support channel or a scam waiting to happen.",
+      },
+    ],
+  },
 ]
 
 export function getPost(slug: string): Post | undefined {
