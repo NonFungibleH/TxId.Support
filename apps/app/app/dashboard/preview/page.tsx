@@ -21,7 +21,7 @@ export default async function PreviewPage() {
   const widgetBaseUrl = process.env.NEXT_PUBLIC_WIDGET_URL ?? "https://app.txid.support"
   const pt = generatePreviewToken(typedProject.id)
   const previewUrl = `${widgetBaseUrl}/preview?key=${typedProject.publishable_key}&preview=1&pt=${pt}`
-  const bookmarklet = `javascript:(function(){if(document.getElementById('txid-preview'))return;var f=document.createElement('iframe');f.id='txid-preview';f.src='${widgetBaseUrl}/widget?key=${typedProject.publishable_key}&preview=1&pt=${pt}';f.style.cssText='position:fixed;bottom:20px;right:20px;width:380px;height:580px;border:none;z-index:2147483647;border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,0.4)';document.body.appendChild(f);})();`
+  const bookmarklet = `javascript:(function(){if(document.getElementById('txid-preview'))return;var f=document.createElement('iframe');f.id='txid-preview';f.src='${widgetBaseUrl}/widget?key=${typedProject.publishable_key}&preview=1&pt=${pt}';f.style.cssText='position:fixed;bottom:max(20px,env(safe-area-inset-bottom,0px));right:max(20px,env(safe-area-inset-right,0px));width:min(380px,calc(100vw - 32px));height:min(580px,calc(100vh - 80px));border:none;z-index:2147483647;border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,0.4)';document.body.appendChild(f);})();`
 
   return (
     <div className="space-y-6">

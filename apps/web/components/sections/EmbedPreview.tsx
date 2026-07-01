@@ -14,10 +14,16 @@ const CODE: Record<Tab, { language: string; code: string }> = {
     code: `<!-- Add before </body> — that's it -->
 <script>
   (function() {
-    var iframe = document.createElement('iframe');
-    iframe.src = 'https://app.txid.support/widget?key=YOUR_API_KEY';
-    iframe.style.cssText = 'position:fixed;bottom:24px;right:24px;width:400px;height:600px;border:none;z-index:9999;border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,0.4)';
-    document.body.appendChild(iframe);
+    var w = document.createElement('iframe');
+    w.src = 'https://app.txid.support/widget?key=YOUR_API_KEY';
+    w.style.cssText = 'position:fixed;'
+      + 'bottom:max(24px,env(safe-area-inset-bottom,0px));'
+      + 'right:max(16px,env(safe-area-inset-right,0px));'
+      + 'width:min(400px,calc(100vw - 32px));'
+      + 'height:min(600px,calc(100vh - 80px));'
+      + 'border:none;z-index:9999;border-radius:16px;'
+      + 'box-shadow:0 8px 32px rgba(0,0,0,0.4)';
+    document.body.appendChild(w);
   })();
 </script>`,
   },
@@ -26,9 +32,12 @@ const CODE: Record<Tab, { language: string; code: string }> = {
     code: `<!-- Add this iframe anywhere on your page -->
 <iframe
   src="https://app.txid.support/widget?key=YOUR_API_KEY"
-  style="position:fixed;bottom:24px;right:24px;
-         width:400px;height:600px;border:none;
-         z-index:9999;border-radius:16px;
+  style="position:fixed;
+         bottom:max(24px,env(safe-area-inset-bottom,0px));
+         right:max(16px,env(safe-area-inset-right,0px));
+         width:min(400px,calc(100vw - 32px));
+         height:min(600px,calc(100vh - 80px));
+         border:none;z-index:9999;border-radius:16px;
          box-shadow:0 8px 32px rgba(0,0,0,0.4)"
   allow="clipboard-write">
 </iframe>`,

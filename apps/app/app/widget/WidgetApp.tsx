@@ -225,7 +225,8 @@ function MessageContent({
             padding: "8px 10px",
             borderRadius: "6px",
             overflowX: "auto",
-            whiteSpace: "pre",
+            whiteSpace: "pre-wrap",
+            wordBreak: "break-word",
             margin: 0,
           }}
         >

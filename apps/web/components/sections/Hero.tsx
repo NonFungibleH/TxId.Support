@@ -53,7 +53,7 @@ export function Hero() {
               <p className="text-xs text-muted mt-4 mb-6">
                 No credit card required · Free tier includes 200 conversations/mo
               </p>
-              <div className="flex flex-nowrap items-center gap-x-2.5">
+              <div className="flex flex-wrap items-center gap-x-2.5 gap-y-2">
                 <span className="text-xs text-muted/50 font-mono shrink-0">Available on</span>
                 {[
                   { name: "Ethereum", file: "Ethereum.png", whiteBg: false },

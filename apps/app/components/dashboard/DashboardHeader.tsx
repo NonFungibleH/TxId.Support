@@ -20,6 +20,8 @@ const PAGE_LABELS: Record<string, string> = {
   "/dashboard/community":    "Community",
   "/dashboard/ask":          "Ask AI",
   "/dashboard/token":        "Token",
+  "/dashboard/account":      "Account & Billing",
+  "/dashboard/upgrade":      "Upgrade Plan",
 }
 
 interface DashboardHeaderProps {
