@@ -1,8 +1,8 @@
 "use client"
 
 import { usePathname } from "next/navigation"
-import { UserButton } from "@clerk/nextjs"
 import { Menu, ChevronRight } from "lucide-react"
+import { AccountMenu } from "@/components/dashboard/AccountMenu"
 
 const PAGE_LABELS: Record<string, string> = {
   "/dashboard":              "Overview",
@@ -55,7 +55,7 @@ export function DashboardHeader({ orgName, onMenuToggle }: DashboardHeaderProps)
           </div>
         )}
       </div>
-      <UserButton afterSignOutUrl="/sign-in" />
+      <AccountMenu />
     </header>
   )
 }
