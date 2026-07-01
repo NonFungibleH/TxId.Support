@@ -411,30 +411,9 @@ export function ContentBlockEditor({ projectId, initialBlocks }: ContentBlockEdi
 
   return (
     <div className="space-y-4">
-      {blocks.length > 0 ? (
-        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-          <SortableContext items={blocks.map(b => b.id)} strategy={verticalListSortingStrategy}>
-            <div className="space-y-2">
-              {blocks.map(block => (
-                <SortableBlock
-                  key={block.id}
-                  block={block}
-                  isEditing={editingId === block.id}
-                  onToggleEdit={() => setEditingId(prev => prev === block.id ? null : block.id)}
-                  onUpdate={updateBlock}
-                  onRemove={removeBlock}
-                />
-              ))}
-            </div>
-          </SortableContext>
-        </DndContext>
-      ) : (
-        <p className="text-sm text-muted-foreground text-center py-4">No content blocks yet.</p>
-      )}
-
-      {/* Add new block */}
+      {/* Add new block — shown first so the flow is: choose type → fill details → add → see list */}
       {blocks.length < 10 && (
-        <div className="space-y-3 border-t border-border pt-4">
+        <div className="space-y-3 border-b border-border pb-4">
           <div className="flex gap-2 items-center">
             <Select value={newType} onValueChange={v => { setNewType(v as ContentBlockType); setNewContent({}) }}>
               <SelectTrigger className="w-44 shrink-0">
@@ -499,6 +478,28 @@ export function ContentBlockEditor({ projectId, initialBlocks }: ContentBlockEdi
             </div>
           ))}
         </div>
+      )}
+
+      {/* Existing blocks list */}
+      {blocks.length > 0 ? (
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <SortableContext items={blocks.map(b => b.id)} strategy={verticalListSortingStrategy}>
+            <div className="space-y-2">
+              {blocks.map(block => (
+                <SortableBlock
+                  key={block.id}
+                  block={block}
+                  isEditing={editingId === block.id}
+                  onToggleEdit={() => setEditingId(prev => prev === block.id ? null : block.id)}
+                  onUpdate={updateBlock}
+                  onRemove={removeBlock}
+                />
+              ))}
+            </div>
+          </SortableContext>
+        </DndContext>
+      ) : (
+        <p className="text-sm text-muted-foreground text-center py-4">No content blocks yet.</p>
       )}
 
       <Button onClick={save} disabled={isPending}>
