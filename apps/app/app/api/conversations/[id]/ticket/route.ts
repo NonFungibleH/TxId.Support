@@ -33,10 +33,11 @@ export async function POST(
     .select("role, content")
     .eq("conversation_id", params.id)
     .order("created_at", { ascending: true })
-    .limit(1)
 
   const firstUserMsg = messages?.find(m => m.role === "user")?.content ?? "Support request"
   const summary = firstUserMsg.length > 200 ? firstUserMsg.slice(0, 197) + "…" : firstUserMsg
+
+  const safeConversation = (messages ?? []).map(m => ({ role: m.role, content: m.content }))
 
   const ref = "TKT-" + Math.random().toString(36).slice(2, 8).toUpperCase()
 
@@ -48,7 +49,7 @@ export async function POST(
       ref,
       summary,
       reason: conv.wallet_address ? `Wallet: ${conv.wallet_address}` : null,
-      conversation: params.id,
+      conversation: safeConversation.length ? safeConversation : null,
       status: "open",
     })
     .select("ref")

@@ -109,7 +109,7 @@ export function ChainToggles({ projectId, initialChains, chainUsage, plan, chain
         <div className={`size-8 shrink-0 rounded-full overflow-hidden flex items-center justify-center ${logo ? "bg-transparent" : "bg-muted"}`}>
           {logo
             // eslint-disable-next-line @next/next/no-img-element
-            ? <img src={logo} alt={chain.name} className="size-full object-cover" />
+            ? <img src={logo} alt={chain.name} className="size-full object-contain" />
             : <span className="text-[10px] font-bold opacity-50">{chain.name.slice(0, 2).toUpperCase()}</span>
           }
         </div>

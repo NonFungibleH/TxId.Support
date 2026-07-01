@@ -113,7 +113,7 @@ export function ConversationList({ conversations }: { conversations: Conversatio
         const chainName = conv.chain_id ? (CHAIN_NAMES[conv.chain_id] ?? `Chain ${conv.chain_id}`) : null
 
         const lastMsg = conv.messages[conv.messages.length - 1]
-        const outcome = lastMsg?.role === "assistant" ? "resolved" : "dropped"
+        const outcome = lastMsg?.role === "user" ? "dropped" : "ended"
 
         const tStatus = ticketStatus[conv.id] ?? "idle"
         const tRef = ticketRefs[conv.id]
@@ -138,11 +138,7 @@ export function ConversationList({ conversations }: { conversations: Conversatio
                       {chainName}
                     </span>
                   )}
-                  {outcome === "resolved" ? (
-                    <Badge className="text-[10px] px-1.5 py-0.5 leading-none shrink-0 bg-green-500/10 text-green-400 border-green-500/20">
-                      Resolved
-                    </Badge>
-                  ) : (
+                  {outcome === "dropped" && (
                     <Badge className="text-[10px] px-1.5 py-0.5 leading-none shrink-0 bg-amber-500/10 text-amber-400 border-amber-500/20">
                       Dropped off
                     </Badge>

@@ -30,7 +30,15 @@ function TicketRow({ ticket }: { ticket: Ticket }) {
   const [notes, setNotes] = useState(ticket.notes ?? "")
 
   const status = STATUS_LABELS[ticket.status] ?? STATUS_LABELS.open
-  const conversation = ticket.conversation as Array<{ role: string; content: string }> | null
+  // conversation may be a parsed JSONB array, a JSON-stringified array, or a legacy UUID string
+  const rawConv = ticket.conversation
+  const conversation: Array<{ role: string; content: string }> | null = (() => {
+    if (Array.isArray(rawConv)) return rawConv
+    if (typeof rawConv === "string" && rawConv.startsWith("[")) {
+      try { return JSON.parse(rawConv) } catch { return null }
+    }
+    return null
+  })()
 
   function cycleStatus() {
     const next: Record<string, "open" | "in_progress" | "resolved"> = {
