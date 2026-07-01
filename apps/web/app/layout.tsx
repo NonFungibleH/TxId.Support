@@ -32,6 +32,13 @@ export const metadata: Metadata = {
     title: "TxID Support — AI Support Agent for Web3 Protocols",
     description: "White-label AI support agent for DeFi protocols. Embed in 30 seconds.",
     type: "website",
+    url: "https://txid.support",
+    siteName: "TxID Support",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "TxID Support — AI Support Agent for Web3 Protocols",
+    description: "White-label AI support agent for DeFi protocols. Embed in 30 seconds.",
   },
 };
 
