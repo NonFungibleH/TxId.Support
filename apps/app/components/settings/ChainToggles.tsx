@@ -39,7 +39,7 @@ export function ChainToggles({ projectId, initialChains, chainUsage, plan, chain
 
   const activeMainnets = MAINNETS.filter(c => chains.includes(c.id as ChainId)).length
   const atLimit = chainLimit !== -1 && activeMainnets >= chainLimit
-  const limitLabel = chainLimit === -1 ? "∞" : String(chainLimit)
+  const limitLabel = chainLimit === -1 ? String(MAINNETS.length) : String(chainLimit)
 
   const upgradeLabel = plan === "starter"
     ? "Upgrade to Pro to enable up to 3 chains"
@@ -106,24 +106,23 @@ export function ChainToggles({ projectId, initialChains, chainUsage, plan, chain
         style={{ borderColor: enabled ? "rgba(99,102,241,0.5)" : undefined }}
       >
         {/* Chain logo */}
-        <div className="size-8 shrink-0 rounded-full overflow-hidden bg-muted flex items-center justify-center">
+        <div className={`size-8 shrink-0 rounded-full overflow-hidden flex items-center justify-center ${logo ? "bg-transparent" : "bg-muted"}`}>
           {logo
             // eslint-disable-next-line @next/next/no-img-element
-            ? <img src={logo} alt={chain.name} className="size-full object-contain p-0.5" />
+            ? <img src={logo} alt={chain.name} className="size-full object-cover" />
             : <span className="text-[10px] font-bold opacity-50">{chain.name.slice(0, 2).toUpperCase()}</span>
           }
         </div>
 
-        {/* Name + explorer */}
+        {/* Name */}
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium">{chain.name}</p>
-          <p className="text-xs text-muted-foreground">{chain.explorer}</p>
         </div>
 
         {/* Usage badge */}
         {usage > 0 && !locked && (
           <span className="text-xs text-muted-foreground tabular-nums shrink-0">
-            {usage.toLocaleString()} {usage === 1 ? "convo" : "convos"}
+            {usage.toLocaleString()} {usage === 1 ? "interaction" : "interactions"}
           </span>
         )}
 
