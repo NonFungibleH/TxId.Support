@@ -85,7 +85,7 @@ export default async function UpgradePage() {
       <div>
         <h1 className="text-2xl font-bold">Upgrade your plan</h1>
         <p className="text-muted-foreground mt-1">
-          Choose the plan that fits your protocol. Email us to upgrade — Stripe billing coming soon.
+          Choose the plan that fits your protocol. Email us to upgrade. Stripe billing coming soon.
         </p>
       </div>
 
@@ -163,7 +163,7 @@ export default async function UpgradePage() {
         <a href="mailto:hello@txid.support" className="underline underline-offset-2 hover:text-foreground transition-colors">
           Email us
         </a>{" "}
-        — no long-term contracts, cancel anytime.
+        No long-term contracts, cancel anytime.
       </p>
 
       <div className="flex justify-center">

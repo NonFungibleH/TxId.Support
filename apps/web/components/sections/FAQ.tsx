@@ -4,11 +4,11 @@ import { APP_URL } from "@/lib/config";
 const FAQS = [
   {
     q: "What exactly is TxID Support?",
-    a: "TxID Support is an AI support agent you embed in your DeFi protocol or token project site. It reads your user's connected wallet automatically, diagnoses failed transactions, answers questions from your documentation, and escalates to your team when it can't resolve something — all without leaving your site.",
+    a: "TxID Support is an AI support agent you embed in your DeFi protocol or token project site. It reads your user's connected wallet automatically, diagnoses failed transactions, answers questions from your documentation, and escalates to your team when it can't resolve something, all without leaving your site.",
   },
   {
     q: "How does wallet detection work?",
-    a: "When a user opens the agent, it silently reads the wallet address from whatever wallet provider is connected to your site (MetaMask, WalletConnect, Coinbase Wallet, etc.). It then uses that address to look up recent transactions and balances on the relevant chain. No signing or permission is required — it only reads public on-chain data.",
+    a: "When a user opens the agent, it silently reads the wallet address from whatever wallet provider is connected to your site (MetaMask, WalletConnect, Coinbase Wallet, etc.). It then uses that address to look up recent transactions and balances on the relevant chain. No signing or permission is required; it only reads public on-chain data.",
   },
   {
     q: "What stack does it work with?",
@@ -16,15 +16,15 @@ const FAQS = [
   },
   {
     q: "What counts as a conversation?",
-    a: "A conversation starts when a user opens the agent and sends their first message. It ends after 30 minutes of inactivity. All messages in the same session count as one conversation — so a user asking 5 follow-up questions still uses only one of your monthly allowance.",
+    a: "A conversation starts when a user opens the agent and sends their first message. It ends after 30 minutes of inactivity. All messages in the same session count as one conversation, so a user asking 5 follow-up questions still uses only one of your monthly allowance.",
   },
   {
     q: "Can I try it before committing to Pro?",
-    a: "Yes — the Starter plan is free with no credit card required. You get 200 conversations per month, full wallet detection, transaction diagnostics, and docs Q&A. You can stay on free as long as you like and upgrade to Pro when you're ready to remove our branding or need higher volume.",
+    a: "Yes, the Free plan has no credit card required. You get 50 conversations per month, wallet detection, transaction diagnostics, and docs Q&A. You can stay on free as long as you like and upgrade to Pro when you need higher volume.",
   },
   {
     q: "Is it really white-label on the free plan?",
-    a: "The free plan shows a small 'Powered by TxID Support' tag. Pro removes it entirely and lets you set your own colours, font, and logo so the agent is indistinguishable from a native part of your product.",
+    a: "Yes. The free plan includes custom colours, font, and logo. Pro goes further with a custom agent name, avatar, and priority support.",
   },
 ];
 

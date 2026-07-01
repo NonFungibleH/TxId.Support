@@ -1,7 +1,7 @@
 import { ImageResponse } from "next/og"
 
 export const runtime = "edge"
-export const alt = "TxID Support — AI Support Agent for DeFi Protocols"
+export const alt = "TxID Support: AI Support Agent for DeFi Protocols"
 export const size = { width: 1200, height: 630 }
 export const contentType = "image/png"
 
@@ -82,7 +82,7 @@ export default function Image() {
               maxWidth: 430,
             }}
           >
-            <span>AI that knows your protocol inside out — wallets, transactions, and docs.</span>
+            <span>AI that knows your protocol inside out: wallets, transactions, and docs.</span>
           </div>
 
           {/* Chain badges */}
@@ -222,7 +222,7 @@ export default function Image() {
                   maxWidth: "90%",
                 }}
               >
-                SlippageTooHigh — the rate moved 0.8% before confirmation. Try 1% slippage tolerance.
+                SlippageTooHigh: rate moved 0.8% before confirmation. Try 1% slippage tolerance.
               </div>
 
               {/* Typing dots */}

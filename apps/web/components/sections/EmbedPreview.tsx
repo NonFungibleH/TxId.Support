@@ -11,7 +11,7 @@ type Tab = (typeof TABS)[number];
 const CODE: Record<Tab, { language: string; code: string }> = {
   "Script Tag": {
     language: "html",
-    code: `<!-- Add before </body> — that's it -->
+    code: `<!-- Add before </body>. That's it. -->
 <script>
   (function() {
     var w = document.createElement('iframe');

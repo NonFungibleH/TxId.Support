@@ -13,7 +13,7 @@ export default function NotFound() {
             Page not found
           </h1>
           <p className="text-muted text-lg mb-10 max-w-sm mx-auto">
-            This page doesn&apos;t exist — or was moved.
+            This page doesn&apos;t exist, or was moved.
           </p>
           <div className="flex items-center justify-center gap-3">
             <Button href="/" variant="primary">Back to home</Button>

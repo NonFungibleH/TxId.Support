@@ -24,12 +24,12 @@ const spaceMono = Space_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "TxID Support — AI Support Agent for Web3 Protocols",
+  title: "TxID Support: AI Support Agent for Web3 Protocols",
   description:
     "White-label AI support agent for DeFi protocols. Auto-detects wallets, diagnoses transactions, answers docs questions. Embed in 30 seconds.",
   metadataBase: new URL("https://txid.support"),
   openGraph: {
-    title: "TxID Support — AI Support Agent for Web3 Protocols",
+    title: "TxID Support: AI Support Agent for Web3 Protocols",
     description: "White-label AI support agent for DeFi protocols. Embed in 30 seconds.",
     type: "website",
     url: "https://txid.support",
@@ -37,7 +37,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "TxID Support — AI Support Agent for Web3 Protocols",
+    title: "TxID Support: AI Support Agent for Web3 Protocols",
     description: "White-label AI support agent for DeFi protocols. Embed in 30 seconds.",
   },
 };

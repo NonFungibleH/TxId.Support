@@ -25,7 +25,7 @@ const STEPS = [
     number: "03",
     title: "Go Live",
     description:
-      "Your users get instant AI support — wallet detection, transaction diagnosis, docs Q&A — all in your brand.",
+      "Your users get instant AI support: wallet detection, transaction diagnosis, and docs Q&A, all in your brand.",
     iconBg: "bg-accent-muted",
     iconColor: "text-accent",
   },

@@ -21,43 +21,43 @@ const FEATURES = [
     icon: Activity,
     title: "Transaction Diagnostics",
     description:
-      "Any failed transaction explained in plain English — cause, consequence, and the exact step to fix it — before they open a ticket.",
+      "Any failed transaction explained in plain English: cause, consequence, and the exact step to fix it, before they open a ticket.",
   },
   {
     icon: BookOpen,
     title: "Docs Q&A",
     description:
-      "Paste your docs URL. The agent indexes it and answers questions grounded in your own documentation — not hallucinated.",
+      "Paste your docs URL. The agent indexes it and answers questions grounded in your own documentation, not hallucinated.",
   },
   {
     icon: TrendingUp,
     title: "Live Token Context",
     description:
-      "Set your token address. Users see price, DEX link, and contract info inline — no leaving your site to look it up.",
+      "Set your token address. Users see price, DEX link, and contract info inline. No leaving your site to look it up.",
   },
   {
     icon: Palette,
     title: "Fully White-Label",
     description:
-      "Your colours, font, and logo. The agent is invisible as a third-party tool — it looks and feels like part of your product.",
+      "Your colours, font, and logo. The agent is invisible as a third-party tool. It looks and feels like part of your product.",
   },
   {
     icon: Code2,
     title: "Simple Embed",
     description:
-      "Add one script tag before your closing body tag. Works with any stack — React, Next.js, Vue, or plain HTML.",
+      "Add one script tag before your closing body tag. Works with any stack: React, Next.js, Vue, or plain HTML.",
   },
   {
     icon: Globe2,
     title: "Multi-Chain",
     description:
-      "Ethereum, Sepolia, Base, BNB Chain, Polygon, Arbitrum, and Optimism — wallet detection and transaction data across all of them.",
+      "Ethereum, Sepolia, Base, BNB Chain, Polygon, Arbitrum, and Optimism. Wallet detection and transaction data across all of them.",
   },
   {
     icon: BarChart3,
     title: "Analytics Dashboard",
     description:
-      "See how many users you're helping — conversations over time, satisfaction ratings, and what they're asking about.",
+      "See how many users you're helping: conversations over time, satisfaction ratings, and what they're asking about.",
   },
 ];
 
@@ -72,7 +72,7 @@ export function FeatureGrid() {
               Everything your protocol needs to stop firefighting support
             </h2>
             <p className="text-muted max-w-xl mx-auto">
-              Built for Web3 from the ground up — not a generic chatbot bolted on.
+              Built for Web3 from the ground up, not a generic chatbot bolted on.
             </p>
           </div>
         </FadeIn>

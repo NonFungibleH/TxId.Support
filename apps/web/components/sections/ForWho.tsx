@@ -9,12 +9,12 @@ const SEGMENTS = [
     heading: "Support your users on-chain",
     subheading: "When things go wrong, your agent already knows why",
     description:
-      "Failed swaps, wrong-network errors, reverted transactions — your agent reads the wallet context and explains what happened in plain English. No ticket queues, no copy-pasting hashes.",
+      "Failed swaps, wrong-network errors, reverted transactions: your agent reads the wallet context and explains what happened in plain English. No ticket queues, no copy-pasting hashes.",
     features: [
-      "Transaction diagnostics — failed swaps explained in plain English",
-      "Wallet-aware — the agent already knows what the user's wallet did",
-      "Knowledge base Q&A — trained on your protocol documentation",
-      "Escalation tickets — clean hand-off when the agent can't resolve",
+      "Transaction diagnostics: failed swaps explained in plain English",
+      "Wallet-aware: the agent already knows what the user's wallet did",
+      "Knowledge base Q&A: trained on your protocol documentation",
+      "Escalation tickets with clean hand-off when the agent can't resolve",
     ],
     cta: "Get started free",
     ctaHref: `${APP_URL}/sign-up`,
@@ -28,12 +28,12 @@ const SEGMENTS = [
     heading: "Onboard your community automatically",
     subheading: "Answer every new member question without lifting a finger",
     description:
-      "New holders want to know where to buy, how to stake, what the tokenomics look like, and where to get involved. Your agent handles all of it — embedded in your site, always up to date.",
+      "New holders want to know where to buy, how to stake, what the tokenomics look like, and where to get involved. Your agent handles all of it, embedded in your site and always up to date.",
     features: [
-      "Token price & DEX links — live data, always current",
-      "Tokenomics explainer — supply, distribution, vesting",
-      "Staking & rewards — how to participate, what to expect",
-      "Community links — Discord, Telegram, Twitter, whitepaper",
+      "Token price and DEX links: live data, always current",
+      "Tokenomics explainer: supply, distribution, vesting",
+      "Staking and rewards: how to participate, what to expect",
+      "Community links: Discord, Telegram, Twitter and whitepaper",
     ],
     cta: "Get started free",
     ctaHref: `${APP_URL}/sign-up`,
@@ -56,7 +56,7 @@ export function ForWho() {
             </h2>
             <p className="text-muted max-w-xl mx-auto">
               Whether you&apos;re running a live protocol or growing a token community,
-              one agent handles it all — embedded in your site, trained on your content.
+              one agent handles it all, embedded in your site and trained on your content.
             </p>
           </div>
         </FadeIn>
