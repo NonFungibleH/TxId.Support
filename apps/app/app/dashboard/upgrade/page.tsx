@@ -3,7 +3,7 @@ import { redirect } from "next/navigation"
 import { CheckCircle2, Zap } from "lucide-react"
 import Link from "next/link"
 import type { ProjectConfig, Plan } from "@/lib/types/config"
-import { PLAN_CONV_LIMITS, PLAN_CHAIN_LIMITS } from "@/lib/types/config"
+import { PLAN_CONV_LIMITS } from "@/lib/types/config"
 import { cn } from "@/lib/utils"
 
 type PlanDef = {

@@ -1,4 +1,4 @@
-import { auth, currentUser } from "@clerk/nextjs/server"
+import { currentUser } from "@clerk/nextjs/server"
 import { notFound } from "next/navigation"
 import { createServiceClient } from "@/lib/supabase/server"
 import { PLAN_LABELS } from "@/lib/types/config"
