@@ -1332,18 +1332,21 @@ export function WidgetApp() {
           <div className="flex-1 overflow-y-auto p-3 space-y-3">
             {config.token && (
               <div
-                className="rounded-xl p-3"
-                style={{ backgroundColor: b.secondaryColor }}
+                className="rounded-xl px-4 py-3 relative overflow-hidden"
+                style={{
+                  background: `linear-gradient(135deg, ${b.primaryColor}28 0%, ${b.primaryColor}08 100%)`,
+                  border: `1px solid ${b.primaryColor}30`,
+                }}
               >
-                <p className="text-[10px] uppercase tracking-wider opacity-60 mb-1">Token</p>
-                <p className="text-sm font-semibold">{config.token.symbol ?? "Unknown"}</p>
+                <p className="text-[10px] font-bold uppercase tracking-widest mb-1" style={{ color: b.primaryColor, opacity: 0.75 }}>Token</p>
+                <p className="text-sm font-bold" style={{ color: adaptiveText }}>{config.token.symbol ?? "Unknown"}</p>
                 {config.token.dexUrl && (
                   <a
                     href={config.token.dexUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="mt-1 flex items-center gap-1 text-xs opacity-60 hover:opacity-100"
-                    style={{ color: b.textColor }}
+                    className="mt-1.5 inline-flex items-center gap-1 text-xs font-medium hover:opacity-80 transition-opacity"
+                    style={{ color: b.primaryColor }}
                   >
                     View on DEX <ExternalLinkIcon className="size-3" />
                   </a>
@@ -1365,7 +1368,12 @@ export function WidgetApp() {
                     if (!embedUrl) return null
                     return (
                       <div key={block.id}>
-                        {block.title && <p className="text-[10px] uppercase tracking-wider opacity-60 mb-1">{block.title}</p>}
+                        {block.title && (
+                          <div className="flex items-center gap-2 mb-2">
+                            <div className="w-0.5 h-3 rounded-full shrink-0" style={{ backgroundColor: b.primaryColor }} />
+                            <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: adaptiveText, opacity: 0.5 }}>{block.title}</p>
+                          </div>
+                        )}
                         <div className="relative w-full rounded-xl overflow-hidden" style={{ paddingBottom: "56.25%" }}>
                           <iframe
                             src={embedUrl}
@@ -1380,9 +1388,9 @@ export function WidgetApp() {
 
                   if (block.type === "text" && c.body) {
                     return (
-                      <div key={block.id} className="rounded-xl p-3" style={{ backgroundColor: b.secondaryColor }}>
-                        {block.title && <p className="text-xs font-semibold mb-1.5">{block.title}</p>}
-                        <p className="text-[11px] opacity-80 leading-relaxed whitespace-pre-wrap">{c.body}</p>
+                      <div key={block.id} className="rounded-xl p-3" style={{ backgroundColor: b.secondaryColor, borderLeft: `3px solid ${b.primaryColor}55` }}>
+                        {block.title && <p className="text-xs font-semibold mb-1.5" style={{ color: adaptiveText }}>{block.title}</p>}
+                        <p className="text-[11px] leading-relaxed whitespace-pre-wrap" style={{ color: adaptiveText, opacity: 0.75 }}>{c.body}</p>
                       </div>
                     )
                   }
@@ -1395,13 +1403,19 @@ export function WidgetApp() {
                         target="_blank"
                         rel="noopener noreferrer"
                         className="flex items-center gap-3 rounded-xl p-3 hover:opacity-90 transition-opacity"
-                        style={{ backgroundColor: b.secondaryColor, color: b.textColor }}
+                        style={{ backgroundColor: b.secondaryColor, color: adaptiveText, border: `1px solid ${b.primaryColor}20` }}
                       >
+                        <div
+                          className="flex size-8 shrink-0 items-center justify-center rounded-lg"
+                          style={{ backgroundColor: `${b.primaryColor}18` }}
+                        >
+                          <ExternalLinkIcon className="size-3.5" style={{ color: b.primaryColor }} />
+                        </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-xs font-semibold truncate">{block.title}</p>
-                          {c.description && <p className="text-[10px] opacity-60 mt-0.5">{c.description}</p>}
+                          {c.description && <p className="text-[10px] mt-0.5" style={{ color: adaptiveText, opacity: 0.55 }}>{c.description}</p>}
                         </div>
-                        <ExternalLinkIcon className="size-3.5 opacity-40 shrink-0" />
+                        <ExternalLinkIcon className="size-3 opacity-25 shrink-0" />
                       </a>
                     )
                   }
@@ -1409,7 +1423,12 @@ export function WidgetApp() {
                   if (block.type === "image" && c.url) {
                     return (
                       <div key={block.id}>
-                        {block.title && <p className="text-[10px] uppercase tracking-wider opacity-60 mb-1">{block.title}</p>}
+                        {block.title && (
+                          <div className="flex items-center gap-2 mb-2">
+                            <div className="w-0.5 h-3 rounded-full shrink-0" style={{ backgroundColor: b.primaryColor }} />
+                            <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: adaptiveText, opacity: 0.5 }}>{block.title}</p>
+                          </div>
+                        )}
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img src={c.url} alt={c.alt || block.title || ""} className="w-full rounded-xl object-cover" />
                       </div>
@@ -1436,9 +1455,10 @@ export function WidgetApp() {
                     ].filter(Boolean) as { key: string; label: string; url: string }[]
                     if (links.length === 0) return null
                     return (
-                      <div key={block.id} className="rounded-xl overflow-hidden" style={{ backgroundColor: b.secondaryColor }}>
+                      <div key={block.id} className="rounded-xl overflow-hidden" style={{ backgroundColor: b.secondaryColor, border: `1px solid ${b.primaryColor}22` }}>
+                        <div className="h-0.5" style={{ background: `linear-gradient(90deg, ${b.primaryColor}, ${b.primaryColor}30)` }} />
                         {block.title && (
-                          <p className="text-xs font-semibold px-3 pt-3 pb-1" style={{ color: adaptiveText }}>{block.title}</p>
+                          <p className="text-[10px] font-bold uppercase tracking-widest px-3 pt-2.5 pb-1" style={{ color: adaptiveText, opacity: 0.5 }}>{block.title}</p>
                         )}
                         <div>
                           {links.map((link, li) => (
@@ -1447,20 +1467,20 @@ export function WidgetApp() {
                               href={link.url}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="flex items-center gap-3 px-3 py-2.5 transition-opacity hover:opacity-75 active:opacity-50"
+                              className="flex items-center gap-3 px-3 py-2.5 transition-opacity hover:opacity-80 active:opacity-50"
                               style={{
                                 color: adaptiveText,
-                                borderTop: li > 0 ? `1px solid ${adaptiveText}12` : undefined,
+                                borderTop: li > 0 ? `1px solid ${adaptiveText}10` : undefined,
                               }}
                             >
                               <div
-                                className="flex size-7 shrink-0 items-center justify-center rounded-lg text-white"
+                                className="flex size-8 shrink-0 items-center justify-center rounded-xl text-white shadow-sm"
                                 style={{ backgroundColor: SOCIAL_COLORS[link.key] ?? b.primaryColor }}
                               >
                                 <SocialIcon platform={link.key} />
                               </div>
-                              <span className="flex-1 text-xs font-medium">{link.label}</span>
-                              <ExternalLinkIcon className="size-3 opacity-30 shrink-0" />
+                              <span className="flex-1 text-xs font-semibold">{link.label}</span>
+                              <ExternalLinkIcon className="size-3.5 opacity-25 shrink-0" />
                             </a>
                           ))}
                         </div>
@@ -1475,7 +1495,12 @@ export function WidgetApp() {
                     if (pairs.length === 0) return null
                     return (
                       <div key={block.id} className="space-y-1.5">
-                        {block.title && <p className="text-[10px] uppercase tracking-wider opacity-60 mb-2" style={{ color: b.textColor }}>{block.title}</p>}
+                        {block.title && (
+                          <div className="flex items-center gap-2 mb-2">
+                            <div className="w-0.5 h-3 rounded-full shrink-0" style={{ backgroundColor: b.primaryColor }} />
+                            <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: adaptiveText, opacity: 0.5 }}>{block.title}</p>
+                          </div>
+                        )}
                         {pairs.map((pair, i) => (
                           <FaqItem
                             key={i}
@@ -1508,7 +1533,12 @@ export function WidgetApp() {
                     }
                     return (
                       <div key={block.id}>
-                        {block.title && <p className="text-[10px] uppercase tracking-wider opacity-60 mb-1" style={{ color: b.textColor }}>{block.title}</p>}
+                        {block.title && (
+                          <div className="flex items-center gap-2 mb-2">
+                            <div className="w-0.5 h-3 rounded-full shrink-0" style={{ backgroundColor: b.primaryColor }} />
+                            <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: adaptiveText, opacity: 0.5 }}>{block.title}</p>
+                          </div>
+                        )}
                         <div className="rounded-xl overflow-hidden" style={{ height: "360px" }}>
                           <iframe src={embedUrl} className="w-full h-full border-0" title={block.title || "Token Chart"} />
                         </div>
