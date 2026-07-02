@@ -151,6 +151,8 @@ export interface ProjectConfig {
   notificationEmail?: string | null
   webhookUrl?: string | null
   plan?: Plan
+  telegramBotToken?: string | null
+  telegramBotUsername?: string | null
 }
 
 export const DEFAULT_CONFIG: ProjectConfig = {
