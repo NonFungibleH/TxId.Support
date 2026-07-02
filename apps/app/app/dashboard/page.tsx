@@ -61,7 +61,7 @@ export default async function DashboardPage() {
       .gte("created_at", monthStart.toISOString()),
     supabase
       .from("conversations")
-      .select("id, wallet_address, chain_id, created_at")
+      .select("id, wallet_address, chain_id, created_at, messages(role, content, created_at)")
       .eq("project_id", typedProject.id)
       .order("created_at", { ascending: false })
       .limit(5),
@@ -98,14 +98,6 @@ export default async function DashboardPage() {
   const SETUP_STEPS = [
     {
       step: 1,
-      href: "/dashboard/branding",
-      label: "Configure branding",
-      desc: "Set your colours, font, and upload your logo so the agent feels like yours.",
-      time: "~5 min",
-      done: brandingDone,
-    },
-    {
-      step: 2,
       href: "/dashboard/contracts",
       label: "Add smart contracts",
       desc: "Add your protocol's contracts so the AI can look them up when users ask about locks, staking, or vesting.",
@@ -113,12 +105,20 @@ export default async function DashboardPage() {
       done: contractsDone,
     },
     {
-      step: 3,
+      step: 2,
       href: "/dashboard/docs",
       label: "Index your docs",
       desc: "Paste links to your website, docs, or FAQ — the AI reads them and answers questions from them.",
       time: "~3 min",
       done: docsDone,
+    },
+    {
+      step: 3,
+      href: "/dashboard/branding",
+      label: "Configure branding",
+      desc: "Set your colours, font, and upload your logo so the agent feels like yours.",
+      time: "~5 min",
+      done: brandingDone,
     },
     {
       step: 4,
@@ -239,21 +239,31 @@ export default async function DashboardPage() {
                     wallet_address: string | null
                     chain_id: string | null
                     created_at: string
+                    messages: { role: string; content: string; created_at: string }[]
                   }
                   const wallet = c.wallet_address
                     ? `${c.wallet_address.slice(0, 6)}…${c.wallet_address.slice(-4)}`
                     : "Anonymous"
                   const chain = c.chain_id ? (CHAIN_NAMES[c.chain_id] ?? c.chain_id) : null
+                  const firstMsg = (c.messages ?? [])
+                    .filter(m => m.role === "user")
+                    .sort((a, b) => a.created_at.localeCompare(b.created_at))[0]
+                  const preview = firstMsg?.content?.slice(0, 80).replace(/\n/g, " ")
                   return (
-                    <div key={c.id} className="flex items-center gap-3 px-5 py-3">
-                      <div className="size-7 rounded-full bg-muted flex items-center justify-center shrink-0">
+                    <div key={c.id} className="flex items-start gap-3 px-5 py-3.5">
+                      <div className="size-7 rounded-full bg-muted flex items-center justify-center shrink-0 mt-0.5">
                         <Users className="size-3.5 text-muted-foreground" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-mono">{wallet}</p>
-                        {chain && <p className="text-xs text-muted-foreground">{chain}</p>}
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-mono truncate">{wallet}</p>
+                          {chain && <span className="text-xs text-muted-foreground/60 shrink-0">{chain}</span>}
+                        </div>
+                        {preview && (
+                          <p className="text-xs text-muted-foreground mt-0.5 truncate">{preview}{firstMsg.content.length > 80 ? "…" : ""}</p>
+                        )}
                       </div>
-                      <span className="text-xs text-muted-foreground shrink-0 tabular-nums">
+                      <span className="text-xs text-muted-foreground shrink-0 tabular-nums mt-0.5">
                         {timeAgo(c.created_at)}
                       </span>
                     </div>

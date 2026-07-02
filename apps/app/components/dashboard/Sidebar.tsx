@@ -24,9 +24,9 @@ const SUPPORT_GROUPS: NavGroup[] = [
   {
     label: "Setup",
     items: [
-      { href: "/dashboard/branding",  label: "Branding",        icon: Paintbrush },
       { href: "/dashboard/contracts", label: "Smart Contracts",  icon: FileCode2 },
       { href: "/dashboard/docs",      label: "Docs & KB",        icon: BookOpen },
+      { href: "/dashboard/branding",  label: "Branding",         icon: Paintbrush },
       { href: "/dashboard/content",   label: "Content",          icon: LayoutList },
     ],
   },
