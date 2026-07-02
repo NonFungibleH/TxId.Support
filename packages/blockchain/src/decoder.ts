@@ -97,10 +97,13 @@ function parseAbiErrors(abiJson: string): AbiErrorEntry[] {
 export async function fetchAbiFromExplorer(address: string, chainId: string): Promise<string | null> {
   const explorerCfg = EXPLORER_APIS[chainId]
   if (!explorerCfg) return null
-  // API key is optional — Etherscan-compatible APIs work without one (rate-limited to 5 req/s)
+  // API key is optional — omitting it gives a rate-limited anonymous request.
+  // Passing an empty string is treated as an invalid key and returns NOTOK.
   const apiKey = process.env[explorerCfg.keyEnv] ?? ""
   try {
-    const url = `${explorerCfg.url}?module=contract&action=getabi&address=${address}&apikey=${apiKey}`
+    const url = apiKey
+      ? `${explorerCfg.url}?module=contract&action=getabi&address=${address}&apikey=${apiKey}`
+      : `${explorerCfg.url}?module=contract&action=getabi&address=${address}`
     const res = await fetch(url, { signal: AbortSignal.timeout(6000) })
     const data = (await res.json()) as { status: string; result: string }
     if (data.status !== "1") return null
