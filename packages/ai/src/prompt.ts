@@ -168,9 +168,19 @@ export function buildSystemPrompt(params: StreamChatParams): string {
       for (const c of config.watchedContracts) {
         lines.push(`- **${c.name}** (\`${c.address}\` on chain ${c.chain}): ${c.description}`)
         if (c.errorGlossary && c.errorGlossary.length > 0) {
-          lines.push(`  Error glossary for ${c.name}:`)
-          for (const entry of c.errorGlossary) {
-            lines.push(`  - \`${entry.error}\` → ${entry.explanation}`)
+          const errors = c.errorGlossary.filter(e => !e.kind || e.kind === "error")
+          const events = c.errorGlossary.filter(e => e.kind === "event")
+          if (errors.length > 0) {
+            lines.push(`  Error glossary for ${c.name}:`)
+            for (const entry of errors) {
+              lines.push(`  - \`${entry.error}\` → ${entry.explanation}`)
+            }
+          }
+          if (events.length > 0) {
+            lines.push(`  Event glossary for ${c.name} (use when describing what happened in a transaction):`)
+            for (const entry of events) {
+              lines.push(`  - \`${entry.error}\` → ${entry.explanation}`)
+            }
           }
         }
       }

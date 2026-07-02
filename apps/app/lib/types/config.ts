@@ -79,8 +79,9 @@ export interface TokenConfig {
 }
 
 export interface ErrorGlossaryEntry {
-  error: string         // error name or revert string to match, e.g. "SlippageTooHigh"
-  explanation: string   // plain-English explanation shown to the user
+  error: string         // error or event name to match, e.g. "SlippageTooHigh" or "LockAdded"
+  explanation: string   // plain-English description shown to the user
+  kind?: "error" | "event"  // defaults to "error" for backwards compatibility
 }
 
 export interface WatchedContract {

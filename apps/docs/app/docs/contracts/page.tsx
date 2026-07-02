@@ -71,6 +71,12 @@ export default function ContractsPage() {
         <li>Any important caveats (&ldquo;only the token owner can initiate an unlock&rdquo;)</li>
       </ul>
 
+      <p>
+        When you paste a verified contract address, TxID Support reads the ABI from the block explorer
+        and shows the contract&apos;s public function names as hints. These tell you exactly what actions
+        users can perform on the contract, making it much easier to write a useful description.
+      </p>
+
       <h3>Example — Team Finance lock contract</h3>
       <pre><code>{`Name:        Team Finance Lock
 Address:     0x1234...abcd
@@ -144,6 +150,16 @@ Description: This is Team Finance's token lock contract. Users lock
         The error glossary lets you define exactly what the AI says when a specific error occurs.
         This is useful when the Solidity error name is cryptic or when you want to give users
         step-by-step guidance tailored to your protocol.
+      </p>
+      <p>
+        If the contract has an ABI, TxID Support reads the custom error definitions from it and
+        shows you a list of errors that don&apos;t have explanations yet. Click any error to expand
+        it and write a plain-English explanation. You only need to write the explanation itself
+        — the error name is pre-filled from the ABI, so there is no chance of a typo.
+      </p>
+      <p>
+        For contracts without a verified ABI, you can still add entries manually by entering the
+        error name and explanation yourself.
       </p>
       <p>
         For each entry, provide the error name (e.g. <code>SlippageTooHigh</code>) and a plain-English explanation.

@@ -191,6 +191,7 @@ export async function clearContractAbi(projectId: string, contractId: string) {
 const GlossaryEntrySchema = z.object({
   error: z.string().min(1).max(200),
   explanation: z.string().min(1).max(500),
+  kind: z.enum(["error", "event"]).optional(),
 })
 
 export async function upsertGlossaryEntry(

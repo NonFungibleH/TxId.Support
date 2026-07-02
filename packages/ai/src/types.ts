@@ -4,8 +4,9 @@ export interface ChatMessage {
 }
 
 export interface ErrorGlossaryEntry {
-  error: string         // error name or revert string, e.g. "SlippageTooHigh"
-  explanation: string   // plain-English explanation set by the protocol team
+  error: string         // error or event name, e.g. "SlippageTooHigh" or "LockAdded"
+  explanation: string   // plain-English description set by the protocol team
+  kind?: "error" | "event"
 }
 
 export interface WatchedContractSnapshot {

@@ -15,15 +15,17 @@ interface Props {
   contract: WatchedContract
 }
 
-/** Inline row for an ABI-detected error that hasn't been explained yet */
-function AbiErrorSuggestion({
+/** Inline expandable row for an ABI-detected error or event that hasn't been labelled yet */
+function AbiEntrySuggestion({
   projectId,
   contractId,
-  errorName,
+  name,
+  kind,
 }: {
   projectId: string
   contractId: string
-  errorName: string
+  name: string
+  kind: "error" | "event"
 }) {
   const [open, setOpen] = useState(false)
   const [explanation, setExplanation] = useState("")
@@ -34,10 +36,11 @@ function AbiErrorSuggestion({
     startTransition(async () => {
       try {
         await upsertGlossaryEntry(projectId, contractId, {
-          error: errorName,
+          error: name,
           explanation: explanation.trim(),
+          kind,
         })
-        toast.success("Explanation saved")
+        toast.success("Description saved")
         setOpen(false)
         setExplanation("")
       } catch (err) {
@@ -46,24 +49,32 @@ function AbiErrorSuggestion({
     })
   }
 
+  const placeholder = kind === "event"
+    ? `e.g. "A token lock was successfully created — tokens are now locked until the unlock date."`
+    : `e.g. "You don't have enough tokens approved — go to the token contract and approve more before trying again."`
+
+  const prompt = kind === "event"
+    ? "What does this event mean in plain English? The AI uses this to explain what happened in a transaction."
+    : "What should users see when they hit this error?"
+
   return (
     <div className="rounded-md border border-border bg-muted/20 overflow-hidden">
       <button
         onClick={() => setOpen(o => !o)}
         className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-muted/40 transition-colors"
       >
-        <Badge variant="outline" className="font-mono text-[10px] shrink-0">{errorName}</Badge>
+        <Badge variant="outline" className="font-mono text-[10px] shrink-0">{name}</Badge>
         <span className="text-xs text-muted-foreground ml-auto flex items-center gap-1">
-          Add explanation
+          Add description
           <ChevronDown className={`size-3 transition-transform ${open ? "rotate-180" : ""}`} />
         </span>
       </button>
       {open && (
         <div className="border-t border-border px-3 py-2.5 space-y-2 bg-muted/10">
-          <p className="text-xs text-muted-foreground">What should users see when they hit this error?</p>
+          <p className="text-xs text-muted-foreground">{prompt}</p>
           <Textarea
             autoFocus
-            placeholder={`e.g. "You don't have enough tokens approved — go to the token contract and approve more before trying again."`}
+            placeholder={placeholder}
             value={explanation}
             onChange={e => setExplanation(e.target.value)}
             className="text-xs min-h-[60px] resize-none"
@@ -95,37 +106,41 @@ function AbiErrorSuggestion({
 export function ErrorGlossaryManager({ projectId, contract }: Props) {
   const [isPending, startTransition] = useTransition()
   const [showForm, setShowForm] = useState(false)
-  const [errorName, setErrorName] = useState("")
+  const [entryName, setEntryName] = useState("")
   const [explanation, setExplanation] = useState("")
 
   const entries = contract.errorGlossary ?? []
 
-  // Parse custom errors from the ABI if one is stored
-  const abiErrors = useMemo<string[]>(() => {
-    if (!contract.abi) return []
+  const { abiErrors, abiEvents } = useMemo(() => {
+    if (!contract.abi) return { abiErrors: [] as string[], abiEvents: [] as string[] }
     try {
       const abi = JSON.parse(contract.abi) as Array<{ type: string; name?: string }>
-      return abi.filter(e => e.type === "error" && e.name).map(e => e.name!)
+      return {
+        abiErrors: abi.filter(e => e.type === "error" && e.name).map(e => e.name!),
+        abiEvents: abi.filter(e => e.type === "event" && e.name).map(e => e.name!),
+      }
     } catch {
-      return []
+      return { abiErrors: [] as string[], abiEvents: [] as string[] }
     }
   }, [contract.abi])
 
   const explained = new Set(entries.map(e => e.error))
-  const unexplained = abiErrors.filter(name => !explained.has(name))
+  const unexplainedErrors = abiErrors.filter(n => !explained.has(n))
+  const unexplainedEvents = abiEvents.filter(n => !explained.has(n))
+  const hasAbiEntries = abiErrors.length > 0 || abiEvents.length > 0
 
   function handleAdd() {
-    if (!errorName.trim() || !explanation.trim()) return
+    if (!entryName.trim() || !explanation.trim()) return
     startTransition(async () => {
       try {
         await upsertGlossaryEntry(projectId, contract.id, {
-          error: errorName.trim(),
+          error: entryName.trim(),
           explanation: explanation.trim(),
         })
-        setErrorName("")
+        setEntryName("")
         setExplanation("")
         setShowForm(false)
-        toast.success("Error explanation saved")
+        toast.success("Entry saved")
       } catch (err) {
         toast.error(err instanceof Error ? err.message : "Failed to save")
       }
@@ -144,10 +159,10 @@ export function ErrorGlossaryManager({ projectId, contract }: Props) {
   }
 
   return (
-    <div className="mt-3 space-y-2">
-      <p className="text-xs font-medium text-muted-foreground">Error glossary</p>
+    <div className="mt-3 space-y-3">
+      <p className="text-xs font-medium text-muted-foreground">Contract glossary</p>
 
-      {/* Already-explained entries */}
+      {/* Already-labelled entries */}
       {entries.length > 0 && (
         <div className="space-y-1.5">
           {entries.map((entry) => (
@@ -156,9 +171,14 @@ export function ErrorGlossaryManager({ projectId, contract }: Props) {
               className="flex items-start gap-2 rounded-md border border-border bg-muted/30 px-3 py-2 text-xs"
             >
               <div className="flex-1 min-w-0">
-                <Badge variant="outline" className="font-mono text-[10px] mb-1">
-                  {entry.error}
-                </Badge>
+                <div className="flex items-center gap-1.5 mb-1">
+                  <Badge variant="outline" className="font-mono text-[10px]">
+                    {entry.error}
+                  </Badge>
+                  {entry.kind === "event" && (
+                    <Badge variant="secondary" className="text-[10px]">event</Badge>
+                  )}
+                </div>
                 <p className="text-muted-foreground leading-relaxed">{entry.explanation}</p>
               </div>
               <Button
@@ -175,34 +195,53 @@ export function ErrorGlossaryManager({ projectId, contract }: Props) {
         </div>
       )}
 
-      {/* ABI-detected errors without explanations */}
-      {unexplained.length > 0 && (
+      {/* ABI-detected errors */}
+      {unexplainedErrors.length > 0 && (
         <div className="space-y-1.5">
           <p className="text-xs text-muted-foreground">
-            {unexplained.length} error{unexplained.length !== 1 ? "s" : ""} detected from ABI — add plain-English explanations so users get clear messages:
+            {unexplainedErrors.length} custom error{unexplainedErrors.length !== 1 ? "s" : ""} from ABI — describe what users should do when they hit each one:
           </p>
-          {unexplained.map(name => (
-            <AbiErrorSuggestion
+          {unexplainedErrors.map(name => (
+            <AbiEntrySuggestion
               key={name}
               projectId={projectId}
               contractId={contract.id}
-              errorName={name}
+              name={name}
+              kind="error"
             />
           ))}
         </div>
       )}
 
-      {/* Manual add form — always available */}
+      {/* ABI-detected events */}
+      {unexplainedEvents.length > 0 && (
+        <div className="space-y-1.5">
+          <p className="text-xs text-muted-foreground">
+            {unexplainedEvents.length} event{unexplainedEvents.length !== 1 ? "s" : ""} from ABI — describe what each event means so the AI can explain transaction history:
+          </p>
+          {unexplainedEvents.map(name => (
+            <AbiEntrySuggestion
+              key={name}
+              projectId={projectId}
+              contractId={contract.id}
+              name={name}
+              kind="event"
+            />
+          ))}
+        </div>
+      )}
+
+      {/* Manual add */}
       {showForm ? (
         <div className="space-y-2 rounded-md border border-dashed border-border p-3">
           <Input
-            placeholder="Error name, e.g. SlippageTooHigh"
-            value={errorName}
-            onChange={(e) => setErrorName(e.target.value)}
+            placeholder="Error or event name, e.g. SlippageTooHigh or LockAdded"
+            value={entryName}
+            onChange={(e) => setEntryName(e.target.value)}
             className="text-xs h-8 font-mono"
           />
           <Textarea
-            placeholder="Plain-English explanation shown to users when this error is encountered…"
+            placeholder="Plain-English description shown to users…"
             value={explanation}
             onChange={(e) => setExplanation(e.target.value)}
             className="text-xs min-h-[60px] resize-none"
@@ -212,7 +251,7 @@ export function ErrorGlossaryManager({ projectId, contract }: Props) {
               size="sm"
               className="h-7 text-xs"
               onClick={handleAdd}
-              disabled={isPending || !errorName.trim() || !explanation.trim()}
+              disabled={isPending || !entryName.trim() || !explanation.trim()}
             >
               Save
             </Button>
@@ -220,7 +259,7 @@ export function ErrorGlossaryManager({ projectId, contract }: Props) {
               variant="ghost"
               size="sm"
               className="h-7 text-xs"
-              onClick={() => { setShowForm(false); setErrorName(""); setExplanation("") }}
+              onClick={() => { setShowForm(false); setEntryName(""); setExplanation("") }}
             >
               Cancel
             </Button>
@@ -234,7 +273,7 @@ export function ErrorGlossaryManager({ projectId, contract }: Props) {
           onClick={() => setShowForm(true)}
         >
           <Plus className="size-3" />
-          {abiErrors.length > 0 ? "Add custom error" : "Add error explanation"}
+          {hasAbiEntries ? "Add manual entry" : "Add entry"}
         </Button>
       )}
     </div>
