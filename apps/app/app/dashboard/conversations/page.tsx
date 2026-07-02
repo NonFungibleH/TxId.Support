@@ -115,13 +115,20 @@ export default async function ConversationsPage({
     )
   }
 
-  // Batch-fetch all messages for the returned conversations
+  // Batch-fetch all messages + existing tickets for the returned conversations
   const convIds = conversations.map((c: { id: string }) => c.id)
-  const { data: messages } = await supabase
-    .from("messages")
-    .select("id, conversation_id, role, content, feedback, created_at")
-    .in("conversation_id", convIds)
-    .order("created_at", { ascending: true })
+  const [{ data: messages }, { data: tickets }] = await Promise.all([
+    supabase
+      .from("messages")
+      .select("id, conversation_id, role, content, feedback, created_at")
+      .in("conversation_id", convIds)
+      .order("created_at", { ascending: true }),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (supabase as any)
+      .from("tickets")
+      .select("conversation_id, ref, status")
+      .in("conversation_id", convIds),
+  ])
 
   const msgByConv = new Map<string, typeof messages>()
   for (const msg of messages ?? []) {
@@ -143,6 +150,12 @@ export default async function ConversationsPage({
     }))
     .filter((c: ConversationWithMessages) => c.messages.length > 0)
 
+  // Build conv_id -> ticket ref map (most recent ticket per conversation)
+  const ticketByConvId: Record<string, { ref: string; status: string }> = {}
+  for (const t of (tickets ?? []) as { conversation_id: string; ref: string; status: string }[]) {
+    if (t.conversation_id) ticketByConvId[t.conversation_id] = { ref: t.ref, status: t.status }
+  }
+
   const shownCount = data.length
   const total = totalCount ?? conversations.length
 
@@ -157,7 +170,7 @@ export default async function ConversationsPage({
         </p>
       </div>
       {filters}
-      <ConversationList conversations={data} />
+      <ConversationList conversations={data} existingTickets={ticketByConvId} />
       {total > conversations.length && (
         <div className="flex flex-col items-center gap-2 py-4">
           <p className="text-xs text-muted-foreground">Showing {conversations.length} of {total} sessions</p>

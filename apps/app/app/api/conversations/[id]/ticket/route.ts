@@ -46,6 +46,7 @@ export async function POST(
     .from("tickets")
     .insert({
       project_id: typedProject.id,
+      conversation_id: params.id,
       ref,
       summary,
       reason: conv.wallet_address ? `Wallet: ${conv.wallet_address}` : null,

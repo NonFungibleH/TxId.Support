@@ -60,13 +60,23 @@ function FeedbackIcon({ feedback }: { feedback: number }) {
 
 type TicketStatus = "idle" | "loading" | "done" | "error"
 
-export function ConversationList({ conversations }: { conversations: ConversationWithMessages[] }) {
+export function ConversationList({
+  conversations,
+  existingTickets = {},
+}: {
+  conversations: ConversationWithMessages[]
+  existingTickets?: Record<string, { ref: string; status: string }>
+}) {
   const router = useRouter()
   const [expanded, setExpanded] = useState<string | null>(null)
   const [summaries, setSummaries] = useState<Record<string, string>>({})
   const [summaryLoading, setSummaryLoading] = useState<Record<string, boolean>>({})
-  const [ticketStatus, setTicketStatus] = useState<Record<string, TicketStatus>>({})
-  const [ticketRefs, setTicketRefs] = useState<Record<string, string>>({})
+  const [ticketStatus, setTicketStatus] = useState<Record<string, TicketStatus>>(() =>
+    Object.fromEntries(Object.keys(existingTickets).map(id => [id, "done"]))
+  )
+  const [ticketRefs, setTicketRefs] = useState<Record<string, string>>(() =>
+    Object.fromEntries(Object.entries(existingTickets).map(([id, t]) => [id, t.ref]))
+  )
   const fetchedSummaries = useRef<Set<string>>(new Set())
 
   useEffect(() => {
@@ -161,6 +171,12 @@ export function ConversationList({ conversations }: { conversations: Conversatio
                   )}
                   {hasNegative && (
                     <Badge variant="destructive" className="text-[10px] px-1.5 py-0.5 leading-none shrink-0">Low satisfaction</Badge>
+                  )}
+                  {tRef && (
+                    <Badge className="text-[10px] px-1.5 py-0.5 leading-none shrink-0 bg-indigo-500/10 text-indigo-400 border-indigo-500/20 flex items-center gap-1">
+                      <Ticket className="size-2.5" />
+                      {tRef}
+                    </Badge>
                   )}
                 </div>
                 <p className="text-sm truncate text-muted-foreground">{preview || "No messages"}</p>

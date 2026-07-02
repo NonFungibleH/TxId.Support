@@ -54,18 +54,71 @@ function isNearWhite(hex: string): boolean {
 
 // ── CSS scanning helpers ──────────────────────────────────────────────────────
 
+function hslToHex(h: number, s: number, l: number): string {
+  s /= 100; l /= 100
+  const k = (n: number) => (n + h / 30) % 12
+  const a = s * Math.min(l, 1 - l)
+  const f = (n: number) => l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)))
+  return "#" + [f(0), f(8), f(4)].map(x => Math.round(x * 255).toString(16).padStart(2, "0")).join("")
+}
+
+function rgbToHex(r: number, g: number, b: number): string {
+  return "#" + [r, g, b].map(c => Math.round(Math.min(255, Math.max(0, c))).toString(16).padStart(2, "0")).join("")
+}
+
+// oklch is used by Tailwind v4 / shadcn v2. Approximate by mapping to HSL using the hue channel.
+function oklchApproxHex(l: number, c: number, h: number): string | null {
+  if (c < 0.02) return null // achromatic — no useful hue
+  const approxL = Math.min(95, Math.max(5, l * 100))
+  const approxS = Math.min(100, c * 280)
+  return hslToHex(h, approxS, approxL)
+}
+
 const CSS_VAR_CANDIDATES = [
   "--primary-color", "--brand-color", "--accent-color", "--color-primary",
   "--primary", "--brand", "--accent", "--theme-color", "--main-color",
-  "--color-brand", "--color-accent",
+  "--color-brand", "--color-accent", "--highlight-color", "--cta-color",
+  "--link-color", "--button-color", "--hero-color",
 ]
 
 function extractPrimaryFromCss(cssText: string): string | undefined {
   for (const v of CSS_VAR_CANDIDATES) {
-    const escaped = v.replace(/[-]/g, "\\-")
-    const match = cssText.match(new RegExp(`${escaped}\\s*:\\s*(#[0-9a-fA-F]{3,8})`, "i"))
-    if (match?.[1] && isValidHex(match[1]) && !isNearBlack(match[1]) && !isNearWhite(match[1])) {
-      return normalizeHex(match[1])
+    const esc = v.replace(/[-]/g, "\\-")
+
+    // Hex: --primary: #6366f1
+    const hex = cssText.match(new RegExp(`${esc}\\s*:\\s*(#[0-9a-fA-F]{3,8})`, "i"))
+    if (hex?.[1] && isValidHex(hex[1]) && !isNearBlack(hex[1]) && !isNearWhite(hex[1])) {
+      return normalizeHex(hex[1])
+    }
+
+    // rgb()/rgba(): --primary: rgb(99, 102, 241)
+    const rgb = cssText.match(new RegExp(`${esc}\\s*:\\s*rgba?\\(\\s*(\\d+)\\s*[,\\s]\\s*(\\d+)\\s*[,\\s]\\s*(\\d+)`, "i"))
+    if (rgb) {
+      const c = rgbToHex(+rgb[1], +rgb[2], +rgb[3])
+      if (!isNearBlack(c) && !isNearWhite(c)) return c
+    }
+
+    // hsl()/hsla(): --primary: hsl(239, 84%, 67%)  or  hsl(239deg 84% 67%)
+    const hsl = cssText.match(new RegExp(`${esc}\\s*:\\s*hsla?\\(\\s*(\\d+(?:\\.\\d+)?)(?:deg)?\\s*[,\\s]\\s*(\\d+(?:\\.\\d+)?)%\\s*[,\\s]\\s*(\\d+(?:\\.\\d+)?)%`, "i"))
+    if (hsl) {
+      const c = hslToHex(+hsl[1], +hsl[2], +hsl[3])
+      if (!isNearBlack(c) && !isNearWhite(c)) return c
+    }
+
+    // shadcn/ui raw HSL triplet: --primary: 239 84% 67%
+    const rawHsl = cssText.match(new RegExp(`${esc}\\s*:\\s*(\\d+(?:\\.\\d+)?)\\s+(\\d+(?:\\.\\d+)?)%\\s+(\\d+(?:\\.\\d+)?)%`, "i"))
+    if (rawHsl) {
+      const c = hslToHex(+rawHsl[1], +rawHsl[2], +rawHsl[3])
+      if (!isNearBlack(c) && !isNearWhite(c)) return c
+    }
+
+    // oklch(): --primary: oklch(0.65 0.2 264)  (Tailwind v4 / shadcn v2)
+    const oklch = cssText.match(new RegExp(`${esc}\\s*:\\s*oklch\\(\\s*(\\d+(?:\\.\\d+)?)%?\\s+(\\d+(?:\\.\\d+)?)\\s+(\\d+(?:\\.\\d+)?)`, "i"))
+    if (oklch) {
+      const lRaw = +oklch[1]; const c2 = +oklch[2]; const h2 = +oklch[3]
+      const lNorm = lRaw > 1 ? lRaw / 100 : lRaw
+      const approx = oklchApproxHex(lNorm, c2, h2)
+      if (approx && !isNearBlack(approx) && !isNearWhite(approx)) return approx
     }
   }
 }
@@ -199,7 +252,7 @@ export async function fetchBrandColors(rawUrl: string): Promise<BrandColorResult
       const sheetUrls = sheetMatches
         .map(m => { try { return new URL(m[1], url).href } catch { return null } })
         .filter((u): u is string => u !== null && !isPrivateUrl(u))
-        .slice(0, 4)
+        .slice(0, 6)
 
       for (const sheetUrl of sheetUrls) {
         try {
@@ -222,6 +275,23 @@ export async function fetchBrandColors(rawUrl: string): Promise<BrandColorResult
         } catch {
           // non-fatal
         }
+      }
+    }
+
+    // 5. Tailwind arbitrary color classes: bg-[#6366f1] text-[#6366f1] etc.
+    if (!primaryColor) {
+      const tailwindMatches = [...html.matchAll(/(?:bg|text|border|ring|fill|stroke)-\[#([0-9a-fA-F]{3,8})\]/g)]
+      const freq = new Map<string, number>()
+      for (const m of tailwindMatches) {
+        const c = "#" + m[1]
+        if (isValidHex(c) && !isNearBlack(c) && !isNearWhite(c)) {
+          freq.set(c, (freq.get(c) ?? 0) + 1)
+        }
+      }
+      if (freq.size > 0) {
+        const top = [...freq.entries()].sort((a, b) => b[1] - a[1])[0][0]
+        primaryColor = normalizeHex(top)
+        foundSignals.push("Tailwind arbitrary color class")
       }
     }
 
