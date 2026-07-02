@@ -4,7 +4,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import {
   LayoutDashboard, Paintbrush, FileCode2, BookOpen,
-  Link2, LayoutList, Code2, BarChart3, Globe, MessageSquare, Eye, Ticket, MessagesSquare, ExternalLink,
+  LayoutList, Code2, BarChart3, Globe, MessageSquare, Eye, Ticket, MessagesSquare, ExternalLink,
   Sun, Moon, Zap,
 } from "lucide-react"
 import { useTheme } from "next-themes"
@@ -27,7 +27,6 @@ const SUPPORT_GROUPS: NavGroup[] = [
       { href: "/dashboard/branding",  label: "Branding",        icon: Paintbrush },
       { href: "/dashboard/contracts", label: "Smart Contracts",  icon: FileCode2 },
       { href: "/dashboard/docs",      label: "Docs & KB",        icon: BookOpen },
-      { href: "/dashboard/chains",    label: "Chains",           icon: Link2 },
       { href: "/dashboard/content",   label: "Content",          icon: LayoutList },
     ],
   },

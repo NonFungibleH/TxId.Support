@@ -108,7 +108,10 @@ export async function GET(
     projectName: typedProject.name,
     mode: (typedProject as unknown as { mode?: string }).mode ?? "support",
     branding: config.branding,
-    chains: config.chains,
+    chains: [...new Set([
+      ...(config.watchedContracts ?? []).map(c => c.chain as string),
+      ...(config.token?.chain ? [config.token.chain as string] : []),
+    ])],
     token: config.token
       ? {
           symbol: config.token.symbol,

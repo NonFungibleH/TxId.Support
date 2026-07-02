@@ -83,6 +83,12 @@ export default async function DashboardPage() {
   const convLimitLabel = convLimit === Infinity ? null : convLimit.toLocaleString()
   const usagePct = convLimit === Infinity ? 0 : Math.round((monthlyCount / convLimit) * 100)
 
+  // Derive active chains from contracts + token (no longer manually configured)
+  const activeChains = [...new Set([
+    ...(config.watchedContracts ?? []).map(c => c.chain as string),
+    ...(config.token?.chain ? [config.token.chain as string] : []),
+  ])]
+
   const brandingDone = config.branding.logoUrl !== null || config.branding.primaryColor !== "#6366f1"
   const contractsDone = (config.watchedContracts ?? []).length > 0
   const docsDone = docCount > 0
@@ -116,14 +122,6 @@ export default async function DashboardPage() {
     },
     {
       step: 4,
-      href: "/dashboard/chains",
-      label: "Enable chains",
-      desc: "Choose which blockchains the agent scans when a user connects their wallet.",
-      time: "~1 min",
-      done: config.chains.length > 0,
-    },
-    {
-      step: 5,
       href: "/dashboard/preview",
       label: "Preview & approve",
       desc: "Open the live preview, test it on your own site, then confirm the design.",
@@ -131,7 +129,7 @@ export default async function DashboardPage() {
       done: previewDone,
     },
     {
-      step: 6,
+      step: 5,
       href: "/dashboard/embed",
       label: "Embed & go live",
       desc: "Copy the one-line snippet into your site, then flip the switch to publish.",
@@ -162,7 +160,7 @@ export default async function DashboardPage() {
         <StatsCard title="Conversations" value={convResult.count ?? 0} description="All time" icon={MessageSquare} />
         <StatsCard title="Connected wallets" value={uniqueWallets} description="Unique addresses" icon={Users} />
         <StatsCard title="Knowledge docs" value={docCount} description="Indexed chunks" icon={Globe} />
-        <StatsCard title="Chains enabled" value={config.chains.length} description={`of ${chainLimitLabel} on ${plan}`} icon={Zap} />
+        <StatsCard title="Chains enabled" value={activeChains.length} description={`of ${chainLimitLabel} on ${plan}`} icon={Zap} />
       </div>
 
       {liveDone ? (

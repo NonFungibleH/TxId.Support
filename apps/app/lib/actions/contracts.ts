@@ -5,7 +5,8 @@ import { createServiceClient } from "@/lib/supabase/server"
 import { nanoid } from "nanoid"
 import { revalidatePath } from "next/cache"
 import { z } from "zod"
-import type { ProjectConfig, WatchedContract, ErrorGlossaryEntry } from "@/lib/types/config"
+import type { ProjectConfig, WatchedContract, ErrorGlossaryEntry, Plan } from "@/lib/types/config"
+import { PLAN_CHAIN_LIMITS } from "@/lib/types/config"
 import type { Database, Json } from "@/lib/supabase/types"
 import { fetchAbiFromExplorer } from "@txid/blockchain"
 
@@ -61,6 +62,21 @@ export async function addContract(
   const existing = config.watchedContracts ?? []
 
   if (existing.length >= 20) throw new Error("Maximum of 20 watched contracts per project")
+
+  // Enforce chain limit — derived from existing contracts + token (chains page removed)
+  const plan = (config.plan ?? "free") as Plan
+  const chainLimit = PLAN_CHAIN_LIMITS[plan]
+  if (chainLimit !== Infinity) {
+    const existingChains = new Set<string>([
+      ...existing.map(c => c.chain as string),
+      ...(config.token?.chain ? [config.token.chain as string] : []),
+    ])
+    if (!existingChains.has(parsed.data.chain) && existingChains.size >= chainLimit) {
+      throw new Error(
+        `Your plan supports ${chainLimit} chain${chainLimit === 1 ? "" : "s"}. Upgrade to add contracts on additional chains.`
+      )
+    }
+  }
 
   // Try to fetch ABI from the block explorer automatically
   const abi = await fetchAbiFromExplorer(

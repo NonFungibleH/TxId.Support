@@ -57,7 +57,10 @@ export default async function AccountPage() {
   const convLimitLabel = convLimit === Infinity ? "Unlimited" : convLimit.toLocaleString()
   const chainLimitLabel = chainLimit === Infinity ? String(SUPPORTED_CHAINS.length) : String(chainLimit)
   const usagePct = convLimit === Infinity ? 0 : Math.round((monthlyCount / convLimit) * 100)
-  const chainsUsed = config.chains.length
+  const chainsUsed = new Set([
+    ...(config.watchedContracts ?? []).map(c => c.chain as string),
+    ...(config.token?.chain ? [config.token.chain as string] : []),
+  ]).size
 
   const isPaid = PAID_PLANS.includes(plan)
 

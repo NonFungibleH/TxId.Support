@@ -17,19 +17,25 @@ import {
 } from "@/components/ui/dialog"
 import { addContract } from "@/lib/actions/contracts"
 import { SUPPORTED_CHAINS } from "@/lib/types/config"
-import { Plus } from "lucide-react"
+import { Plus, AlertTriangle } from "lucide-react"
+import Link from "next/link"
 
 interface AddContractDialogProps {
   projectId: string
+  activeChains: string[]
+  chainLimit: number  // -1 = unlimited
 }
 
-export function AddContractDialog({ projectId }: AddContractDialogProps) {
+export function AddContractDialog({ projectId, activeChains, chainLimit }: AddContractDialogProps) {
   const [open, setOpen] = useState(false)
   const [isPending, startTransition] = useTransition()
   const [name, setName] = useState("")
   const [address, setAddress] = useState("")
   const [chain, setChain] = useState("0x1")
   const [description, setDescription] = useState("")
+
+  const isNewChain = !activeChains.includes(chain)
+  const atChainLimit = chainLimit !== -1 && isNewChain && activeChains.length >= chainLimit
 
   function reset() {
     setName(""); setAddress(""); setChain("0x1"); setDescription("")
@@ -88,6 +94,20 @@ export function AddContractDialog({ projectId }: AddContractDialogProps) {
               </SelectContent>
             </Select>
           </div>
+
+          {atChainLimit && (
+            <div className="flex items-start gap-2.5 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2.5">
+              <AlertTriangle className="size-4 text-amber-500 shrink-0 mt-0.5" />
+              <p className="text-sm text-amber-600 dark:text-amber-400">
+                Your plan supports {chainLimit} chain{chainLimit === 1 ? "" : "s"}.{" "}
+                <Link href="/dashboard/upgrade" className="underline underline-offset-2 font-medium" onClick={() => setOpen(false)}>
+                  Upgrade
+                </Link>{" "}
+                to add contracts on multiple chains.
+              </p>
+            </div>
+          )}
+
           <div className="grid gap-2">
             <Label htmlFor="contract-desc">Description</Label>
             <textarea
@@ -104,7 +124,7 @@ export function AddContractDialog({ projectId }: AddContractDialogProps) {
 
         <DialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-          <Button onClick={submit} disabled={isPending || !name || !address || !description}>
+          <Button onClick={submit} disabled={isPending || !name || !address || !description || atChainLimit}>
             {isPending ? "Adding…" : "Add contract"}
           </Button>
         </DialogFooter>
