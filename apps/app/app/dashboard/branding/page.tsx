@@ -16,9 +16,9 @@ export default async function BrandingPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Branding & Appearance</h1>
+        <h1 className="text-2xl font-bold">Branding</h1>
         <p className="text-muted-foreground mt-1">
-          Customise how your widget looks on your site.
+          Customise how your widget looks and speaks.
         </p>
       </div>
       <BrandingPageClient
