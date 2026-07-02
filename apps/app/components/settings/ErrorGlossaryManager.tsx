@@ -1,18 +1,95 @@
 "use client"
 
-import { useState, useTransition } from "react"
+import { useState, useTransition, useMemo } from "react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
-import { Trash2, Plus } from "lucide-react"
+import { Trash2, Plus, ChevronDown } from "lucide-react"
 import { upsertGlossaryEntry, removeGlossaryEntry } from "@/lib/actions/contracts"
 import type { WatchedContract, ErrorGlossaryEntry } from "@/lib/types/config"
 
 interface Props {
   projectId: string
   contract: WatchedContract
+}
+
+/** Inline row for an ABI-detected error that hasn't been explained yet */
+function AbiErrorSuggestion({
+  projectId,
+  contractId,
+  errorName,
+}: {
+  projectId: string
+  contractId: string
+  errorName: string
+}) {
+  const [open, setOpen] = useState(false)
+  const [explanation, setExplanation] = useState("")
+  const [isPending, startTransition] = useTransition()
+
+  function handleSave() {
+    if (!explanation.trim()) return
+    startTransition(async () => {
+      try {
+        await upsertGlossaryEntry(projectId, contractId, {
+          error: errorName,
+          explanation: explanation.trim(),
+        })
+        toast.success("Explanation saved")
+        setOpen(false)
+        setExplanation("")
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "Failed to save")
+      }
+    })
+  }
+
+  return (
+    <div className="rounded-md border border-border bg-muted/20 overflow-hidden">
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-muted/40 transition-colors"
+      >
+        <Badge variant="outline" className="font-mono text-[10px] shrink-0">{errorName}</Badge>
+        <span className="text-xs text-muted-foreground ml-auto flex items-center gap-1">
+          Add explanation
+          <ChevronDown className={`size-3 transition-transform ${open ? "rotate-180" : ""}`} />
+        </span>
+      </button>
+      {open && (
+        <div className="border-t border-border px-3 py-2.5 space-y-2 bg-muted/10">
+          <p className="text-xs text-muted-foreground">What should users see when they hit this error?</p>
+          <Textarea
+            autoFocus
+            placeholder={`e.g. "You don't have enough tokens approved — go to the token contract and approve more before trying again."`}
+            value={explanation}
+            onChange={e => setExplanation(e.target.value)}
+            className="text-xs min-h-[60px] resize-none"
+          />
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              className="h-7 text-xs"
+              onClick={handleSave}
+              disabled={isPending || !explanation.trim()}
+            >
+              Save
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 text-xs"
+              onClick={() => { setOpen(false); setExplanation("") }}
+            >
+              Cancel
+            </Button>
+          </div>
+        </div>
+      )}
+    </div>
+  )
 }
 
 export function ErrorGlossaryManager({ projectId, contract }: Props) {
@@ -22,6 +99,20 @@ export function ErrorGlossaryManager({ projectId, contract }: Props) {
   const [explanation, setExplanation] = useState("")
 
   const entries = contract.errorGlossary ?? []
+
+  // Parse custom errors from the ABI if one is stored
+  const abiErrors = useMemo<string[]>(() => {
+    if (!contract.abi) return []
+    try {
+      const abi = JSON.parse(contract.abi) as Array<{ type: string; name?: string }>
+      return abi.filter(e => e.type === "error" && e.name).map(e => e.name!)
+    } catch {
+      return []
+    }
+  }, [contract.abi])
+
+  const explained = new Set(entries.map(e => e.error))
+  const unexplained = abiErrors.filter(name => !explained.has(name))
 
   function handleAdd() {
     if (!errorName.trim() || !explanation.trim()) return
@@ -56,6 +147,7 @@ export function ErrorGlossaryManager({ projectId, contract }: Props) {
     <div className="mt-3 space-y-2">
       <p className="text-xs font-medium text-muted-foreground">Error glossary</p>
 
+      {/* Already-explained entries */}
       {entries.length > 0 && (
         <div className="space-y-1.5">
           {entries.map((entry) => (
@@ -83,6 +175,24 @@ export function ErrorGlossaryManager({ projectId, contract }: Props) {
         </div>
       )}
 
+      {/* ABI-detected errors without explanations */}
+      {unexplained.length > 0 && (
+        <div className="space-y-1.5">
+          <p className="text-xs text-muted-foreground">
+            {unexplained.length} error{unexplained.length !== 1 ? "s" : ""} detected from ABI — add plain-English explanations so users get clear messages:
+          </p>
+          {unexplained.map(name => (
+            <AbiErrorSuggestion
+              key={name}
+              projectId={projectId}
+              contractId={contract.id}
+              errorName={name}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* Manual add form — always available */}
       {showForm ? (
         <div className="space-y-2 rounded-md border border-dashed border-border p-3">
           <Input
@@ -124,7 +234,7 @@ export function ErrorGlossaryManager({ projectId, contract }: Props) {
           onClick={() => setShowForm(true)}
         >
           <Plus className="size-3" />
-          Add error explanation
+          {abiErrors.length > 0 ? "Add custom error" : "Add error explanation"}
         </Button>
       )}
     </div>
