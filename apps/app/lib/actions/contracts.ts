@@ -271,3 +271,20 @@ export async function removeContract(projectId: string, contractId: string) {
   if (error) throw new Error(error.message)
   revalidatePath("/dashboard/contracts")
 }
+
+/**
+ * Reads the public function names from a verified contract's ABI.
+ * No auth required — this is read-only public blockchain data.
+ * Returns null if the contract isn't verified or the explorer is unreachable.
+ */
+export async function peekContractFunctions(
+  address: string,
+  chainId: string,
+): Promise<string[] | null> {
+  const abiJson = await fetchAbiFromExplorer(address, chainId).catch(() => null)
+  if (!abiJson) return null
+  type AbiEntry = { type: string; name?: string }
+  const abi = JSON.parse(abiJson) as AbiEntry[]
+  const names = abi.filter(e => e.type === "function" && e.name).map(e => e.name!)
+  return names.length > 0 ? names : null
+}

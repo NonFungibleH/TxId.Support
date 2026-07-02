@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useTransition } from "react"
+import { useState, useTransition, useEffect, useRef } from "react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -15,9 +15,9 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { addContract } from "@/lib/actions/contracts"
+import { addContract, peekContractFunctions } from "@/lib/actions/contracts"
 import { SUPPORTED_CHAINS } from "@/lib/types/config"
-import { Plus, AlertTriangle } from "lucide-react"
+import { Plus, AlertTriangle, Loader2 } from "lucide-react"
 import Link from "next/link"
 
 interface AddContractDialogProps {
@@ -33,12 +33,33 @@ export function AddContractDialog({ projectId, activeChains, chainLimit }: AddCo
   const [address, setAddress] = useState("")
   const [chain, setChain] = useState("0x1")
   const [description, setDescription] = useState("")
+  const [detectedFns, setDetectedFns] = useState<string[] | null>(null)
+  const [detectingFns, setDetectingFns] = useState(false)
+  const peekTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const isNewChain = !activeChains.includes(chain)
   const atChainLimit = chainLimit !== -1 && isNewChain && activeChains.length >= chainLimit
 
+  // Fetch function names from the block explorer whenever address + chain look valid
+  useEffect(() => {
+    const isValidAddress = /^0x[0-9a-fA-F]{40}$/.test(address.trim())
+    if (!isValidAddress) { setDetectedFns(null); return }
+
+    if (peekTimeout.current) clearTimeout(peekTimeout.current)
+    peekTimeout.current = setTimeout(() => {
+      setDetectingFns(true)
+      peekContractFunctions(address.trim(), chain)
+        .then(fns => setDetectedFns(fns))
+        .catch(() => setDetectedFns(null))
+        .finally(() => setDetectingFns(false))
+    }, 600)
+
+    return () => { if (peekTimeout.current) clearTimeout(peekTimeout.current) }
+  }, [address, chain])
+
   function reset() {
     setName(""); setAddress(""); setChain("0x1"); setDescription("")
+    setDetectedFns(null); setDetectingFns(false)
   }
 
   function submit() {
@@ -118,7 +139,28 @@ export function AddContractDialog({ projectId, activeChains, chainLimit }: AddCo
               onChange={e => setDescription(e.target.value)}
               className="w-full rounded-lg border border-input bg-transparent px-3 py-2 text-sm outline-none focus:border-ring resize-none"
             />
-            <p className="text-xs text-muted-foreground">The AI reads this to understand what the contract tracks and when to call it.</p>
+            <p className="text-xs text-muted-foreground">The AI reads this to understand what the contract does and when to use it.</p>
+
+            {/* ABI function hints */}
+            {detectingFns && (
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <Loader2 className="size-3 animate-spin" />
+                Reading contract from block explorer…
+              </div>
+            )}
+            {detectedFns && detectedFns.length > 0 && (
+              <div className="rounded-lg border border-border bg-muted/40 px-3 py-2.5 space-y-1.5">
+                <p className="text-xs font-medium text-foreground/70">Functions detected — use these to describe what the contract does:</p>
+                <div className="flex flex-wrap gap-1">
+                  {detectedFns.map(fn => (
+                    <span key={fn} className="rounded bg-background border border-border px-1.5 py-0.5 text-xs font-mono text-foreground/60">{fn}</span>
+                  ))}
+                </div>
+              </div>
+            )}
+            {detectedFns === null && !detectingFns && /^0x[0-9a-fA-F]{40}$/.test(address.trim()) && (
+              <p className="text-xs text-muted-foreground/60">Contract not verified on block explorer — you&apos;ll need to describe it manually.</p>
+            )}
           </div>
         </div>
 
