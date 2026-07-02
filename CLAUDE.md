@@ -24,6 +24,7 @@ txid-support/
 ├── packages/
 │   ├── ai/           @txid/ai — Claude RAG pipeline, prompt building, streaming
 │   ├── blockchain/   @txid/blockchain — Moralis, block explorers, tx decoder
+│   ├── solana/       @txid/solana — Helius RPC, enhanced txs, IDL registry
 │   ├── ui/           @txid/ui — shared shadcn/Radix components
 │   ├── widget/       @txid/widget — embeddable JS (Phase 3 stub)
 │   └── react/        @txid/react — published React component
@@ -47,7 +48,8 @@ txid-support/
 | AI | Anthropic Claude (claude-haiku-4-5-20251001) |
 | Fallback LLM | Groq (llama-3.3-70b-versatile) |
 | Embeddings | Voyage AI (voyage-3, 1024 dims) or Cohere |
-| Blockchain | Moralis API + block explorer APIs (Etherscan etc.) |
+| Blockchain (EVM) | Moralis API + block explorer APIs (Etherscan etc.) |
+| Blockchain (Solana) | Helius RPC + enhanced transaction API |
 | Monorepo | Turborepo + pnpm workspaces |
 | Deployment | Vercel |
 
@@ -85,11 +87,14 @@ Ports: web=3000, app=3001, docs=3002, widget=3003
 - `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`
 - `CLERK_SECRET_KEY`
 
-### Blockchain
+### Blockchain (EVM)
 - `MORALIS_API_KEY`
 - `ETHERSCAN_API_KEY`
 - `BASESCAN_API_KEY`
 - `BSCSCAN_API_KEY`
+
+### Blockchain (Solana)
+- `HELIUS_API_KEY` — Helius RPC + enhanced transaction API (https://dev.helius.xyz)
 
 ### Platform
 - `RESEND_API_KEY` — email notifications (optional)
@@ -190,6 +195,51 @@ Chains are configured in `CHAIN_CONFIGS` in `types.ts`. Block explorer API keys 
 
 ---
 
+## packages/solana
+
+Source: `packages/solana/src/`
+
+Chain ID string: `"solana"` (not a hex value). Added to `SUPPORTED_CHAINS` in `lib/types/config.ts`.
+
+### Key exports
+
+```ts
+// helius.ts
+getSolanaWalletBalance(address): Promise<SolanaBalance>
+// getBalance (lamports → SOL) + getTokenAccountsByOwner (max 30 tokens, skips zero-balance)
+
+getSolanaRecentTransactions(address, programAddress?, limit): Promise<SolanaTransaction[]>
+// GET https://api.helius.xyz/v0/addresses/{address}/transactions — enriched format
+
+getSolanaTransactionBySignature(signature): Promise<SolanaTransaction | null>
+// POST https://api.helius.xyz/v0/transactions — single enriched tx
+
+// idl.ts
+fetchIdlFromRegistry(programAddress): Promise<string | null>
+// GET https://anchor.projectserum.com/idl/{programAddress} — null if not found
+
+// index.ts
+isSolanaChain(chainId: string): boolean
+```
+
+### Solana in AI tools
+`packages/ai/src/tools.ts` branches on `isSolanaChain(wallet.chainId)`:
+- `get_wallet_balance` → `getSolanaWalletBalance`
+- `get_recent_transactions` → `getSolanaRecentTransactions`
+- `get_transaction_by_hash` → `getSolanaTransactionBySignature` (accepts signature string)
+- `get_contract_transactions` → `getSolanaRecentTransactions(programAddress, programAddress, limit)`
+
+### Solana in the widget
+`apps/app/app/widget/WidgetApp.tsx` detects Solana projects via `config.chains.includes("solana")`.
+Phantom detection: `window.phantom?.solana || window.solana` (supports both new + legacy injection).
+Connect flow: `phantom.connect()` → `resp.publicKey.toString()` → `chainId: "solana"`.
+
+### Solana in the dashboard
+ABI Manager relabels to "IDL" for `chain === "solana"`. "Check block explorer" → "Check Anchor registry".
+`refreshContractAbi` in `contracts.ts` branches to `fetchIdlFromRegistry` for Solana contracts.
+
+---
+
 ## apps/app
 
 ### Important patterns
@@ -221,10 +271,11 @@ Never read `projects` without verifying org membership first.
 - `lib/supabase/server.ts` — `createServiceClient()`
 
 ### Dashboard routes
-- `/dashboard/contracts` — watched contracts, ABI upload, error glossary
-- `/dashboard/branding` — widget appearance, persona, positioning
-- `/dashboard/conversations` — conversation history, analytics
+- `/dashboard/contracts` — watched contracts, ABI/IDL upload, error glossary
+- `/dashboard/branding` — widget appearance, persona, language, positioning
+- `/dashboard/conversations` — conversation history (includes Telegram sessions, prefixed `tg-{chatId}`)
 - `/dashboard/docs` — documentation ingest for RAG
+- `/dashboard/telegram` — Telegram bot setup (connect/disconnect via BotFather token)
 - `/dashboard/embed` — widget installation snippet
 - `/dashboard/analytics` — usage stats
 - `/dashboard/tickets` — support ticket management
@@ -232,8 +283,10 @@ Never read `projects` without verifying org membership first.
 
 ### Key components
 - `components/settings/ContractList.tsx` — lists contracts; renders `AbiManager` + `ErrorGlossaryManager` per contract
-- `components/settings/AbiManager.tsx` — ABI status badge + check explorer / paste ABI UI
+- `components/settings/AbiManager.tsx` — ABI/IDL status badge + check explorer/registry / paste UI (Solana-aware)
 - `components/settings/ErrorGlossaryManager.tsx` — add/remove error→explanation mappings
+- `components/settings/BrandingForm.tsx` — branding fields including language selector (16 languages)
+- `components/settings/TelegramPageClient.tsx` — Telegram bot connect/disconnect UI
 
 ---
 
@@ -283,6 +336,35 @@ Key updated page: `app/docs/contracts/page.tsx` — documents transaction diagno
 - Injected into system prompt — Claude uses the explanation verbatim when it matches
 - `ErrorGlossaryManager` component for add/remove in the dashboard
 - Server actions: `upsertGlossaryEntry`, `removeGlossaryEntry`
+
+---
+
+### Language setting
+- `BrandingConfig.language?: string | null` — null/omitted means auto-detect user language
+- 16 supported languages defined in `SUPPORTED_LANGUAGES` in `lib/types/config.ts`
+- `buildSystemPrompt` accepts `language` param; routes to `buildUniversalRules(language)` in `packages/ai/src/prompt.ts`
+- When non-English: AI responds in configured language, may briefly acknowledge user's language before switching
+- When null/en: auto-detect from user's messages (default behaviour)
+
+### Solana support
+- `packages/solana` — new isolated package (`@txid/solana`) for all Solana tooling
+- Chain ID `"solana"` added to `SUPPORTED_CHAINS`; shows alongside EVM chains in contract/chain selectors
+- Helius RPC for wallet balance + enriched tx history + single tx lookup
+- Phantom wallet connection in widget (detects `window.phantom?.solana` + `window.solana` fallback)
+- ABI Manager relabels to IDL for Solana contracts; `refreshContractAbi` checks Anchor registry
+- AI tools in `packages/ai/src/tools.ts` branch by `isSolanaChain(chainId)` for all four tools
+- System prompt in `packages/ai/src/prompt.ts` has Solana-specific wallet/tx guidance (signature vs hash, Solscan, Phantom error patterns)
+- Env var: `HELIUS_API_KEY`
+
+### Telegram bot integration
+- One bot per protocol: protocol team creates a bot with @BotFather and pastes the token in Dashboard > Telegram
+- `saveTelegramToken` validates via `getMe`, calls `setWebhook` pointing at `/api/telegram/{publishableKey}`, stores token + bot username in config
+- Webhook secured: Telegram's `secret_token` set to `projects.secret_key`; route validates `X-Telegram-Bot-Api-Secret-Token` header
+- Bot responds to: @mentions, /commands, replies-to-bot in groups; always in private chats
+- Full AI pipeline: same system prompt as widget (docs, contracts, language, persona) but no wallet tools
+- Conversation history: per-chat context stored in `conversations`/`messages` with session_id `tg-{chatId}`
+- Reply format: markdown converted to Telegram HTML (`<b>`, `<i>`, `<code>`, `<pre>`)
+- Server action: `lib/actions/telegram.ts`; webhook: `app/api/telegram/[key]/route.ts`
 
 ---
 
