@@ -12,6 +12,7 @@ import {
   getTokenBalances,
   getRecentTransactions,
   getTransactionByHash,
+  getContractTransactions,
 } from "@txid/blockchain"
 import type { WatchedContractSnapshot } from "./types"
 
@@ -166,8 +167,61 @@ export async function executeTool(
       return getTransactionByHash(hash, chainId, knownAbis)
     }
 
+    case "get_contract_transactions": {
+      const contractAddress = input.contract_address
+      if (typeof contractAddress !== "string" || !contractAddress) {
+        throw new Error("contract_address is required")
+      }
+      const chainId = typeof input.chain_id === "string" ? input.chain_id : (wallet?.chainId ?? "0x1")
+      const limit = Math.min(Number(input.limit ?? 10), 20)
+      return getContractTransactions(contractAddress, chainId, limit)
+    }
+
     default:
       throw new Error(`Unknown tool: ${name}`)
+  }
+}
+
+/**
+ * Contract-level transaction lookup — always offered when watched contracts are configured.
+ * Lets Claude find recent transactions on a protocol contract without needing a wallet
+ * connection or a specific tx hash from the user.
+ * Claude should follow up with get_transaction_by_hash on any failed tx it finds here
+ * to get the full revert decode.
+ */
+export function buildContractTxsTool(
+  watchedContracts: WatchedContractSnapshot[] = [],
+): Anthropic.Tool | null {
+  if (watchedContracts.length === 0) return null
+  const contractList = watchedContracts
+    .map(c => `${c.name} at ${c.address} (chain ${c.chain})`)
+    .join(", ")
+  return {
+    name: "get_contract_transactions",
+    description:
+      "Look up recent transactions sent to one of the protocol's smart contracts. " +
+      "Use this PROACTIVELY when a user reports a transaction problem but hasn't connected their wallet — " +
+      "you can find their likely transaction without asking them for anything technical. " +
+      "After finding a failed transaction, call get_transaction_by_hash with its hash for a full error diagnosis. " +
+      `This protocol's contracts: ${contractList}.`,
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        contract_address: {
+          type: "string",
+          description: "The contract address to fetch transactions for. Use the relevant contract from the list above.",
+        },
+        chain_id: {
+          type: "string",
+          description: "The chain ID for the contract's network (e.g. '0x38' for BNB Chain, '0x1' for Ethereum).",
+        },
+        limit: {
+          type: "number",
+          description: "Number of recent transactions to fetch. Default 10, max 20.",
+        },
+      },
+      required: ["contract_address", "chain_id"],
+    },
   }
 }
 
@@ -212,4 +266,5 @@ export const TOOL_LABELS: Record<string, string> = {
   get_wallet_balance: "Checking your balance…",
   get_recent_transactions: "Looking up your transactions…",
   get_transaction_by_hash: "Diagnosing transaction…",
+  get_contract_transactions: "Checking contract activity…",
 }

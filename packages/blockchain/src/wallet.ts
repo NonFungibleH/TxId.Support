@@ -145,6 +145,77 @@ export async function getTransactionByHash(
   }
 }
 
+/**
+ * Get recent transactions sent TO a contract address.
+ * Returns basic status info (no eth_call decode — follow up with getTransactionByHash
+ * for full revert decoding on any failed tx found here).
+ */
+export async function getContractTransactions(
+  contractAddress: string,
+  chainId: string,
+  limit = 10,
+): Promise<Transaction[]> {
+  const chain = moralisChain(chainId)
+  // Fetch more than we need — Moralis returns both incoming and outgoing; we filter to incoming
+  const res = await fetch(
+    `${MORALIS_BASE}/${contractAddress}?chain=${chain}&limit=${Math.min(limit * 3, 60)}`,
+    { headers: moralisHeaders(), signal: AbortSignal.timeout(8000) },
+  )
+  if (!res.ok) throw new Error(`Moralis contract transactions error: ${res.status}`)
+  const data = (await res.json()) as {
+    result: Array<{
+      hash: string
+      block_number: string
+      block_timestamp: string
+      from_address: string
+      to_address: string | null
+      value: string
+      gas: string
+      receipt_gas_used: string
+      receipt_status: string
+    }>
+  }
+
+  const incoming = (data.result ?? [])
+    .filter(tx => tx.to_address?.toLowerCase() === contractAddress.toLowerCase())
+    .slice(0, limit)
+
+  return incoming.map(tx => {
+    const valueEth = (Number(BigInt(tx.value ?? "0")) / 1e18).toLocaleString("en-US", { maximumFractionDigits: 6 })
+    const symbol = CHAIN_CONFIGS[chainId]?.nativeCurrency ?? "ETH"
+    const isFailed = tx.receipt_status !== "1"
+
+    // Detect out-of-gas locally (no RPC call)
+    let decodedRevert: DecodedRevert | undefined
+    if (isFailed) {
+      const used = parseInt(tx.receipt_gas_used, 10) || 0
+      const lim = parseInt(tx.gas, 10) || 0
+      const pct = lim > 0 ? Math.round((used / lim) * 100) : 0
+      if (pct >= 99) {
+        decodedRevert = {
+          cause: "out_of_gas" as const,
+          reason: `Out of gas: ${used.toLocaleString()} of ${lim.toLocaleString()} units consumed (${pct}%).`,
+          gasInfo: { used, limit: lim, percentUsed: pct },
+        }
+      }
+    }
+
+    return {
+      hash: tx.hash,
+      blockNumber: tx.block_number,
+      timestamp: tx.block_timestamp,
+      from: tx.from_address,
+      to: tx.to_address,
+      value: `${valueEth} ${symbol}`,
+      gasLimit: tx.gas,
+      gasUsed: tx.receipt_gas_used,
+      status: (isFailed ? "failed" : "success") as "failed" | "success",
+      summary: `${isFailed ? "Failed" : "Success"}: ${tx.from_address.slice(0, 6)}…${tx.from_address.slice(-4)} called contract`,
+      ...(decodedRevert !== undefined ? { decodedRevert } : {}),
+    }
+  })
+}
+
 /** Get recent transactions for a wallet (last 10) */
 export async function getRecentTransactions(
   address: string,
