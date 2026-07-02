@@ -8,9 +8,13 @@ import type { Database, Json } from "@/lib/supabase/types"
 
 type ProjectRow = Database["public"]["Tables"]["projects"]["Row"]
 
-async function resolveProjectWithOwnership(
-  projectId: string
-): Promise<Pick<ProjectRow, "id" | "config" | "org_id"> & { publishable_key: string; secret_key: string }> {
+type ResolvedProject = Pick<ProjectRow, "id" | "config" | "org_id"> & {
+  name: string
+  publishable_key: string
+  secret_key: string
+}
+
+async function resolveProjectWithOwnership(projectId: string): Promise<ResolvedProject> {
   const { orgId, userId } = await auth()
   if (!userId) throw new Error("Unauthenticated")
   const orgKey = orgId ?? userId
@@ -28,12 +32,12 @@ async function resolveProjectWithOwnership(
 
   const projectResult = await supabase
     .from("projects")
-    .select("id, config, org_id, publishable_key, secret_key")
+    .select("id, name, config, org_id, publishable_key, secret_key")
     .eq("id", projectId)
     .eq("org_id", orgData.id)
     .single()
 
-  const project = projectResult.data as unknown as (Pick<ProjectRow, "id" | "config" | "org_id"> & { publishable_key: string; secret_key: string }) | null
+  const project = projectResult.data as unknown as ResolvedProject | null
   if (projectResult.error || !project) throw new Error("Project not found or forbidden")
 
   return project
@@ -76,12 +80,31 @@ export async function saveTelegramToken(projectId: string, token: string) {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? ""
   const webhookUrl = `${appUrl}/api/telegram/${project.publishable_key}`
 
+  // Wire webhook — this must succeed
   await callTelegramApi(token.trim(), "setWebhook", {
     url: webhookUrl,
     secret_token: project.secret_key,
     allowed_updates: ["message"],
     drop_pending_updates: true,
   })
+
+  // Auto-configure bot identity + commands — best-effort, don't block on failure
+  const botDisplayName = `${project.name} Support`.slice(0, 64)
+  const description = `I'm the AI support assistant for ${project.name}. Ask me anything — I can look up your transactions, explain contract errors, and help you get unstuck.`
+  const shortDescription = `AI support for ${project.name}. Ask anything.`.slice(0, 120)
+
+  await Promise.allSettled([
+    callTelegramApi(token.trim(), "setMyName", { name: botDisplayName }),
+    callTelegramApi(token.trim(), "setMyDescription", { description }),
+    callTelegramApi(token.trim(), "setMyShortDescription", { short_description: shortDescription }),
+    callTelegramApi(token.trim(), "setMyCommands", {
+      commands: [
+        { command: "ask",   description: "Ask a question about this protocol" },
+        { command: "help",  description: "Get help or contact support" },
+        { command: "start", description: "Start a conversation" },
+      ],
+    }),
+  ])
 
   const updated: ProjectConfig = {
     ...config,
@@ -97,7 +120,7 @@ export async function saveTelegramToken(projectId: string, token: string) {
 
   if (error) throw new Error(error.message)
   revalidatePath("/dashboard/telegram")
-  return { username: botInfo.username }
+  return { username: botInfo.username, botDisplayName }
 }
 
 export async function removeTelegramToken(projectId: string) {
