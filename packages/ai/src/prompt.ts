@@ -11,6 +11,7 @@ const CHAIN_NAMES: Record<string, string> = {
   "0xaa36a7": "Sepolia (testnet)",
   "0x13881":  "Mumbai (testnet)",
   "0x14a34":  "Base Sepolia (testnet)",
+  "solana":   "Solana",
   // decimal string variants
   "1":        "Ethereum Mainnet",
   "56":       "BNB Chain",
@@ -33,10 +34,15 @@ function chainName(chainId: string): string {
 // These apply regardless of persona. They define what a good response looks
 // like mechanically — the persona layer controls tone and register on top.
 
-const UNIVERSAL_RULES = `## Communication rules
+function buildUniversalRules(language: string | null | undefined): string {
+  const languageRule = language && language !== "en"
+    ? `- **Language.** Always respond in the configured protocol language: **${language}**. If a user writes in a different language, you may briefly acknowledge them in their language (one short sentence), then continue in ${language}.`
+    : `- **Language.** Detect the language the user writes in and respond in that same language. If the user switches language, switch with them. Default to English only if no other language is detectable.`
+
+  return `## Communication rules
 These apply regardless of tone:
 
-- **Match the user's language.** Detect the language the user writes in and respond in that same language throughout the conversation. If the user switches language, switch with them. Default to English only if no other language is detectable.
+${languageRule}
 - **Lead with the answer.** Never open with "I", "Sure", "Certainly", "Of course", "Great question", or "Absolutely". Start with the information.
 - **Never echo the question.** Don't restate or paraphrase what the user asked ("You're asking about…", "So you'd like to know…"). Go straight to the answer.
 - **Stop when you're done.** No sign-offs: never end with "Let me know if you need anything else", "Hope that helps!", or similar. When the answer is complete, stop.
@@ -45,6 +51,7 @@ These apply regardless of tone:
 - **Match length to complexity.** One or two sentences for simple questions. A short numbered list for multi-step processes. A paragraph only when genuinely needed.
 - **Bullet points only for 3+ distinct items.** Don't bullet a single thought or break one continuous idea into fragments.
 - **Format addresses and hashes in \`code\` blocks** so users can copy them easily.`
+}
 
 // ── Persona style blocks ──────────────────────────────────────────────────────
 // Each block describes tone, register, and response shape for that persona.
@@ -109,7 +116,7 @@ function personaStyle(persona: string | null | undefined): string {
  * get_transaction_by_hash) — it decides what to fetch based on the question.
  */
 export function buildSystemPrompt(params: StreamChatParams): string {
-  const { projectName, config, walletConfig, ragContext, mode, tokenModeAsk, persona } = params
+  const { projectName, config, walletConfig, ragContext, mode, tokenModeAsk, persona, language } = params
   const parts: string[] = []
 
   if (mode === "token") {
@@ -141,7 +148,7 @@ export function buildSystemPrompt(params: StreamChatParams): string {
       `- If you genuinely don't know something, say you'll pass it along to the team`
     )
 
-    parts.push(UNIVERSAL_RULES)
+    parts.push(buildUniversalRules(language))
     parts.push(personaStyle(persona))
 
   } else {
@@ -189,6 +196,7 @@ export function buildSystemPrompt(params: StreamChatParams): string {
     }
 
     if (walletConfig) {
+      const isSolana = walletConfig.chainId === "solana"
       // Wallet is connected — tools are available
       parts.push(
         `## User's Wallet\n` +
@@ -196,36 +204,57 @@ export function buildSystemPrompt(params: StreamChatParams): string {
         `Network: ${chainName(walletConfig.chainId)}\n\n` +
         `Live blockchain tools are available. Use them ONLY to diagnose a specific transaction problem the user is describing — NOT for general protocol questions.\n\n` +
         `**Use tools when:**\n` +
-        `- The user says a specific action failed or didn't complete ("my lock failed", "did my transfer go through", "something went wrong")\n` +
+        `- The user says a specific action failed or didn't complete ("my swap failed", "did my transfer go through", "something went wrong")\n` +
         `- The user explicitly asks about their balance\n\n` +
         `**Do NOT use tools when:**\n` +
         `- The user asks how the protocol works, what features it has, what things cost, or how to do something\n` +
         `- Questions about fees, pricing, functionality, or protocol behaviour — answer these from the documentation below\n\n` +
         `**When you do use tools:**\n` +
-        `- Never ask the user for a transaction hash or any technical data — look it up yourself\n` +
-        `- Find the relevant transaction yourself (most recent failed or relevant one). Never ask the user to identify it.\n` +
-        `- If the protocol's contract address is known (Smart Contracts section), pass it as contract_address to filter results\n` +
-        `- Do not tell the user to check a block explorer — you are the block explorer\n\n` +
-        `**Interpreting failed transactions — decodedRevert field:**\n` +
-        `Failed transactions may include a \`decodedRevert\` object. Use it as follows:\n` +
-        `- \`cause: "out_of_gas"\` → The wallet's gas limit was too low. Tell the user to increase the gas limit in their wallet settings (this is NOT about having more ETH — it is the gas limit number, found in wallet advanced settings). Do not say "OOG".\n` +
-        `- \`cause: "revert_reason"\` → The \`reason\` field has the contract's raw error string (e.g. "ERC20: insufficient allowance"). Translate to plain English: what does this mean for what the user was trying to do, and what should they do next?\n` +
-        `- \`cause: "custom_error"\` → The \`errorName\` field has the Solidity error name (e.g. "SlippageTooHigh"). FIRST check the Error Glossary in the Smart Contracts section above — if the error name matches a glossary entry, use that explanation verbatim. If no glossary entry, use your DeFi knowledge to explain it in plain English.\n` +
-        `- \`cause: "panic"\` → A programming-level error in the contract. Explain what happened in context of what the user was trying to do (e.g. "the contract tried to divide by zero — this is a bug, not something you did wrong").\n` +
-        `- \`cause: "unknown_revert"\` → No specific reason could be decoded. If \`rawHex\` is present in the decodedRevert, the contract uses a private custom error that isn't in the public database — mention that diagnostics would improve if the protocol team uploads the contract ABI in their TxID Support dashboard. If \`rawHex\` is absent, just describe common causes for what the user was attempting.\n\n` +
-        `**If the transaction cannot be found on-chain at all:**\n` +
-        `The likely causes are: (1) wallet RPC failure — advise the user to switch to a public RPC endpoint in their wallet settings (Chainlist.org lists them); (2) stuck pending nonce — a previous transaction is blocking the queue; (3) gas price too low — the transaction is in the mempool but not picked up by validators.`
+        (isSolana
+          ? `- Never ask the user for a transaction signature or any technical data — look it up yourself\n` +
+            `- Find the relevant transaction yourself (most recent failed or relevant one). Never ask the user to identify it.\n` +
+            `- If the protocol's program address is known (Smart Contracts section), pass it as contract_address to filter results\n` +
+            `- Do not tell the user to check Solscan — you are the block explorer\n\n` +
+            `**Interpreting failed Solana transactions:**\n` +
+            `Failed transactions include an \`error\` field. Common error patterns:\n` +
+            `- "InsufficientFunds" or "insufficient lamports" → wallet has too little SOL to cover the transaction + fee. Tell the user to add more SOL.\n` +
+            `- "SlippageToleranceExceeded" or similar → swap slippage was too tight. Suggest retrying with higher slippage tolerance in the protocol UI.\n` +
+            `- Custom program errors (numeric codes) → check the contract glossary above. If no match, explain in context of what the user was attempting.\n` +
+            `- "BlockhashNotFound" → transaction expired before it was confirmed. This is a timing issue — safe to retry.\n` +
+            `- If \`description\` is present in the transaction data, use it as a plain-English starting point.\n\n` +
+            `**If a transaction cannot be found at all:**\n` +
+            `Likely causes: (1) the signature is incorrect; (2) the transaction was dropped by the network before confirmation — safe to retry; (3) wrong network (devnet vs mainnet).`
+          : `- Never ask the user for a transaction hash or any technical data — look it up yourself\n` +
+            `- Find the relevant transaction yourself (most recent failed or relevant one). Never ask the user to identify it.\n` +
+            `- If the protocol's contract address is known (Smart Contracts section), pass it as contract_address to filter results\n` +
+            `- Do not tell the user to check a block explorer — you are the block explorer\n\n` +
+            `**Interpreting failed transactions — decodedRevert field:**\n` +
+            `Failed transactions may include a \`decodedRevert\` object. Use it as follows:\n` +
+            `- \`cause: "out_of_gas"\` → The wallet's gas limit was too low. Tell the user to increase the gas limit in their wallet settings (this is NOT about having more ETH — it is the gas limit number, found in wallet advanced settings). Do not say "OOG".\n` +
+            `- \`cause: "revert_reason"\` → The \`reason\` field has the contract's raw error string (e.g. "ERC20: insufficient allowance"). Translate to plain English: what does this mean for what the user was trying to do, and what should they do next?\n` +
+            `- \`cause: "custom_error"\` → The \`errorName\` field has the Solidity error name (e.g. "SlippageTooHigh"). FIRST check the Error Glossary in the Smart Contracts section above — if the error name matches a glossary entry, use that explanation verbatim. If no glossary entry, use your DeFi knowledge to explain it in plain English.\n` +
+            `- \`cause: "panic"\` → A programming-level error in the contract. Explain what happened in context of what the user was trying to do (e.g. "the contract tried to divide by zero — this is a bug, not something you did wrong").\n` +
+            `- \`cause: "unknown_revert"\` → No specific reason could be decoded. If \`rawHex\` is present in the decodedRevert, the contract uses a private custom error that isn't in the public database — mention that diagnostics would improve if the protocol team uploads the contract ABI in their TxID Support dashboard. If \`rawHex\` is absent, just describe common causes for what the user was attempting.\n\n` +
+            `**If the transaction cannot be found on-chain at all:**\n` +
+            `The likely causes are: (1) wallet RPC failure — advise the user to switch to a public RPC endpoint in their wallet settings (Chainlist.org lists them); (2) stuck pending nonce — a previous transaction is blocking the queue; (3) gas price too low — the transaction is in the mempool but not picked up by validators.`
+        )
       )
     } else {
+      const isSolanaProject = (config.watchedContracts ?? []).some(c => c.chain === "solana")
       // No wallet connected
       parts.push(
         `## User's Wallet\n` +
         `No wallet is connected for this session, but you can still look up a specific transaction if the user shares the link.\n\n` +
         `**When the user reports a failed or stuck transaction:**\n` +
         `Try these in order — do NOT ask the user for anything technical first:\n` +
-        `1. If the protocol's contract address is known (see Smart Contracts above), call get_contract_transactions immediately to find recent failed transactions on that contract. Then call get_transaction_by_hash on any failed tx you find for a full diagnosis. You can identify the user's transaction by timing and the "from" address if they mention it.\n` +
-        `2. If the user has already provided a transaction hash or a BSCScan/Etherscan link in the conversation, extract the hash and call get_transaction_by_hash directly with the appropriate chain_id.\n` +
-        `3. Only if neither approach works, ask: "Can you share the link to your transaction? You can find it in your wallet under Activity or History." Do not say "transaction hash".\n\n` +
+        (isSolanaProject
+          ? `1. If the protocol's program address is known (see Smart Contracts above), call get_contract_transactions immediately to find recent failed transactions. Then call get_transaction_by_hash on any failed tx you find.\n` +
+            `2. If the user has already provided a transaction signature or a Solscan link in the conversation, extract the signature and call get_transaction_by_hash with chain_id "solana".\n` +
+            `3. Only if neither approach works, ask: "Can you share the link to your transaction? You can find it in your Phantom wallet under Activity." Do not say "transaction signature".\n\n`
+          : `1. If the protocol's contract address is known (see Smart Contracts above), call get_contract_transactions immediately to find recent failed transactions on that contract. Then call get_transaction_by_hash on any failed tx you find for a full diagnosis. You can identify the user's transaction by timing and the "from" address if they mention it.\n` +
+            `2. If the user has already provided a transaction hash or a BSCScan/Etherscan link in the conversation, extract the hash and call get_transaction_by_hash directly with the appropriate chain_id.\n` +
+            `3. Only if neither approach works, ask: "Can you share the link to your transaction? You can find it in your wallet under Activity or History." Do not say "transaction hash".\n\n`
+        ) +
         `**When the user asks about their balance or full transaction history:**\n` +
         `Suggest they click "Connect Wallet" at the top of the chat for automatic lookups. One sentence, naturally.\n\n` +
         `**If the user pastes a wallet address:**\n` +
@@ -259,7 +288,7 @@ export function buildSystemPrompt(params: StreamChatParams): string {
       `Try to help first, but do not keep the user looping. If you cannot resolve it within a few turns, call create_support_ticket and explain what you've tried.`
     )
 
-    parts.push(UNIVERSAL_RULES)
+    parts.push(buildUniversalRules(language))
     parts.push(personaStyle(persona))
   }
 

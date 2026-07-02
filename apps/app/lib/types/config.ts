@@ -34,6 +34,7 @@ export const SUPPORTED_CHAINS = [
   { id: "0x89",     name: "Polygon",           explorer: "polygonscan.com" },
   { id: "0xa4b1",   name: "Arbitrum",          explorer: "arbiscan.io" },
   { id: "0xa",      name: "Optimism",          explorer: "optimistic.etherscan.io" },
+  { id: "solana",   name: "Solana",            explorer: "solscan.io" },
 ] as const
 
 export type ChainId = (typeof SUPPORTED_CHAINS)[number]["id"]
@@ -43,6 +44,27 @@ export const SUPPORTED_FONTS = [
 ] as const
 
 export type SupportedFont = (typeof SUPPORTED_FONTS)[number]
+
+export const SUPPORTED_LANGUAGES = [
+  { code: "en",    label: "English" },
+  { code: "zh-CN", label: "Chinese (Simplified)" },
+  { code: "zh-TW", label: "Chinese (Traditional)" },
+  { code: "ko",    label: "Korean" },
+  { code: "vi",    label: "Vietnamese" },
+  { code: "id",    label: "Indonesian" },
+  { code: "ru",    label: "Russian" },
+  { code: "tr",    label: "Turkish" },
+  { code: "es",    label: "Spanish" },
+  { code: "pt-BR", label: "Portuguese (Brazilian)" },
+  { code: "ja",    label: "Japanese" },
+  { code: "ar",    label: "Arabic" },
+  { code: "fr",    label: "French" },
+  { code: "de",    label: "German" },
+  { code: "th",    label: "Thai" },
+  { code: "fil",   label: "Filipino" },
+] as const
+
+export type SupportedLanguageCode = (typeof SUPPORTED_LANGUAGES)[number]["code"]
 
 export const PERSONAS = ["concise", "friendly", "professional", "technical"] as const
 export type Persona = (typeof PERSONAS)[number]
@@ -68,6 +90,7 @@ export interface BrandingConfig {
   agentIconUrl?: string | null
   websiteUrl?: string | null
   welcomeMessage?: string | null
+  language?: string | null
 }
 
 export interface TokenConfig {

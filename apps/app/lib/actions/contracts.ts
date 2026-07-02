@@ -9,6 +9,7 @@ import type { ProjectConfig, WatchedContract, ErrorGlossaryEntry, Plan } from "@
 import { PLAN_CHAIN_LIMITS } from "@/lib/types/config"
 import type { Database, Json } from "@/lib/supabase/types"
 import { fetchAbiFromExplorer } from "@txid/blockchain"
+import { fetchIdlFromRegistry } from "@txid/solana"
 
 type ProjectRow = Database["public"]["Tables"]["projects"]["Row"]
 
@@ -115,7 +116,9 @@ export async function refreshContractAbi(projectId: string, contractId: string) 
   const contract = (config.watchedContracts ?? []).find((c) => c.id === contractId)
   if (!contract) throw new Error("Contract not found")
 
-  const abi = await fetchAbiFromExplorer(contract.address, contract.chain)
+  const abi = contract.chain === "solana"
+    ? await fetchIdlFromRegistry(contract.address)
+    : await fetchAbiFromExplorer(contract.address, contract.chain)
 
   const updated: ProjectConfig = {
     ...config,

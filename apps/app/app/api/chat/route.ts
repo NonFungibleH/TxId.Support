@@ -239,6 +239,7 @@ export async function POST(request: Request) {
       mode: projectMode as "support" | "token",
       tokenModeAsk: config.tokenModeAsk ?? undefined,
       persona: config.branding?.persona ?? "concise",
+      ...(config.branding?.language ? { language: config.branding.language } : {}),
     })
 
     // After 4 user turns without resolution, force the AI to escalate

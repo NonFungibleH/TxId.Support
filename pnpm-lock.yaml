@@ -56,6 +56,9 @@ importers:
       '@txid/blockchain':
         specifier: workspace:*
         version: link:../../packages/blockchain
+      '@txid/solana':
+        specifier: workspace:*
+        version: link:../../packages/solana
       '@types/dompurify':
         specifier: ^3.2.0
         version: 3.2.0
@@ -236,6 +239,9 @@ importers:
       '@txid/blockchain':
         specifier: workspace:*
         version: link:../blockchain
+      '@txid/solana':
+        specifier: workspace:*
+        version: link:../solana
       openai:
         specifier: ^6.34.0
         version: 6.34.0(ws@8.20.0)(zod@4.3.6)
@@ -272,6 +278,12 @@ importers:
       tsup:
         specifier: ^8.3.0
         version: 8.5.1(jiti@1.21.7)(postcss@8.5.8)(typescript@5.9.3)
+      typescript:
+        specifier: ^5.4.0
+        version: 5.9.3
+
+  packages/solana:
+    devDependencies:
       typescript:
         specifier: ^5.4.0
         version: 5.9.3

@@ -14,6 +14,12 @@ import {
   getTransactionByHash,
   getContractTransactions,
 } from "@txid/blockchain"
+import {
+  getSolanaWalletBalance,
+  getSolanaRecentTransactions,
+  getSolanaTransactionBySignature,
+  isSolanaChain,
+} from "@txid/solana"
 import type { WatchedContractSnapshot } from "./types"
 
 export interface WalletConfig {
@@ -38,7 +44,7 @@ export function buildWalletTools(
     {
       name: "get_wallet_balance",
       description:
-        "Get the current native currency (ETH, BNB, MATIC, etc.) and ERC-20 token balances " +
+        "Get the current native currency (ETH, BNB, SOL, etc.) and token balances " +
         "for the connected wallet. Use when the user asks about their balance, holdings, " +
         "funds, or how much of a token they have.",
       input_schema: {
@@ -83,20 +89,21 @@ export function buildTxLookupTool(): Anthropic.Tool {
   return {
     name: "get_transaction_by_hash",
     description:
-      "Look up the full details of a specific transaction by its hash. " +
-      "Use when the user provides a transaction hash (0x...) or refers to a specific transaction. " +
+      "Look up the full details of a specific transaction by its hash or signature. " +
+      "Use when the user provides a transaction hash (0x... for EVM) or signature (base58 for Solana), " +
+      "or refers to a specific transaction. " +
       "If the user's wallet is not connected, you must include chain_id — ask the user which network the transaction is on if you don't know.",
     input_schema: {
       type: "object" as const,
       properties: {
         hash: {
           type: "string",
-          description: "The transaction hash (0x...)",
+          description: "The transaction hash (0x... for EVM chains) or signature (base58 string for Solana)",
         },
         chain_id: {
           type: "string",
           description:
-            "The chain ID for the network this transaction is on (e.g. '0x38' for BNB Chain, '0x1' for Ethereum, '0x2105' for Base). " +
+            "The chain ID for the network (e.g. '0x38' for BNB Chain, '0x1' for Ethereum, '0x2105' for Base, 'solana' for Solana). " +
             "Required when no wallet is connected. If the wallet is connected this defaults to the connected network.",
         },
       },
@@ -116,34 +123,35 @@ export async function executeTool(
   wallet: WalletConfig | null,
   watchedContracts: WatchedContractSnapshot[] = [],
 ): Promise<unknown> {
+  const solana = wallet ? isSolanaChain(wallet.chainId) : false
+
   switch (name) {
     case "get_wallet_balance": {
       if (!wallet) throw new Error("Wallet not connected")
+      if (solana) {
+        return getSolanaWalletBalance(wallet.address)
+      }
       const [native, tokens] = await Promise.all([
         getNativeBalance(wallet.address, wallet.chainId),
         getTokenBalances(wallet.address, wallet.chainId).catch(() => []),
       ])
-      return {
-        address: wallet.address,
-        native,
-        tokens: tokens.slice(0, 20),
-      }
+      return { address: wallet.address, native, tokens: tokens.slice(0, 20) }
     }
 
     case "get_recent_transactions": {
       if (!wallet) throw new Error("Wallet not connected")
       const limit = Math.min(Number(input.limit ?? 10), 20)
-      const contractAddress =
+      const programOrContract =
         typeof input.contract_address === "string" ? input.contract_address : undefined
 
-      let txs = await getRecentTransactions(wallet.address, wallet.chainId, limit)
-
-      if (contractAddress) {
-        txs = txs.filter(
-          (tx) => tx.to?.toLowerCase() === contractAddress.toLowerCase(),
-        )
+      if (solana) {
+        return getSolanaRecentTransactions(wallet.address, programOrContract, limit)
       }
 
+      let txs = await getRecentTransactions(wallet.address, wallet.chainId, limit)
+      if (programOrContract) {
+        txs = txs.filter(tx => tx.to?.toLowerCase() === programOrContract.toLowerCase())
+      }
       return txs
     }
 
@@ -152,14 +160,15 @@ export async function executeTool(
       if (typeof hash !== "string" || !hash) {
         throw new Error("hash is required and must be a string")
       }
-      // Prefer the connected wallet's chain; fall back to the chain_id the AI supplied
       const chainId =
         wallet?.chainId ??
         (typeof input.chain_id === "string" ? input.chain_id : undefined)
       if (!chainId) {
         throw new Error("Cannot look up transaction: no wallet connected and no chain_id provided")
       }
-      // Build address→ABI map from watched contracts that have a stored ABI
+      if (isSolanaChain(chainId)) {
+        return getSolanaTransactionBySignature(hash)
+      }
       const knownAbis: Record<string, string> = {}
       for (const c of watchedContracts) {
         if (c.abi) knownAbis[c.address.toLowerCase()] = c.abi
@@ -174,6 +183,10 @@ export async function executeTool(
       }
       const chainId = typeof input.chain_id === "string" ? input.chain_id : (wallet?.chainId ?? "0x1")
       const limit = Math.min(Number(input.limit ?? 10), 20)
+      if (isSolanaChain(chainId)) {
+        // For Solana, treat contract_address as a program address and fetch recent txs
+        return getSolanaRecentTransactions(contractAddress, contractAddress, limit)
+      }
       return getContractTransactions(contractAddress, chainId, limit)
     }
 

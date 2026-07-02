@@ -434,6 +434,7 @@ export function WidgetApp() {
   const [walletAddress, setWalletAddress] = useState<string | null>(null)
   const [chainId, setChainId] = useState<string | null>(null)
   const [walletConnecting, setWalletConnecting] = useState(false)
+  const isSolanaProject = (config?.chains ?? []).includes("solana")
 
   // Wallet setup flow: prompt → (connected | manual | skipped)
   const [, setWalletSetup] = useState<"prompt" | "manual-input" | "connected" | "manual" | "skipped">("prompt")
@@ -533,24 +534,45 @@ export function WidgetApp() {
 
   // ── Connect wallet ───────────────────────────────────────────────────────
   const connectWallet = useCallback(async () => {
-    if (typeof window === "undefined" || !("ethereum" in window)) return
-    const eth = (window as unknown as { ethereum: { request: (a: { method: string }) => Promise<string[]> } }).ethereum
+    if (typeof window === "undefined") return
     setWalletConnecting(true)
     try {
-      const accounts = await eth.request({ method: "eth_requestAccounts" })
-      const chain = await eth.request({ method: "eth_chainId" }) as unknown as string[]
-      const addr = accounts[0]
-      const cId = chain as unknown as string
-      setWalletAddress(addr)
-      setChainId(cId)
-      setWalletSetup("connected")
-      saveWalletSession(apiKey, { setup: "connected", address: addr, chainId: cId })
+      if (isSolanaProject) {
+        // Phantom wallet — window.phantom.solana (new) or window.solana (legacy)
+        type PhantomProvider = {
+          connect: () => Promise<{ publicKey: { toString: () => string } }>
+          isPhantom?: boolean
+        }
+        const phantom = (
+          (window as unknown as { phantom?: { solana?: PhantomProvider } }).phantom?.solana ??
+          (window as unknown as { solana?: PhantomProvider }).solana
+        )
+        if (!phantom) return
+        const resp = await phantom.connect()
+        const addr = resp.publicKey.toString()
+        setWalletAddress(addr)
+        setChainId("solana")
+        setWalletSetup("connected")
+        saveWalletSession(apiKey, { setup: "connected", address: addr, chainId: "solana" })
+      } else {
+        // EVM wallet — window.ethereum (MetaMask and other injected wallets)
+        if (!("ethereum" in window)) return
+        const eth = (window as unknown as { ethereum: { request: (a: { method: string }) => Promise<string[]> } }).ethereum
+        const accounts = await eth.request({ method: "eth_requestAccounts" })
+        const chain = await eth.request({ method: "eth_chainId" }) as unknown as string[]
+        const addr = accounts[0]
+        const cId = chain as unknown as string
+        setWalletAddress(addr)
+        setChainId(cId)
+        setWalletSetup("connected")
+        saveWalletSession(apiKey, { setup: "connected", address: addr, chainId: cId })
+      }
     } catch {
       // user rejected
     } finally {
       setWalletConnecting(false)
     }
-  }, [apiKey])
+  }, [apiKey, isSolanaProject])
 
 
   // ── Submit support ticket ────────────────────────────────────────────────
@@ -741,7 +763,12 @@ export function WidgetApp() {
 
   const b = config.branding
   const isTokenMode = config.mode === "token"
+  const hasPhantom = typeof window !== "undefined" && (
+    !!(window as unknown as { phantom?: { solana?: unknown } }).phantom?.solana ||
+    !!(window as unknown as { solana?: unknown }).solana
+  )
   const hasMetaMask = typeof window !== "undefined" && "ethereum" in window
+  const hasWallet = isSolanaProject ? hasPhantom : hasMetaMask
 
   // Ensure text always contrasts with the background regardless of branding config
   const bgIsLight = getBgLuminance(b.backgroundColor) > 0.5
@@ -800,24 +827,24 @@ export function WidgetApp() {
             <span className="rounded-full px-2 py-0.5 text-[10px] font-mono" style={{ backgroundColor: b.secondaryColor, color: b.textColor }}>
               {walletAddress.slice(0, 6)}…{walletAddress.slice(-4)}
             </span>
-          ) : hasMetaMask ? (
-              <button
-                onClick={connectWallet}
-                disabled={walletConnecting}
-                className="rounded-full px-2 py-0.5 text-[10px] font-medium transition-opacity disabled:opacity-40 active:opacity-70"
-                style={{ backgroundColor: b.secondaryColor, color: b.textColor }}
-              >
-                {walletConnecting ? "Connecting…" : "Connect wallet"}
-              </button>
-            ) : (
-              <button
-                onClick={() => setWalletSetup("manual-input")}
-                className="rounded-full px-2 py-0.5 text-[10px] font-medium transition-opacity active:opacity-70"
-                style={{ backgroundColor: b.secondaryColor, color: b.textColor }}
-              >
-                Enter address
-              </button>
-            )
+          ) : hasWallet ? (
+            <button
+              onClick={connectWallet}
+              disabled={walletConnecting}
+              className="rounded-full px-2 py-0.5 text-[10px] font-medium transition-opacity disabled:opacity-40 active:opacity-70"
+              style={{ backgroundColor: b.secondaryColor, color: b.textColor }}
+            >
+              {walletConnecting ? "Connecting…" : isSolanaProject ? "Connect Phantom" : "Connect wallet"}
+            </button>
+          ) : (
+            <button
+              onClick={() => setWalletSetup("manual-input")}
+              className="rounded-full px-2 py-0.5 text-[10px] font-medium transition-opacity active:opacity-70"
+              style={{ backgroundColor: b.secondaryColor, color: b.textColor }}
+            >
+              Enter address
+            </button>
+          )
         )}
         <button
           type="button"

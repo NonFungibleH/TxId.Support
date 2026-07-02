@@ -18,6 +18,8 @@ export function AbiManager({ projectId, contract }: Props) {
   const [showPaste, setShowPaste] = useState(false)
   const [abiText, setAbiText] = useState("")
 
+  const isSolana = contract.chain === "solana"
+  const label = isSolana ? "IDL" : "ABI"
   const hasAbi = !!contract.abi
   const source = contract.abiSource
 
@@ -26,13 +28,13 @@ export function AbiManager({ projectId, contract }: Props) {
       try {
         const result = await refreshContractAbi(projectId, contract.id)
         if (result.found) {
-          toast.success("ABI fetched from block explorer")
+          toast.success(`${label} fetched from ${isSolana ? "Anchor registry" : "block explorer"}`)
         } else {
-          toast.error("Contract not verified on block explorer. Paste the ABI manually.")
+          toast.error(`Program not found in registry. Paste the ${label} manually.`)
           setShowPaste(true)
         }
       } catch {
-        toast.error("Failed to check block explorer")
+        toast.error(`Failed to check ${isSolana ? "Anchor registry" : "block explorer"}`)
       }
     })
   }
@@ -42,11 +44,11 @@ export function AbiManager({ projectId, contract }: Props) {
     startTransition(async () => {
       try {
         await saveContractAbi(projectId, contract.id, abiText.trim())
-        toast.success("ABI saved")
+        toast.success(`${label} saved`)
         setShowPaste(false)
         setAbiText("")
       } catch (err) {
-        toast.error(err instanceof Error ? err.message : "Failed to save ABI")
+        toast.error(err instanceof Error ? err.message : `Failed to save ${label}`)
       }
     })
   }
@@ -55,23 +57,25 @@ export function AbiManager({ projectId, contract }: Props) {
     startTransition(async () => {
       try {
         await clearContractAbi(projectId, contract.id)
-        toast.success("ABI removed")
+        toast.success(`${label} removed`)
       } catch {
-        toast.error("Failed to remove ABI")
+        toast.error(`Failed to remove ${label}`)
       }
     })
   }
 
   return (
     <div className="mt-3 space-y-2">
-      <p className="text-xs font-medium text-muted-foreground">ABI (for transaction diagnostics)</p>
+      <p className="text-xs font-medium text-muted-foreground">{label} (for transaction diagnostics)</p>
 
       {hasAbi ? (
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-1.5 text-xs text-emerald-500">
             <CheckCircle2 className="size-3.5 shrink-0" />
             <span>
-              {source === "explorer" ? "Verified on block explorer" : "ABI uploaded manually"}
+              {source === "explorer"
+                ? (isSolana ? "Fetched from Anchor registry" : "Verified on block explorer")
+                : `${label} uploaded manually`}
             </span>
           </div>
           <div className="flex items-center gap-1 ml-auto">
@@ -101,15 +105,18 @@ export function AbiManager({ projectId, contract }: Props) {
           <div className="flex items-start gap-2 rounded-md bg-amber-500/10 border border-amber-500/20 px-3 py-2">
             <AlertTriangle className="size-3.5 text-amber-500 shrink-0 mt-0.5" />
             <p className="text-xs text-amber-400 leading-relaxed">
-              No ABI found. Custom error names won&apos;t be decoded — the AI will see raw hex instead of
-              the error name. Either verify this contract on the block explorer, or paste the ABI below.
+              {isSolana
+                ? `No IDL found. Custom program errors won't be decoded. Check the Anchor registry, or paste your IDL JSON below.`
+                : `No ABI found. Custom error names won't be decoded — the AI will see raw hex instead of the error name. Either verify this contract on the block explorer, or paste the ABI below.`}
             </p>
           </div>
 
           {showPaste ? (
             <div className="space-y-2">
               <Textarea
-                placeholder='Paste your ABI JSON array here, e.g. [{"type":"error","name":"SlippageTooHigh",...}]'
+                placeholder={isSolana
+                  ? "Paste your Anchor IDL JSON here"
+                  : 'Paste your ABI JSON array here, e.g. [{"type":"error","name":"SlippageTooHigh",...}]'}
                 value={abiText}
                 onChange={(e) => setAbiText(e.target.value)}
                 className="text-xs font-mono min-h-[100px] resize-y"
@@ -122,7 +129,7 @@ export function AbiManager({ projectId, contract }: Props) {
                   disabled={isPending || !abiText.trim()}
                 >
                   <Upload className="size-3" />
-                  Save ABI
+                  Save {label}
                 </Button>
                 <Button
                   variant="ghost"
@@ -144,7 +151,7 @@ export function AbiManager({ projectId, contract }: Props) {
                 disabled={isPending}
               >
                 <RefreshCw className="size-3" />
-                Check block explorer
+                {isSolana ? "Check Anchor registry" : "Check block explorer"}
               </Button>
               <Button
                 variant="ghost"
@@ -153,7 +160,7 @@ export function AbiManager({ projectId, contract }: Props) {
                 onClick={() => setShowPaste(true)}
               >
                 <Upload className="size-3" />
-                Paste ABI
+                Paste {label}
               </Button>
             </div>
           )}
