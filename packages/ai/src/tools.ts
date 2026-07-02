@@ -21,7 +21,7 @@ export interface WalletConfig {
 }
 
 /**
- * Build the tool schema array to pass to Claude.
+ * Build balance + history tools — only offered when a wallet is connected.
  * Includes watched contract addresses as hints in the description so Claude
  * knows to filter `get_recent_transactions` to relevant contracts.
  */
@@ -71,37 +71,53 @@ export function buildWalletTools(
         required: [],
       },
     },
-    {
-      name: "get_transaction_by_hash",
-      description:
-        "Look up the full details of a specific transaction by its hash. " +
-        "Use when the user provides a transaction hash (0x...) or refers to a specific transaction.",
-      input_schema: {
-        type: "object" as const,
-        properties: {
-          hash: {
-            type: "string",
-            description: "The transaction hash (0x...)",
-          },
-        },
-        required: ["hash"],
-      },
-    },
   ]
+}
+
+/**
+ * Tx hash lookup — always offered, even without a connected wallet.
+ * Requires chain_id when no wallet is connected so we know which network to query.
+ */
+export function buildTxLookupTool(): Anthropic.Tool {
+  return {
+    name: "get_transaction_by_hash",
+    description:
+      "Look up the full details of a specific transaction by its hash. " +
+      "Use when the user provides a transaction hash (0x...) or refers to a specific transaction. " +
+      "If the user's wallet is not connected, you must include chain_id — ask the user which network the transaction is on if you don't know.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        hash: {
+          type: "string",
+          description: "The transaction hash (0x...)",
+        },
+        chain_id: {
+          type: "string",
+          description:
+            "The chain ID for the network this transaction is on (e.g. '0x38' for BNB Chain, '0x1' for Ethereum, '0x2105' for Base). " +
+            "Required when no wallet is connected. If the wallet is connected this defaults to the connected network.",
+        },
+      },
+      required: ["hash"],
+    },
+  }
 }
 
 /**
  * Execute a tool call from Claude, fetching the requested blockchain data from Moralis.
  * Returns raw structured data — Claude interprets and presents it naturally.
+ * wallet may be null when only the escalation or tx-hash tool is being called.
  */
 export async function executeTool(
   name: string,
   input: Record<string, unknown>,
-  wallet: WalletConfig,
+  wallet: WalletConfig | null,
   watchedContracts: WatchedContractSnapshot[] = [],
 ): Promise<unknown> {
   switch (name) {
     case "get_wallet_balance": {
+      if (!wallet) throw new Error("Wallet not connected")
       const [native, tokens] = await Promise.all([
         getNativeBalance(wallet.address, wallet.chainId),
         getTokenBalances(wallet.address, wallet.chainId).catch(() => []),
@@ -114,6 +130,7 @@ export async function executeTool(
     }
 
     case "get_recent_transactions": {
+      if (!wallet) throw new Error("Wallet not connected")
       const limit = Math.min(Number(input.limit ?? 10), 20)
       const contractAddress =
         typeof input.contract_address === "string" ? input.contract_address : undefined
@@ -134,12 +151,19 @@ export async function executeTool(
       if (typeof hash !== "string" || !hash) {
         throw new Error("hash is required and must be a string")
       }
+      // Prefer the connected wallet's chain; fall back to the chain_id the AI supplied
+      const chainId =
+        wallet?.chainId ??
+        (typeof input.chain_id === "string" ? input.chain_id : undefined)
+      if (!chainId) {
+        throw new Error("Cannot look up transaction: no wallet connected and no chain_id provided")
+      }
       // Build address→ABI map from watched contracts that have a stored ABI
       const knownAbis: Record<string, string> = {}
       for (const c of watchedContracts) {
         if (c.abi) knownAbis[c.address.toLowerCase()] = c.abi
       }
-      return getTransactionByHash(hash, wallet.chainId, knownAbis)
+      return getTransactionByHash(hash, chainId, knownAbis)
     }
 
     default:

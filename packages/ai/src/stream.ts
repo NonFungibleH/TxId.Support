@@ -1,7 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk"
 import OpenAI from "openai"
 import type { ChatMessage, WatchedContractSnapshot } from "./types"
-import { buildWalletTools, buildEscalationTool, executeTool } from "./tools"
+import { buildWalletTools, buildTxLookupTool, buildEscalationTool, executeTool } from "./tools"
 import type { WalletConfig } from "./tools"
 
 // ── Model selection ──────────────────────────────────────────────────────────
@@ -70,9 +70,10 @@ export async function* streamChatWithTools(
     const TX_KEYWORDS = /\b(fail|failed|error|stuck|pending|didn[‘’]t|did not|went wrong|lost|missing|not received|refund|my balance|what(‘s| is) my balance|my wallet|my tokens?|what do i have|my eth|my bnb|how much (do i|eth|bnb|have)|transaction (fail|stuck|didn)|tx |txn\b)/i
     const needsWalletTools = walletConfig !== null && TX_KEYWORDS.test(latestUserMsg)
 
-    // Escalation tool is always available; wallet tools only when connected + relevant
+    // Wallet tools only when connected + relevant; tx lookup and escalation always available
     const anthropicTools = [
       ...(needsWalletTools ? buildWalletTools(watchedContracts) : []),
+      buildTxLookupTool(),
       buildEscalationTool(),
     ]
     const groqTools: OpenAI.ChatCompletionTool[] = anthropicTools.map((t) => ({
@@ -134,7 +135,7 @@ export async function* streamChatWithTools(
             fnCalls.map(async (tc) => {
               try {
                 const input = JSON.parse(tc.function.arguments || "{}") as Record<string, unknown>
-                const result = await executeTool(tc.function.name, input, walletConfig!, watchedContracts)
+                const result = await executeTool(tc.function.name, input, walletConfig, watchedContracts)
                 return { role: "tool" as const, tool_call_id: tc.id, content: JSON.stringify(result, null, 2) }
               } catch (err) {
                 return { role: "tool" as const, tool_call_id: tc.id, content: `Error: ${err instanceof Error ? err.message : "Tool failed"}` }
@@ -184,6 +185,7 @@ export async function* streamChatWithTools(
   // ── Claude with agentic tool use ─────────────────────────────────────────
   const tools = [
     ...(walletConfig ? buildWalletTools(watchedContracts) : []),
+    buildTxLookupTool(),
     buildEscalationTool(),
   ]
 
@@ -251,7 +253,7 @@ export async function* streamChatWithTools(
           const result = await executeTool(
             block.name,
             block.input as Record<string, unknown>,
-            walletConfig!,
+            walletConfig,
             watchedContracts,
           )
           return {
