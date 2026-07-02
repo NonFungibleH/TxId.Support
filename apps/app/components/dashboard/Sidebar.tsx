@@ -98,6 +98,7 @@ export function Sidebar({ mode = "support", plan = "free", isOpen = false, onClo
   const GROUPS = mode === "token" ? TOKEN_GROUPS : SUPPORT_GROUPS
   const badge = PLAN_BADGE[plan] ?? PLAN_BADGE.free
   const showUpgrade = plan === "free" || plan === "starter"
+  const modeLabel = mode === "token" ? "Community Widget" : "Support Agent"
 
   return (
     <aside
@@ -150,24 +151,27 @@ export function Sidebar({ mode = "support", plan = "free", isOpen = false, onClo
       </nav>
 
       <div className="border-t border-border px-3 py-3 space-y-2">
-        {/* Plan badge */}
-        <div className="flex items-center justify-between rounded-lg border border-border px-3 py-2">
-          <div className="flex items-center gap-2">
-            <span className={cn("rounded-full px-2 py-0.5 text-[11px] font-semibold", badge.cls)}>
-              {badge.label}
-            </span>
-            <span className="text-xs text-muted-foreground">plan</span>
+        {/* Plan + mode badge */}
+        <div className="rounded-lg border border-border px-3 py-2 space-y-1.5">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className={cn("rounded-full px-2 py-0.5 text-[11px] font-semibold", badge.cls)}>
+                {badge.label}
+              </span>
+              <span className="text-xs text-muted-foreground">plan</span>
+            </div>
+            {showUpgrade && (
+              <Link
+                href="/dashboard/upgrade"
+                onClick={onClose}
+                className="flex items-center gap-1 text-[11px] font-medium text-primary hover:text-primary/80 transition-colors"
+              >
+                <Zap className="size-3" />
+                Upgrade
+              </Link>
+            )}
           </div>
-          {showUpgrade && (
-            <Link
-              href="/dashboard/upgrade"
-              onClick={onClose}
-              className="flex items-center gap-1 text-[11px] font-medium text-primary hover:text-primary/80 transition-colors"
-            >
-              <Zap className="size-3" />
-              Upgrade
-            </Link>
-          )}
+          <p className="text-[11px] text-muted-foreground">{modeLabel}</p>
         </div>
 
         <button

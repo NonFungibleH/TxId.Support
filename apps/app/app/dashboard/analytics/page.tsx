@@ -3,9 +3,12 @@ import { redirect } from "next/navigation"
 import { createServiceClient } from "@/lib/supabase/server"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import dynamic from "next/dynamic"
-import { MessageSquare, CheckCircle2, AlertCircle, Zap } from "lucide-react"
+import { MessageSquare, AlertCircle, Zap } from "lucide-react"
 import Link from "next/link"
 import type { Database } from "@/lib/supabase/types"
+import type { ProjectConfig, Plan } from "@/lib/types/config"
+import { PLAN_CONV_LIMITS } from "@/lib/types/config"
+import { cn } from "@/lib/utils"
 import { AnalyticsPeriodSelector } from "@/components/dashboard/AnalyticsPeriodSelector"
 
 const ConversationChart = dynamic(
@@ -62,9 +65,25 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Se
   const supabase = createServiceClient()
   const projectId = typedProject.id
 
-  const days = Math.min(parseInt(searchParams.days ?? "14", 10) || 14, 90)
+  const config = typedProject.config as unknown as ProjectConfig
+  const plan = (config.plan ?? "free") as Plan
+  const convLimit = PLAN_CONV_LIMITS[plan]
+  const convLimitLabel = convLimit === Infinity ? null : convLimit.toLocaleString()
 
   const now = new Date()
+  const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1))
+
+  const { count: monthlyCount } = await supabase
+    .from("conversations")
+    .select("id", { count: "exact", head: true })
+    .eq("project_id", projectId)
+    .gte("created_at", monthStart.toISOString())
+
+  const monthlyUsed = monthlyCount ?? 0
+  const usagePct = convLimit === Infinity ? 0 : Math.round((monthlyUsed / convLimit) * 100)
+
+  const days = Math.min(parseInt(searchParams.days ?? "14", 10) || 14, 90)
+
   const since = new Date(now)
   since.setDate(since.getDate() - (days - 1))
   since.setHours(0, 0, 0, 0)
@@ -83,53 +102,30 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Se
     .select("id", { count: "exact", head: true })
     .eq("project_id", projectId)
 
-  // All conversation IDs for message queries
-  const { data: allConvIds } = await supabase
-    .from("conversations")
-    .select("id")
-    .eq("project_id", projectId) as { data: { id: string }[] | null }
+  // Total messages via SQL join — avoids O(n) IN clause
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: msgCountData } = await (supabase as any)
+    .rpc("get_project_message_count", { p_project_id: projectId })
+  const totalMessages = (msgCountData as number | null) ?? 0
 
-  const convIdList = (allConvIds ?? []).map((c) => c.id)
-
-  // Total messages ever
-  let totalMessages = 0
-  if (convIdList.length > 0) {
-    const { count } = await supabase
-      .from("messages")
-      .select("id", { count: "exact", head: true })
-      .in("conversation_id", convIdList)
-    totalMessages = count ?? 0
-  }
-
-  // Resolved rate: last message role per conversation in the selected period
-  let resolvedRate: number | null = null
-  const periodConvIds = (conversations ?? []).map(c => c.id)
-  if (periodConvIds.length > 0) {
-    const { data: periodMsgs } = await supabase
-      .from("messages")
-      .select("conversation_id, role, created_at")
-      .in("conversation_id", periodConvIds)
-      .order("created_at", { ascending: false })
-
-    const seenConvs = new Set<string>()
-    let resolvedCount = 0
-    for (const msg of periodMsgs ?? []) {
-      if (seenConvs.has(msg.conversation_id)) continue
-      seenConvs.add(msg.conversation_id)
-      if (msg.role === "assistant") resolvedCount++
-    }
-    if (seenConvs.size > 0) {
-      resolvedRate = Math.round((resolvedCount / seenConvs.size) * 100)
-    }
+  // Escalation rate: % of conversations in the period that opened a support ticket
+  let escalationRate: number | null = null
+  const periodConvCount = (conversations ?? []).length
+  if (periodConvCount > 0) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: escalCount } = await (supabase as any)
+      .rpc("get_project_escalation_count", { p_project_id: projectId, p_since: since.toISOString() })
+    const escalated = (escalCount as number | null) ?? 0
+    escalationRate = Math.round((escalated / periodConvCount) * 100)
   }
 
   // Chain breakdown (all-time) — normalize hex IDs before counting to avoid duplicates
   const chainCounts = new Map<string, number>()
-  for (const conv of allConvIds ? (await supabase
+  for (const conv of (await supabase
     .from("conversations")
     .select("chain_id")
     .eq("project_id", projectId)
-    .not("chain_id", "is", null)).data ?? [] : []) {
+    .not("chain_id", "is", null)).data ?? []) {
     const raw = (conv as { chain_id: string | null }).chain_id
     if (!raw) continue
     const id = normalizeChainId(raw)
@@ -177,6 +173,28 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Se
         </div>
         <AnalyticsPeriodSelector current={days} />
       </div>
+
+      {convLimitLabel && usagePct >= 80 && (
+        <div className={cn(
+          "rounded-xl border p-4 flex items-start gap-3",
+          usagePct >= 100
+            ? "border-red-500/40 bg-red-500/10"
+            : "border-amber-500/40 bg-amber-500/10",
+        )}>
+          <AlertCircle className={cn("size-4 mt-0.5 shrink-0", usagePct >= 100 ? "text-red-400" : "text-amber-400")} />
+          <p className={cn("text-sm", usagePct >= 100 ? "text-red-300" : "text-amber-300")}>
+            {usagePct >= 100
+              ? <>You&apos;ve reached your monthly limit of {convLimitLabel} conversations. New chats are paused. </>
+              : <>{usagePct}% of your monthly {convLimitLabel}-conversation limit used. </>}
+            <a
+              href="mailto:hello@txid.support?subject=Upgrade enquiry"
+              className="underline underline-offset-2 hover:opacity-80"
+            >
+              Upgrade to increase your limit
+            </a>
+          </p>
+        </div>
+      )}
 
       {!hasData && (
         <div className="rounded-xl border border-dashed border-primary/30 bg-primary/5 p-6 flex items-start gap-4">
@@ -226,15 +244,15 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Se
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
-              <CheckCircle2 className="size-3.5" />
-              Resolved rate
+              <AlertCircle className="size-3.5" />
+              Escalated
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {resolvedRate !== null ? (
+            {escalationRate !== null ? (
               <>
-                <p className="text-2xl font-bold">{resolvedRate}%</p>
-                <p className="text-xs text-muted-foreground mt-0.5">AI had the last word this period</p>
+                <p className="text-2xl font-bold">{escalationRate}%</p>
+                <p className="text-xs text-muted-foreground mt-0.5">Conversations that raised a ticket</p>
               </>
             ) : (
               <>

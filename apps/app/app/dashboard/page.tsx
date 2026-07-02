@@ -94,6 +94,7 @@ export default async function DashboardPage() {
   const docsDone = docCount > 0
   const previewDone = config.previewConfirmed === true
   const liveDone = typedProject.is_active === true
+  const telegramDone = Boolean(config.telegramBotToken)
 
   const SETUP_STEPS = [
     {
@@ -135,6 +136,14 @@ export default async function DashboardPage() {
       desc: "Copy the one-line snippet into your site, then flip the switch to publish.",
       time: "~2 min",
       done: liveDone,
+    },
+    {
+      step: 6,
+      href: "/dashboard/telegram",
+      label: "Connect Telegram (optional)",
+      desc: "Add the AI to a Telegram group so your community can get support directly in chat.",
+      time: "~3 min",
+      done: telegramDone,
     },
   ]
 

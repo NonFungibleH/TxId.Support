@@ -87,8 +87,8 @@ export async function* streamChatWithTools(
       },
     }))
 
-    // F7: cap history to last 50 messages; cap each message to 2 000 chars
-    const MAX_MSG = 50
+    // Cap history to last 20 messages; cap each message to 2 000 chars
+    const MAX_MSG = 20
     const MAX_CHARS = 2000
     const recentHistory = messages.slice(-MAX_MSG)
 
@@ -193,8 +193,8 @@ export async function* streamChatWithTools(
     buildEscalationTool(),
   ]
 
-  // Cap history to last 10 messages to prevent linear cost growth
-  const recentMessages = messages.slice(-10)
+  // Cap history to last 20 messages to prevent linear cost growth
+  const recentMessages = messages.slice(-20)
 
   let currentMessages: Anthropic.MessageParam[] = recentMessages.map((m) => ({
     role: m.role as "user" | "assistant",

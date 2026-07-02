@@ -200,6 +200,17 @@ export function TelegramPageClient({
           </p>
         </div>
 
+        {/* Capability note */}
+        <div className="rounded-lg border border-border bg-muted/30 px-4 py-3 space-y-1.5">
+          <p className="text-xs font-semibold text-muted-foreground">What Telegram can and cannot do</p>
+          <ul className="space-y-1 text-xs text-muted-foreground">
+            <li className="flex items-start gap-2"><span className="mt-0.5 text-emerald-500">✓</span>Full docs, contracts, and language support — same knowledge base as the web widget</li>
+            <li className="flex items-start gap-2"><span className="mt-0.5 text-emerald-500">✓</span>Conversation history per user per group</li>
+            <li className="flex items-start gap-2"><span className="mt-0.5 text-amber-500">~</span>Escalation prompts are included but users must follow up via your support channel manually — Telegram cannot open in-widget tickets</li>
+            <li className="flex items-start gap-2"><span className="mt-0.5 text-amber-500">~</span>Wallet tools are not available — Telegram users cannot connect a wallet for on-chain lookups</li>
+          </ul>
+        </div>
+
       </div>
     )
   }

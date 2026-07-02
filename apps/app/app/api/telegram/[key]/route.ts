@@ -1,7 +1,8 @@
 import { createServiceClient } from "@/lib/supabase/server"
 import { buildSystemPrompt, completeChat } from "@txid/ai"
 import type { ChatMessage, ProjectConfigSnapshot } from "@txid/ai"
-import type { ProjectConfig } from "@/lib/types/config"
+import type { ProjectConfig, Plan } from "@/lib/types/config"
+import { PLAN_CONV_LIMITS } from "@/lib/types/config"
 import type { Database } from "@/lib/supabase/types"
 
 type ProjectRow = Database["public"]["Tables"]["projects"]["Row"]
@@ -172,8 +173,30 @@ export async function POST(
     return new Response("OK", { status: 200 })
   }
 
-  // Session is per-chat (groups share one context, DMs are per-user)
-  const sessionId = `tg-${message.chat.id}`
+  // ── Monthly quota check ───────────────────────────────────────────────────────
+  const monthlyLimit = PLAN_CONV_LIMITS[(config.plan ?? "free") as Plan]
+  if (monthlyLimit !== Infinity) {
+    const startOfMonth = new Date()
+    startOfMonth.setUTCDate(1)
+    startOfMonth.setUTCHours(0, 0, 0, 0)
+    const { count: monthlyCount } = await supabase
+      .from("conversations")
+      .select("id", { count: "exact", head: true })
+      .eq("project_id", project.id)
+      .gte("created_at", startOfMonth.toISOString())
+    if ((monthlyCount ?? 0) >= monthlyLimit) {
+      await sendTelegramMessage(
+        botToken,
+        message.chat.id,
+        "This protocol's support bot has reached its monthly conversation limit. Please try again next month or contact the team directly.",
+        message.message_id,
+      )
+      return new Response("OK", { status: 200 })
+    }
+  }
+
+  // Session is per-user within each chat — prevents context bleed between group members
+  const sessionId = `tg-${message.chat.id}-${message.from.id}`
 
   // Load recent message history from Supabase for context
   const { data: convData } = await supabase

@@ -103,7 +103,10 @@ export async function POST(request: Request) {
       .map(m => ({ ...m, content: typeof m.content === "string" ? m.content.slice(0, MAX_CONTENT_LEN) : m.content }))
 
     // F2: validate wallet address format before it touches any downstream URL
-    if (walletAddress && !/^0x[0-9a-fA-F]{40}$/.test(walletAddress)) {
+    // Accepts EVM (0x + 40 hex) or Solana (base58, 32-44 chars)
+    const EVM_ADDR = /^0x[0-9a-fA-F]{40}$/
+    const SOL_ADDR = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/
+    if (walletAddress && !EVM_ADDR.test(walletAddress) && !SOL_ADDR.test(walletAddress)) {
       return new Response(JSON.stringify({ error: "Invalid wallet address" }), {
         status: 400,
         headers: { ...CORS_HEADERS, "Content-Type": "application/json" },

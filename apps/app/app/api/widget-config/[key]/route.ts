@@ -1,6 +1,6 @@
 import { createServiceClient } from "@/lib/supabase/server"
 import type { ProjectConfig } from "@/lib/types/config"
-import type { Database, Json } from "@/lib/supabase/types"
+import type { Database } from "@/lib/supabase/types"
 import { verifyPreviewToken } from "@/lib/preview-token"
 
 type ProjectRow = Database["public"]["Tables"]["projects"]["Row"]
@@ -83,14 +83,9 @@ export async function GET(
 
     if (requestHost && !EXEMPT_HOSTS.has(requestHost)) {
       const allowed = config.allowedDomains ?? []
-      if (allowed.length === 0) {
-        // Auto-register: first external domain to call this key claims it
-        const updated = { ...config, allowedDomains: [requestHost] }
-        await supabase
-          .from("projects")
-          .update({ config: updated as unknown as Json })
-          .eq("id", typedProject.id)
-      } else {
+      // Empty allowedDomains = open (not yet restricted). Enforce only once the
+      // protocol team has explicitly added at least one domain in the dashboard.
+      if (allowed.length > 0) {
         const normalised = allowed.map((d) => d.replace(/^https?:\/\//, "").toLowerCase())
         if (!normalised.includes(requestHost)) {
           return new Response(JSON.stringify({ error: "Domain not registered for this key" }), {
