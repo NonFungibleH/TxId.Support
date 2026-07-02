@@ -190,7 +190,11 @@ export function buildEscalationTool(): Anthropic.Tool {
       properties: {
         summary: {
           type: "string",
-          description: "A concise 1–2 sentence summary of the user's issue. Shown to the user when confirming their ticket.",
+          description:
+            "A concise 1–2 sentence description of the user's issue, written in plain English directly for the user to read — NOT internal diagnostic notes. " +
+            "Write as if confirming their issue to them: empathetic, user-facing, no technical jargon, no mention of what you tried internally. " +
+            "Example (good): 'Your token lock transactions on BNB Chain are failing — our team will investigate what's preventing them from going through.' " +
+            "Example (bad): 'User's three lock transactions failed with gas/revert errors. Need to investigate wallet state and contract interactions.'",
         },
         reason: {
           type: "string",

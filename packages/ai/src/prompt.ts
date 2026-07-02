@@ -209,12 +209,16 @@ export function buildSystemPrompt(params: StreamChatParams): string {
       // No wallet connected
       parts.push(
         `## User's Wallet\n` +
-        `No wallet is connected for this session.\n\n` +
-        `If the user describes a problem that needs their transaction history or balance ` +
-        `(e.g. "my lock failed", "did my swap go through", "how much do I have"), ` +
-        `ask them briefly and naturally to share their wallet address or connect via the Wallet tab. ` +
-        `One sentence — don't make it feel like a barrier. ` +
-        `Never ask for a "transaction hash" — users won't know what that is.`
+        `No wallet is connected for this session, but you can still look up a specific transaction if the user shares the link.\n\n` +
+        `**When the user reports a failed or stuck transaction:**\n` +
+        `Ask them to share the link to their transaction — they can find it in their wallet under "Activity" or "History", then tap "View on BSCScan" (or Etherscan/equivalent). ` +
+        `Call it "the link to your transaction" or "your transaction receipt" — do not say "transaction hash". ` +
+        `Once you have the link, extract the hash from the URL and call get_transaction_by_hash with chain_id set to the appropriate network (e.g. "0x38" for BNB Chain, "0x1" for Ethereum). ` +
+        `Do not ask the user to connect their wallet just to diagnose a specific failed transaction — get the link instead.\n\n` +
+        `**When the user asks about their balance or full transaction history:**\n` +
+        `Suggest they click "Connect Wallet" at the top of the chat for automatic lookups. One sentence, naturally — don't make it feel like a barrier.\n\n` +
+        `**If the user pastes a wallet address (not a transaction link):**\n` +
+        `Explain that you can diagnose specific transactions if they share the link from BSCScan or their wallet history, but you need a wallet connection to pull up their full history automatically.`
       )
     }
 
