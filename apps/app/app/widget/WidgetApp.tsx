@@ -747,6 +747,8 @@ export function WidgetApp() {
   const bgIsLight = getBgLuminance(b.backgroundColor) > 0.5
   const adaptiveText = bgIsLight ? "#111111" : b.textColor
 
+  const hasInfoContent = !!(config?.token || (config?.contentBlocks ?? []).length > 0)
+
   const TABS = isTokenMode
     ? [
         { id: "trade",     label: "Trade" },
@@ -755,7 +757,7 @@ export function WidgetApp() {
       ]
     : [
         { id: "chat", label: "Chat", icon: MessageCircleIcon },
-        { id: "info", label: "Info", icon: InfoIcon },
+        ...(hasInfoContent ? [{ id: "info", label: "Info", icon: InfoIcon }] : []),
       ]
 
   // CSS variables for branding — applied to the root container
