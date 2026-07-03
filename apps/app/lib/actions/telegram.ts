@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache"
 import { createServiceClient } from "@/lib/supabase/server"
 import { auth } from "@clerk/nextjs/server"
 import type { ProjectConfig } from "@/lib/types/config"
+import { telegramBotName } from "@/lib/telegram-name"
 import type { Database, Json } from "@/lib/supabase/types"
 
 type ProjectRow = Database["public"]["Tables"]["projects"]["Row"]
@@ -89,8 +90,8 @@ export async function saveTelegramToken(projectId: string, token: string) {
   })
 
   // Auto-configure bot identity + commands — best-effort, don't block on failure
-  const botDisplayName = `${project.name} Support`.slice(0, 64)
-  const description = `I'm the AI support assistant for ${project.name}. Ask me anything — I can look up your transactions, explain contract errors, and help you get unstuck.`
+  const botDisplayName = telegramBotName(project.name)
+  const description = `I'm the AI support assistant for ${project.name}. Ask me anything: I can look up your transactions, explain contract errors, and help you get unstuck.`
   const shortDescription = `AI support for ${project.name}. Ask anything.`.slice(0, 120)
 
   await Promise.allSettled([
