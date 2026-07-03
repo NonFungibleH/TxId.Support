@@ -22,9 +22,8 @@ language sql
 security definer
 stable
 as $$
-  select count(distinct t.conversation_id)
-  from support_tickets t
-  join conversations c on c.id = t.conversation_id
-  where c.project_id = p_project_id
-    and c.created_at >= p_since
+  select count(*)
+  from tickets t
+  where t.project_id = p_project_id
+    and t.created_at >= p_since
 $$;
