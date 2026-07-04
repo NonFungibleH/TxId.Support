@@ -2,6 +2,7 @@ import { getStripe, planFromSubStatus } from "@/lib/stripe"
 import { createServiceClient } from "@/lib/supabase/server"
 import type { ProjectConfig } from "@/lib/types/config"
 import type { Json } from "@/lib/supabase/types"
+import { log } from "@/lib/logger"
 import type Stripe from "stripe"
 
 // The DB check constraint on organisations.stripe_subscription_status only
@@ -73,7 +74,9 @@ export async function POST(request: Request) {
   try {
     event = await stripe.webhooks.constructEventAsync(body, signature, secret)
   } catch (err) {
-    console.error("[stripe/webhook] signature verification failed", err)
+    log.error("Stripe webhook signature verification failed", err, {
+      event: "stripe.webhook.bad_signature",
+    })
     return new Response("Invalid signature", { status: 400 })
   }
 
@@ -105,10 +108,14 @@ export async function POST(request: Request) {
         break // ignore other events
     }
   } catch (err) {
-    console.error("[stripe/webhook] handler error", event.type, err)
+    log.error("Stripe webhook handler error", err, {
+      event: "stripe.webhook.handler_error",
+      stripeEventType: event.type,
+    })
     // 500 so Stripe retries — a transient DB blip shouldn't lose the event.
     return new Response("Handler error", { status: 500 })
   }
 
+  log.info("Stripe webhook processed", { event: "stripe.webhook.ok", stripeEventType: event.type })
   return new Response("OK", { status: 200 })
 }

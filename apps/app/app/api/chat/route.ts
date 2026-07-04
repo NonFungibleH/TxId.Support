@@ -6,6 +6,7 @@ import { PLAN_CONV_LIMITS } from "@/lib/types/config"
 import type { Database } from "@/lib/supabase/types"
 import { verifyPreviewToken } from "@/lib/preview-token"
 import { rateLimit } from "@/lib/rate-limit"
+import { log } from "@/lib/logger"
 
 type ProjectRow = Database["public"]["Tables"]["projects"]["Row"]
 
@@ -288,7 +289,7 @@ export async function POST(request: Request) {
           // Persist user message + assistant response after stream completes
           void persistMessages(supabase, typedProject.id, sessionId, messages, walletAddress, chainId, fullResponseText || undefined)
         } catch (err) {
-          console.error("[chat/stream]", err)
+          log.error("Chat stream error", err, { event: "chat.stream_error", projectId: typedProject.id })
           controller.enqueue(
             encoder.encode(`data: ${JSON.stringify({ error: "Stream error" })}\n\n`),
           )
@@ -307,7 +308,7 @@ export async function POST(request: Request) {
       },
     })
   } catch (err) {
-    console.error("[chat/POST]", err)
+    log.error("Chat request failed", err, { event: "chat.request_error" })
     return new Response(JSON.stringify({ error: "Internal error" }), {
       status: 500,
       headers: { ...CORS_HEADERS, "Content-Type": "application/json" },

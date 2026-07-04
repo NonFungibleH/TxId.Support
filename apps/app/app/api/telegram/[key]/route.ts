@@ -4,6 +4,7 @@ import type { ChatMessage, ProjectConfigSnapshot } from "@txid/ai"
 import type { ProjectConfig, Plan } from "@/lib/types/config"
 import { PLAN_CONV_LIMITS } from "@/lib/types/config"
 import type { Database } from "@/lib/supabase/types"
+import { log } from "@/lib/logger"
 
 type ProjectRow = Database["public"]["Tables"]["projects"]["Row"]
 
@@ -298,7 +299,11 @@ export async function POST(
   try {
     reply = await completeChat(systemPrompt, messages, 800)
   } catch (err) {
-    console.error("[telegram/chat]", err)
+    log.error("Telegram AI completion failed", err, {
+      event: "telegram.webhook.ai_error",
+      projectId: project.id,
+      chatType: message.chat.type,
+    })
     return new Response("OK", { status: 200 })
   }
 
