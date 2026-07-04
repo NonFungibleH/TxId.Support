@@ -4,11 +4,11 @@ import { useState, useTransition } from "react"
 import { toast } from "sonner"
 import {
   CheckCircle2, Send, Trash2, ExternalLink, Copy,
-  Globe, FileCode2, Zap, Image, ChevronRight,
+  Globe, FileCode2, Zap, Image, ChevronRight, AlertTriangle, RefreshCw,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { saveTelegramToken, removeTelegramToken } from "@/lib/actions/telegram"
+import { saveTelegramToken, removeTelegramToken, resyncTelegramWebhook, type TelegramHealth } from "@/lib/actions/telegram"
 import { telegramBotName, telegramBotUsernameSuggestion, TELEGRAM_TOKEN_RE } from "@/lib/telegram-name"
 import { cn } from "@/lib/utils"
 
@@ -19,6 +19,7 @@ interface Props {
   connected: boolean
   languageLabel: string
   contractCount: number
+  initialHealth?: TelegramHealth | null
 }
 
 function CopyButton({ text, label }: { text: string; label: string }) {
@@ -46,12 +47,26 @@ export function TelegramPageClient({
   connected,
   languageLabel,
   contractCount,
+  initialHealth = null,
 }: Props) {
   const [isPending, startTransition] = useTransition()
   const [token, setToken] = useState("")
   const [isConnected, setIsConnected] = useState(connected)
   const [username, setUsername] = useState(botUsername)
   const [displayName, setDisplayName] = useState<string | null>(null)
+  const [health, setHealth] = useState<TelegramHealth | null>(initialHealth)
+  const [resyncing, setResyncing] = useState(false)
+
+  function handleResync() {
+    setResyncing(true)
+    resyncTelegramWebhook(projectId)
+      .then(next => {
+        setHealth(next)
+        toast.success(next.status === "ok" ? "Webhook re-synced. It's healthy." : "Webhook re-synced.")
+      })
+      .catch(err => toast.error(err instanceof Error ? err.message : "Re-sync failed"))
+      .finally(() => setResyncing(false))
+  }
 
   const suggestedName = telegramBotName(projectName)
   const suggestedUsername = telegramBotUsernameSuggestion(projectName)
@@ -131,6 +146,55 @@ export function TelegramPageClient({
             </Button>
           </div>
         </div>
+
+        {/* Webhook health — surfaces a silently-failing webhook that would
+            otherwise present as a dead bot with no explanation. */}
+        {health && health.status !== "ok" && (
+          <div className={cn(
+            "rounded-lg border p-4 flex items-start gap-3",
+            health.status === "error" || health.status === "mismatch"
+              ? "border-amber-500/40 bg-amber-500/10"
+              : "border-border bg-muted/30",
+          )}>
+            <AlertTriangle className="size-4 mt-0.5 shrink-0 text-amber-400" />
+            <div className="flex-1 space-y-2">
+              <p className="text-sm font-medium text-amber-200">
+                {health.status === "error" && "Telegram is reporting a delivery error"}
+                {health.status === "mismatch" && "Webhook points somewhere unexpected"}
+                {health.status === "no_token" && "Webhook not wired"}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {health.status === "error" && health.lastErrorMessage
+                  ? `Last error: “${health.lastErrorMessage}”. `
+                  : ""}
+                {health.status === "mismatch"
+                  ? `It's set to ${health.currentUrl ?? "nothing"}, but should be ${health.expectedUrl}. `
+                  : ""}
+                {health.pendingUpdateCount > 0 ? `${health.pendingUpdateCount} update(s) are stuck in the queue. ` : ""}
+                Re-sync to re-point it at this project and clear the error.
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 text-xs gap-1.5"
+                onClick={handleResync}
+                disabled={resyncing}
+              >
+                <RefreshCw className={cn("size-3.5", resyncing && "animate-spin")} />
+                {resyncing ? "Re-syncing…" : "Re-sync webhook"}
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {health && health.status === "ok" && (
+          <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/5 px-4 py-3 flex items-center gap-2.5">
+            <CheckCircle2 className="size-4 text-emerald-500 shrink-0" />
+            <p className="text-sm text-muted-foreground">
+              Webhook healthy — Telegram is delivering updates to this project.
+            </p>
+          </div>
+        )}
 
         {/* Auto-configured */}
         <div className="rounded-lg border border-border bg-card p-5 space-y-3">

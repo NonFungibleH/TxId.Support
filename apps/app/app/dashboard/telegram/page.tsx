@@ -4,6 +4,7 @@ import { TelegramPageClient } from "@/components/settings/TelegramPageClient"
 import type { ProjectConfig } from "@/lib/types/config"
 import { SUPPORTED_LANGUAGES } from "@/lib/types/config"
 import type { Database } from "@/lib/supabase/types"
+import { getTelegramWebhookHealth, type TelegramHealth } from "@/lib/actions/telegram"
 
 type ProjectRow = Database["public"]["Tables"]["projects"]["Row"]
 
@@ -20,6 +21,18 @@ export default async function TelegramPage() {
 
   const contractCount = (config.watchedContracts ?? []).length
 
+  // Live webhook health — best effort. A Telegram/network hiccup here must
+  // not blank the whole page, so fall back to null and let the client hide
+  // the health card rather than error.
+  let health: TelegramHealth | null = null
+  if (config.telegramBotToken) {
+    try {
+      health = await getTelegramWebhookHealth(typedProject.id)
+    } catch {
+      health = null
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div>
@@ -35,6 +48,7 @@ export default async function TelegramPage() {
         connected={!!config.telegramBotToken}
         languageLabel={languageLabel}
         contractCount={contractCount}
+        initialHealth={health}
       />
     </div>
   )

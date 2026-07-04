@@ -124,6 +124,86 @@ export async function saveTelegramToken(projectId: string, token: string) {
   return { username: botInfo.username, botDisplayName }
 }
 
+// Shape of Telegram's getWebhookInfo result (fields we use).
+interface TelegramWebhookInfo {
+  url: string
+  pending_update_count: number
+  last_error_date?: number
+  last_error_message?: string
+  ip_address?: string
+}
+
+export interface TelegramHealth {
+  /** "ok" = wired and no recent errors; "error" = webhook is reporting a
+   *  delivery failure; "mismatch" = pointing at a different/blank URL than
+   *  we expect (e.g. app URL changed); "no_token" = not connected. */
+  status: "ok" | "error" | "mismatch" | "no_token"
+  expectedUrl: string
+  currentUrl: string | null
+  pendingUpdateCount: number
+  lastErrorMessage: string | null
+  /** ISO string of the last delivery error, if any. */
+  lastErrorAt: string | null
+}
+
+/**
+ * Live health of the Telegram webhook via getWebhookInfo. Surfaces the exact
+ * signal that was missing when the webhook was silently 404ing: a failing
+ * webhook shows here as status "error" with Telegram's own last_error_message.
+ */
+export async function getTelegramWebhookHealth(projectId: string): Promise<TelegramHealth> {
+  const project = await resolveProjectWithOwnership(projectId)
+  const config = project.config as unknown as ProjectConfig
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? ""
+  const expectedUrl = `${appUrl}/api/telegram/${project.publishable_key}`
+
+  if (!config.telegramBotToken) {
+    return { status: "no_token", expectedUrl, currentUrl: null, pendingUpdateCount: 0, lastErrorMessage: null, lastErrorAt: null }
+  }
+
+  const info = (await callTelegramApi(config.telegramBotToken, "getWebhookInfo")) as TelegramWebhookInfo
+  const currentUrl = info.url || null
+  const lastErrorMessage = info.last_error_message ?? null
+  const lastErrorAt = info.last_error_date ? new Date(info.last_error_date * 1000).toISOString() : null
+
+  let status: TelegramHealth["status"] = "ok"
+  if (currentUrl !== expectedUrl) status = "mismatch"
+  else if (lastErrorMessage) status = "error"
+
+  return {
+    status,
+    expectedUrl,
+    currentUrl,
+    pendingUpdateCount: info.pending_update_count ?? 0,
+    lastErrorMessage,
+    lastErrorAt,
+  }
+}
+
+/**
+ * Re-point Telegram's webhook at the current app URL with the current secret,
+ * clearing any stuck error state. Use after a deploy that changed the app URL
+ * or fixed a route, without needing to re-paste the bot token.
+ */
+export async function resyncTelegramWebhook(projectId: string): Promise<TelegramHealth> {
+  const project = await resolveProjectWithOwnership(projectId)
+  const config = project.config as unknown as ProjectConfig
+  if (!config.telegramBotToken) throw new Error("No bot connected")
+
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? ""
+  const webhookUrl = `${appUrl}/api/telegram/${project.publishable_key}`
+
+  await callTelegramApi(config.telegramBotToken, "setWebhook", {
+    url: webhookUrl,
+    secret_token: project.secret_key,
+    allowed_updates: ["message"],
+    drop_pending_updates: true,
+  })
+
+  revalidatePath("/dashboard/telegram")
+  return getTelegramWebhookHealth(projectId)
+}
+
 export async function removeTelegramToken(projectId: string) {
   const project = await resolveProjectWithOwnership(projectId)
   const config = project.config as unknown as ProjectConfig
