@@ -9,6 +9,8 @@ import { PLAN_LABELS, PLAN_CHAIN_LIMITS, PLAN_CONV_LIMITS, PAID_PLANS, SUPPORTED
 import { cn } from "@/lib/utils"
 import type { Database } from "@/lib/supabase/types"
 import { OrgNameEditor } from "@/components/dashboard/OrgNameEditor"
+import { isStripeConfigured } from "@/lib/stripe"
+import { ManageBillingButton } from "@/components/settings/BillingButtons"
 
 type ProjectRow = Database["public"]["Tables"]["projects"]["Row"]
 
@@ -190,15 +192,15 @@ export default async function AccountPage() {
           {isPaid ? (
             <div className="space-y-3">
               <p className="text-sm text-muted-foreground">
-                You&apos;re on the <strong>{PLAN_LABELS[plan]}</strong> plan. Stripe billing management is coming soon — contact us for any billing queries.
+                You&apos;re on the <strong>{PLAN_LABELS[plan]}</strong> plan.
+                {isStripeConfigured()
+                  ? " Update your card, view invoices, or cancel any time."
+                  : " Contact us for any billing queries."}
               </p>
-              <a
-                href="mailto:hello@txid.support?subject=Billing enquiry"
-                className="inline-flex items-center gap-1.5 text-sm text-primary hover:text-primary/80 transition-colors"
-              >
-                <CreditCard className="size-3.5" />
-                Contact billing support →
-              </a>
+              <ManageBillingButton
+                stripeEnabled={isStripeConfigured()}
+                fallbackHref="mailto:hello@txid.support?subject=Billing enquiry"
+              />
             </div>
           ) : (
             <div className="space-y-3">

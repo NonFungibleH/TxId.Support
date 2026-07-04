@@ -4,6 +4,8 @@ import { CheckCircle2, Zap } from "lucide-react"
 import Link from "next/link"
 import type { ProjectConfig, Plan } from "@/lib/types/config"
 import { cn } from "@/lib/utils"
+import { isStripeConfigured } from "@/lib/stripe"
+import { CheckoutButton } from "@/components/settings/BillingButtons"
 
 type PlanDef = {
   id: Plan
@@ -79,13 +81,16 @@ export default async function UpgradePage() {
 
   const config = (project as unknown as { config: ProjectConfig }).config as ProjectConfig
   const currentPlan: Plan = config.plan ?? "free"
+  const stripeEnabled = isStripeConfigured()
 
   return (
     <div className="space-y-8">
       <div>
         <h1 className="text-2xl font-bold">Upgrade your plan</h1>
         <p className="text-muted-foreground mt-1">
-          Choose the plan that fits your protocol. Email us to upgrade. Stripe billing coming soon.
+          {stripeEnabled
+            ? "Choose the plan that fits your protocol. Secure checkout and cancellation via Stripe."
+            : "Choose the plan that fits your protocol. Email us to upgrade."}
         </p>
       </div>
 
@@ -139,6 +144,19 @@ export default async function UpgradePage() {
                 <div className="mt-auto rounded-lg border border-border px-4 py-2 text-center text-sm text-muted-foreground">
                   Current plan
                 </div>
+              ) : plan.id === "pro" ? (
+                <CheckoutButton
+                  stripeEnabled={stripeEnabled}
+                  fallbackHref={plan.ctaHref}
+                  label={stripeEnabled ? "Upgrade to Pro" : plan.cta}
+                  withIcon={plan.highlight}
+                  className={cn(
+                    "mt-auto flex items-center justify-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium transition-colors disabled:opacity-60",
+                    plan.highlight
+                      ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                      : "border border-border hover:border-primary/50 hover:bg-accent/30"
+                  )}
+                />
               ) : (
                 <a
                   href={plan.ctaHref}
