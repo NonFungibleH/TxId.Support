@@ -57,7 +57,6 @@ export function Hero() {
                 <span className="text-xs text-muted/50 font-mono shrink-0">Available on</span>
                 {[
                   { name: "Ethereum", file: "Ethereum.png", whiteBg: false },
-                  { name: "Solana",   file: "Solana.svg",   whiteBg: false },
                   { name: "Base",     file: "Base.png",     whiteBg: true  },
                   { name: "Arbitrum", file: "Arbitrum.png", whiteBg: false },
                   { name: "Polygon",  file: "Polygon.png",  whiteBg: true  },
