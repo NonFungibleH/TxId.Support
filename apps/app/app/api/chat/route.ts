@@ -5,29 +5,16 @@ import type { ProjectConfig, Plan } from "@/lib/types/config"
 import { PLAN_CONV_LIMITS } from "@/lib/types/config"
 import type { Database } from "@/lib/supabase/types"
 import { verifyPreviewToken } from "@/lib/preview-token"
+import { rateLimit } from "@/lib/rate-limit"
 
 type ProjectRow = Database["public"]["Tables"]["projects"]["Row"]
 
-// ── Rate limiting (per-IP, in-memory) ────────────────────────────────────────
-// 20 requests per IP per minute. In-memory is per-instance but sufficient to
-// block rapid-fire abuse from a single client hitting the same Vercel instance.
+// ── Rate limiting (per-IP) ────────────────────────────────────────────────────
+// 20 requests per IP per minute. Distributed across serverless instances via
+// Upstash when configured (UPSTASH_REDIS_REST_URL/TOKEN); falls back to a
+// per-instance in-memory counter otherwise. See lib/rate-limit.ts.
 const RATE_LIMIT = 20
 const WINDOW_MS = 60_000
-
-interface RateEntry { count: number; resetAt: number }
-const rateLimitMap = new Map<string, RateEntry>()
-
-function isRateLimited(ip: string): boolean {
-  const now = Date.now()
-  const entry = rateLimitMap.get(ip)
-  if (!entry || now >= entry.resetAt) {
-    rateLimitMap.set(ip, { count: 1, resetAt: now + WINDOW_MS })
-    return false
-  }
-  if (entry.count >= RATE_LIMIT) return true
-  entry.count++
-  return false
-}
 
 // Allow cross-origin requests from any embedded site
 const CORS_HEADERS = {
@@ -47,7 +34,8 @@ export async function POST(request: Request) {
       request.headers.get("x-real-ip") ??
       "unknown"
 
-    if (isRateLimited(ip)) {
+    const { allowed } = await rateLimit(`chat:${ip}`, RATE_LIMIT, WINDOW_MS)
+    if (!allowed) {
       return new Response(JSON.stringify({ error: "Too many requests. Please slow down." }), {
         status: 429,
         headers: { ...CORS_HEADERS, "Content-Type": "application/json", "Retry-After": "60" },
