@@ -69,6 +69,34 @@ function cleanText(message: TelegramMessage): string {
   return text.trim()
 }
 
+// Returns the leading bot command without its @botname suffix, lowercased
+// (e.g. "/start@foo_bot" → "/start"). Null when the message doesn't lead
+// with a command. Used to answer /start, /help, and a bare /ask with a
+// canned reply instead of silently dropping them.
+function leadingCommand(message: TelegramMessage): string | null {
+  const cmd = (message.entities ?? []).find(e => e.type === "bot_command" && e.offset === 0)
+  if (!cmd) return null
+  return (message.text ?? "").slice(0, cmd.length).split("@")[0].toLowerCase()
+}
+
+function commandReply(command: string, projectName: string, isPrivate: boolean): string | null {
+  const howToAsk = isPrivate
+    ? "Just send me a message with your question."
+    : "Tag me or use /ask, for example:\n/ask why did my transaction fail?"
+  switch (command) {
+    case "/start":
+      return `👋 Hi! I'm the AI support assistant for ${projectName}. Ask me anything about the protocol: how it works, your transactions, contract errors, and more.\n\n${howToAsk}`
+    case "/help":
+      return `I'm the ${projectName} support assistant. I can explain how the protocol works, help diagnose failed or stuck transactions, and answer questions from the docs.\n\n${howToAsk}`
+    case "/ask":
+      return isPrivate
+        ? "What would you like to know? Send me your question and I'll help."
+        : "Add your question after /ask, for example:\n/ask why did my transaction fail?"
+    default:
+      return null
+  }
+}
+
 function escapeHtml(text: string): string {
   return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
 }
@@ -170,6 +198,16 @@ export async function POST(
 
   const userText = cleanText(message)
   if (!userText) {
+    // Bare command with no question (/start, /help, /ask) — answer with a
+    // canned reply instead of dropping it silently. No AI call, so this
+    // doesn't consume quota or create a conversation row.
+    const command = leadingCommand(message)
+    if (command) {
+      const reply = commandReply(command, project.name, message.chat.type === "private")
+      if (reply) {
+        await sendTelegramMessage(botToken, message.chat.id, reply, message.message_id)
+      }
+    }
     return new Response("OK", { status: 200 })
   }
 
