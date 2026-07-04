@@ -11,6 +11,7 @@ import { ArrowRight, Clock } from "lucide-react"
 export const metadata: Metadata = {
   title: "Blog | TxID Support",
   description: "Guides, deep-dives, and insights on Web3 customer support, DeFi security, and protocol operations.",
+  alternates: { canonical: "/blog" },
 }
 
 const heroGradients: Record<string, string> = {

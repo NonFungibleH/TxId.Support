@@ -1,7 +1,7 @@
 import { FadeIn } from "@/components/ui/FadeIn";
 import { APP_URL } from "@/lib/config";
 
-const FAQS = [
+export const FAQS = [
   {
     q: "What exactly is TxID Support?",
     a: "TxID Support is an AI support agent you embed in your DeFi protocol or token project site. It reads your user's connected wallet automatically, diagnoses failed transactions, answers questions from your documentation, and escalates to your team when it can't resolve something, all without leaving your site.",

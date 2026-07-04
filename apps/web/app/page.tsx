@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { Hero } from "@/components/sections/Hero";
@@ -6,12 +7,22 @@ import { HowItWorks } from "@/components/sections/HowItWorks";
 import { FeatureGrid } from "@/components/sections/FeatureGrid";
 import { EmbedPreview } from "@/components/sections/EmbedPreview";
 import { PricingSection } from "@/components/sections/PricingSection";
-import { FAQ } from "@/components/sections/FAQ";
+import { FAQ, FAQS } from "@/components/sections/FAQ";
 import { ClosingCTA } from "@/components/sections/ClosingCTA";
+import { JsonLd } from "@/components/JsonLd";
+import { organizationSchema, websiteSchema, softwareApplicationSchema, faqPageSchema } from "@/lib/seo";
+
+export const metadata: Metadata = {
+  alternates: { canonical: "/" },
+};
 
 export default function HomePage() {
   return (
     <>
+      <JsonLd data={organizationSchema} />
+      <JsonLd data={websiteSchema} />
+      <JsonLd data={softwareApplicationSchema} />
+      <JsonLd data={faqPageSchema(FAQS)} />
       <Navbar />
       <main>
         <Hero />

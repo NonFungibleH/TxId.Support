@@ -1,0 +1,42 @@
+# TxID Support
+
+> TxID Support is a white-label AI support agent that DeFi protocols and Web3 token projects embed on their site with a single script tag. It auto-detects the user's connected wallet, diagnoses failed on-chain transactions in plain English, answers questions from the protocol's documentation, and escalates to the human team when it can't resolve something.
+
+## What it does
+
+- **Automatic wallet detection**: reads the connected wallet (MetaMask, WalletConnect, Coinbase Wallet, Phantom) with no signing or permission prompt — it only reads public on-chain data.
+- **Transaction diagnostics**: pastes or detects a transaction and explains why it failed — out of gas, `require` revert reasons, custom Solidity errors, panics (arithmetic overflow/underflow, division by zero, array out of bounds), and generic reverts.
+- **On-chain lookups**: wallet balance, recent transaction history, and a specific transaction's details.
+- **Docs Q&A**: answers grounded in the protocol's own documentation and knowledge base using retrieval-augmented generation (RAG), not hallucinated.
+- **Escalation**: opens a human support ticket when the AI can't resolve an issue.
+- **Channels**: embeddable web widget plus an optional Telegram bot that uses the same knowledge.
+
+## Chains supported
+
+Ethereum, Solana, Base, BNB Chain, Polygon, Arbitrum, and Optimism.
+
+## Who it's for
+
+DeFi protocols, token projects, and Web3 teams that get repetitive support questions ("why did my transaction fail?", "where are my tokens?", "how does staking work?") and want to answer them automatically instead of staffing a support team.
+
+## How to install
+
+Add one script tag before the closing `</body>` tag. No SDK, no build step. Works with React, Next.js, Vue, Svelte, or plain HTML.
+
+## Pricing
+
+- **Free**: 50 conversations/month, wallet detection, transaction diagnostics, docs Q&A, custom branding. No credit card required.
+- **Custom**: tailored plan for higher volume, multiple chains, escalation webhooks, integrations, and priority support. Contact the team for a demo.
+
+## Key pages
+
+- [Homepage](https://txid.support): product overview
+- [Pricing](https://txid.support/pricing): plans
+- [Docs](https://txid.support/docs): setup, branding, smart contracts, knowledge base, chains, embed
+- [Live demo](https://txid.support/demo): try the agent
+- [Transaction checker](https://txid.support/check): diagnose a transaction
+- [Blog](https://txid.support/blog): articles
+
+## Contact
+
+Email hello@txid.support for demos, custom plans, or enterprise enquiries.

@@ -4,6 +4,7 @@ import { Footer } from "@/components/layout/Footer";
 
 export const metadata: Metadata = {
   title: "Privacy Policy | TxID Support",
+  alternates: { canonical: "/privacy" },
 };
 
 const LAST_UPDATED = "June 2025";

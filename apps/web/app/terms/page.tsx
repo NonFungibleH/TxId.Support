@@ -4,6 +4,7 @@ import { Footer } from "@/components/layout/Footer";
 
 export const metadata: Metadata = {
   title: "Terms of Service | TxID Support",
+  alternates: { canonical: "/terms" },
 };
 
 const LAST_UPDATED = "April 2025";

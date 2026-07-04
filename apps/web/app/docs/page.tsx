@@ -9,6 +9,7 @@ import { ArrowRight, BookOpen, Zap, Paintbrush, FileCode2, BookMarked, Link2, La
 export const metadata: Metadata = {
   title: "Documentation | TxID Support",
   description: "Guides and reference for every TxID Support feature: branding, smart contracts, knowledge base, content blocks, and more.",
+  alternates: { canonical: "/docs" },
 }
 
 const ICONS: Record<string, React.ElementType> = {

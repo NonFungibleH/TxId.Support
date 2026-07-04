@@ -11,6 +11,7 @@ import { Check, Minus } from "lucide-react";
 export const metadata: Metadata = {
   title: "Pricing | TxID Support",
   description: "Start free. Upgrade when your protocol is ready.",
+  alternates: { canonical: "/pricing" },
 };
 
 const COMPARISON = [
