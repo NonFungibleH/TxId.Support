@@ -19,12 +19,12 @@ const FAQS = [
     a: "A conversation starts when a user opens the agent and sends their first message. It ends after 30 minutes of inactivity. All messages in the same session count as one conversation, so a user asking 5 follow-up questions still uses only one of your monthly allowance.",
   },
   {
-    q: "Can I try it before committing to Pro?",
-    a: "Yes, the Free plan has no credit card required. You get 50 conversations per month, wallet detection, transaction diagnostics, and docs Q&A. You can stay on free as long as you like and upgrade to Pro when you need higher volume.",
+    q: "Can I try it before committing?",
+    a: "Yes, the Free plan has no credit card required. You get 50 conversations per month, wallet detection, transaction diagnostics, and docs Q&A. You can stay on free as long as you like and move to our Custom plan when you need higher volume.",
   },
   {
     q: "Is it really white-label on the free plan?",
-    a: "Yes. The free plan includes custom colours, font, and logo. Pro goes further with a custom agent name, avatar, and priority support.",
+    a: "Yes. The free plan includes custom colours, font, and logo. Our Custom plan goes further with a custom agent name, avatar, and priority support.",
   },
 ];
 

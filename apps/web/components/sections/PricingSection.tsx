@@ -24,43 +24,47 @@ const PLANS = [
       { label: "Analytics dashboard", soon: false },
     ],
   },
+  // Pro plan temporarily hidden pre-launch — pricing not yet finalised.
+  // Restore this object (and the md:grid-cols-2 → md:grid-cols-3 below) once
+  // a price is set.
+  // {
+  //   name: "Pro",
+  //   price: "$999",
+  //   period: "/mo",
+  //   badge: "Most Popular",
+  //   description: "For protocols with active on-chain users",
+  //   cta: "Get Pro",
+  //   ctaHref: "mailto:hello@txid.support?subject=Upgrade to Pro",
+  //   highlight: true,
+  //   features: [
+  //     { label: "2,500 conversations / month", soon: false },
+  //     { label: "1 blockchain", soon: false },
+  //     { label: "Wallet & transaction lookups", soon: false },
+  //     { label: "Custom branding (colours, font, logo)", soon: false },
+  //     { label: "Custom agent name + avatar", soon: false },
+  //     { label: "Token price + chart", soon: false },
+  //     { label: "Escalation webhooks", soon: false },
+  //     { label: "Priority support", soon: false },
+  //     { label: "CSV export", soon: false },
+  //   ],
+  // },
   {
-    name: "Pro",
-    price: "$999",
-    period: "/mo",
-    badge: "Most Popular",
-    description: "For protocols with active on-chain users",
-    cta: "Get Pro",
-    ctaHref: "mailto:hello@txid.support?subject=Upgrade to Pro",
-    highlight: true,
-    features: [
-      { label: "2,500 conversations / month", soon: false },
-      { label: "1 blockchain", soon: false },
-      { label: "Wallet & transaction lookups", soon: false },
-      { label: "Custom branding (colours, font, logo)", soon: false },
-      { label: "Custom agent name + avatar", soon: false },
-      { label: "Token price + chart", soon: false },
-      { label: "Escalation webhooks", soon: false },
-      { label: "Priority support", soon: false },
-      { label: "CSV export", soon: false },
-    ],
-  },
-  {
-    name: "Enterprise",
-    price: "Custom",
+    name: "Custom",
+    price: "Let's talk",
     period: null,
     badge: null,
-    description: "For high-volume protocols",
-    cta: "Contact Sales",
-    ctaHref: "mailto:hello@txid.support?subject=Enterprise enquiry",
-    highlight: false,
+    description: "Everything, tailored to your protocol",
+    cta: "Book a demo",
+    ctaHref: "mailto:hello@txid.support?subject=TxID Support demo",
+    highlight: true,
     features: [
-      { label: "Unlimited conversations", soon: false },
+      { label: "Everything in Free", soon: false },
+      { label: "Wallet & transaction lookups", soon: false },
+      { label: "Higher conversation volume", soon: false },
       { label: "Multiple blockchains", soon: false },
-      { label: "SLA guarantee", soon: false },
-      { label: "Dedicated support", soon: false },
-      { label: "Unlimited team seats", soon: false },
-      { label: "Custom integrations", soon: false },
+      { label: "Full custom branding", soon: false },
+      { label: "Escalation webhooks + integrations", soon: false },
+      { label: "Priority support", soon: false },
     ],
   },
 ];
@@ -83,7 +87,7 @@ export function PricingSection({ compact }: { compact?: boolean }) {
           </FadeIn>
         )}
 
-        <div className="grid md:grid-cols-3 gap-5">
+        <div className="grid md:grid-cols-2 gap-5 max-w-3xl mx-auto">
           {PLANS.map((plan, i) => (
             <FadeIn key={plan.name} delay={i * 0.08}>
               <div

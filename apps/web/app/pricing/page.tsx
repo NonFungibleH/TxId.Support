@@ -89,6 +89,12 @@ const FAQ = [
   },
 ];
 
+// Temporarily hidden pre-launch: the detailed feature comparison and the
+// price-quoting FAQ imply committed tiers/prices we haven't finalised. The
+// data + markup are preserved below — flip this to `true` to restore them
+// (and re-check the $ figures in the FAQ before doing so).
+const SHOW_DETAILED_PRICING = false;
+
 type CellValue = boolean | string;
 
 function Cell({ value }: { value: CellValue }) {
@@ -110,10 +116,12 @@ const FAQ_SCHEMA = {
 export default function PricingPage() {
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(FAQ_SCHEMA) }}
-      />
+      {SHOW_DETAILED_PRICING && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(FAQ_SCHEMA) }}
+        />
+      )}
       <Navbar />
       <main className="pt-24">
         <div className="max-w-6xl mx-auto px-6 text-center pt-10 pb-0">
@@ -131,6 +139,8 @@ export default function PricingPage() {
 
         <PricingSection />
 
+        {SHOW_DETAILED_PRICING && (
+        <>
         <div className="max-w-5xl mx-auto px-6 py-24">
           <FadeIn>
             <h2 className="font-display text-2xl font-bold text-white text-center mb-12">
@@ -199,6 +209,8 @@ export default function PricingPage() {
             ))}
           </div>
         </div>
+        </>
+        )}
 
         <ClosingCTA />
       </main>

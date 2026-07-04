@@ -4,8 +4,6 @@ import { CheckCircle2, Zap } from "lucide-react"
 import Link from "next/link"
 import type { ProjectConfig, Plan } from "@/lib/types/config"
 import { cn } from "@/lib/utils"
-import { isStripeConfigured } from "@/lib/stripe"
-import { CheckoutButton } from "@/components/settings/BillingButtons"
 
 type PlanDef = {
   id: Plan
@@ -36,42 +34,44 @@ const PLANS: PlanDef[] = [
     ctaHref: "#",
     highlight: false,
   },
+  // Pro plan temporarily hidden pre-launch — pricing not yet finalised.
+  // Restore this entry (and switch the grid back to sm:grid-cols-3) once a
+  // price is set and Stripe checkout is re-surfaced.
+  // {
+  //   id: "pro",
+  //   label: "Pro",
+  //   price: "$999",
+  //   priceSub: "per month",
+  //   features: [
+  //     "2,500 conversations / month",
+  //     "1 blockchain",
+  //     "Wallet & transaction lookups",
+  //     "All content blocks",
+  //     "Docs & knowledge base",
+  //     "Priority support",
+  //     "Analytics",
+  //   ],
+  //   cta: "Get Pro",
+  //   ctaHref: "mailto:hello@txid.support?subject=Upgrade to Pro",
+  //   highlight: true,
+  // },
   {
-    id: "pro",
-    label: "Pro",
-    price: "$999",
-    priceSub: "per month",
+    id: "custom",
+    label: "Custom",
+    price: "Let's talk",
+    priceSub: "tailored to your protocol",
     features: [
-      "2,500 conversations / month",
-      "1 blockchain",
+      "Everything in Free",
       "Wallet & transaction lookups",
-      "All content blocks",
-      "Docs & knowledge base",
-      "Priority support",
-      "Analytics",
-    ],
-    cta: "Get Pro",
-    ctaHref: "mailto:hello@txid.support?subject=Upgrade to Pro",
-    highlight: true,
-  },
-  {
-    id: "enterprise",
-    label: "Enterprise",
-    price: "Custom",
-    priceSub: "tailored pricing",
-    features: [
-      "Unlimited conversations",
+      "Higher conversation volume",
       "Multiple blockchains",
-      "Wallet & transaction lookups",
       "All content blocks",
-      "Docs & knowledge base",
-      "Dedicated support",
-      "Custom integrations",
-      "SLA guarantee",
+      "Escalation webhooks + integrations",
+      "Priority support",
     ],
-    cta: "Contact us",
-    ctaHref: "mailto:hello@txid.support?subject=Enterprise enquiry",
-    highlight: false,
+    cta: "Book a demo",
+    ctaHref: "mailto:hello@txid.support?subject=TxID Support demo",
+    highlight: true,
   },
 ]
 
@@ -81,22 +81,24 @@ export default async function UpgradePage() {
 
   const config = (project as unknown as { config: ProjectConfig }).config as ProjectConfig
   const currentPlan: Plan = config.plan ?? "free"
-  const stripeEnabled = isStripeConfigured()
 
   return (
     <div className="space-y-8">
       <div>
         <h1 className="text-2xl font-bold">Upgrade your plan</h1>
         <p className="text-muted-foreground mt-1">
-          {stripeEnabled
-            ? "Choose the plan that fits your protocol. Secure checkout and cancellation via Stripe."
-            : "Choose the plan that fits your protocol. Email us to upgrade."}
+          Start free, then talk to us when you&apos;re ready for more.
         </p>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 max-w-2xl mx-auto">
         {PLANS.map((plan) => {
-          const isCurrent = plan.id === currentPlan || (plan.id === "free" && (currentPlan === "starter" || !currentPlan))
+          // "Custom" card is the current plan for any paid tier (incl. legacy
+          // pro/enterprise/starter); Free covers free + unset.
+          const isCurrent =
+            plan.id === "free"
+              ? currentPlan === "free" || currentPlan === "starter" || !currentPlan
+              : currentPlan !== "free" && currentPlan !== "starter" && !!currentPlan
           return (
             <div
               key={plan.id}
@@ -144,19 +146,6 @@ export default async function UpgradePage() {
                 <div className="mt-auto rounded-lg border border-border px-4 py-2 text-center text-sm text-muted-foreground">
                   Current plan
                 </div>
-              ) : plan.id === "pro" ? (
-                <CheckoutButton
-                  stripeEnabled={stripeEnabled}
-                  fallbackHref={plan.ctaHref}
-                  label={stripeEnabled ? "Upgrade to Pro" : plan.cta}
-                  withIcon={plan.highlight}
-                  className={cn(
-                    "mt-auto flex items-center justify-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium transition-colors disabled:opacity-60",
-                    plan.highlight
-                      ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                      : "border border-border hover:border-primary/50 hover:bg-accent/30"
-                  )}
-                />
               ) : (
                 <a
                   href={plan.ctaHref}
