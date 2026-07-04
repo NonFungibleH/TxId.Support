@@ -96,6 +96,14 @@ Ports: web=3000, app=3001, docs=3002, widget=3003
 ### Blockchain (Solana)
 - `HELIUS_API_KEY` — Helius RPC + enhanced transaction API (https://dev.helius.xyz)
 
+### Billing (Stripe)
+- `STRIPE_SECRET_KEY` — Stripe API key (enables live checkout + portal)
+- `STRIPE_PRICE_PRO` — price ID of the recurring Pro product
+- `STRIPE_WEBHOOK_SECRET` — signing secret for `/api/stripe/webhook`
+
+### Rate limiting (optional)
+- `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` — distributed limiter for `/api/chat`; falls back to per-instance in-memory when unset
+
 ### Platform
 - `RESEND_API_KEY` — email notifications (optional)
 - `WEBHOOK_SECRET` — HMAC for outbound webhooks
@@ -380,7 +388,15 @@ Plans: `free | starter | pro | enterprise | custom`
 | enterprise | unlimited | unlimited |
 | custom | unlimited | unlimited |
 
-Plan is stored in `projects.config.plan`. Stripe integration migrated in `20260701000001_stripe_admin.sql`.
+Plan is stored in `projects.config.plan`. Stripe columns live on `organisations` (migrated in `20260701000001_stripe_admin.sql`).
+
+### Stripe billing flow
+- `lib/stripe.ts` — lazy client, `isStripeConfigured()`, `planFromSubStatus()` (active/trialing/past_due → pro; terminal → free)
+- `lib/actions/billing.ts` — `createCheckoutSession()` (ensures a Stripe customer on the org), `createPortalSession()`
+- `app/api/stripe/webhook/route.ts` — verifies signature, reconciles `checkout.session.completed` + subscription created/updated/deleted into `organisations` (sub id/status) and `projects.config.plan`. **The webhook is the only writer of the paid plan** — never granted client-side.
+- Upgrade page + Account page show live Stripe buttons when configured, else the email fallback.
+- Public webhook route is exempted in `middleware.ts` (alongside `/api/telegram`, `/api/tickets`, `/api/widget/feedback` — all self-authenticating).
+- Setup needed in Stripe dashboard: create the Pro product/price, add the webhook endpoint (`/api/stripe/webhook`) subscribed to `checkout.session.completed` + `customer.subscription.*`, then set the three `STRIPE_*` env vars.
 
 ---
 
