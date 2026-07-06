@@ -2,20 +2,13 @@ import { createServiceClient } from "@/lib/supabase/server"
 import { buildSystemPrompt, retrieveContext, streamChatWithTools, generateSuggestions } from "@txid/ai"
 import type { ChatMessage, ProjectConfigSnapshot } from "@txid/ai"
 import type { ProjectConfig, Plan } from "@/lib/types/config"
-import { PLAN_CONV_LIMITS } from "@/lib/types/config"
 import type { Database } from "@/lib/supabase/types"
 import { verifyPreviewToken } from "@/lib/preview-token"
 import { rateLimit } from "@/lib/rate-limit"
 import { log } from "@/lib/logger"
+import { CHAT_LIMITS, conversationLimitsFor } from "@/lib/limits"
 
 type ProjectRow = Database["public"]["Tables"]["projects"]["Row"]
-
-// ── Rate limiting (per-IP) ────────────────────────────────────────────────────
-// 20 requests per IP per minute. Distributed across serverless instances via
-// Upstash when configured (UPSTASH_REDIS_REST_URL/TOKEN); falls back to a
-// per-instance in-memory counter otherwise. See lib/rate-limit.ts.
-const RATE_LIMIT = 20
-const WINDOW_MS = 60_000
 
 // Allow cross-origin requests from any embedded site
 const CORS_HEADERS = {
@@ -35,7 +28,7 @@ export async function POST(request: Request) {
       request.headers.get("x-real-ip") ??
       "unknown"
 
-    const { allowed } = await rateLimit(`chat:${ip}`, RATE_LIMIT, WINDOW_MS)
+    const { allowed } = await rateLimit(`chat:${ip}`, CHAT_LIMITS.ratePerWindow, CHAT_LIMITS.windowMs)
     if (!allowed) {
       return new Response(JSON.stringify({ error: "Too many requests. Please slow down." }), {
         status: 429,
@@ -85,11 +78,9 @@ export async function POST(request: Request) {
     }
 
     // Cap message history to prevent context-stuffing / runaway LLM costs
-    const MAX_MESSAGES = 30
-    const MAX_CONTENT_LEN = 2000
     const safeMessages = messages
-      .slice(-MAX_MESSAGES)
-      .map(m => ({ ...m, content: typeof m.content === "string" ? m.content.slice(0, MAX_CONTENT_LEN) : m.content }))
+      .slice(-CHAT_LIMITS.maxHistoryMessages)
+      .map(m => ({ ...m, content: typeof m.content === "string" ? m.content.slice(0, CHAT_LIMITS.maxMessageChars) : m.content }))
 
     // F2: validate wallet address format before it touches any downstream URL
     // Accepts EVM (0x + 40 hex) or Solana (base58, 32-44 chars)
@@ -130,12 +121,15 @@ export async function POST(request: Request) {
       }
     }
 
-    // ── Layer 3: Monthly conversation quota per project ───────────────────────
-    // Quota is determined by the project's plan (free=50, starter=200, pro=2500, enterprise=∞).
-    // Only applied to new sessions — existing sessions already counted when their first message
-    // created the conversation row.
+    // ── Conversation quota (monthly + daily) + per-session message cap ────────
+    // New sessions are admitted atomically by claim_conversation_slot (audit
+    // H3): it locks per-project, checks the monthly AND daily caps against
+    // committed rows, and inserts the conversation row in one transaction, so
+    // concurrent new sessions can't all slip past the limit. Existing sessions
+    // are already counted; they only face the per-session message cap. All
+    // limits are defined in lib/limits.ts.
     const rawConfig = typedProject.config as unknown as ProjectConfig
-    const monthlyLimit = PLAN_CONV_LIMITS[(rawConfig.plan ?? "free") as Plan]
+    const plan = (rawConfig.plan ?? "free") as Plan
 
     const existingConv = await supabase
       .from("conversations")
@@ -144,38 +138,40 @@ export async function POST(request: Request) {
       .eq("project_id", typedProject.id)
       .maybeSingle()
 
-    if (!existingConv.data) {
-      // New session — check monthly count before allowing it to start
-      const startOfMonth = new Date()
-      startOfMonth.setUTCDate(1)
-      startOfMonth.setUTCHours(0, 0, 0, 0)
-      const { count: monthlyCount } = await supabase
-        .from("conversations")
-        .select("id", { count: "exact", head: true })
-        .eq("project_id", typedProject.id)
-        .gte("created_at", startOfMonth.toISOString())
-      if (monthlyLimit !== Infinity && (monthlyCount ?? 0) >= monthlyLimit) {
-        return new Response(JSON.stringify({ error: "Monthly conversation limit reached. Upgrade to continue." }), {
-          status: 429,
-          headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
-        })
-      }
-    }
-
-    // ── Layer 1: Per-session message cap ──────────────────────────────────────
-    // Prevents a single session from draining token budget. Stricter for the
-    // public demo key (NEXT_PUBLIC_DEMO_WIDGET_KEY).
-    const isDemoKey = key === process.env.DEMO_WIDGET_KEY
-    const SESSION_MSG_LIMIT = isDemoKey ? 10 : 30
-
     if (existingConv.data) {
+      // Existing session — enforce the per-session message cap (stricter for
+      // the public demo key).
+      const isDemoKey = key === process.env.DEMO_WIDGET_KEY
+      const sessionCap = isDemoKey ? CHAT_LIMITS.demoSessionMessages : CHAT_LIMITS.sessionMessages
       const { count: msgCount } = await supabase
         .from("messages")
         .select("id", { count: "exact", head: true })
         .eq("conversation_id", existingConv.data.id)
         .eq("role", "user")
-      if ((msgCount ?? 0) >= SESSION_MSG_LIMIT) {
+      if ((msgCount ?? 0) >= sessionCap) {
         return new Response(JSON.stringify({ error: "Session message limit reached. Start a new conversation to continue." }), {
+          status: 429,
+          headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
+        })
+      }
+    } else {
+      // New session — atomically claim a slot against the monthly + daily caps.
+      const { monthly, daily } = conversationLimitsFor(plan)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: slot } = await (supabase as any).rpc("claim_conversation_slot", {
+        p_project_id: typedProject.id,
+        p_session_id: sessionId,
+        p_monthly_limit: monthly === Infinity ? -1 : monthly,
+        p_daily_limit: daily === Infinity ? -1 : daily,
+      })
+      if (slot === "month_limit") {
+        return new Response(JSON.stringify({ error: "Monthly conversation limit reached. Contact us to upgrade." }), {
+          status: 429,
+          headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
+        })
+      }
+      if (slot === "day_limit") {
+        return new Response(JSON.stringify({ error: "Daily conversation limit reached. Please try again tomorrow." }), {
           status: 429,
           headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
         })

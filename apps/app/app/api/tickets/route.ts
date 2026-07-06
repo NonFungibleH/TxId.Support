@@ -2,12 +2,10 @@ import crypto from "crypto"
 import { createServiceClient } from "@/lib/supabase/server"
 import type { ProjectConfig } from "@/lib/types/config"
 import type { Database } from "@/lib/supabase/types"
+import { rateLimit } from "@/lib/rate-limit"
+import { TICKET_LIMITS } from "@/lib/limits"
 
 type ProjectRow = Database["public"]["Tables"]["projects"]["Row"]
-
-const MAX_SUMMARY_LEN = 500
-const MAX_CONVERSATION_MSGS = 30
-const MAX_MSG_CONTENT_LEN = 2000
 
 function webhookSignature(payload: string): string {
   const secret = process.env.WEBHOOK_SECRET ?? ""
@@ -19,25 +17,6 @@ const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
   "Access-Control-Allow-Headers": "Content-Type",
-}
-
-// 5 ticket submissions per IP per 10 minutes (stricter than chat — email side-effect)
-const RATE_LIMIT = 5
-const WINDOW_MS = 10 * 60_000
-
-interface RateEntry { count: number; resetAt: number }
-const rateLimitMap = new Map<string, RateEntry>()
-
-function isRateLimited(ip: string): boolean {
-  const now = Date.now()
-  const entry = rateLimitMap.get(ip)
-  if (!entry || now >= entry.resetAt) {
-    rateLimitMap.set(ip, { count: 1, resetAt: now + WINDOW_MS })
-    return false
-  }
-  if (entry.count >= RATE_LIMIT) return true
-  entry.count++
-  return false
 }
 
 export async function OPTIONS() {
@@ -55,7 +34,10 @@ export async function POST(request: Request) {
       request.headers.get("x-real-ip") ??
       "unknown"
 
-    if (isRateLimited(ip)) {
+    // Stricter than chat (creating a ticket emails the team + fires a webhook).
+    // Distributed via Upstash when configured; see lib/rate-limit.ts.
+    const { allowed } = await rateLimit(`ticket:${ip}`, TICKET_LIMITS.ratePerWindow, TICKET_LIMITS.windowMs)
+    if (!allowed) {
       return new Response(JSON.stringify({ error: "Too many requests. Please try again later." }), {
         status: 429,
         headers: { ...CORS_HEADERS, "Content-Type": "application/json", "Retry-After": "600" },
@@ -106,10 +88,10 @@ export async function POST(request: Request) {
     }
 
     // Truncate inputs to prevent unbounded storage / email abuse
-    const safeSummary = summary.slice(0, MAX_SUMMARY_LEN)
+    const safeSummary = summary.slice(0, TICKET_LIMITS.maxSummaryChars)
     const safeConversation = (conversation ?? [])
-      .slice(0, MAX_CONVERSATION_MSGS)
-      .map(m => ({ ...m, content: m.content.slice(0, MAX_MSG_CONTENT_LEN) }))
+      .slice(0, TICKET_LIMITS.maxConversationMsgs)
+      .map(m => ({ ...m, content: m.content.slice(0, TICKET_LIMITS.maxMessageChars) }))
 
     // Retry up to 3 times on ref collision (unique constraint added in migration 20260627000002)
     let ref = ""
