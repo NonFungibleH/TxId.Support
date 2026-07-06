@@ -41,7 +41,7 @@
     "bottom:max(92px,calc(env(safe-area-inset-bottom,0px) + 68px));" +
     "right:max(24px,env(safe-area-inset-right,0px));" +
     "z-index:2147483645;" +
-    "width:380px;height:420px;max-height:calc(100vh - 152px);border-radius:16px;" +
+    "width:380px;height:560px;max-height:calc(100vh - 152px);border-radius:16px;" +
     "box-shadow:0 8px 48px rgba(0,0,0,.45);" +
     "overflow:hidden;display:none;background-color:#0a0a0f;" +
     "}" +
