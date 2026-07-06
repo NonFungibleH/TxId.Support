@@ -160,7 +160,7 @@ export function ChainToggles({ projectId, initialChains, chainUsage, plan, chain
           <p className="text-sm text-indigo-300">
             {plan === "free" || plan === "starter"
               ? <><Link href="/dashboard/account" className="underline underline-offset-2 hover:text-white">Upgrade to Pro</Link> to unlock up to 3 chains.</>
-              : <>You&apos;ve reached the Pro limit of 3 chains. <a href="mailto:hello@txid.support" className="underline underline-offset-2 hover:text-white">Contact us</a> for Enterprise access.</>
+              : <>You&apos;ve reached the Pro limit of 3 chains. <a href="mailto:team@txid.support" className="underline underline-offset-2 hover:text-white">Contact us</a> for Enterprise access.</>
             }
           </p>
         </div>

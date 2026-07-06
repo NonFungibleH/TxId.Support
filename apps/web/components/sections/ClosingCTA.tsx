@@ -19,8 +19,11 @@ export function ClosingCTA() {
               Get started free
               <ArrowRight className="w-4 h-4" />
             </Button>
-            <Button href="mailto:hello@txid.support" variant="outline" size="lg">
-              Talk to us
+            <Button href="mailto:team@txid.support" variant="outline" size="lg">
+              Email us
+            </Button>
+            <Button href="https://t.me/Non_Fungible_Howard" variant="outline" size="lg">
+              Message on Telegram
             </Button>
           </div>
         </FadeIn>

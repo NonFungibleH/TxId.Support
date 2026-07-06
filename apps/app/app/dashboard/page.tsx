@@ -185,7 +185,7 @@ export default async function DashboardPage() {
             </p>
           </div>
           <a
-            href="mailto:hello@txid.support?subject=TxID%20Support%20—%20upgrade%20%2F%20demo"
+            href="mailto:team@txid.support?subject=TxID%20Support%20—%20upgrade%20%2F%20demo"
             className="shrink-0 inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
           >
             <Zap className="size-3.5" />
@@ -224,7 +224,7 @@ export default async function DashboardPage() {
                       ? "You've hit your monthly limit — conversations are paused. "
                       : `${usagePct}% used — `}
                     <a
-                      href="mailto:hello@txid.support?subject=Upgrade enquiry"
+                      href="mailto:team@txid.support?subject=Upgrade enquiry"
                       className="underline underline-offset-2 hover:text-amber-300"
                     >
                       Upgrade to avoid interruptions →

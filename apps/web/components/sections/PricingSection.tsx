@@ -34,7 +34,7 @@ const PLANS = [
   //   badge: "Most Popular",
   //   description: "For protocols with active on-chain users",
   //   cta: "Get Pro",
-  //   ctaHref: "mailto:hello@txid.support?subject=Upgrade to Pro",
+  //   ctaHref: "mailto:team@txid.support?subject=Upgrade to Pro",
   //   highlight: true,
   //   features: [
   //     { label: "2,500 conversations / month", soon: false },
@@ -55,7 +55,7 @@ const PLANS = [
     badge: null,
     description: "Everything, tailored to your protocol",
     cta: "Book a demo",
-    ctaHref: "mailto:hello@txid.support?subject=TxID Support demo",
+    ctaHref: "mailto:team@txid.support?subject=TxID Support demo",
     highlight: true,
     features: [
       { label: "Everything in Free", soon: false },

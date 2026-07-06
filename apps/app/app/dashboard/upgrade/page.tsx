@@ -52,7 +52,7 @@ const PLANS: PlanDef[] = [
   //     "Analytics",
   //   ],
   //   cta: "Get Pro",
-  //   ctaHref: "mailto:hello@txid.support?subject=Upgrade to Pro",
+  //   ctaHref: "mailto:team@txid.support?subject=Upgrade to Pro",
   //   highlight: true,
   // },
   {
@@ -70,7 +70,7 @@ const PLANS: PlanDef[] = [
       "Priority support",
     ],
     cta: "Book a demo",
-    ctaHref: "mailto:hello@txid.support?subject=TxID Support demo",
+    ctaHref: "mailto:team@txid.support?subject=TxID Support demo",
     highlight: true,
   },
 ]
@@ -167,7 +167,7 @@ export default async function UpgradePage() {
 
       <p className="text-center text-xs text-muted-foreground">
         Questions?{" "}
-        <a href="mailto:hello@txid.support" className="underline underline-offset-2 hover:text-foreground transition-colors">
+        <a href="mailto:team@txid.support" className="underline underline-offset-2 hover:text-foreground transition-colors">
           Email us
         </a>{" "}
         No long-term contracts, cancel anytime.

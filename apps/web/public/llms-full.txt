@@ -4,7 +4,7 @@
 
 Website: https://txid.support
 Dashboard: https://app.txid.support
-Contact: hello@txid.support
+Contact: team@txid.support · Telegram https://t.me/Non_Fungible_Howard
 
 ---
 
@@ -95,4 +95,4 @@ Ethereum, Solana, Base, BNB Chain, Polygon, Arbitrum, and Optimism.
 
 ## Contact
 
-Email hello@txid.support for demos, Custom plans, or enterprise enquiries.
+Email team@txid.support, or message @Non_Fungible_Howard on Telegram (https://t.me/Non_Fungible_Howard), for demos, Custom plans, or enterprise enquiries.

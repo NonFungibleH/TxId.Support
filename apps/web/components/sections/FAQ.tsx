@@ -91,12 +91,21 @@ export function FAQ() {
           <p className="text-center text-sm text-muted mt-10">
             Still have questions?{" "}
             <a
-              href="mailto:hello@txid.support"
+              href="mailto:team@txid.support"
               className="text-accent hover:underline"
             >
               Email us
-            </a>{" "}
-            or{" "}
+            </a>
+            ,{" "}
+            <a
+              href="https://t.me/Non_Fungible_Howard"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-accent hover:underline"
+            >
+              message us on Telegram
+            </a>
+            , or{" "}
             <a href={`${APP_URL}/sign-up`} className="text-accent hover:underline">
               start for free
             </a>{" "}

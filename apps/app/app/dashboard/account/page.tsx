@@ -200,7 +200,7 @@ export default async function AccountPage() {
               </p>
               <ManageBillingButton
                 stripeEnabled={isStripeConfigured()}
-                fallbackHref="mailto:hello@txid.support?subject=Billing enquiry"
+                fallbackHref="mailto:team@txid.support?subject=Billing enquiry"
               />
             </div>
           ) : (

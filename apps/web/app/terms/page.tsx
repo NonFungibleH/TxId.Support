@@ -80,8 +80,8 @@ export default function TermsPage() {
               <h2 className="font-display text-lg font-semibold text-white mb-3">8. Contact</h2>
               <p>
                 Questions? Email us at{" "}
-                <a href="mailto:hello@txid.support" className="text-accent hover:underline">
-                  hello@txid.support
+                <a href="mailto:team@txid.support" className="text-accent hover:underline">
+                  team@txid.support
                 </a>
               </p>
             </section>

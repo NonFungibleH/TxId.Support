@@ -11,7 +11,8 @@ const NAV = [
 ];
 
 const LEGAL = [
-  { label: "Contact", href: "mailto:hello@txid.support", external: true },
+  { label: "Contact", href: "mailto:team@txid.support", external: true },
+  { label: "Telegram", href: "https://t.me/Non_Fungible_Howard", external: true },
   { label: "Terms", href: "/terms" },
   { label: "Privacy", href: "/privacy" },
 ];

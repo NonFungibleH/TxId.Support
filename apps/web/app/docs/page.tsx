@@ -110,7 +110,7 @@ export default function DocsPage() {
                 If you can&apos;t find what you need, reach out. We&apos;re happy to help.
               </p>
               <a
-                href="mailto:hello@txid.support"
+                href="mailto:team@txid.support"
                 className="inline-flex items-center gap-2 rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-white hover:opacity-90 transition-opacity"
               >
                 Contact support

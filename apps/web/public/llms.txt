@@ -41,4 +41,4 @@ Add one script tag before the closing `</body>` tag. No SDK, no build step. Work
 
 ## Contact
 
-Email hello@txid.support for demos, custom plans, or enterprise enquiries.
+Email team@txid.support, or message @Non_Fungible_Howard on Telegram (https://t.me/Non_Fungible_Howard), for demos, custom plans, or enterprise enquiries.

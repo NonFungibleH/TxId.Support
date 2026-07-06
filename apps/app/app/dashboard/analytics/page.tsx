@@ -187,7 +187,7 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Se
               ? <>You&apos;ve reached your monthly limit of {convLimitLabel} conversations. New chats are paused. </>
               : <>{usagePct}% of your monthly {convLimitLabel}-conversation limit used. </>}
             <a
-              href="mailto:hello@txid.support?subject=Upgrade enquiry"
+              href="mailto:team@txid.support?subject=Upgrade enquiry"
               className="underline underline-offset-2 hover:opacity-80"
             >
               Upgrade to increase your limit

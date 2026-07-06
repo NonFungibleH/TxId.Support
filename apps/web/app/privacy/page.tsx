@@ -75,8 +75,8 @@ export default function PrivacyPage() {
               <h2 className="font-display text-lg font-semibold text-white mb-3">Your rights</h2>
               <p>
                 You have the right to access, correct, or delete your personal data. To exercise these rights, contact us at{" "}
-                <a href="mailto:hello@txid.support" className="text-accent hover:underline">
-                  hello@txid.support
+                <a href="mailto:team@txid.support" className="text-accent hover:underline">
+                  team@txid.support
                 </a>
               </p>
             </section>

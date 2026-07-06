@@ -192,7 +192,10 @@ export function Sidebar({ mode = "support", plan = "free", isOpen = false, onClo
           <a href={`${WEB_URL}/privacy`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-0.5 text-[11px] text-muted-foreground hover:text-foreground transition-colors">
             Privacy <ExternalLink className="size-2.5 opacity-40" />
           </a>
-          <a href="mailto:hello@txid.support" className="text-[11px] text-muted-foreground hover:text-foreground transition-colors">Contact</a>
+          <a href="mailto:team@txid.support" className="text-[11px] text-muted-foreground hover:text-foreground transition-colors">Contact</a>
+          <a href="https://t.me/Non_Fungible_Howard" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-0.5 text-[11px] text-muted-foreground hover:text-foreground transition-colors">
+            Telegram <ExternalLink className="size-2.5 opacity-40" />
+          </a>
         </div>
       </div>
     </aside>
