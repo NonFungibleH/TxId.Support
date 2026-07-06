@@ -246,6 +246,7 @@ export async function POST(request: Request) {
         try {
           let fullResponseText = ""
           let wasEscalated = false
+          let usage: { inputTokens: number; outputTokens: number; model: string } | null = null
 
           for await (const event of streamChatWithTools(
             systemPrompt,
@@ -259,6 +260,10 @@ export async function POST(request: Request) {
             } else if (event.type === "escalate") {
               wasEscalated = true
               data = `data: ${JSON.stringify({ escalate: { summary: event.summary, reason: event.reason } })}\n\n`
+            } else if (event.type === "usage") {
+              // Internal — captured for per-project cost accounting, not forwarded.
+              usage = { inputTokens: event.inputTokens, outputTokens: event.outputTokens, model: event.model }
+              continue
             } else {
               fullResponseText += event.text
               data = `data: ${JSON.stringify({ text: event.text })}\n\n`
@@ -283,7 +288,7 @@ export async function POST(request: Request) {
           controller.enqueue(encoder.encode("data: [DONE]\n\n"))
 
           // Persist user message + assistant response after stream completes
-          void persistMessages(supabase, typedProject.id, sessionId, messages, walletAddress, chainId, fullResponseText || undefined)
+          void persistMessages(supabase, typedProject.id, sessionId, messages, walletAddress, chainId, fullResponseText || undefined, usage)
         } catch (err) {
           log.error("Chat stream error", err, { event: "chat.stream_error", projectId: typedProject.id })
           controller.enqueue(
@@ -320,6 +325,7 @@ async function persistMessages(
   walletAddress?: string,
   chainId?: string,
   assistantResponse?: string,
+  usage?: { inputTokens: number; outputTokens: number; model: string } | null,
 ) {
   try {
     const { data: conv } = await supabase
@@ -344,6 +350,18 @@ async function persistMessages(
     }
     if (toInsert.length > 0) {
       await supabase.from("messages").insert(toInsert)
+    }
+
+    // Record token usage for the admin cost cockpit (denormalised project_id).
+    if (usage && (usage.inputTokens > 0 || usage.outputTokens > 0)) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabase as any).from("token_usage").insert({
+        project_id: projectId,
+        conversation_id: conv.id,
+        model: usage.model,
+        input_tokens: usage.inputTokens,
+        output_tokens: usage.outputTokens,
+      })
     }
   } catch {
     // Non-fatal

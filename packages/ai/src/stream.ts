@@ -34,6 +34,10 @@ export type StreamEvent =
   | { type: "text"; text: string }
   | { type: "tool_call"; tool: string }
   | { type: "escalate"; summary: string; reason: string }
+  // Emitted once at the very end with the total tokens spent on this turn
+  // (summed across all tool-loop rounds). The API returns these for free in
+  // each response; the caller persists them for per-project usage accounting.
+  | { type: "usage"; inputTokens: number; outputTokens: number; model: string }
 
 // ── Agentic streaming with tool use ─────────────────────────────────────────
 
@@ -201,11 +205,14 @@ export async function* streamChatWithTools(
     content: m.content,
   }))
 
+  const MODEL = "claude-haiku-4-5-20251001"
   const MAX_ROUNDS = 5
+  let totalInputTokens = 0
+  let totalOutputTokens = 0
 
   for (let round = 0; round < MAX_ROUNDS; round++) {
     const stream = anthropic.messages.stream({
-      model: "claude-haiku-4-5-20251001",
+      model: MODEL,
       max_tokens: maxTokens,
       system: systemPrompt,
       messages: currentMessages,
@@ -232,11 +239,15 @@ export async function* streamChatWithTools(
       }
     }
 
+    // Token usage for this round (the SDK accumulated the full message during
+    // streaming, so finalMessage() is cheap). Summed across rounds = the real
+    // tokens charged for this turn.
+    const finalMsg = await stream.finalMessage()
+    totalInputTokens += finalMsg.usage.input_tokens
+    totalOutputTokens += finalMsg.usage.output_tokens
+
     // Claude gave a text response with no tool calls — done
     if (!hasToolCalls) break
-
-    // SDK accumulates the full message during streaming — get parsed tool inputs
-    const finalMsg = await stream.finalMessage()
 
     const toolUseBlocks = finalMsg.content.filter(
       (b): b is Anthropic.ToolUseBlock => b.type === "tool_use",
@@ -247,6 +258,7 @@ export async function* streamChatWithTools(
     if (escalationBlock) {
       const input = escalationBlock.input as { summary?: string; reason?: string }
       yield { type: "escalate", summary: input.summary ?? "Issue needs further attention", reason: input.reason ?? "unresolved" }
+      yield { type: "usage", inputTokens: totalInputTokens, outputTokens: totalOutputTokens, model: MODEL }
       return
     }
 
@@ -283,6 +295,8 @@ export async function* streamChatWithTools(
       { role: "user", content: toolResults },
     ]
   }
+
+  yield { type: "usage", inputTokens: totalInputTokens, outputTokens: totalOutputTokens, model: MODEL }
 }
 
 // ── Text-only helpers ────────────────────────────────────────────────────────

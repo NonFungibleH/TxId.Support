@@ -8,6 +8,27 @@ import { PlanControl } from "@/components/admin/PlanControl"
 
 const ADMIN_EMAILS = (process.env.ADMIN_EMAILS ?? "").toLowerCase().split(",").map(e => e.trim()).filter(Boolean)
 
+// Approximate Claude Haiku 4.5 pricing, in USD per million tokens. Adjust to
+// match current Anthropic pricing — this drives the estimated-cost columns.
+const USD_PER_MTOK_INPUT = 1.0
+const USD_PER_MTOK_OUTPUT = 5.0
+
+function estCostUsd(inputTokens: number, outputTokens: number): number {
+  return (inputTokens / 1_000_000) * USD_PER_MTOK_INPUT + (outputTokens / 1_000_000) * USD_PER_MTOK_OUTPUT
+}
+
+function fmtUsd(n: number): string {
+  return n < 0.01 && n > 0 ? "<$0.01" : `$${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+}
+
+function fmtTokens(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}k`
+  return String(n)
+}
+
+type TokenRow = { project_id: string; input_all: number; output_all: number; input_month: number; output_month: number }
+
 const PLAN_COLOR: Record<string, string> = {
   free:       "bg-muted text-muted-foreground",
   starter:    "bg-indigo-500/20 text-indigo-400",
@@ -75,6 +96,18 @@ export default async function AdminPage() {
 
   const stats = rows ?? []
 
+  // Per-project token usage (all-time + this month) for the cost cockpit.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: tokenRows } = await (supabase as any).rpc("admin_token_usage") as { data: TokenRow[] | null }
+  const tokensByProject = new Map<string, TokenRow>()
+  for (const t of tokenRows ?? []) {
+    tokensByProject.set(t.project_id, {
+      project_id: t.project_id,
+      input_all: Number(t.input_all), output_all: Number(t.output_all),
+      input_month: Number(t.input_month), output_month: Number(t.output_month),
+    })
+  }
+
   // Platform-level aggregates
   const totalOrgs = new Set(stats.map(r => r.org_id)).size
   const totalProjects = stats.length
@@ -83,6 +116,11 @@ export default async function AdminPage() {
   const totalConvsAll = stats.reduce((s, r) => s + Number(r.conv_count_total), 0)
   const totalMessages = stats.reduce((s, r) => s + Number(r.message_count), 0)
   const totalDocs = stats.reduce((s, r) => s + Number(r.doc_count), 0)
+
+  const allTokenRows = [...tokensByProject.values()]
+  const totalTokensMonth = allTokenRows.reduce((s, t) => s + t.input_month + t.output_month, 0)
+  const totalCostMonth = allTokenRows.reduce((s, t) => s + estCostUsd(t.input_month, t.output_month), 0)
+  const totalCostAll = allTokenRows.reduce((s, t) => s + estCostUsd(t.input_all, t.output_all), 0)
 
   const planCounts: Record<string, number> = {}
   for (const r of stats) {
@@ -110,7 +148,9 @@ export default async function AdminPage() {
             { label: "Convs all time",    value: fmt(totalConvsAll) },
             { label: "Total messages",    value: fmt(totalMessages) },
             { label: "Knowledge docs",    value: fmt(totalDocs) },
-            { label: "Avg msgs / conv",   value: totalConvsAll > 0 ? (totalMessages / totalConvsAll).toFixed(1) : "—" },
+            { label: "Tokens this month", value: fmtTokens(totalTokensMonth) },
+            { label: "Est. cost (month)", value: fmtUsd(totalCostMonth) },
+            { label: "Est. cost (all)",   value: fmtUsd(totalCostAll) },
           ].map(({ label, value }) => (
             <div key={label} className="rounded-xl border border-border bg-card p-4">
               <p className="text-xs text-muted-foreground">{label}</p>
@@ -145,7 +185,7 @@ export default async function AdminPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border bg-muted/30">
-                {["Organisation", "Project", "Plan", "Mode", "Status", "Convs (mo)", "Convs (total)", "Messages", "Docs", "Joined"].map(h => (
+                {["Organisation", "Project", "Plan", "Mode", "Status", "Convs (mo)", "Convs (total)", "Messages", "Docs", "Tokens (mo)", "Est. $ (mo)", "Joined"].map(h => (
                   <th key={h} className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">{h}</th>
                 ))}
               </tr>
@@ -170,12 +210,23 @@ export default async function AdminPage() {
                   <td className="px-4 py-3 tabular-nums text-muted-foreground">{fmt(row.conv_count_total)}</td>
                   <td className="px-4 py-3 tabular-nums text-muted-foreground">{fmt(row.message_count)}</td>
                   <td className="px-4 py-3 tabular-nums text-muted-foreground">{fmt(row.doc_count)}</td>
+                  {(() => {
+                    const t = tokensByProject.get(row.project_id)
+                    const monthTokens = t ? t.input_month + t.output_month : 0
+                    const monthCost = t ? estCostUsd(t.input_month, t.output_month) : 0
+                    return (
+                      <>
+                        <td className="px-4 py-3 tabular-nums text-muted-foreground">{monthTokens > 0 ? fmtTokens(monthTokens) : "—"}</td>
+                        <td className="px-4 py-3 tabular-nums font-medium">{monthCost > 0 ? fmtUsd(monthCost) : "—"}</td>
+                      </>
+                    )
+                  })()}
                   <td className="px-4 py-3 text-muted-foreground whitespace-nowrap text-xs">{monthsAgo(row.org_created_at)}</td>
                 </tr>
               ))}
               {stats.length === 0 && (
                 <tr>
-                  <td colSpan={10} className="px-4 py-10 text-center text-muted-foreground text-sm">
+                  <td colSpan={12} className="px-4 py-10 text-center text-muted-foreground text-sm">
                     No projects found.
                   </td>
                 </tr>
