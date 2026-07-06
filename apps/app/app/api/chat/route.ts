@@ -330,7 +330,7 @@ async function persistMessages(
       .from("conversations")
       .upsert(
         { project_id: projectId, session_id: sessionId, wallet_address: walletAddress ?? null, chain_id: chainId ?? null },
-        { onConflict: "session_id" },
+        { onConflict: "project_id,session_id" },
       )
       .select("id")
       .single()

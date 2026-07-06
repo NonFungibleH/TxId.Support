@@ -1,3 +1,4 @@
+import crypto from "crypto"
 import { createServiceClient } from "@/lib/supabase/server"
 import { buildSystemPrompt, completeChat } from "@txid/ai"
 import type { ChatMessage, ProjectConfigSnapshot } from "@txid/ai"
@@ -5,6 +6,16 @@ import type { ProjectConfig, Plan } from "@/lib/types/config"
 import { PLAN_CONV_LIMITS } from "@/lib/types/config"
 import type { Database } from "@/lib/supabase/types"
 import { log } from "@/lib/logger"
+
+// Constant-time compare of the webhook secret token. A plain !== leaks the
+// secret_key through timing (audit H1); secret_key also gates the AI pipeline,
+// so a leak lets an attacker forge Telegram updates and drain quota.
+function secretsMatch(a: string, b: string): boolean {
+  const ab = Buffer.from(a)
+  const bb = Buffer.from(b)
+  if (ab.length !== bb.length) return false
+  return crypto.timingSafeEqual(ab, bb)
+}
 
 type ProjectRow = Database["public"]["Tables"]["projects"]["Row"]
 
@@ -169,9 +180,9 @@ export async function POST(
   const project = projectData as unknown as ProjectRow & { name: string }
   const secretKey = (project as unknown as { secret_key: string }).secret_key
 
-  // Verify Telegram's webhook secret token
+  // Verify Telegram's webhook secret token (constant-time — see secretsMatch)
   const incomingSecret = request.headers.get("x-telegram-bot-api-secret-token")
-  if (!incomingSecret || incomingSecret !== secretKey) {
+  if (!incomingSecret || !secretsMatch(incomingSecret, secretKey)) {
     return new Response("Unauthorized", { status: 401 })
   }
 
@@ -327,7 +338,7 @@ async function persistTelegramMessages(
       .from("conversations")
       .upsert(
         { project_id: projectId, session_id: sessionId, wallet_address: null, chain_id: null },
-        { onConflict: "session_id" },
+        { onConflict: "project_id,session_id" },
       )
       .select("id")
       .single()
