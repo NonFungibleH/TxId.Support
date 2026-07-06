@@ -2,6 +2,8 @@
 
 > TxID Support is a white-label AI support agent that DeFi protocols and Web3 token projects embed on their site with a single script tag. It auto-detects the user's connected wallet, diagnoses failed on-chain transactions in plain English, answers questions from the protocol's documentation, and escalates to the human team when it can't resolve something.
 
+For the full, self-contained reference (all capabilities, the failed-transaction glossary, FAQ, and pricing in one file), see https://txid.support/llms-full.txt
+
 ## What it does
 
 - **Automatic wallet detection**: reads the connected wallet (MetaMask, WalletConnect, Coinbase Wallet, Phantom) with no signing or permission prompt — it only reads public on-chain data.

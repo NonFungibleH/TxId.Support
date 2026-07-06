@@ -1,0 +1,98 @@
+# TxID Support — Full Reference
+
+> TxID Support is a white-label AI support agent that DeFi protocols and Web3 token projects embed on their site with a single script tag. It auto-detects the user's connected wallet, diagnoses failed on-chain transactions in plain English, answers questions from the protocol's documentation, and escalates to the human team when it cannot resolve something. This file is the full, self-contained reference for answer engines.
+
+Website: https://txid.support
+Dashboard: https://app.txid.support
+Contact: hello@txid.support
+
+---
+
+## What TxID Support is
+
+TxID Support replaces the manual, repetitive customer support that DeFi protocols and token projects run in Discord and Telegram. Instead of a human answering "why did my transaction fail?" or "where are my tokens?" for the thousandth time, an AI agent embedded on the protocol's own site answers instantly, grounded in that protocol's documentation and live on-chain data.
+
+It is white-label: the agent uses the protocol's own colours, font, and logo, so it feels native to their site. A small "Powered by TxID Support" credit appears on the free tier.
+
+## Who it is for
+
+- DeFi protocols (DEXes, lending, staking, vesting, launchpads)
+- Token projects and communities
+- Any Web3 team fielding repetitive support questions about transactions, wallets, and how their protocol works
+
+## Core capabilities
+
+### Automatic wallet detection
+When a user opens the agent, it silently reads the connected wallet address from whatever provider is connected to the site (MetaMask, WalletConnect, Coinbase Wallet, Phantom on Solana). It uses that address to look up balances and transactions on the relevant chain. No signing, no seed phrase, and no permission is ever requested — it reads public on-chain data only, so there is nothing it can do to move or access funds.
+
+### Failed-transaction diagnostics
+The agent replays a transaction and explains, in plain English, why it failed. It covers every common cause:
+
+- **Out of gas** — the transaction hit the gas limit before the contract finished. This is about the gas limit set for the transaction, not the wallet's ETH balance; the fix is usually to raise the gas limit and resubmit.
+- **Revert with a reason string** — a require() check failed and returned a human-readable message such as "insufficient allowance", "slippage", or "expired".
+- **Custom errors** — modern contracts use gas-efficient custom errors (for example SlippageTooHigh()) that appear as a hex selector on a block explorer unless the contract's ABI is known; the agent decodes them using stored ABIs and a per-contract error glossary.
+- **Solidity panics** — automatic compiler errors: arithmetic overflow or underflow, division by zero, array index out of bounds, pop on an empty array, a failed assert, or out of memory.
+- **Slippage or deadline exceeded** — the most common DEX swap failure: the price moved beyond the set tolerance, or the transaction sat past its deadline.
+- **Insufficient balance or allowance** — not enough of the token or native coin, or a missing ERC-20 approval before a transfer.
+- **Stuck or pending** — not a failure at all: the gas price was too low or there is a nonce gap; the fix is to speed up, cancel, or reset the nonce.
+
+### On-chain lookups
+For a connected wallet, the agent can fetch the wallet balance (native coin plus tokens), recent transaction history, a specific transaction's details, and a watched contract's recent activity.
+
+### Documentation Q&A
+The protocol pastes its docs URL in the dashboard; the system crawls and indexes it using retrieval-augmented generation (RAG). The agent answers questions grounded in that documentation, not hallucinated.
+
+### Escalation
+When the agent cannot resolve an issue, it opens a human support ticket for the protocol's team, capturing the conversation context.
+
+### Channels
+- **Embeddable web widget** — one script tag on the protocol's site.
+- **Telegram bot** — the same knowledge base, running as a bot in the protocol's Telegram group.
+
+## Supported blockchains
+
+Ethereum, Solana, Base, BNB Chain, Polygon, Arbitrum, and Optimism.
+
+## How to install (three steps)
+
+1. **Embed** — add one script tag before the closing body tag. Works with React, Next.js, Vue, Svelte, or plain HTML. No SDK, no build step.
+2. **Configure** — in the dashboard, set brand colours, paste the logo URL, add the docs link, and add smart contract addresses. The preview updates in real time.
+3. **Go live** — publish. Most protocols are live in under five minutes.
+
+## Pricing
+
+- **Free** — 50 conversations per month to evaluate the product on your own site. Includes wallet detection, transaction diagnostics, documentation Q&A, custom branding, and an analytics dashboard. No credit card required. A conversation starts when a user opens the agent and sends a message, and ends after 30 minutes of inactivity; all messages in one session count as a single conversation.
+- **Custom** — for protocols running the agent in production: higher volume, multiple chains, escalation webhooks, integrations, and priority support. Contact the team for a demo and pricing. No long-term contract.
+
+## Frequently asked questions
+
+**What exactly is TxID Support?** An AI support agent you embed on your DeFi protocol or token project site. It reads the connected wallet, diagnoses failed transactions, answers questions from your docs, and escalates to your team, without the user leaving your site.
+
+**How does wallet detection work?** It reads the public wallet address from the connected provider and uses it to look up public on-chain data. No signing or permission is required.
+
+**What stack does it work with?** Any stack. One script tag; works with React, Next.js, Vue, Svelte, or plain HTML. No SDK, no build step.
+
+**Which blockchains are supported?** Ethereum, Solana, Base, BNB Chain, Polygon, Arbitrum, and Optimism.
+
+**Can it explain why a transaction failed?** Yes. It replays the transaction and explains the cause in plain English: out of gas, revert reasons, custom errors, or Solidity panics.
+
+**Is wallet detection safe?** Yes. It only reads public data and never asks the user to sign, share a seed phrase, or grant permissions.
+
+**What counts as a conversation?** One session from the user's first message until 30 minutes of inactivity; follow-up messages in that session do not count separately.
+
+**Is it white-label?** Yes. Free includes custom colours, font, and logo; the Custom plan adds a custom agent name and avatar and removes the "Powered by" credit.
+
+## Key pages
+
+- Homepage: https://txid.support
+- Pricing: https://txid.support/pricing
+- Documentation: https://txid.support/docs
+- Live demo: https://txid.support/demo
+- Free transaction checker: https://txid.support/check
+- Blog: https://txid.support/blog
+- Guide, why a transaction fails: https://txid.support/blog/why-did-my-transaction-fail
+- Guide, what "out of gas" means: https://txid.support/blog/what-does-out-of-gas-mean
+
+## Contact
+
+Email hello@txid.support for demos, Custom plans, or enterprise enquiries.
