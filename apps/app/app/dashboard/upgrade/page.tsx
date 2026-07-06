@@ -23,7 +23,7 @@ const PLANS: PlanDef[] = [
     price: "$0",
     priceSub: "forever",
     features: [
-      "1,000 conversations / month",
+      "50 conversations / month",
       "1 blockchain",
       "Custom branding",
       "Content blocks",

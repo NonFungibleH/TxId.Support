@@ -9,7 +9,7 @@ export const PLAN_CHAIN_LIMITS: Record<Plan, number> = {
 }
 
 export const PLAN_CONV_LIMITS: Record<Plan, number> = {
-  free:       1000,     // generous free tier — adoption-led pre-launch
+  free:       50,       // trial tier — enough to evaluate, then contact us
   starter:    200,      // legacy
   pro:        2500,     // legacy / internal
   enterprise: Infinity,

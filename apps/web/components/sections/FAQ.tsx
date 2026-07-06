@@ -20,7 +20,7 @@ export const FAQS = [
   },
   {
     q: "Can I try it before committing?",
-    a: "Yes, the Free plan has no credit card required. You get 1,000 conversations per month, wallet detection, transaction diagnostics, and docs Q&A. You can stay on free as long as you like and talk to us about a Custom plan when you need higher volume.",
+    a: "Yes, the Free plan has no credit card required. You get 50 conversations per month, wallet detection, transaction diagnostics, and docs Q&A. It is enough to evaluate the product on your own site; when you are ready to run it in production, talk to us about a Custom plan.",
   },
   {
     q: "Is it really white-label on the free plan?",

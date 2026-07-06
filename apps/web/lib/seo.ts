@@ -41,7 +41,7 @@ export const softwareApplicationSchema = {
     price: "0",
     priceCurrency: "USD",
     description:
-      "Free plan: 1,000 conversations per month, wallet detection, transaction diagnostics, and docs Q&A. No credit card required.",
+      "Free plan: 50 conversations per month to evaluate the product, with wallet detection, transaction diagnostics, and docs Q&A. No credit card required.",
   },
   featureList: [
     "Automatic wallet detection (MetaMask, WalletConnect, Coinbase Wallet, Phantom)",
