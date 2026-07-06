@@ -20,6 +20,7 @@ const PLAN_COLOR: Record<Plan, string> = {
   pro:        "bg-amber-500/20 text-amber-400",
   enterprise: "bg-purple-500/20 text-purple-400",
   custom:     "bg-emerald-500/20 text-emerald-400",
+  demo:       "bg-cyan-500/20 text-cyan-400",
 }
 
 export default async function AccountPage() {

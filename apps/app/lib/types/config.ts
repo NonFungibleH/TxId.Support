@@ -1,4 +1,6 @@
-export type Plan = "free" | "starter" | "pro" | "enterprise" | "custom"
+// "demo" is a hand-provisioned full-access plan used while onboarding early
+// users manually (and for our own accounts) before paid pricing is set.
+export type Plan = "free" | "starter" | "pro" | "enterprise" | "custom" | "demo"
 
 export const PLAN_CHAIN_LIMITS: Record<Plan, number> = {
   free:       1,
@@ -6,6 +8,7 @@ export const PLAN_CHAIN_LIMITS: Record<Plan, number> = {
   pro:        1,
   enterprise: Infinity,
   custom:     Infinity,
+  demo:       Infinity,
 }
 
 export const PLAN_CONV_LIMITS: Record<Plan, number> = {
@@ -14,6 +17,7 @@ export const PLAN_CONV_LIMITS: Record<Plan, number> = {
   pro:        2500,     // legacy / internal
   enterprise: Infinity,
   custom:     Infinity,
+  demo:       Infinity,
 }
 
 export const PLAN_LABELS: Record<Plan, string> = {
@@ -22,9 +26,17 @@ export const PLAN_LABELS: Record<Plan, string> = {
   pro:        "Pro",
   enterprise: "Enterprise",
   custom:     "Custom",
+  demo:       "Demo",
 }
 
-export const PAID_PLANS: Plan[] = ["starter", "pro", "enterprise", "custom"]
+// Every plan that is NOT the free trial. Used to gate paid-only behaviour
+// such as hiding the "Powered by TxID Support" badge and suppressing upsell.
+export const PAID_PLANS: Plan[] = ["starter", "pro", "enterprise", "custom", "demo"]
+
+/** True for any paid/hand-provisioned plan (i.e. not the free trial). */
+export function isPaidPlan(plan: Plan): boolean {
+  return PAID_PLANS.includes(plan)
+}
 
 export const SUPPORTED_CHAINS = [
   { id: "0xaa36a7", name: "Sepolia (Testnet)",  explorer: "sepolia.etherscan.io" },

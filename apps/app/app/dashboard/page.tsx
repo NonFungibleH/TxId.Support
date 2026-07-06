@@ -9,7 +9,7 @@ import { redirect } from "next/navigation"
 import { GoLiveToggle } from "@/components/dashboard/GoLiveToggle"
 import { ProjectNameEditor } from "@/components/dashboard/ProjectNameEditor"
 import type { ProjectConfig } from "@/lib/types/config"
-import { PLAN_CHAIN_LIMITS, PLAN_CONV_LIMITS, SUPPORTED_CHAINS } from "@/lib/types/config"
+import { PLAN_CHAIN_LIMITS, PLAN_CONV_LIMITS, SUPPORTED_CHAINS, isPaidPlan } from "@/lib/types/config"
 import type { Database } from "@/lib/supabase/types"
 import { cn } from "@/lib/utils"
 
@@ -171,6 +171,28 @@ export default async function DashboardPage() {
         <StatsCard title="Knowledge docs" value={docCount} description="Indexed chunks" icon={Globe} />
         <StatsCard title="Chains enabled" value={activeChains.length} description={`of ${chainLimitLabel} on ${plan}`} icon={Zap} />
       </div>
+
+      {/* Free-trial upsell — always visible for free projects so the paid
+          path is one click away. Paid/demo plans never see it. */}
+      {!isPaidPlan(plan) && (
+        <div className="rounded-xl border border-primary/30 bg-primary/5 p-5 flex items-start justify-between gap-4 flex-wrap">
+          <div className="min-w-0">
+            <p className="text-sm font-semibold">You&apos;re on the Free trial</p>
+            <p className="text-sm text-muted-foreground mt-1 max-w-xl">
+              Free covers {convLimitLabel ?? "a limited number of"} conversations a month to evaluate TxID Support.
+              Ready to run it for real users? Talk to us to unlock higher volume, multiple chains, and to remove
+              the &quot;Powered by TxID&quot; badge.
+            </p>
+          </div>
+          <a
+            href="mailto:hello@txid.support?subject=TxID%20Support%20—%20upgrade%20%2F%20demo"
+            className="shrink-0 inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
+          >
+            <Zap className="size-3.5" />
+            Book a demo
+          </a>
+        </div>
+      )}
 
       {liveDone ? (
         <div className="space-y-4">

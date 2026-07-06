@@ -64,6 +64,8 @@ interface WidgetConfig {
   tokenModeAsk?: string | null
   welcomeMessage?: string | null
   contentBlocks?: ContentBlockData[]
+  /** Paid/hand-provisioned plans hide the "Powered by TxID Support" badge. */
+  hidePoweredBy?: boolean
 }
 
 // Returns perceived luminance 0–1; > 0.5 = light background
@@ -1570,9 +1572,11 @@ export function WidgetApp() {
               </div>
             )}
 
-            <div className="pt-2 text-center">
-              <p className="text-[9px] opacity-30">Powered by TxID Support</p>
-            </div>
+            {!config.hidePoweredBy && (
+              <div className="pt-2 text-center">
+                <p className="text-[9px] opacity-30">Powered by TxID Support</p>
+              </div>
+            )}
           </div>
         )}
       </div>

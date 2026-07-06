@@ -1,5 +1,6 @@
 import { createServiceClient } from "@/lib/supabase/server"
-import type { ProjectConfig } from "@/lib/types/config"
+import type { ProjectConfig, Plan } from "@/lib/types/config"
+import { isPaidPlan } from "@/lib/types/config"
 import type { Database } from "@/lib/supabase/types"
 import { verifyPreviewToken } from "@/lib/preview-token"
 
@@ -102,6 +103,9 @@ export async function GET(
     projectId: typedProject.id,
     projectName: typedProject.name,
     mode: (typedProject as unknown as { mode?: string }).mode ?? "support",
+    // Paid/hand-provisioned plans hide the "Powered by TxID Support" badge;
+    // the free trial always shows it. Derived server-side from the plan.
+    hidePoweredBy: isPaidPlan((config.plan ?? "free") as Plan),
     branding: config.branding,
     chains: [...new Set([
       ...(config.watchedContracts ?? []).map(c => c.chain as string),

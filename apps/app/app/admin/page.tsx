@@ -4,6 +4,7 @@ import { createServiceClient } from "@/lib/supabase/server"
 import { PLAN_LABELS } from "@/lib/types/config"
 import type { Plan } from "@/lib/types/config"
 import { cn } from "@/lib/utils"
+import { PlanControl } from "@/components/admin/PlanControl"
 
 const ADMIN_EMAILS = (process.env.ADMIN_EMAILS ?? "").toLowerCase().split(",").map(e => e.trim()).filter(Boolean)
 
@@ -13,6 +14,7 @@ const PLAN_COLOR: Record<string, string> = {
   pro:        "bg-amber-500/20 text-amber-400",
   enterprise: "bg-purple-500/20 text-purple-400",
   custom:     "bg-emerald-500/20 text-emerald-400",
+  demo:       "bg-cyan-500/20 text-cyan-400",
 }
 
 function fmt(n: number | bigint) {
@@ -122,7 +124,7 @@ export default async function AdminPage() {
       <section>
         <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground mb-4">Plan distribution</h2>
         <div className="flex flex-wrap gap-3">
-          {(["free", "starter", "pro", "enterprise"] as Plan[]).map(p => (
+          {(["free", "demo", "custom", "enterprise"] as Plan[]).map(p => (
             <div key={p} className="flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-3">
               <span className={cn("rounded-full px-2 py-0.5 text-[11px] font-semibold", PLAN_COLOR[p])}>
                 {PLAN_LABELS[p]}
@@ -154,9 +156,7 @@ export default async function AdminPage() {
                   <td className="px-4 py-3 font-medium whitespace-nowrap">{row.org_name}</td>
                   <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">{row.project_name}</td>
                   <td className="px-4 py-3">
-                    <span className={cn("rounded-full px-2 py-0.5 text-[11px] font-semibold", PLAN_COLOR[row.plan] ?? PLAN_COLOR.free)}>
-                      {PLAN_LABELS[row.plan as Plan] ?? row.plan}
-                    </span>
+                    <PlanControl projectId={row.project_id} currentPlan={(row.plan as Plan) ?? "free"} />
                   </td>
                   <td className="px-4 py-3 text-muted-foreground capitalize">{row.mode ?? "support"}</td>
                   <td className="px-4 py-3">
