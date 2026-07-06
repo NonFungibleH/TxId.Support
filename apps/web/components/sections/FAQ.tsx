@@ -26,6 +26,22 @@ export const FAQS = [
     q: "Is it really white-label on the free plan?",
     a: "Yes. The free plan includes custom colours, font, and logo. Our Custom plan goes further with a custom agent name, avatar, and priority support.",
   },
+  {
+    q: "Which blockchains does TxID Support work with?",
+    a: "TxID Support works across Ethereum, Solana, Base, BNB Chain, Polygon, Arbitrum, and Optimism. It detects the connected wallet on any of these and looks up balances and transactions on the relevant chain.",
+  },
+  {
+    q: "Can it explain why a transaction failed?",
+    a: "Yes. Diagnosing failed transactions is a core feature. When a user pastes a transaction hash or asks about a failure, the agent replays the transaction and explains the cause in plain English: out of gas, a require() revert reason, a custom contract error, or a Solidity panic such as an arithmetic overflow.",
+  },
+  {
+    q: "Is wallet detection safe for my users?",
+    a: "Yes. The agent only reads the public wallet address and public on-chain data. It never asks the user to sign a transaction, share a seed phrase, or grant any permission. There is nothing it can do to move or access funds.",
+  },
+  {
+    q: "How do I add TxID Support to my site?",
+    a: "Add one script tag before the closing body tag, then configure your branding, docs link, and contract addresses in the dashboard. It works with React, Next.js, Vue, Svelte, or plain HTML, with no SDK and no build step. Most protocols are live in under five minutes.",
+  },
 ];
 
 export function FAQ() {

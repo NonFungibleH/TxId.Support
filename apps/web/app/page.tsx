@@ -10,7 +10,7 @@ import { PricingSection } from "@/components/sections/PricingSection";
 import { FAQ, FAQS } from "@/components/sections/FAQ";
 import { ClosingCTA } from "@/components/sections/ClosingCTA";
 import { JsonLd } from "@/components/JsonLd";
-import { organizationSchema, websiteSchema, softwareApplicationSchema, faqPageSchema } from "@/lib/seo";
+import { organizationSchema, websiteSchema, softwareApplicationSchema, faqPageSchema, howToEmbedSchema } from "@/lib/seo";
 
 export const metadata: Metadata = {
   alternates: { canonical: "/" },
@@ -22,6 +22,7 @@ export default function HomePage() {
       <JsonLd data={organizationSchema} />
       <JsonLd data={websiteSchema} />
       <JsonLd data={softwareApplicationSchema} />
+      <JsonLd data={howToEmbedSchema} />
       <JsonLd data={faqPageSchema(FAQS)} />
       <Navbar />
       <main>

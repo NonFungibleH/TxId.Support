@@ -1,4 +1,6 @@
 import type { Metadata } from "next"
+import { JsonLd } from "@/components/JsonLd"
+import { transactionGlossarySchema } from "@/lib/seo"
 
 // /check is a client component, so its metadata lives in this route layout.
 export const metadata: Metadata = {
@@ -15,5 +17,13 @@ export const metadata: Metadata = {
 }
 
 export default function CheckLayout({ children }: { children: React.ReactNode }) {
-  return children
+  // The glossary schema is rendered here (a server component) so it lands in
+  // the server HTML, where answer-engine crawlers — which often don't run JS —
+  // can read it.
+  return (
+    <>
+      <JsonLd data={transactionGlossarySchema} />
+      {children}
+    </>
+  )
 }
