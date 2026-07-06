@@ -376,7 +376,7 @@ export default function DemoPage() {
                 {[
                   { title: "Fully white-label", body: "Your colours, font, and logo. Users never know it's TxID Support." },
                   { title: "Live in under 5 minutes", body: "Configure branding, paste your docs URL, copy one script tag." },
-                  { title: "Free trial", body: "50 conversations/month free. No credit card required." },
+                  { title: "Generous free tier", body: "1,000 conversations/month free, forever. No credit card required." },
                 ].map((item) => (
                   <div key={item.title} className="rounded-xl border border-[var(--border)] bg-[var(--bg-surface)] p-4">
                     <p className="font-display font-semibold text-white text-xs mb-1">{item.title}</p>
@@ -407,7 +407,7 @@ export default function DemoPage() {
               <ArrowRight className="w-4 h-4" />
             </Button>
             <p className="text-xs text-muted mt-4">
-              No credit card · Set up in minutes · 50 conversations/month free
+              No credit card · Set up in minutes · 1,000 conversations/month free
             </p>
           </div>
         </div>

@@ -22,6 +22,240 @@ export type PostSection =
 
 export const POSTS: Post[] = [
   {
+    slug: "what-does-out-of-gas-mean",
+    title: "What does 'out of gas' actually mean? (and how to fix it)",
+    description:
+      "Out of gas is the most misunderstood transaction error in crypto. It is not about your ETH balance. Here is what it really means, why it happens, and exactly how to fix it.",
+    publishedAt: "2026-07-05",
+    readingMinutes: 6,
+    tags: ["Transaction diagnostics", "Gas", "Web3 support"],
+    author: "Non_Fungible_Howard",
+    heroVariant: "on-chain-data",
+    content: [
+      {
+        type: "p",
+        text: "Your transaction failed with 'out of gas', and you are staring at a wallet that clearly has ETH in it. So how can you be out of gas? This is the single most misunderstood error in crypto, and the confusion comes down to one word doing two jobs.",
+      },
+      {
+        type: "callout",
+        label: "The short answer",
+        text: "Out of gas does not mean you ran out of ETH. It means the transaction hit the gas LIMIT you set for it (the maximum amount of computation you authorised) before the smart contract finished. The fix is almost always to raise the gas limit and resubmit, not to add more ETH.",
+      },
+      {
+        type: "h2",
+        text: "Gas limit vs gas price vs ETH balance",
+      },
+      {
+        type: "p",
+        text: "Three different things get tangled together whenever people talk about gas. Keeping them separate is the whole trick to understanding this error.",
+      },
+      {
+        type: "ul",
+        items: [
+          "Gas limit: the maximum units of computation you allow the transaction to use. This is the one that causes an 'out of gas' failure when it is too low.",
+          "Gas price (or gas fee): how much you pay per unit of gas. This affects how fast your transaction is mined and how much it costs, not whether it runs out.",
+          "ETH balance: the coins in your wallet. You need enough to pay the fee, but having plenty of ETH does not prevent an out-of-gas failure if the limit itself is too low.",
+        ],
+      },
+      {
+        type: "p",
+        text: "Think of gas limit as the size of the fuel tank you agreed to fill, and gas price as the price per litre. Running out of gas means the tank you authorised was too small for the journey, not that your bank account was empty.",
+      },
+      {
+        type: "h2",
+        text: "Why it happens",
+      },
+      {
+        type: "p",
+        text: "Wallets estimate the gas limit automatically before you sign. Most of the time that estimate is correct. It goes wrong in a few predictable situations:",
+      },
+      {
+        type: "ul",
+        items: [
+          "The contract call is more complex than the wallet predicted, for example a swap that routes through several pools, or a claim that loops over many positions.",
+          "The state of the contract changed between the estimate and the moment your transaction was mined, so the real execution needed more gas than estimated.",
+          "You manually lowered the gas limit to save money, and set it below what the transaction actually needs.",
+          "The contract itself reverts late in execution in a way that consumes almost all the gas provided.",
+        ],
+      },
+      {
+        type: "h2",
+        text: "How to fix it",
+      },
+      {
+        type: "ul",
+        items: [
+          "Resubmit the transaction and let the wallet re-estimate. A fresh estimate often succeeds if the earlier one was made against stale state.",
+          "If it fails again, open the advanced or edit gas settings in your wallet and raise the gas limit by 20 to 50 percent above the estimate. Unused gas is refunded, so a higher limit does not cost more when the transaction succeeds.",
+          "Do not raise the gas price to fix this; that only changes speed and cost, not whether the transaction runs out.",
+          "If raising the limit still fails, the transaction is probably reverting for a different reason and only looks like out of gas because the revert burned the gas. At that point you need the real revert reason.",
+        ],
+      },
+      {
+        type: "h2",
+        text: "How to confirm it really was out of gas",
+      },
+      {
+        type: "p",
+        text: "On a block explorer, open the failed transaction and compare gas used to gas limit. If the transaction used close to 100 percent of the limit, it genuinely ran out of gas. If it used only a fraction of the limit and still failed, it did not run out; it reverted for another reason, such as a failed require() check, a custom contract error, or slippage. Those are covered in our companion guide on why transactions fail.",
+      },
+      {
+        type: "callout",
+        label: "Get the answer instantly",
+        text: "Paste a transaction hash into the free TxID Support transaction checker at txid.support/check. It replays the transaction and tells you whether it was truly out of gas or reverting for another reason, in plain English, with no wallet connection required.",
+      },
+      {
+        type: "p",
+        text: "Once you separate the gas limit from your ETH balance, out of gas stops being mysterious. In the large majority of cases the fix is a single click: raise the limit and resubmit. If that does not work, the transaction is telling you something else went wrong, and the next step is to read the real revert reason rather than keep adding gas.",
+      },
+    ],
+  },
+  {
+    slug: "why-did-my-transaction-fail",
+    title: "Why did my transaction fail? Every revert reason explained",
+    description:
+      "Out of gas, reverted, or a custom contract error? A plain-English guide to every reason an Ethereum transaction fails, how to read the real cause on a block explorer, and how to fix each one.",
+    publishedAt: "2026-07-05",
+    readingMinutes: 9,
+    tags: ["Transaction diagnostics", "DeFi", "Web3 support"],
+    author: "Non_Fungible_Howard",
+    heroVariant: "on-chain-data",
+    content: [
+      {
+        type: "p",
+        text: "Your wallet says 'Failed'. You paid gas anyway. And there is no obvious explanation of what went wrong. It is one of the most common and most frustrating moments in crypto, and almost every failed transaction on Ethereum and other EVM chains comes down to a small handful of causes.",
+      },
+      {
+        type: "p",
+        text: "This guide explains each one in plain English: what it means, how to confirm it, and how to fix it.",
+      },
+      {
+        type: "callout",
+        label: "The short answer",
+        text: "A failed transaction means the network ran your transaction but the smart contract rejected it, so your action was undone while you still pay for the gas used. The cause is almost always one of: not enough gas, a require() check that failed, a custom contract error, a Solidity panic such as arithmetic overflow, or a slippage or deadline guard on a swap.",
+      },
+      {
+        type: "h2",
+        text: "First, why you still paid gas",
+      },
+      {
+        type: "p",
+        text: "Gas pays for computation, not for success. When you submit a transaction, validators execute it step by step, and that work costs gas whether the transaction succeeds or reverts. If the contract hits a condition it will not allow, it reverts: every state change is rolled back as if it never happened, but the gas already spent on the computation up to that point is gone. This is why a failed swap can still cost you a few dollars.",
+      },
+      {
+        type: "h2",
+        text: "The six reasons a transaction fails",
+      },
+      {
+        type: "h3",
+        text: "1. Out of gas",
+      },
+      {
+        type: "p",
+        text: "The transaction ran out of the gas limit partway through execution. The gas limit is the maximum amount of computation you authorised, and if the contract needs more than that, it stops and reverts.",
+      },
+      {
+        type: "callout",
+        label: "The most common confusion",
+        text: "Out of gas is about the gas LIMIT you set for the transaction, not your ETH balance. You can have plenty of ETH and still run out of gas if the limit was set too low. The fix is to raise the gas limit in your wallet's advanced settings and resubmit. Wallets estimate this automatically, but complex contract calls sometimes need a manual bump.",
+      },
+      {
+        type: "h3",
+        text: "2. Reverted with a reason string",
+      },
+      {
+        type: "p",
+        text: "Smart contracts guard themselves with require() checks, and many include a human-readable message: require(balance >= amount, 'insufficient balance'). When that check fails, the message is your answer. Common reason strings include 'insufficient allowance', 'slippage', 'transfer amount exceeds balance', and 'expired'. A good block explorer shows this string directly on the failed transaction.",
+      },
+      {
+        type: "h3",
+        text: "3. Custom errors",
+      },
+      {
+        type: "p",
+        text: "Modern contracts increasingly use custom errors instead of reason strings, for example error SlippageTooHigh() or error DeadlinePassed(). They are cheaper on gas, but they show up on a block explorer as a raw hex selector such as 0x8199f5f3 unless the explorer knows the contract's ABI. To translate a custom error into plain English, you need the ABI of the contract that threw it, or a tool that decodes it for you.",
+      },
+      {
+        type: "h3",
+        text: "4. Solidity panics",
+      },
+      {
+        type: "p",
+        text: "Panics are automatic errors the Solidity compiler inserts to catch programming mistakes. Each has a numeric code:",
+      },
+      {
+        type: "ul",
+        items: [
+          "0x11 — an arithmetic overflow or underflow (a number went above its maximum or below zero)",
+          "0x12 — a division by zero",
+          "0x32 — an array index that is out of bounds",
+          "0x31 — calling .pop() on an empty array",
+          "0x01 — an assert() check failed, which usually signals a bug in the contract",
+          "0x41 — the contract ran out of memory",
+        ],
+      },
+      {
+        type: "p",
+        text: "A panic almost always means the contract was in a state it did not expect. If your inputs look correct, this can indicate a bug in the contract itself rather than anything you did wrong.",
+      },
+      {
+        type: "h3",
+        text: "5. Slippage or deadline exceeded",
+      },
+      {
+        type: "p",
+        text: "On DEX swaps, this is the single most common failure. Slippage means the price moved beyond the tolerance you set between the moment you submitted and the moment the transaction was mined; the contract refuses to fill the trade at a worse price to protect you. A deadline error means the transaction sat in the mempool longer than the time window the app allowed. The fix is usually to raise your slippage tolerance slightly, or simply retry when the network is less congested.",
+      },
+      {
+        type: "h3",
+        text: "6. Insufficient balance or allowance",
+      },
+      {
+        type: "p",
+        text: "Two different things get bundled together here. Insufficient balance means you do not hold enough of the token you are trying to move, or not enough native coin to cover gas. Insufficient allowance means you never granted the contract permission to spend your ERC-20 tokens: token transfers require a separate approval transaction first, which is why many swaps are two steps.",
+      },
+      {
+        type: "h2",
+        text: "Pending forever is not the same as failed",
+      },
+      {
+        type: "p",
+        text: "A transaction that is stuck as pending has not failed at all. It usually means the gas price was set too low for current network conditions, or there is a nonce gap because an earlier transaction from your wallet is still unconfirmed. Nothing reverted; the network simply has not picked it up yet. The fix is to speed it up with a higher fee, cancel it with a zero-value replacement at the same nonce, or reset your wallet's nonce if transactions are queued behind a stuck one.",
+      },
+      {
+        type: "h2",
+        text: "How to find the real reason yourself",
+      },
+      {
+        type: "ul",
+        items: [
+          "Open the transaction on the block explorer for its chain (Etherscan, Basescan, BscScan, Arbiscan, and so on).",
+          "Look for the red 'Fail' status and any reason string shown directly beneath it.",
+          "Check the gas used against the gas limit: if it used close to 100 percent of the limit, it ran out of gas.",
+          "If you see a custom error hex selector with no label, the explorer does not have the contract's ABI, and you will need the ABI to decode it.",
+          "For a deep diagnosis, tools can replay the transaction at the block it was mined to recover the exact revert reason, even when the explorer cannot.",
+        ],
+      },
+      {
+        type: "callout",
+        label: "Skip the detective work",
+        text: "Paste a transaction hash into the free TxID Support transaction checker at txid.support/check. It replays the transaction and tells you the cause in plain English, including out-of-gas, reason strings, custom errors, and panics, with no wallet connection required. Protocols embed the same engine on their own site so their users get the answer instantly instead of opening a support ticket.",
+      },
+      {
+        type: "h2",
+        text: "What about Solana?",
+      },
+      {
+        type: "p",
+        text: "Solana transactions fail for similar reasons but with different mechanics. There is no gas limit to run out of, but a transaction can fail on insufficient lamports to cover fees, a program instruction that returns an error, a slippage guard on a swap, or an account constraint that was not satisfied. The underlying idea is the same as on EVM chains: a program was asked to do something it would not allow, so it rejected the instruction and the transaction did not go through.",
+      },
+      {
+        type: "p",
+        text: "The vast majority of failed transactions are one of the categories above. Once you know which one you are looking at, the fix is usually quick: raise a limit, grant an approval, widen slippage, or retry. The hard part has always been translating the raw on-chain data into that plain-English category, which is exactly the gap a good diagnostic tool closes.",
+      },
+    ],
+  },
+  {
     slug: "defi-discord-support-scam-vector",
     title: "Why your DeFi protocol's Discord support is a scam vector",
     description:

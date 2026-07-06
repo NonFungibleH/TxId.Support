@@ -78,7 +78,7 @@ export const DOCS: Doc[] = [
         { title: "Embed the widget", description: "Copy the two-line embed snippet from the Embed & Go Live page and paste it before the closing </body> tag in your app." },
         { title: "Go live", description: "Click 'Go live' in the dashboard. The widget becomes visible to your users. You can pause at any time from the dashboard." },
       ]},
-      { type: "callout", variant: "info", title: "Free tier", text: "The free plan includes 200 conversations per month, enough to test the full product and validate it with real users before deciding to upgrade." },
+      { type: "callout", variant: "info", title: "Free tier", text: "The free plan includes 1,000 conversations per month, enough to run the agent on a real protocol before you ever need to talk to us about more." },
       { type: "h2", text: "What's next" },
       { type: "p", text: "Once your widget is live, read through a few real conversations from the Conversations page each week. You'll quickly spot gaps in your knowledge base: pages worth adding, or questions the AI handled less well than you'd like." },
     ],

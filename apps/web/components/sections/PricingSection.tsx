@@ -15,7 +15,7 @@ const PLANS = [
     ctaHref: `${APP_URL}/sign-up`,
     highlight: false,
     features: [
-      { label: "50 conversations / month", soon: false },
+      { label: "1,000 conversations / month", soon: false },
       { label: "1 blockchain", soon: false },
       { label: "Custom branding", soon: false },
       { label: "Wallet detection", soon: false },

@@ -66,7 +66,7 @@ const COMPARISON = [
 const FAQ = [
   {
     q: "What does the free trial include?",
-    a: "The Starter plan is free forever: no trial expiry. You get 200 conversations/month, the full feature set (wallet detection, transaction diagnostics, knowledge base Q&A, token widget), and a full analytics dashboard. No credit card required. Token communities and early-stage protocols rarely need more than this.",
+    a: "The Free plan is free forever: no trial expiry. You get 1,000 conversations/month, the full feature set (wallet detection, transaction diagnostics, knowledge base Q&A, token widget), and a full analytics dashboard. No credit card required. Token communities and early-stage protocols rarely need more than this.",
   },
   {
     q: "What counts as a conversation?",
@@ -74,7 +74,7 @@ const FAQ = [
   },
   {
     q: "How does the Pro plan work?",
-    a: "Pro is designed for protocols with active on-chain users: the kind of traffic that pushes past 200 conversations/month quickly. It unlocks 5,000 conversations/month, removes TxID Support branding, adds full custom branding (colours, font, logo, agent name), escalation webhooks, and CSV export. $699/mo, no long-term contract, cancel anytime.",
+    a: "The Custom plan is for protocols with active on-chain users: the kind of traffic that pushes past the free 1,000 conversations/month. It unlocks higher volume, multiple chains, escalation webhooks, integrations, and priority support. Contact us for a demo and pricing, no long-term contract, cancel anytime.",
   },
   {
     q: "What chains are supported?",
