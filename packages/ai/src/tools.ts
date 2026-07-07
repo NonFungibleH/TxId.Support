@@ -25,6 +25,9 @@ import {
   getContractInfo,
   getUpgradeHistory,
   enrichTransaction,
+  getTokenInfo,
+  getTokenAllowance,
+  getTokenPrice,
 } from "@txid/blockchain"
 import {
   getSolanaWalletBalance,
@@ -381,6 +384,33 @@ export async function executeTool(
       return { contract: target.name, count: upgrades.length, upgrades }
     }
 
+    case "get_token_info": {
+      const token = typeof input.token_address === "string" ? input.token_address : undefined
+      if (!token) throw new Error("token_address is required")
+      const chainId = typeof input.chain_id === "string" ? input.chain_id : (wallet?.chainId ?? watchedContracts[0]?.chain ?? "0x1")
+      if (isSolanaChain(chainId)) return { note: "Token reads here are EVM-only." }
+      const info = await getTokenInfo(token, chainId)
+      return info ?? { token, note: "Could not read token details (not an ERC-20, or the read failed)." }
+    }
+
+    case "get_token_allowance": {
+      const token = typeof input.token_address === "string" ? input.token_address : undefined
+      const owner = typeof input.owner === "string" ? input.owner : wallet?.address
+      const spender = typeof input.spender === "string" ? input.spender : undefined
+      if (!token || !owner || !spender) throw new Error("token_address, owner and spender are required")
+      const chainId = typeof input.chain_id === "string" ? input.chain_id : (wallet?.chainId ?? watchedContracts[0]?.chain ?? "0x1")
+      if (isSolanaChain(chainId)) return { note: "Allowance reads here are EVM-only." }
+      const allowance = await getTokenAllowance(token, owner, spender, chainId)
+      return allowance ?? { token, owner, spender, note: "Could not read the allowance." }
+    }
+
+    case "get_token_price": {
+      const token = typeof input.token_address === "string" ? input.token_address : undefined
+      if (!token) throw new Error("token_address is required")
+      const price = await getTokenPrice(token)
+      return price ?? { token, note: "No price found — the token may have no liquid DEX pair." }
+    }
+
     default:
       throw new Error(`Unknown tool: ${name}`)
   }
@@ -663,6 +693,57 @@ export function buildUpgradeHistoryTool(
   }
 }
 
+/** Token tools — work on any ERC-20 by address (standard interface), always offered. */
+export function buildTokenTools(): Anthropic.Tool[] {
+  return [
+    {
+      name: "get_token_info",
+      description:
+        "Read an ERC-20 token's name, symbol, decimals and total supply by address. " +
+        "Use for 'what's the token supply', 'how many decimals', 'what's the symbol'. " +
+        "Pass the protocol's token address (in the system context) or a token address the user names.",
+      input_schema: {
+        type: "object" as const,
+        properties: {
+          token_address: { type: "string", description: "The ERC-20 token contract address." },
+          chain_id: { type: "string", description: "Optional chain ID; defaults to the connected wallet or the protocol's chain." },
+        },
+        required: ["token_address"],
+      },
+    },
+    {
+      name: "get_token_allowance",
+      description:
+        "Check how much of a token the owner has approved a spender to move — answers 'do I need to approve first?'. " +
+        "For the connected wallet, owner defaults to it. spender is usually the protocol contract the user is interacting with. " +
+        "Returns the allowance, whether it's unlimited, and whether an approval is still needed.",
+      input_schema: {
+        type: "object" as const,
+        properties: {
+          token_address: { type: "string", description: "The ERC-20 token address." },
+          owner: { type: "string", description: "The wallet that would approve (defaults to the connected wallet)." },
+          spender: { type: "string", description: "The contract that needs approval (e.g. the lock contract)." },
+          chain_id: { type: "string", description: "Optional chain ID." },
+        },
+        required: ["token_address", "spender"],
+      },
+    },
+    {
+      name: "get_token_price",
+      description:
+        "Get a token's current USD price from DEX liquidity (DexScreener). Use for 'what's the price of <token>'. " +
+        "Returns the price, the DEX/chain, and the pair's liquidity. Pass the token address.",
+      input_schema: {
+        type: "object" as const,
+        properties: {
+          token_address: { type: "string", description: "The token contract address." },
+        },
+        required: ["token_address"],
+      },
+    },
+  ]
+}
+
 /**
  * Escalation tool — always offered, not wallet-gated.
  * When Claude calls this, the widget intercepts it and shows a ticket form
@@ -713,4 +794,7 @@ export const TOOL_LABELS: Record<string, string> = {
   get_contract_info: "Checking contract verification…",
   get_contract_functions: "Reading contract functions…",
   get_upgrade_history: "Checking upgrade history…",
+  get_token_info: "Reading token details…",
+  get_token_allowance: "Checking token approval…",
+  get_token_price: "Checking token price…",
 }

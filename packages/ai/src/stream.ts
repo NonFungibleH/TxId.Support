@@ -1,7 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk"
 import OpenAI from "openai"
 import type { ChatMessage, WatchedContractSnapshot } from "./types"
-import { buildWalletTools, buildTxLookupTool, buildContractTxsTool, buildContractEventsTool, buildContractDeploymentTool, buildContractHoldingsTool, buildContractStateTool, buildContractDataTool, buildContractInfoTool, buildContractFunctionsTool, buildUpgradeHistoryTool, buildEscalationTool, executeTool } from "./tools"
+import { buildWalletTools, buildTxLookupTool, buildContractTxsTool, buildContractEventsTool, buildContractDeploymentTool, buildContractHoldingsTool, buildContractStateTool, buildContractDataTool, buildContractInfoTool, buildContractFunctionsTool, buildUpgradeHistoryTool, buildTokenTools, buildEscalationTool, executeTool } from "./tools"
 import type { WalletConfig } from "./tools"
 
 // ── Model selection ──────────────────────────────────────────────────────────
@@ -84,6 +84,7 @@ export async function* streamChatWithTools(
       ...(needsWalletTools ? buildWalletTools(watchedContracts) : []),
       buildTxLookupTool(),
       ...contractToolset,
+      ...buildTokenTools(),
       buildEscalationTool(),
     ]
     const groqTools: OpenAI.ChatCompletionTool[] = anthropicTools.map((t) => ({
@@ -202,6 +203,7 @@ export async function* streamChatWithTools(
     ...(walletConfig ? buildWalletTools(watchedContracts) : []),
     buildTxLookupTool(),
     ...contractToolset,
+    ...buildTokenTools(),
     buildEscalationTool(),
   ]
 

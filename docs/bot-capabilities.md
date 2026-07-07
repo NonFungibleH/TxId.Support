@@ -80,16 +80,16 @@ Key files: `packages/blockchain/src/*` (data + decode), `packages/ai/src/tools.t
 
 ## 3. Token level
 
-| Capability | Status | Notes |
+| Capability | Status | Tool |
 |---|---|---|
 | A wallet's balance of a token | ✅ | `get_wallet_balance` |
-| Symbol / decimals | ✅ | resolved during tx enrichment; via getters otherwise |
-| Allowances / approvals | ✅* | via `get_contract_data` `allowance(owner,spender)` |
-| Per-user lock / vesting schedule | ✅* | via `get_contract_data` (getter with args) |
-| Price | ❌ | needs a DEX/oracle source (DexScreener / Chainlink) |
-| Fee-on-transfer / rebasing detection | ❌ | heuristic |
+| Supply / decimals / symbol / name | ✅ | `get_token_info` (any ERC-20, no ABI needed) |
+| Allowances / approvals ("do I need to approve?") | ✅ | `get_token_allowance` (standard ERC-20) |
+| Per-user lock / vesting schedule | ✅* | `get_contract_data` (getter with args) |
+| Price (USD) | ✅ | `get_token_price` (DexScreener, free) |
+| Fee-on-transfer / rebasing detection | ❌ | heuristic / simulation |
 
-\* works when the contract exposes the getter and its ABI is uploaded.
+\* works when the watched contract exposes the getter and its ABI is uploaded.
 
 ## 4. Wallet level
 

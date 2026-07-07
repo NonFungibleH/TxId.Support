@@ -233,7 +233,9 @@ export function buildSystemPrompt(params: StreamChatParams): string {
         `For anything that needs an ARGUMENT — a specific user's lock, an allowance, a balance, a lock by index (e.g. "what's MY lock", "how many tokens does 0x… have locked", "getUserLock") — use the \`get_contract_data\` tool with the function name and args in order. For the connected wallet, pass its address as the argument.\n` +
         `For "is this contract verified / a proxy / audited on-chain / what's the implementation", use \`get_contract_info\`.\n` +
         `For "what can this contract do / what functions does it have", use \`get_contract_functions\` (read vs write functions).\n` +
-        `For "has this contract been upgraded / when / implementation history", use \`get_upgrade_history\`.`
+        `For "has this contract been upgraded / when / implementation history", use \`get_upgrade_history\`.\n` +
+        `\n` +
+        `**Token questions:** For "what's the token supply / symbol / decimals" use \`get_token_info\`. For "what's the price of the token" use \`get_token_price\`. For "do I need to approve / what's my allowance" use \`get_token_allowance\` (owner = the connected wallet; spender = the protocol contract they're interacting with). Use the protocol's own token address from the context above unless the user names a different token.`
       )
     }
 
