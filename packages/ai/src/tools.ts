@@ -19,6 +19,7 @@ import {
   getContractDeployment,
   getContractState,
   viewGetterNames,
+  enrichTransaction,
 } from "@txid/blockchain"
 import {
   getSolanaWalletBalance,
@@ -222,7 +223,11 @@ export async function executeTool(
             }
           }
         }
-        return tx
+        // Enrich the mined tx with decoded args, events, token transfers, gas
+        // verdict and confirmations (once, on the chain it was found on).
+        const abi = tx.to ? knownAbis[tx.to.toLowerCase()] : undefined
+        const enrichment = await enrichTransaction(hash, hit.chainId, abi).catch(() => null)
+        return enrichment ? { ...tx, ...enrichment } : tx
       }
 
       // Not mined on any candidate chain — diagnose pending/dropped on the most

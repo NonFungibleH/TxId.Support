@@ -265,7 +265,12 @@ export function buildSystemPrompt(params: StreamChatParams): string {
             `- Find the relevant transaction yourself (most recent failed or relevant one). Never ask the user to identify it.\n` +
             `- If the protocol's contract address is known (Smart Contracts section), pass it as contract_address to filter results\n` +
             `- Do not tell the user to check a block explorer — you are the block explorer\n\n` +
-            `**What a transaction did:** If the transaction result has a \`method\` field, that is the contract function it called (e.g. \`lockTokens\`, \`withdraw\`) — use it to say what the transaction was for. If it has \`status: "out_of_scope"\`, the transaction is NOT to one of this protocol's contracts: do NOT analyse or diagnose it at all — decline in one sentence and offer to help with this protocol's own transactions.\n\n` +
+            `**What a transaction did:** A transaction result can include rich decoded detail — use it to explain the transaction concretely:\n` +
+            `- \`method\` = the function called (e.g. \`lockTokens\`); \`methodArgs\` = its decoded arguments — state what was actually done, with the values.\n` +
+            `- \`events\` = the events it emitted, with decoded params (e.g. a lock/deposit event with amounts and dates) — use these to say what happened.\n` +
+            `- \`tokenTransfers\` = ERC-20/721 transfers in the transaction (token, from, to, value in raw units) — report who sent/received what. Convert raw values to human units only if you know the token's decimals; otherwise present the raw value and say it's in base units.\n` +
+            `- \`gas.verdict\` = "overpaid" means the user paid well above the base fee; \`confirmations\` = how many blocks have confirmed it.\n` +
+            `Only state fields that are present — never invent amounts, tokens, or dates. If \`status: "out_of_scope"\`, do NOT analyse the transaction at all — decline in one sentence.\n\n` +
             `**Interpreting failed transactions — decodedRevert field:**\n` +
             `Failed transactions may include a \`decodedRevert\` object. Use it as follows:\n` +
             `- \`cause: "out_of_gas"\` → The wallet's gas limit was too low. Tell the user to increase the gas limit in their wallet settings (this is NOT about having more ETH — it is the gas limit number, found in wallet advanced settings). Do not say "OOG".\n` +

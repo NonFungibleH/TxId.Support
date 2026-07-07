@@ -5,6 +5,8 @@ export { getContractEvents, eventNamesFromAbi, getContractDeployment } from "./e
 export type { ContractEvent, ContractDeployment } from "./events"
 export { getContractState, viewGetterNames } from "./read"
 export type { ContractStateValue } from "./read"
+export { enrichTransaction } from "./enrich"
+export type { TxEnrichment } from "./enrich"
 export {
   getExplorerUrl,
   getTxUrl,
