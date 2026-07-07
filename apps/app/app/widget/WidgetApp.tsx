@@ -1108,7 +1108,7 @@ export function WidgetApp() {
               <div ref={messagesEndRef} />
             </div>
             {suggestions.length > 0 && !isStreaming && (
-              <div className="shrink-0 flex flex-wrap gap-1.5 px-3 pb-2">
+              <div className="shrink-0 flex flex-wrap gap-1.5 px-3 pt-2.5 pb-2">
                 {suggestions.map((s, i) => (
                   <button
                     key={i}
@@ -1282,7 +1282,7 @@ export function WidgetApp() {
 
             {/* Quick-reply chips — appear after each AI response, cleared on send */}
             {suggestions.length > 0 && !isStreaming && !escalation && (
-              <div className="shrink-0 flex flex-wrap gap-1.5 px-3 pb-2">
+              <div className="shrink-0 flex flex-wrap gap-1.5 px-3 pt-2.5 pb-2">
                 {suggestions.map((s, i) => (
                   <button
                     key={i}

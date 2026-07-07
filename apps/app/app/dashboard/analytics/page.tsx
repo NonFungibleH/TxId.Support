@@ -102,11 +102,13 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Se
     .select("id", { count: "exact", head: true })
     .eq("project_id", projectId)
 
-  // Total messages via SQL join — avoids O(n) IN clause
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: msgCountData } = await (supabase as any)
-    .rpc("get_project_message_count", { p_project_id: projectId })
-  const totalMessages = (msgCountData as number | null) ?? 0
+  // Total messages via an inner join on conversations — robust to whether the
+  // message-count RPC has been applied to the database.
+  const { count: msgCount } = await supabase
+    .from("messages")
+    .select("id, conversations!inner(project_id)", { count: "exact", head: true })
+    .eq("conversations.project_id", projectId)
+  const totalMessages = msgCount ?? 0
 
   // Escalation rate: % of conversations in the period that opened a support ticket
   let escalationRate: number | null = null
