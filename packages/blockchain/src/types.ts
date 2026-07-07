@@ -24,6 +24,19 @@ export interface DecodedRevert {
   gasInfo: { used: number; limit: number; percentUsed: number }
 }
 
+// Diagnosis for a hash that is NOT a mined transaction — pending, stuck,
+// dropped, or unaffordable. Produced by diagnosePendingTx via raw JSON-RPC.
+export interface PendingDiagnosis {
+  cause:
+    | "pending_stuck_nonce"      // an earlier pending tx is blocking this one
+    | "pending_underpriced"      // gas fee below current network rate
+    | "pending_congestion"       // in mempool, just waiting to be mined
+    | "dropped"                  // unknown to the node: dropped/replaced/never broadcast
+    | "insufficient_gas_balance" // wallet has no native token to pay gas
+  reason: string                 // plain-English description
+  detail?: string                // extra specifics (fees, nonce gap) when available
+}
+
 export interface Transaction {
   hash: string
   blockNumber: string

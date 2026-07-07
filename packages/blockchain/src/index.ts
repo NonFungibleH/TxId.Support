@@ -1,5 +1,6 @@
 export { getNativeBalance, getTokenBalances, getRecentTransactions, getTransactionByHash, getContractTransactions } from "./wallet"
 export { decodeTxRevert, fetchAbiFromExplorer } from "./decoder"
+export { diagnosePendingTx } from "./pending"
 export {
   getExplorerUrl,
   getTxUrl,
@@ -14,5 +15,6 @@ export type {
   Transaction,
   ChainConfig,
   DecodedRevert,
+  PendingDiagnosis,
 } from "./types"
 export { CHAIN_CONFIGS } from "./types"

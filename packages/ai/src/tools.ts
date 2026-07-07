@@ -13,6 +13,7 @@ import {
   getRecentTransactions,
   getTransactionByHash,
   getContractTransactions,
+  diagnosePendingTx,
 } from "@txid/blockchain"
 import {
   getSolanaWalletBalance,
@@ -173,7 +174,14 @@ export async function executeTool(
       for (const c of watchedContracts) {
         if (c.abi) knownAbis[c.address.toLowerCase()] = c.abi
       }
-      return getTransactionByHash(hash, chainId, knownAbis)
+      const tx = await getTransactionByHash(hash, chainId, knownAbis)
+      if (tx) return tx
+      // Not a mined transaction — diagnose whether it's pending, stuck, dropped,
+      // or unaffordable via raw JSON-RPC (no wallet required, but uses the
+      // connected address for the gas-balance check when available).
+      const pendingDiagnosis = await diagnosePendingTx(hash, chainId, wallet?.address).catch(() => null)
+      if (pendingDiagnosis) return { hash, chainId, status: "not_mined", pendingDiagnosis }
+      return { hash, chainId, status: "not_found", note: "This transaction was not found on-chain." }
     }
 
     case "get_contract_transactions": {

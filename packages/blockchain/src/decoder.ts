@@ -16,14 +16,18 @@ const PANIC_MESSAGES: Record<number, string> = {
   0x51: "A zero-initialized function pointer was called",
 }
 
-const EXPLORER_APIS: Record<string, { url: string; keyEnv: string }> = {
-  "0x1":      { url: "https://api.etherscan.io/api",            keyEnv: "ETHERSCAN_API_KEY" },
-  "0x2105":   { url: "https://api.basescan.org/api",            keyEnv: "BASESCAN_API_KEY"  },
-  "0x38":     { url: "https://api.bscscan.com/api",             keyEnv: "BSCSCAN_API_KEY"   },
-  "0x89":     { url: "https://api.polygonscan.com/api",         keyEnv: "ETHERSCAN_API_KEY" },
-  "0xa4b1":   { url: "https://api.arbiscan.io/api",             keyEnv: "ETHERSCAN_API_KEY" },
-  "0xa":      { url: "https://api-optimistic.etherscan.io/api", keyEnv: "ETHERSCAN_API_KEY" },
-  "0xaa36a7": { url: "https://api-sepolia.etherscan.io/api",    keyEnv: "ETHERSCAN_API_KEY" },
+// Etherscan V2 exposes every chain through ONE endpoint + ONE API key,
+// selected by numeric chainId. Map our hex chain IDs to Etherscan's decimal
+// IDs. Adding a new EVM chain is just one line here (e.g. Avalanche → 43114).
+const ETHERSCAN_V2_BASE = "https://api.etherscan.io/v2/api"
+const ETHERSCAN_CHAIN_IDS: Record<string, number> = {
+  "0x1":      1,        // Ethereum
+  "0x2105":   8453,     // Base
+  "0x38":     56,       // BNB Smart Chain
+  "0x89":     137,      // Polygon
+  "0xa4b1":   42161,    // Arbitrum One
+  "0xa":      10,       // Optimism
+  "0xaa36a7": 11155111, // Sepolia
 }
 
 /**
@@ -95,15 +99,15 @@ function parseAbiErrors(abiJson: string): AbiErrorEntry[] {
  * Returns null if the contract is unverified or the API key is missing.
  */
 export async function fetchAbiFromExplorer(address: string, chainId: string): Promise<string | null> {
-  const explorerCfg = EXPLORER_APIS[chainId]
-  if (!explorerCfg) return null
-  // API key is optional — omitting it gives a rate-limited anonymous request.
-  // Passing an empty string is treated as an invalid key and returns NOTOK.
-  const apiKey = process.env[explorerCfg.keyEnv] ?? ""
+  const numericChainId = ETHERSCAN_CHAIN_IDS[chainId]
+  if (numericChainId === undefined) return null
+  // One ETHERSCAN_API_KEY covers every chain via Etherscan V2. Omitting it gives
+  // a rate-limited anonymous request; an empty string is treated as an invalid
+  // key, so only append when present.
+  const apiKey = process.env.ETHERSCAN_API_KEY ?? ""
   try {
-    const url = apiKey
-      ? `${explorerCfg.url}?module=contract&action=getabi&address=${address}&apikey=${apiKey}`
-      : `${explorerCfg.url}?module=contract&action=getabi&address=${address}`
+    const base = `${ETHERSCAN_V2_BASE}?chainid=${numericChainId}&module=contract&action=getabi&address=${address}`
+    const url = apiKey ? `${base}&apikey=${apiKey}` : base
     const res = await fetch(url, { signal: AbortSignal.timeout(6000) })
     const data = (await res.json()) as { status: string; result: string }
     if (data.status !== "1") return null
