@@ -2,6 +2,7 @@ import { getProject } from "@/lib/actions/project"
 import { redirect } from "next/navigation"
 import { ContractList } from "@/components/settings/ContractList"
 import { AddContractDialog } from "@/components/settings/AddContractDialog"
+import { AuditsManager } from "@/components/settings/AuditsManager"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import type { ProjectConfig, Plan } from "@/lib/types/config"
 import { PLAN_CHAIN_LIMITS, SUPPORTED_CHAINS } from "@/lib/types/config"
@@ -63,6 +64,12 @@ export default async function ContractsPage() {
         </CardHeader>
         <CardContent>
           <ContractList projectId={typedProject.id} contracts={contracts} showGlossary />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardContent className="pt-6">
+          <AuditsManager projectId={typedProject.id} audits={config.audits ?? []} />
         </CardContent>
       </Card>
 

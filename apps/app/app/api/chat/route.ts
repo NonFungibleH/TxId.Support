@@ -200,6 +200,9 @@ export async function POST(request: Request) {
         description: c.description,
       })),
       docsUrl: config.docsUrl,
+      ...(config.audits && config.audits.length > 0
+        ? { audits: config.audits.map(a => ({ auditor: a.auditor, url: a.url, date: a.date ?? null })) }
+        : {}),
     }
 
     // RAG: only run for support mode

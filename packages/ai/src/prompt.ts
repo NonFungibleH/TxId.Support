@@ -207,6 +207,19 @@ export function buildSystemPrompt(params: StreamChatParams): string {
       }
       parts.push(lines.join("\n"))
 
+      // Audits — cite these (with the auditor's report link) for "is this audited?".
+      if (config.audits && config.audits.length > 0) {
+        const auditLines = ["## Audits & Security"]
+        for (const a of config.audits) {
+          auditLines.push(`- Audited by **${a.auditor}**${a.date ? ` (${a.date})` : ""}: ${a.url}`)
+        }
+        auditLines.push(
+          `When a user asks whether the protocol or its contracts are audited, or about security/safety, cite these audits by name and share the report link(s). ` +
+          `You can also use \`get_contract_info\` to confirm on-chain source-code verification. Do NOT claim an audit that is not listed here.`,
+        )
+        parts.push(auditLines.join("\n"))
+      }
+
       // Scope guard: keep the agent to THIS protocol's own contracts only.
       parts.push(
         `## Transaction & contract scope (IMPORTANT)\n` +

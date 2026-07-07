@@ -170,6 +170,39 @@ export async function saveContractAbi(projectId: string, contractId: string, abi
   revalidatePath("/dashboard/contracts")
 }
 
+export async function addAudit(projectId: string, input: { auditor: string; url: string; date?: string }) {
+  const auditor = input.auditor.trim()
+  const url = input.url.trim()
+  if (!auditor) throw new Error("Auditor name is required")
+  if (!/^https?:\/\//.test(url)) throw new Error("Report URL must start with http:// or https://")
+
+  const project = await resolveProjectWithOwnership(projectId)
+  const config = project.config as unknown as ProjectConfig
+  const updated: ProjectConfig = {
+    ...config,
+    audits: [
+      ...(config.audits ?? []),
+      { id: nanoid(8), auditor, url, ...(input.date?.trim() ? { date: input.date.trim() } : {}) },
+    ],
+  }
+
+  const supabase = createServiceClient()
+  const { error } = await supabase.from("projects").update({ config: updated as unknown as Json }).eq("id", projectId)
+  if (error) throw new Error(error.message)
+  revalidatePath("/dashboard/contracts")
+}
+
+export async function removeAudit(projectId: string, auditId: string) {
+  const project = await resolveProjectWithOwnership(projectId)
+  const config = project.config as unknown as ProjectConfig
+  const updated: ProjectConfig = { ...config, audits: (config.audits ?? []).filter(a => a.id !== auditId) }
+
+  const supabase = createServiceClient()
+  const { error } = await supabase.from("projects").update({ config: updated as unknown as Json }).eq("id", projectId)
+  if (error) throw new Error(error.message)
+  revalidatePath("/dashboard/contracts")
+}
+
 export async function clearContractAbi(projectId: string, contractId: string) {
   const project = await resolveProjectWithOwnership(projectId)
   const config = project.config as unknown as ProjectConfig

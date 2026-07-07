@@ -150,6 +150,13 @@ export interface CommunityConfig {
   announcement: string | null
 }
 
+export interface AuditEntry {
+  id: string
+  auditor: string       // e.g. "Hacken", "CertiK"
+  url: string           // link to the published report on the auditor's site
+  date?: string | null  // e.g. "2024-01" — optional
+}
+
 export interface ProjectConfig {
   branding: BrandingConfig
   token: TokenConfig | null
@@ -158,6 +165,7 @@ export interface ProjectConfig {
   docsUrl: string | null
   allowedDomains: string[]
   watchedContracts: WatchedContract[]
+  audits?: AuditEntry[]
   community: CommunityConfig | null
   tokenModeAsk: string | null
   previewConfirmed: boolean

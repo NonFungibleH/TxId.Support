@@ -28,10 +28,17 @@ export interface TokenConfigSnapshot {
   dexUrl: string | null
 }
 
+export interface AuditSnapshot {
+  auditor: string
+  url: string
+  date?: string | null
+}
+
 export interface ProjectConfigSnapshot {
   token: TokenConfigSnapshot | null
   watchedContracts: WatchedContractSnapshot[]
   docsUrl: string | null
+  audits?: AuditSnapshot[]
 }
 
 export interface RagChunk {
