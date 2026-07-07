@@ -43,6 +43,8 @@ export default function PreviewPage() {
   const { resolvedTheme } = useTheme()
   const [override, setOverride] = useState<boolean | null>(null)
   const isDark = override ?? (resolvedTheme !== "light")
+  // Mirror the live embed: the X collapses the widget to the floating launcher.
+  const [widgetOpen, setWidgetOpen] = useState(true)
 
   const bg = isDark ? "bg-[#0b0c14]" : "bg-[#f8f9fb]"
   const headerBg = isDark ? "bg-[rgba(11,12,20,0.92)] border-white/8" : "bg-[rgba(248,249,251,0.92)] border-gray-200"
@@ -137,31 +139,40 @@ export default function PreviewPage() {
 
         {/* Centre — live agent */}
         <div className="flex justify-center flex-1">
-          <div className="relative">
-            <div
-              className="absolute inset-0 rounded-2xl blur-3xl scale-90 pointer-events-none"
-              style={{ background: "rgba(99,102,241,0.14)" }}
-            />
-            <div
-              className="relative rounded-2xl overflow-hidden shadow-2xl"
-              style={{
-                width: 340,
-                height: 520,
-                boxShadow: "0 8px 40px rgba(0,0,0,0.18), 0 0 0 1px rgba(99,102,241,0.12)",
-              }}
-            >
-              <ErrorBoundary>
-                <Suspense
-                  fallback={
-                    <div className="flex h-full items-center justify-center bg-zinc-950 text-white/40 text-sm">
-                      Loading…
-                    </div>
-                  }
+          <div className="relative" style={{ width: 340, height: 520 }}>
+            {widgetOpen ? (
+              <>
+                <div
+                  className="absolute inset-0 rounded-2xl blur-3xl scale-90 pointer-events-none"
+                  style={{ background: "rgba(99,102,241,0.14)" }}
+                />
+                <div
+                  className="relative h-full w-full rounded-2xl overflow-hidden shadow-2xl"
+                  style={{ boxShadow: "0 8px 40px rgba(0,0,0,0.18), 0 0 0 1px rgba(99,102,241,0.12)" }}
                 >
-                  <WidgetApp />
-                </Suspense>
-              </ErrorBoundary>
-            </div>
+                  <ErrorBoundary>
+                    <Suspense
+                      fallback={
+                        <div className="flex h-full items-center justify-center bg-zinc-950 text-white/40 text-sm">
+                          Loading…
+                        </div>
+                      }
+                    >
+                      <WidgetApp onClose={() => setWidgetOpen(false)} />
+                    </Suspense>
+                  </ErrorBoundary>
+                </div>
+              </>
+            ) : (
+              // Collapsed to the floating launcher, exactly like a live embed.
+              <button
+                onClick={() => setWidgetOpen(true)}
+                aria-label="Open chat"
+                className="absolute bottom-0 right-0 flex size-14 items-center justify-center rounded-full bg-indigo-600 shadow-lg transition-transform hover:scale-105 active:scale-95"
+              >
+                <MessageCircle className="size-6 text-white" />
+              </button>
+            )}
           </div>
         </div>
 

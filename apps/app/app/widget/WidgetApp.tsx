@@ -414,7 +414,7 @@ function loadWalletSession(key: string): WalletSession | null {
 
 // ─── Main component ──────────────────────────────────────────────────────────
 
-export function WidgetApp() {
+export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
   const params = useSearchParams()
   const apiKey = params?.get("key") ?? ""
   const isPreview = params?.get("preview") === "1"
@@ -853,7 +853,9 @@ export function WidgetApp() {
           type="button"
           aria-label="Close"
           onClick={() => {
-            if (typeof window !== "undefined" && window.parent !== window) {
+            if (onClose) {
+              onClose()
+            } else if (typeof window !== "undefined" && window.parent !== window) {
               window.parent.postMessage("txid-close", "*")
               // Also reach the top window in case the widget is nested one frame deeper.
               if (window.top && window.top !== window.parent) {
