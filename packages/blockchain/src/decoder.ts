@@ -1,5 +1,6 @@
 import { CHAIN_CONFIGS } from "./types"
 import type { DecodedRevert } from "./types"
+import { explorerQuery } from "./blockscout"
 
 const ERROR_SELECTOR = "08c379a0" // Error(string)
 const PANIC_SELECTOR = "4e487b71" // Panic(uint256)
@@ -14,20 +15,6 @@ const PANIC_MESSAGES: Record<number, string> = {
   0x32: "An array index was out of bounds",
   0x41: "The contract ran out of memory",
   0x51: "A zero-initialized function pointer was called",
-}
-
-// Etherscan V2 exposes every chain through ONE endpoint + ONE API key,
-// selected by numeric chainId. Map our hex chain IDs to Etherscan's decimal
-// IDs. Adding a new EVM chain is just one line here (e.g. Avalanche → 43114).
-const ETHERSCAN_V2_BASE = "https://api.etherscan.io/v2/api"
-const ETHERSCAN_CHAIN_IDS: Record<string, number> = {
-  "0x1":      1,        // Ethereum
-  "0x2105":   8453,     // Base
-  "0x38":     56,       // BNB Smart Chain
-  "0x89":     137,      // Polygon
-  "0xa4b1":   42161,    // Arbitrum One
-  "0xa":      10,       // Optimism
-  "0xaa36a7": 11155111, // Sepolia
 }
 
 /**
@@ -96,24 +83,15 @@ function parseAbiErrors(abiJson: string): AbiErrorEntry[] {
 
 /**
  * Fetch the full ABI JSON string for a contract from its block explorer.
- * Returns null if the contract is unverified or the API key is missing.
+ * Tries Etherscan V2, then Blockscout (free) — so Base/Optimism/Polygon/Arbitrum
+ * ABIs auto-fetch too. Returns null if the contract is unverified or unreachable.
  */
 export async function fetchAbiFromExplorer(address: string, chainId: string): Promise<string | null> {
-  const numericChainId = ETHERSCAN_CHAIN_IDS[chainId]
-  if (numericChainId === undefined) return null
-  // One ETHERSCAN_API_KEY covers every chain via Etherscan V2. Omitting it gives
-  // a rate-limited anonymous request; an empty string is treated as an invalid
-  // key, so only append when present.
-  const apiKey = process.env.ETHERSCAN_API_KEY ?? ""
   try {
-    const base = `${ETHERSCAN_V2_BASE}?chainid=${numericChainId}&module=contract&action=getabi&address=${address}`
-    const url = apiKey ? `${base}&apikey=${apiKey}` : base
-    const res = await fetch(url, { signal: AbortSignal.timeout(6000) })
-    const data = (await res.json()) as { status: string; result: string }
-    if (data.status !== "1") return null
-    // Validate it's parseable JSON
-    JSON.parse(data.result)
-    return data.result
+    const r = await explorerQuery(chainId, { module: "contract", action: "getabi", address })
+    if (!r || r.status !== "1" || typeof r.result !== "string") return null
+    JSON.parse(r.result) // validate it's parseable JSON
+    return r.result
   } catch {
     return null
   }

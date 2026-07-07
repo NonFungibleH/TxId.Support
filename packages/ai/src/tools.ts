@@ -428,8 +428,9 @@ export async function executeTool(
     case "get_token_price": {
       const token = typeof input.token_address === "string" ? input.token_address : undefined
       if (!token) throw new Error("token_address is required")
-      const price = await getTokenPrice(token)
-      return price ?? { token, note: "No price found — the token may have no liquid DEX pair." }
+      const chainId = typeof input.chain_id === "string" ? input.chain_id : (wallet?.chainId ?? watchedContracts[0]?.chain)
+      const price = await getTokenPrice(token, chainId)
+      return price ?? { token, note: "No price found — the token may have no liquid DEX pair on this chain." }
     }
 
     case "get_network_status": {
@@ -760,11 +761,12 @@ export function buildTokenTools(): Anthropic.Tool[] {
       name: "get_token_price",
       description:
         "Get a token's current USD price from DEX liquidity (DexScreener). Use for 'what's the price of <token>'. " +
-        "Returns the price, the DEX/chain, and the pair's liquidity. Pass the token address.",
+        "Returns the price, the DEX/chain, and the pair's liquidity. Pass the token address and, when known, the chain.",
       input_schema: {
         type: "object" as const,
         properties: {
           token_address: { type: "string", description: "The token contract address." },
+          chain_id: { type: "string", description: "The chain the token is on (e.g. '0x1', '0x2105') — filters out same-address tokens on other chains." },
         },
         required: ["token_address"],
       },

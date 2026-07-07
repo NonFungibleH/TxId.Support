@@ -121,10 +121,11 @@ Key files: `packages/blockchain/src/*` (data + decode), `packages/ai/src/tools.t
 
 ## Constraints & known gaps
 
-- **Base / BSC event-history + deployment + verification** need a **paid
-  Etherscan** plan (free tier excludes non-Ethereum chains). Balances, live
-  state, getters-with-args, holdings and tx diagnosis all work on those chains
-  via Moralis / RPC. Alternative: add Blockscout (free, covers Base).
+- **Explorer access** tries Etherscan V2 first, then **Blockscout** (free,
+  keyless) for Base / Optimism / Polygon / Arbitrum — so ABI auto-fetch, event
+  history, deployment and verification work on those chains without a paid
+  Etherscan plan (validated on Base). **BSC** has no Blockscout instance, so it
+  still depends on Etherscan/BscScan coverage.
 - **ABI required** for method/arg/event decoding on a contract (token transfers
   decode without it). Upload each watched contract's ABI in the dashboard.
 - **Static types only** for getter arguments and struct returns (address, uint,

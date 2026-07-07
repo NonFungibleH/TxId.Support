@@ -1,10 +1,27 @@
 import { eventTopic0 } from "./keccak"
 import { getTransactionByHash } from "./wallet"
+import { explorerQuery } from "./blockscout"
+import { CHAIN_CONFIGS } from "./types"
 
-const ETHERSCAN_V2_BASE = "https://api.etherscan.io/v2/api"
-// Same numeric chain IDs the decoder uses for Etherscan V2.
-const ETHERSCAN_CHAIN_IDS: Record<string, number> = {
-  "0x1": 1, "0x2105": 8453, "0x38": 56, "0x89": 137, "0xa4b1": 42161, "0xa": 10, "0xaa36a7": 11155111,
+/** Resolve a block's timestamp via RPC (used when the explorer omits it). */
+async function blockTimestamp(chainId: string, block: string): Promise<string | null> {
+  try {
+    const rpcUrl = CHAIN_CONFIGS[chainId]?.rpcUrl
+    if (!rpcUrl) return null
+    const blockHex = block.startsWith("0x") ? block : "0x" + Number(block).toString(16)
+    const res = await fetch(rpcUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "eth_getBlockByNumber", params: [blockHex, false] }),
+      signal: AbortSignal.timeout(6000),
+    })
+    if (!res.ok) return null
+    const json = (await res.json()) as { result?: { timestamp?: string } }
+    const ts = json.result?.timestamp
+    return ts ? new Date(parseInt(ts, 16) * 1000).toISOString() : null
+  } catch {
+    return null
+  }
 }
 
 type AbiEntry = { type: string; name?: string; inputs?: Array<{ type: string; name?: string }> }
@@ -32,28 +49,21 @@ export async function getContractDeployment(
   chainId: string,
 ): Promise<ContractDeployment | null> {
   try {
-    const numericChainId = ETHERSCAN_CHAIN_IDS[chainId]
-    if (numericChainId === undefined) return null
-    const apiKey = process.env.ETHERSCAN_API_KEY ?? ""
-    const url =
-      `${ETHERSCAN_V2_BASE}?chainid=${numericChainId}&module=contract&action=getcontractcreation` +
-      `&contractaddresses=${contractAddress}${apiKey ? `&apikey=${apiKey}` : ""}`
-    const res = await fetch(url, { signal: AbortSignal.timeout(8000) })
-    if (!res.ok) return null
-    const data = (await res.json()) as {
-      status: string
-      result?: Array<{ contractCreator: string; txHash: string; timestamp?: string }>
-    }
-    const row = data.status === "1" ? data.result?.[0] : undefined
+    const r = await explorerQuery(chainId, {
+      module: "contract", action: "getcontractcreation", contractaddresses: contractAddress,
+    })
+    if (!r || r.status !== "1" || !Array.isArray(r.result)) return null
+    const row = r.result[0] as { contractCreator?: string; txHash?: string; timestamp?: string; blockNumber?: string } | undefined
     if (!row) return null
     let timestamp: string | null = null
     if (row.timestamp && /^\d+$/.test(row.timestamp)) {
       timestamp = new Date(Number(row.timestamp) * 1000).toISOString()
-    } else {
+    } else if (row.txHash) {
       const tx = await getTransactionByHash(row.txHash, chainId).catch(() => null)
       timestamp = tx?.timestamp ?? null
     }
-    return { deployer: row.contractCreator, txHash: row.txHash, timestamp }
+    if (!timestamp && row.blockNumber) timestamp = await blockTimestamp(chainId, row.blockNumber)
+    return { deployer: row.contractCreator ?? "", txHash: row.txHash ?? "", timestamp }
   } catch {
     return null
   }
@@ -92,30 +102,21 @@ export async function getContractEvents(
     if (!ev?.name) return []
     const signature = `${ev.name}(${(ev.inputs ?? []).map(i => i.type).join(",")})`
     const topic0 = eventTopic0(signature)
-    const numericChainId = ETHERSCAN_CHAIN_IDS[chainId]
-    if (numericChainId === undefined) return []
-    const apiKey = process.env.ETHERSCAN_API_KEY ?? ""
-    // Etherscan V2 getLogs — proven working with our key. Ascending by block, so
-    // the newest matches are at the end; we take the tail and reverse.
-    const url =
-      `${ETHERSCAN_V2_BASE}?chainid=${numericChainId}&module=logs&action=getLogs` +
-      `&address=${contractAddress}&topic0=${topic0}&fromBlock=0&toBlock=latest&page=1&offset=1000` +
-      (apiKey ? `&apikey=${apiKey}` : "")
-    const res = await fetch(url, { signal: AbortSignal.timeout(10000) })
-    if (!res.ok) return []
-    const data = (await res.json()) as {
-      status: string
-      result?: Array<{ transactionHash: string; blockNumber: string; timeStamp: string }>
-    }
-    if (data.status !== "1" || !Array.isArray(data.result)) return []
-    return data.result
+    // getLogs is ascending by block, so the newest matches are at the end.
+    const r = await explorerQuery(chainId, {
+      module: "logs", action: "getLogs", address: contractAddress,
+      topic0, fromBlock: "0", toBlock: "latest", page: "1", offset: "1000",
+    })
+    if (!r || r.status !== "1" || !Array.isArray(r.result)) return []
+    const rows = r.result as Array<{ transactionHash: string; blockNumber: string; timeStamp: string }>
+    return rows
       .slice(-limit)
       .reverse()
-      .map(r => ({
+      .map(row => ({
         event: ev.name!,
-        timestamp: new Date(parseInt(r.timeStamp, 16) * 1000).toISOString(),
-        blockNumber: String(parseInt(r.blockNumber, 16)),
-        txHash: r.transactionHash,
+        timestamp: new Date(parseInt(row.timeStamp, 16) * 1000).toISOString(),
+        blockNumber: String(parseInt(row.blockNumber, 16)),
+        txHash: row.transactionHash,
       }))
   } catch {
     return []
@@ -138,19 +139,11 @@ export async function getContractInfo(
   chainId: string,
 ): Promise<ContractInfo | null> {
   try {
-    const numericChainId = ETHERSCAN_CHAIN_IDS[chainId]
-    if (numericChainId === undefined) return null
-    const apiKey = process.env.ETHERSCAN_API_KEY ?? ""
-    const url =
-      `${ETHERSCAN_V2_BASE}?chainid=${numericChainId}&module=contract&action=getsourcecode` +
-      `&address=${contractAddress}${apiKey ? `&apikey=${apiKey}` : ""}`
-    const res = await fetch(url, { signal: AbortSignal.timeout(8000) })
-    if (!res.ok) return null
-    const data = (await res.json()) as {
-      status: string
-      result?: Array<{ ContractName?: string; Proxy?: string; Implementation?: string; CompilerVersion?: string; ABI?: string }>
-    }
-    const row = data.status === "1" ? data.result?.[0] : undefined
+    const r = await explorerQuery(chainId, { module: "contract", action: "getsourcecode", address: contractAddress })
+    if (!r || r.status !== "1" || !Array.isArray(r.result)) return null
+    const row = r.result[0] as
+      | { ContractName?: string; Proxy?: string; Implementation?: string; CompilerVersion?: string; ABI?: string }
+      | undefined
     if (!row) return null
     const verified = !!row.ABI && row.ABI !== "Contract source code not verified"
     return {
@@ -179,29 +172,21 @@ export async function getUpgradeHistory(
   chainId: string,
 ): Promise<UpgradeEvent[]> {
   try {
-    const numericChainId = ETHERSCAN_CHAIN_IDS[chainId]
-    if (numericChainId === undefined) return []
-    const apiKey = process.env.ETHERSCAN_API_KEY ?? ""
     const topic0 = eventTopic0("Upgraded(address)")
-    const url =
-      `${ETHERSCAN_V2_BASE}?chainid=${numericChainId}&module=logs&action=getLogs` +
-      `&address=${contractAddress}&topic0=${topic0}&fromBlock=0&toBlock=latest&page=1&offset=100` +
-      (apiKey ? `&apikey=${apiKey}` : "")
-    const res = await fetch(url, { signal: AbortSignal.timeout(10000) })
-    if (!res.ok) return []
-    const data = (await res.json()) as {
-      status: string
-      result?: Array<{ topics: string[]; timeStamp: string; transactionHash: string }>
-    }
-    if (data.status !== "1" || !Array.isArray(data.result)) return []
-    return data.result
+    const r = await explorerQuery(chainId, {
+      module: "logs", action: "getLogs", address: contractAddress,
+      topic0, fromBlock: "0", toBlock: "latest", page: "1", offset: "100",
+    })
+    if (!r || r.status !== "1" || !Array.isArray(r.result)) return []
+    const rows = r.result as Array<{ topics: string[]; timeStamp: string; transactionHash: string }>
+    return rows
       .slice()
       .reverse()
       .slice(0, 20)
-      .map(r => ({
-        implementation: "0x" + (r.topics[1] ?? "").slice(26),
-        timestamp: new Date(parseInt(r.timeStamp, 16) * 1000).toISOString(),
-        txHash: r.transactionHash,
+      .map(row => ({
+        implementation: "0x" + (row.topics[1] ?? "").slice(26),
+        timestamp: new Date(parseInt(row.timeStamp, 16) * 1000).toISOString(),
+        txHash: row.transactionHash,
       }))
   } catch {
     return []

@@ -145,8 +145,19 @@ export interface TokenPrice {
   pairUrl?: string
 }
 
-/** Token USD price via DexScreener (free, no key). Picks the deepest-liquidity pair. */
-export async function getTokenPrice(token: string): Promise<TokenPrice | null> {
+// Our chain IDs → DexScreener chain names, so we don't pick a same-address
+// impostor token on a different chain (e.g. a PulseChain fork of USDC).
+const DEXSCREENER_CHAIN: Record<string, string> = {
+  "0x1": "ethereum", "0x2105": "base", "0x38": "bsc", "0x89": "polygon",
+  "0xa4b1": "arbitrum", "0xa": "optimism",
+}
+
+/**
+ * Token USD price via DexScreener (free, no key). Filters to the given chain
+ * (when known) so a same-address token on another chain can't win on liquidity,
+ * then picks the deepest-liquidity pair.
+ */
+export async function getTokenPrice(token: string, chainId?: string): Promise<TokenPrice | null> {
   try {
     const res = await fetch(`https://api.dexscreener.com/latest/dex/tokens/${token}`, {
       signal: AbortSignal.timeout(6000),
@@ -162,7 +173,12 @@ export async function getTokenPrice(token: string): Promise<TokenPrice | null> {
         baseToken?: { symbol?: string }
       }>
     }
-    const pairs = (data.pairs ?? []).filter(p => p.priceUsd)
+    let pairs = (data.pairs ?? []).filter(p => p.priceUsd)
+    const wantChain = chainId ? DEXSCREENER_CHAIN[chainId] : undefined
+    if (wantChain) {
+      const onChain = pairs.filter(p => p.chainId === wantChain)
+      if (onChain.length) pairs = onChain
+    }
     if (!pairs.length) return null
     pairs.sort((a, b) => (b.liquidity?.usd ?? 0) - (a.liquidity?.usd ?? 0))
     const top = pairs[0]!
