@@ -855,6 +855,10 @@ export function WidgetApp() {
           onClick={() => {
             if (typeof window !== "undefined" && window.parent !== window) {
               window.parent.postMessage("txid-close", "*")
+              // Also reach the top window in case the widget is nested one frame deeper.
+              if (window.top && window.top !== window.parent) {
+                window.top.postMessage("txid-close", "*")
+              }
             } else {
               window.history.back()
             }
