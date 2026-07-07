@@ -89,7 +89,8 @@ export function buildWalletTools(
 
 /**
  * Tx hash lookup — always offered, even without a connected wallet.
- * Requires chain_id when no wallet is connected so we know which network to query.
+ * The chain is auto-detected across the protocol's chains, so chain_id is only
+ * an optional hint — never ask the user which chain the transaction is on.
  */
 export function buildTxLookupTool(): Anthropic.Tool {
   return {
@@ -98,7 +99,8 @@ export function buildTxLookupTool(): Anthropic.Tool {
       "Look up the full details of a specific transaction by its hash or signature. " +
       "Use when the user provides a transaction hash (0x... for EVM) or signature (base58 for Solana), " +
       "or refers to a specific transaction. " +
-      "If the user's wallet is not connected, you must include chain_id — ask the user which network the transaction is on if you don't know.",
+      "The correct chain is detected automatically — do NOT ask the user which network it is on. " +
+      "The result includes the chain the transaction was actually found on; if it includes checkedChains, it was not found on any of them.",
     input_schema: {
       type: "object" as const,
       properties: {
@@ -109,8 +111,8 @@ export function buildTxLookupTool(): Anthropic.Tool {
         chain_id: {
           type: "string",
           description:
-            "The chain ID for the network (e.g. '0x38' for BNB Chain, '0x1' for Ethereum, '0x2105' for Base, 'solana' for Solana). " +
-            "Required when no wallet is connected. If the wallet is connected this defaults to the connected network.",
+            "OPTIONAL hint only. If the user explicitly names a chain (e.g. '0x2105' for Base), pass it to prioritise that chain. " +
+            "The tool still auto-detects the correct chain, so never ask the user for this.",
         },
       },
       required: ["hash"],
@@ -166,30 +168,54 @@ export async function executeTool(
       if (typeof hash !== "string" || !hash) {
         throw new Error("hash is required and must be a string")
       }
-      const chainId =
-        wallet?.chainId ??
-        (typeof input.chain_id === "string" ? input.chain_id : undefined)
-      if (!chainId) {
-        throw new Error("Cannot look up transaction: no wallet connected and no chain_id provided")
-      }
-      if (isSolanaChain(chainId)) {
+      const providedChain = typeof input.chain_id === "string" ? input.chain_id : undefined
+
+      // Solana signatures are base58 (no 0x). Route to Solana when the hash is
+      // not an EVM hash and the project/wallet is Solana.
+      const looksEvm = /^0x[0-9a-fA-F]{64}$/.test(hash)
+      const solanaInPlay =
+        isSolanaChain(providedChain ?? "") ||
+        isSolanaChain(wallet?.chainId ?? "") ||
+        watchedContracts.some(c => isSolanaChain(c.chain))
+      if (!looksEvm && solanaInPlay) {
         return getSolanaTransactionBySignature(hash)
       }
+
+      // Never assume the chain: search every relevant EVM chain for the hash and
+      // use whichever one actually has it. Candidates in priority order:
+      // the chain the user named, the connected wallet's chain, then the chains
+      // this protocol's contracts live on.
+      const candidates: string[] = []
+      const pushEvm = (c?: string) => {
+        if (c && !isSolanaChain(c) && !candidates.includes(c)) candidates.push(c)
+      }
+      pushEvm(providedChain)
+      pushEvm(wallet?.chainId ?? undefined)
+      for (const c of watchedContracts) pushEvm(c.chain)
+      if (candidates.length === 0) pushEvm("0x1")
+
       const knownAbis: Record<string, string> = {}
       for (const c of watchedContracts) {
         if (c.abi) knownAbis[c.address.toLowerCase()] = c.abi
       }
-      const tx = await getTransactionByHash(hash, chainId, knownAbis)
-      if (tx) {
-        // Scope guard (enforced, not just prompted): only diagnose transactions
-        // to THIS protocol's own contracts. For anything else, return a decline
-        // WITHOUT the diagnosis so the AI can't present it first.
+
+      // Look on all candidate chains at once; take the highest-priority hit.
+      const results = await Promise.all(
+        candidates.map(async chainId => ({
+          chainId,
+          tx: await getTransactionByHash(hash, chainId, knownAbis).catch(() => null),
+        })),
+      )
+      const hit = results.find(r => r.tx)
+      if (hit?.tx) {
+        const tx = hit.tx
+        // Scope guard: only diagnose transactions to THIS protocol's own contracts.
         if (watchedContracts.length > 0 && tx.to) {
           const isOwn = watchedContracts.some(c => c.address.toLowerCase() === tx.to!.toLowerCase())
           if (!isOwn) {
             return {
               hash,
-              chainId,
+              chainId: hit.chainId,
               status: "out_of_scope",
               to: tx.to,
               note: "This transaction is not to one of this protocol's own contracts, so it is outside what you can diagnose. Do NOT analyse it — decline in one sentence and offer to help with this protocol's own transactions.",
@@ -198,12 +224,20 @@ export async function executeTool(
         }
         return tx
       }
-      // Not a mined transaction — diagnose whether it's pending, stuck, dropped,
-      // or unaffordable via raw JSON-RPC (no wallet required, but uses the
-      // connected address for the gas-balance check when available).
-      const pendingDiagnosis = await diagnosePendingTx(hash, chainId, wallet?.address).catch(() => null)
-      if (pendingDiagnosis) return { hash, chainId, status: "not_mined", pendingDiagnosis }
-      return { hash, chainId, status: "not_found", note: "This transaction was not found on-chain." }
+
+      // Not mined on any candidate chain — diagnose pending/dropped on the most
+      // likely chain, and report exactly which chains were checked.
+      const diagChain = candidates[0]!
+      const pendingDiagnosis = await diagnosePendingTx(hash, diagChain, wallet?.address).catch(() => null)
+      if (pendingDiagnosis) {
+        return { hash, chainId: diagChain, status: "not_mined", pendingDiagnosis, checkedChains: candidates }
+      }
+      return {
+        hash,
+        status: "not_found",
+        checkedChains: candidates,
+        note: `This transaction was not found on any of the chains checked (${candidates.join(", ")}). Do not claim it is on, or dropped from, a specific chain — state which chains were checked.`,
+      }
     }
 
     case "get_contract_transactions": {
