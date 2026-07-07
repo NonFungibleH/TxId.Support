@@ -178,7 +178,24 @@ export async function executeTool(
         if (c.abi) knownAbis[c.address.toLowerCase()] = c.abi
       }
       const tx = await getTransactionByHash(hash, chainId, knownAbis)
-      if (tx) return tx
+      if (tx) {
+        // Scope guard (enforced, not just prompted): only diagnose transactions
+        // to THIS protocol's own contracts. For anything else, return a decline
+        // WITHOUT the diagnosis so the AI can't present it first.
+        if (watchedContracts.length > 0 && tx.to) {
+          const isOwn = watchedContracts.some(c => c.address.toLowerCase() === tx.to!.toLowerCase())
+          if (!isOwn) {
+            return {
+              hash,
+              chainId,
+              status: "out_of_scope",
+              to: tx.to,
+              note: "This transaction is not to one of this protocol's own contracts, so it is outside what you can diagnose. Do NOT analyse it — decline in one sentence and offer to help with this protocol's own transactions.",
+            }
+          }
+        }
+        return tx
+      }
       // Not a mined transaction — diagnose whether it's pending, stuck, dropped,
       // or unaffordable via raw JSON-RPC (no wallet required, but uses the
       // connected address for the gas-balance check when available).

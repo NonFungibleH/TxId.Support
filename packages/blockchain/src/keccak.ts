@@ -71,3 +71,8 @@ export function keccak256(input: Uint8Array): string {
 export function eventTopic0(signature: string): string {
   return "0x" + keccak256(new TextEncoder().encode(signature))
 }
+
+/** 4-byte function selector (0x-prefixed) for a signature like "transfer(address,uint256)". */
+export function functionSelector(signature: string): string {
+  return "0x" + keccak256(new TextEncoder().encode(signature)).slice(0, 8)
+}

@@ -1,6 +1,24 @@
 import { CHAIN_CONFIGS } from "./types"
 import type { TokenBalance, NativeBalance, Transaction, DecodedRevert } from "./types"
 import { decodeTxRevert } from "./decoder"
+import { functionSelector } from "./keccak"
+
+/** Decode the called function name from a transaction's input selector using the ABI. */
+function decodeMethodName(input: string, abiJson: string): string | undefined {
+  try {
+    if (!input || input.length < 10) return undefined
+    const selector = input.slice(0, 10).toLowerCase()
+    const abi = JSON.parse(abiJson) as Array<{ type: string; name?: string; inputs?: Array<{ type: string }> }>
+    for (const f of abi) {
+      if (f.type !== "function" || !f.name) continue
+      const sig = `${f.name}(${(f.inputs ?? []).map(i => i.type).join(",")})`
+      if (functionSelector(sig).toLowerCase() === selector) return f.name
+    }
+    return undefined
+  } catch {
+    return undefined
+  }
+}
 
 const MORALIS_BASE = "https://deep-index.moralis.io/api/v2.2"
 
@@ -130,6 +148,13 @@ export async function getTransactionByHash(
     }).catch(() => undefined)
   }
 
+  // Decode which function the transaction called, when we have the ABI.
+  let method: string | undefined
+  if (tx.input && tx.input !== "0x" && tx.to_address) {
+    const abi = knownAbis[tx.to_address.toLowerCase()]
+    if (abi) method = decodeMethodName(tx.input, abi)
+  }
+
   return {
     hash: tx.hash,
     blockNumber: tx.block_number,
@@ -141,6 +166,7 @@ export async function getTransactionByHash(
     gasUsed,
     status: statusStr,
     summary: `Transaction ${statusStr}: ${valueEth} ${symbol} to ${tx.to_address ?? "contract creation"}`,
+    ...(method ? { method } : {}),
     ...(decodedRevert ? { decodedRevert } : {}),
   }
 }

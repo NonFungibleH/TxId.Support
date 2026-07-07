@@ -48,6 +48,7 @@ export interface Transaction {
   gasUsed: string        // actual gas consumed (gasUsed ≈ gasLimit → out-of-gas)
   status: "success" | "failed"
   summary: string        // human-readable one-liner
+  method?: string        // decoded function name from the input selector (when ABI known)
   decodedRevert?: DecodedRevert  // present for failed transactions
 }
 
