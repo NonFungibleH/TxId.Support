@@ -10,8 +10,6 @@ import {
 import { useTheme } from "next-themes"
 import { cn } from "@/lib/utils"
 
-const WEB_URL = process.env.NEXT_PUBLIC_WEB_URL ?? "https://txid.support"
-
 type NavItem = { href: string; label: string; icon: React.ElementType }
 type NavGroup = { label?: string; items: NavItem[] }
 
@@ -184,18 +182,6 @@ export function Sidebar({ mode = "support", plan = "free", isOpen = false, onClo
             : <><Moon className="size-3.5 shrink-0" /> Dark mode</>
           }
         </button>
-        {/* Slim footer — condensed link row instead of a stacked block */}
-        <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 px-1 text-[10px] text-muted-foreground/70">
-          <span>© {new Date().getFullYear()}</span>
-          <span className="opacity-40">·</span>
-          <a href={`${WEB_URL}/terms`} target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors">Terms</a>
-          <span className="opacity-40">·</span>
-          <a href={`${WEB_URL}/privacy`} target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors">Privacy</a>
-          <span className="opacity-40">·</span>
-          <a href="mailto:team@txid.support" className="hover:text-foreground transition-colors">Contact</a>
-          <span className="opacity-40">·</span>
-          <a href="https://t.me/Non_Fungible_Howard" target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors">Telegram</a>
-        </div>
       </div>
     </aside>
   )
