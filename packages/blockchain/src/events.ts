@@ -1,5 +1,12 @@
 import { CHAIN_CONFIGS } from "./types"
 import { eventTopic0 } from "./keccak"
+import { getTransactionByHash } from "./wallet"
+
+const ETHERSCAN_V2_BASE = "https://api.etherscan.io/v2/api"
+// Same numeric chain IDs the decoder uses for Etherscan V2.
+const ETHERSCAN_CHAIN_IDS: Record<string, number> = {
+  "0x1": 1, "0x2105": 8453, "0x38": 56, "0x89": 137, "0xa4b1": 42161, "0xa": 10, "0xaa36a7": 11155111,
+}
 
 const MORALIS_BASE = "https://deep-index.moralis.io/api/v2.2"
 
@@ -20,6 +27,49 @@ export interface ContractEvent {
   timestamp: string    // ISO timestamp of the block
   blockNumber: string
   txHash: string
+}
+
+export interface ContractDeployment {
+  deployer: string
+  txHash: string
+  timestamp: string | null   // ISO timestamp of the deployment, when resolvable
+}
+
+/**
+ * Look up when a contract was deployed (created) and by whom, via Etherscan V2's
+ * getcontractcreation. Resolves the deployment timestamp from the response, or
+ * by fetching the creation transaction. Returns null on any failure.
+ */
+export async function getContractDeployment(
+  contractAddress: string,
+  chainId: string,
+): Promise<ContractDeployment | null> {
+  try {
+    const numericChainId = ETHERSCAN_CHAIN_IDS[chainId]
+    if (numericChainId === undefined) return null
+    const apiKey = process.env.ETHERSCAN_API_KEY ?? ""
+    const url =
+      `${ETHERSCAN_V2_BASE}?chainid=${numericChainId}&module=contract&action=getcontractcreation` +
+      `&contractaddresses=${contractAddress}${apiKey ? `&apikey=${apiKey}` : ""}`
+    const res = await fetch(url, { signal: AbortSignal.timeout(8000) })
+    if (!res.ok) return null
+    const data = (await res.json()) as {
+      status: string
+      result?: Array<{ contractCreator: string; txHash: string; timestamp?: string }>
+    }
+    const row = data.status === "1" ? data.result?.[0] : undefined
+    if (!row) return null
+    let timestamp: string | null = null
+    if (row.timestamp && /^\d+$/.test(row.timestamp)) {
+      timestamp = new Date(Number(row.timestamp) * 1000).toISOString()
+    } else {
+      const tx = await getTransactionByHash(row.txHash, chainId).catch(() => null)
+      timestamp = tx?.timestamp ?? null
+    }
+    return { deployer: row.contractCreator, txHash: row.txHash, timestamp }
+  } catch {
+    return null
+  }
 }
 
 /** List the event names present in an ABI (for suggesting the right one). */

@@ -16,6 +16,7 @@ import {
   diagnosePendingTx,
   getContractEvents,
   eventNamesFromAbi,
+  getContractDeployment,
 } from "@txid/blockchain"
 import {
   getSolanaWalletBalance,
@@ -215,6 +216,21 @@ export async function executeTool(
       return { contract: target.name, event: eventName, count: events.length, events }
     }
 
+    case "get_contract_deployment": {
+      const contractAddress = typeof input.contract_address === "string" ? input.contract_address : undefined
+      const target = contractAddress
+        ? watchedContracts.find(c => c.address.toLowerCase() === contractAddress.toLowerCase())
+        : watchedContracts.length === 1 ? watchedContracts[0] : undefined
+      if (!target) throw new Error("Specify which contract (contract_address) to look up")
+      if (isSolanaChain(target.chain)) {
+        return { note: "Deployment lookup is only available on EVM chains." }
+      }
+      const deployment = await getContractDeployment(target.address, target.chain)
+      return deployment
+        ? { contract: target.name, ...deployment }
+        : { contract: target.name, note: "Deployment details could not be retrieved." }
+    }
+
     default:
       throw new Error(`Unknown tool: ${name}`)
   }
@@ -304,6 +320,35 @@ export function buildContractEventsTool(
 }
 
 /**
+ * Contract deployment lookup — offered when watched contracts exist. Answers
+ * "when was the contract deployed / who created it / how old is it".
+ */
+export function buildContractDeploymentTool(
+  watchedContracts: WatchedContractSnapshot[] = [],
+): Anthropic.Tool | null {
+  if (watchedContracts.length === 0) return null
+  const list = watchedContracts.map(c => `${c.name} at ${c.address} (chain ${c.chain})`).join(", ")
+  return {
+    name: "get_contract_deployment",
+    description:
+      "Look up WHEN one of the protocol's contracts was deployed (created) and who deployed it. " +
+      "Use for questions like 'when was the contract deployed', 'how old is the contract', 'who created it'. " +
+      "Returns the deployment timestamp, the deployer address, and the creation transaction hash. " +
+      `This protocol's contracts: ${list}.`,
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        contract_address: {
+          type: "string",
+          description: "The contract address to look up (use one from the list above).",
+        },
+      },
+      required: ["contract_address"],
+    },
+  }
+}
+
+/**
  * Escalation tool — always offered, not wallet-gated.
  * When Claude calls this, the widget intercepts it and shows a ticket form
  * (name + email) instead of executing it server-side.
@@ -346,4 +391,5 @@ export const TOOL_LABELS: Record<string, string> = {
   get_transaction_by_hash: "Diagnosing transaction…",
   get_contract_transactions: "Checking contract activity…",
   get_contract_events: "Reading contract event history…",
+  get_contract_deployment: "Checking contract deployment…",
 }
