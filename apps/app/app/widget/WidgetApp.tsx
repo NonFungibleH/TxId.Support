@@ -13,6 +13,7 @@ import {
   ExternalLinkIcon,
   ChevronDownIcon,
   X as XIcon,
+  LogOut as LogOutIcon,
 } from "lucide-react"
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -412,6 +413,10 @@ function loadWalletSession(key: string): WalletSession | null {
   } catch { return null }
 }
 
+function clearWalletSession(key: string) {
+  try { sessionStorage.removeItem(`txid_wallet_${key}`) } catch { /* ignore */ }
+}
+
 // ─── Main component ──────────────────────────────────────────────────────────
 
 export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
@@ -576,6 +581,14 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
       setWalletConnecting(false)
     }
   }, [apiKey, isSolanaProject])
+
+  // ── Disconnect wallet ────────────────────────────────────────────────────
+  const disconnectWallet = useCallback(() => {
+    setWalletAddress(null)
+    setChainId(null)
+    setWalletSetup("prompt")
+    clearWalletSession(apiKey)
+  }, [apiKey])
 
 
   // ── Submit support ticket ────────────────────────────────────────────────
@@ -827,9 +840,15 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
         </span>
         {!isTokenMode && (
           walletAddress ? (
-            <span className="rounded-full px-2 py-0.5 text-[10px] font-mono" style={{ backgroundColor: b.secondaryColor, color: b.textColor }}>
+            <button
+              onClick={disconnectWallet}
+              title="Disconnect wallet"
+              className="group flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-mono transition-opacity hover:opacity-90 active:opacity-70"
+              style={{ backgroundColor: b.secondaryColor, color: b.textColor }}
+            >
               {walletAddress.slice(0, 6)}…{walletAddress.slice(-4)}
-            </span>
+              <LogOutIcon className="size-3 opacity-70 group-hover:opacity-100" />
+            </button>
           ) : hasWallet ? (
             <button
               onClick={connectWallet}

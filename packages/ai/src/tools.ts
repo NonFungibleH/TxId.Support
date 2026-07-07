@@ -17,6 +17,8 @@ import {
   getContractEvents,
   eventNamesFromAbi,
   getContractDeployment,
+  getContractState,
+  viewGetterNames,
 } from "@txid/blockchain"
 import {
   getSolanaWalletBalance,
@@ -264,6 +266,23 @@ export async function executeTool(
       return { contract: target.name, address: target.address, native, tokens: tokens.slice(0, 30) }
     }
 
+    case "get_contract_state": {
+      const functionName = typeof input.function_name === "string" ? input.function_name : ""
+      const contractAddress = typeof input.contract_address === "string" ? input.contract_address : undefined
+      if (!functionName) throw new Error("function_name is required")
+      const target = contractAddress
+        ? watchedContracts.find(c => c.address.toLowerCase() === contractAddress.toLowerCase())
+        : watchedContracts.length === 1 ? watchedContracts[0] : undefined
+      if (!target) throw new Error("Specify which contract (contract_address) to read")
+      if (isSolanaChain(target.chain)) {
+        return { note: "Reading contract state is only available on EVM chains." }
+      }
+      const state = await getContractState(target.address, target.chain, functionName, target.abi ?? undefined)
+      return state
+        ? { contract: target.name, ...state }
+        : { contract: target.name, function: functionName, note: "That value is not a readable no-argument getter on this contract, or the read failed." }
+    }
+
     default:
       throw new Error(`Unknown tool: ${name}`)
   }
@@ -412,6 +431,44 @@ export function buildContractHoldingsTool(
 }
 
 /**
+ * Contract state reader — offered when a watched contract has an ABI. Reads the
+ * current value of a no-argument view getter (fee, paused, owner, totalSupply…).
+ */
+export function buildContractStateTool(
+  watchedContracts: WatchedContractSnapshot[] = [],
+): Anthropic.Tool | null {
+  const withAbi = watchedContracts.filter(c => c.abi)
+  if (withAbi.length === 0) return null
+  const lines = withAbi
+    .map(c => {
+      const getters = viewGetterNames(c.abi).slice(0, 40)
+      return `${c.name} at ${c.address} (chain ${c.chain}) — getters: ${getters.join(", ") || "none"}`
+    })
+    .join("; ")
+  return {
+    name: "get_contract_state",
+    description:
+      "Read the CURRENT value of a no-argument view getter on one of the protocol's contracts — e.g. the current fee, whether it's paused right now, the owner, a total, a limit. " +
+      "Use for 'what is the current fee', 'is the contract paused', 'who owns it', 'what is the <setting>'. Pass the contract address and the exact getter name. " +
+      `Available contracts and their getters: ${lines}.`,
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        contract_address: {
+          type: "string",
+          description: "The contract address to read (use one from the list above).",
+        },
+        function_name: {
+          type: "string",
+          description: "The exact getter name to read, e.g. 'fee' or 'paused' (choose from the getters listed for that contract).",
+        },
+      },
+      required: ["contract_address", "function_name"],
+    },
+  }
+}
+
+/**
  * Escalation tool — always offered, not wallet-gated.
  * When Claude calls this, the widget intercepts it and shows a ticket form
  * (name + email) instead of executing it server-side.
@@ -456,4 +513,5 @@ export const TOOL_LABELS: Record<string, string> = {
   get_contract_events: "Reading contract event history…",
   get_contract_deployment: "Checking contract deployment…",
   get_contract_holdings: "Checking contract holdings…",
+  get_contract_state: "Reading contract state…",
 }

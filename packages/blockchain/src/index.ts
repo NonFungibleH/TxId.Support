@@ -3,6 +3,8 @@ export { decodeTxRevert, fetchAbiFromExplorer } from "./decoder"
 export { diagnosePendingTx } from "./pending"
 export { getContractEvents, eventNamesFromAbi, getContractDeployment } from "./events"
 export type { ContractEvent, ContractDeployment } from "./events"
+export { getContractState, viewGetterNames } from "./read"
+export type { ContractStateValue } from "./read"
 export {
   getExplorerUrl,
   getTxUrl,

@@ -213,7 +213,9 @@ export function buildSystemPrompt(params: StreamChatParams): string {
         `\n` +
         `For "when was the contract deployed / created", "how old is the contract", or "who deployed it", use the \`get_contract_deployment\` tool (deployment date is the contract's creation, not an event). Answer with the deployment date and cite the creation transaction.\n` +
         `\n` +
-        `For "how many tokens are locked", "what does the contract hold", "how much is in the contract", or "total value locked", use the \`get_contract_holdings\` tool — it returns the contract's own native + ERC-20 balances. Report the relevant token balances.`
+        `For "how many tokens are locked", "what does the contract hold", "how much is in the contract", or "total value locked", use the \`get_contract_holdings\` tool — it returns the contract's own native + ERC-20 balances. Report the relevant token balances.\n` +
+        `\n` +
+        `For the CURRENT value of an on-chain setting — "what is the current fee", "is the contract paused right now", "who is the owner", "what is the <limit/total>" — use the \`get_contract_state\` tool with the getter name (e.g. \`fee\`, \`paused\`, \`owner\`). It reads the live value on-chain. Prefer this over the documentation when the user asks for the current/live value.`
       )
     }
 

@@ -17,15 +17,26 @@ export async function generateSuggestions(
     {
       role: "user",
       content:
-        'Give 2–3 short follow-up questions I might ask next. Return ONLY a JSON array of strings, ≤7 words each. Example: ["What caused this?","Can I retry?","Is this normal?"]',
+        'Give 2–3 short follow-up questions I might ask next that THIS assistant can actually answer. ' +
+        'Return ONLY a JSON array of strings, ≤7 words each. Example: ["What caused this?","When was it deployed?","How do I retry?"]',
     },
   ]
+
+  // Only suggest questions within the assistant's real capabilities, so every
+  // chip leads to a good answer instead of "I can't do that".
+  const capabilityGuide =
+    "You suggest follow-up questions for a DeFi protocol support assistant. " +
+    "Only suggest questions it can ACTUALLY answer. It CAN: answer from the protocol's documentation (features, fees, how-to, staking, unlocking); " +
+    "diagnose a transaction when the user pastes its hash; and for the protocol's own contracts look up the deployment date, event history " +
+    "(e.g. when fees changed), token holdings / how much is locked, recent activity, and the current value of simple on-chain settings. " +
+    "It CANNOT: discuss other protocols, give price predictions, access off-chain/account data, or answer about contracts it doesn't track. " +
+    "Never suggest a question it cannot answer. Return ONLY a valid JSON array of 2–3 short strings (≤7 words each), no markdown, no preamble."
 
   try {
     // 5-second timeout — suggestions are a nice-to-have; never stall stream close
     const raw = await Promise.race([
       completeChat(
-        "Return ONLY a valid JSON array of 2–3 short follow-up question strings (≤7 words each). No explanation, no markdown, no preamble.",
+        capabilityGuide,
         suggestionMessages,
         80,
       ),
