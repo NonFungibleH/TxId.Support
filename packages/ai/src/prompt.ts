@@ -235,17 +235,24 @@ export function buildSystemPrompt(params: StreamChatParams): string {
         `For "what can this contract do / what functions does it have", use \`get_contract_functions\` (read vs write functions).\n` +
         `For "has this contract been upgraded / when / implementation history", use \`get_upgrade_history\`.\n` +
         `\n` +
-        `**Token questions:** For "what's the token supply / symbol / decimals" use \`get_token_info\`. For "what's the price of the token" use \`get_token_price\`. For "do I need to approve / what's my allowance" use \`get_token_allowance\` (owner = the connected wallet; spender = the protocol contract they're interacting with). Use the protocol's own token address from the context above unless the user names a different token.`
+        `**Token questions:** For "what's the token supply / symbol / decimals" use \`get_token_info\`. For "what's the price of the token" use \`get_token_price\`. For "do I need to approve / what's my allowance" use \`get_token_allowance\` (owner = the connected wallet; spender = the protocol contract they're interacting with). Use the protocol's own token address from the context above unless the user names a different token.\n` +
+        `For "what have I approved / which approvals do I have out / is my wallet safe", use \`get_wallet_approvals\` — list the wallet's approvals and flag any UNLIMITED ones as worth reviewing or revoking.`
       )
     }
 
     if (walletConfig) {
       const isSolana = walletConfig.chainId === "solana"
+      // Wrong-network detection: is the wallet on one of the protocol's chains?
+      const protocolChains = [...new Set((config.watchedContracts ?? []).map(c => c.chain))]
+      const onProtocolChain = protocolChains.length === 0 || protocolChains.includes(walletConfig.chainId)
+      const networkNote = onProtocolChain
+        ? ""
+        : `\n**⚠️ Network mismatch:** the wallet is on ${chainName(walletConfig.chainId)}, but ${projectName}'s contracts are on ${protocolChains.map(chainName).join(", ")}. If the user is trying to interact with ${projectName} and something is failing or not showing up, the FIRST thing to check is that they switch their wallet to the correct network — this is the most likely cause.`
       // Wallet is connected — tools are available
       parts.push(
         `## User's Wallet\n` +
         `Address: \`${walletConfig.address}\`\n` +
-        `Network: ${chainName(walletConfig.chainId)}\n\n` +
+        `Network: ${chainName(walletConfig.chainId)}${networkNote}\n\n` +
         `Live blockchain tools are available. Use them ONLY to diagnose a specific transaction problem the user is describing — NOT for general protocol questions.\n\n` +
         `**Use tools when:**\n` +
         `- The user says a specific action failed or didn't complete ("my swap failed", "did my transfer go through", "something went wrong")\n` +

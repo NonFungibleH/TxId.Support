@@ -28,6 +28,7 @@ import {
   getTokenInfo,
   getTokenAllowance,
   getTokenPrice,
+  getWalletApprovals,
 } from "@txid/blockchain"
 import {
   getSolanaWalletBalance,
@@ -90,6 +91,18 @@ export function buildWalletTools(
               "Use the protocol's known contract addresses from the system context whenever relevant.",
           },
         },
+        required: [],
+      },
+    },
+    {
+      name: "get_wallet_approvals",
+      description:
+        "List the ERC-20 token approvals the connected wallet has granted (which token, which spender, how much, whether unlimited). " +
+        "Use for 'what have I approved', 'which approvals do I have', 'is my wallet safe', 'have I approved this protocol'. " +
+        "Flag unlimited approvals as worth reviewing/revoking.",
+      input_schema: {
+        type: "object" as const,
+        properties: {},
         required: [],
       },
     },
@@ -170,6 +183,13 @@ export async function executeTool(
         txs = txs.filter(tx => tx.to?.toLowerCase() === programOrContract.toLowerCase())
       }
       return txs
+    }
+
+    case "get_wallet_approvals": {
+      if (!wallet) throw new Error("Wallet not connected")
+      if (solana) return { approvals: [], note: "Approval listing is EVM-only." }
+      const approvals = await getWalletApprovals(wallet.address, wallet.chainId)
+      return { address: wallet.address, count: approvals.length, approvals }
     }
 
     case "get_transaction_by_hash": {
@@ -784,6 +804,7 @@ export function buildEscalationTool(): Anthropic.Tool {
 export const TOOL_LABELS: Record<string, string> = {
   get_wallet_balance: "Checking your balance…",
   get_recent_transactions: "Looking up your transactions…",
+  get_wallet_approvals: "Checking your token approvals…",
   get_transaction_by_hash: "Diagnosing transaction…",
   get_contract_transactions: "Checking contract activity…",
   get_contract_events: "Reading contract event history…",

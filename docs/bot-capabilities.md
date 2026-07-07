@@ -99,8 +99,8 @@ Key files: `packages/blockchain/src/*` (data + decode), `packages/ai/src/tools.t
 | Token balances | ✅ | `get_wallet_balance` |
 | Nonce / stuck detection | ✅ | `diagnosePendingTx` |
 | Recent transactions | ✅ | `get_recent_transactions` |
-| Wrong-network detection | ⚠️ | widget knows chainId; not yet an explicit diagnosis |
-| Approvals granted | ✅* | via `get_contract_data` allowance |
+| Wrong-network detection | ✅ | prompt-level check: wallet chain vs protocol chains → explicit warning |
+| Approvals the wallet has granted | ✅ | `get_wallet_approvals` (Moralis) — lists token/spender/amount, flags unlimited |
 
 ## 5. Network / RPC level
 

@@ -32,6 +32,62 @@ function moralisHeaders(): Record<string, string> {
   return { "X-API-Key": apiKey, "Content-Type": "application/json" }
 }
 
+export interface WalletApproval {
+  token: string
+  symbol?: string
+  spender: string
+  spenderLabel?: string
+  value: string
+  valueFormatted?: string
+  isUnlimited: boolean
+}
+
+/**
+ * List the ERC-20 approvals a wallet has granted (token → spender → amount),
+ * via Moralis' wallet approvals endpoint. Newest/riskiest first as returned.
+ * Returns [] on any failure — never throws.
+ */
+export async function getWalletApprovals(
+  address: string,
+  chainId: string,
+  limit = 25,
+): Promise<WalletApproval[]> {
+  try {
+    const chain = moralisChain(chainId)
+    const res = await fetch(
+      `${MORALIS_BASE}/wallets/${address}/approvals?chain=${chain}`,
+      { headers: moralisHeaders(), signal: AbortSignal.timeout(9000) },
+    )
+    if (!res.ok) return []
+    const json = (await res.json()) as {
+      result?: Array<{
+        token?: { address?: string; symbol?: string }
+        spender?: { address?: string; entity?: string; address_label?: string }
+        value?: string
+        value_formatted?: string
+      }>
+    }
+    return (json.result ?? []).slice(0, limit).map(a => {
+      const raw = a.value ?? "0"
+      let isUnlimited = false
+      try { isUnlimited = BigInt(raw) >= 1n << 255n } catch { /* keep false */ }
+      const out: WalletApproval = {
+        token: a.token?.address ?? "",
+        spender: a.spender?.address ?? "",
+        value: raw,
+        isUnlimited,
+      }
+      if (a.token?.symbol) out.symbol = a.token.symbol
+      const label = a.spender?.entity ?? a.spender?.address_label
+      if (label) out.spenderLabel = label
+      if (a.value_formatted) out.valueFormatted = a.value_formatted
+      return out
+    })
+  } catch {
+    return []
+  }
+}
+
 /** Get native currency balance for a wallet on a given chain */
 export async function getNativeBalance(
   address: string,
