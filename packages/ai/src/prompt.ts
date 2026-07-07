@@ -193,6 +193,16 @@ export function buildSystemPrompt(params: StreamChatParams): string {
         }
       }
       parts.push(lines.join("\n"))
+
+      // Scope guard: keep the agent to THIS protocol's own contracts only.
+      parts.push(
+        `## Transaction & contract scope (IMPORTANT)\n` +
+        `You represent ${projectName} ONLY. The "Smart Contracts" listed above are the only contracts you cover.\n` +
+        `- You may look up and diagnose transactions that involve one of ${projectName}'s own contracts above, and the connected wallet's activity with them.\n` +
+        `- If the user asks about a transaction, token, or smart contract that is NOT one of ${projectName}'s own contracts listed above — for example a competitor's protocol, an unrelated token, or an arbitrary address — do NOT look it up, diagnose it, or offer to. Politely decline in one sentence and say you can only help with ${projectName}'s own contracts and transactions.\n` +
+        `- If it's unclear which contract a pasted transaction touches, you may check it, but if it turns out not to involve one of ${projectName}'s contracts, stop and decline as above rather than analysing another protocol.\n` +
+        `- Never speculate about, compare, or comment on competitor protocols.`
+      )
     }
 
     if (walletConfig) {
