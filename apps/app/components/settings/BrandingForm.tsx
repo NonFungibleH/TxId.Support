@@ -276,7 +276,11 @@ export function BrandingForm({ projectId, initial, onBrandingChange }: BrandingF
             onValueChange={v => update("language", v === "en" ? null : v)}
           >
             <SelectTrigger>
-              <SelectValue />
+              <SelectValue>
+                {(value: string) =>
+                  SUPPORTED_LANGUAGES.find(l => l.code === value)?.label ?? "English"
+                }
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               {SUPPORTED_LANGUAGES.map(lang => (
