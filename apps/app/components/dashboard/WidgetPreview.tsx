@@ -136,7 +136,7 @@ export function WidgetPreview({
                 color: branding.textColor,
               }}
             >
-              I checked the Team Finance lock contract and your token appears to
+              I checked the {projectName} lock contract and your token appears to
               be locked until 2026. You can verify on the explorer.
             </div>
           </div>
