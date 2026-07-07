@@ -88,3 +88,15 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Clerk: GitHub's provider mark is monochrome black and vanishes on the dark
+   sign-in card. Invert just the GitHub icon in dark mode so it's visible.
+   Google (multicolour) and MetaMask (orange) are left untouched. */
+.dark .cl-socialButtonsProviderIcon__github,
+.dark .cl-providerIcon__github,
+.dark .cl-socialButtonsBlockButton__github img,
+.dark .cl-socialButtonsBlockButton__github svg,
+.dark .cl-socialButtonsIconButton__github img,
+.dark .cl-socialButtonsIconButton__github svg {
+  filter: invert(1);
+}
