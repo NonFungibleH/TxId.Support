@@ -27,7 +27,40 @@ function decodeStatic(type: string, word: string): string {
 }
 
 function isDynamic(type: string): boolean {
-  return type === "string" || type === "bytes" || type.endsWith("[]")
+  return type === "string" || type === "bytes" || type.endsWith("[]") || type.startsWith("tuple")
+}
+
+/** True if a type can be encoded/decoded inline (32 bytes). */
+export function isStaticType(type: string): boolean {
+  return !isDynamic(type)
+}
+
+/** ABI-encode a single static argument to a 32-byte hex word (no 0x). */
+export function encodeStaticArg(type: string, value: string): string {
+  if (type === "address") return value.replace(/^0x/, "").toLowerCase().padStart(64, "0")
+  if (type === "bool") return (value === "true" || value === "1" ? "1" : "0").padStart(64, "0")
+  if (type.startsWith("uint") || type.startsWith("int")) {
+    let v = BigInt(value)
+    if (v < 0n) v += 1n << 256n // two's complement
+    return v.toString(16).padStart(64, "0")
+  }
+  if (type.startsWith("bytes")) return value.replace(/^0x/, "").padEnd(64, "0")
+  return "0".repeat(64)
+}
+
+/** Flatten function outputs, expanding a single struct (tuple) into its fields. */
+export function flattenOutputs(
+  outputs: Array<{ type: string; name?: string; components?: Array<{ type: string; name?: string }> }>,
+): AbiParam[] {
+  const flat: AbiParam[] = []
+  outputs.forEach((o, i) => {
+    if (o.type === "tuple" && o.components) {
+      o.components.forEach((c, j) => flat.push({ type: c.type, name: c.name || `field${j}` }))
+    } else {
+      flat.push({ type: o.type, name: o.name || `out${i}` })
+    }
+  })
+  return flat
 }
 
 /** Decode a tightly-packed ABI parameter block (function args or event data). */

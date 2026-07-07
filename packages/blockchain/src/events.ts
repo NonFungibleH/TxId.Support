@@ -121,3 +121,89 @@ export async function getContractEvents(
     return []
   }
 }
+
+// ── Contract verification / proxy info (Etherscan getsourcecode) ────────────
+
+export interface ContractInfo {
+  name?: string
+  verified: boolean
+  isProxy: boolean
+  implementation?: string
+  compiler?: string
+}
+
+/** Verification status, proxy flag, and implementation address for a contract. */
+export async function getContractInfo(
+  contractAddress: string,
+  chainId: string,
+): Promise<ContractInfo | null> {
+  try {
+    const numericChainId = ETHERSCAN_CHAIN_IDS[chainId]
+    if (numericChainId === undefined) return null
+    const apiKey = process.env.ETHERSCAN_API_KEY ?? ""
+    const url =
+      `${ETHERSCAN_V2_BASE}?chainid=${numericChainId}&module=contract&action=getsourcecode` +
+      `&address=${contractAddress}${apiKey ? `&apikey=${apiKey}` : ""}`
+    const res = await fetch(url, { signal: AbortSignal.timeout(8000) })
+    if (!res.ok) return null
+    const data = (await res.json()) as {
+      status: string
+      result?: Array<{ ContractName?: string; Proxy?: string; Implementation?: string; CompilerVersion?: string; ABI?: string }>
+    }
+    const row = data.status === "1" ? data.result?.[0] : undefined
+    if (!row) return null
+    const verified = !!row.ABI && row.ABI !== "Contract source code not verified"
+    return {
+      ...(row.ContractName ? { name: row.ContractName } : {}),
+      verified,
+      isProxy: row.Proxy === "1",
+      ...(row.Implementation && /^0x[0-9a-fA-F]{40}$/.test(row.Implementation) ? { implementation: row.Implementation } : {}),
+      ...(row.CompilerVersion ? { compiler: row.CompilerVersion } : {}),
+    }
+  } catch {
+    return null
+  }
+}
+
+// ── Proxy upgrade history (Upgraded(address) events) ────────────────────────
+
+export interface UpgradeEvent {
+  implementation: string
+  timestamp: string
+  txHash: string
+}
+
+/** History of a proxy's implementation upgrades, newest first. */
+export async function getUpgradeHistory(
+  contractAddress: string,
+  chainId: string,
+): Promise<UpgradeEvent[]> {
+  try {
+    const numericChainId = ETHERSCAN_CHAIN_IDS[chainId]
+    if (numericChainId === undefined) return []
+    const apiKey = process.env.ETHERSCAN_API_KEY ?? ""
+    const topic0 = eventTopic0("Upgraded(address)")
+    const url =
+      `${ETHERSCAN_V2_BASE}?chainid=${numericChainId}&module=logs&action=getLogs` +
+      `&address=${contractAddress}&topic0=${topic0}&fromBlock=0&toBlock=latest&page=1&offset=100` +
+      (apiKey ? `&apikey=${apiKey}` : "")
+    const res = await fetch(url, { signal: AbortSignal.timeout(10000) })
+    if (!res.ok) return []
+    const data = (await res.json()) as {
+      status: string
+      result?: Array<{ topics: string[]; timeStamp: string; transactionHash: string }>
+    }
+    if (data.status !== "1" || !Array.isArray(data.result)) return []
+    return data.result
+      .slice()
+      .reverse()
+      .slice(0, 20)
+      .map(r => ({
+        implementation: "0x" + (r.topics[1] ?? "").slice(26),
+        timestamp: new Date(parseInt(r.timeStamp, 16) * 1000).toISOString(),
+        txHash: r.transactionHash,
+      }))
+  } catch {
+    return []
+  }
+}

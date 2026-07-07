@@ -19,6 +19,11 @@ import {
   getContractDeployment,
   getContractState,
   viewGetterNames,
+  getContractData,
+  viewFunctionsWithArgs,
+  contractFunctions,
+  getContractInfo,
+  getUpgradeHistory,
   enrichTransaction,
 } from "@txid/blockchain"
 import {
@@ -322,6 +327,60 @@ export async function executeTool(
         : { contract: target.name, function: functionName, note: "That value is not a readable no-argument getter on this contract, or the read failed." }
     }
 
+    case "get_contract_data": {
+      const functionName = typeof input.function_name === "string" ? input.function_name : ""
+      const contractAddress = typeof input.contract_address === "string" ? input.contract_address : undefined
+      const args = Array.isArray(input.args) ? input.args.map(a => String(a)) : []
+      if (!functionName) throw new Error("function_name is required")
+      const target = contractAddress
+        ? watchedContracts.find(c => c.address.toLowerCase() === contractAddress.toLowerCase())
+        : watchedContracts.length === 1 ? watchedContracts[0] : undefined
+      if (!target) throw new Error("Specify which contract (contract_address) to read")
+      if (isSolanaChain(target.chain)) {
+        return { note: "Reading contract data is only available on EVM chains." }
+      }
+      const data = await getContractData(target.address, target.chain, functionName, args, target.abi ?? undefined)
+      return data
+        ? { contract: target.name, ...data }
+        : { contract: target.name, function: functionName, note: "Could not read that function — it may take unsupported argument types, not be a view function, or have reverted." }
+    }
+
+    case "get_contract_info": {
+      const contractAddress = typeof input.contract_address === "string" ? input.contract_address : undefined
+      const target = contractAddress
+        ? watchedContracts.find(c => c.address.toLowerCase() === contractAddress.toLowerCase())
+        : watchedContracts.length === 1 ? watchedContracts[0] : undefined
+      if (!target) throw new Error("Specify which contract (contract_address) to look up")
+      if (isSolanaChain(target.chain)) {
+        return { note: "Verification/proxy info is only available on EVM chains." }
+      }
+      const info = await getContractInfo(target.address, target.chain)
+      return info ? { contract: target.name, ...info } : { contract: target.name, note: "Verification info could not be retrieved." }
+    }
+
+    case "get_contract_functions": {
+      const contractAddress = typeof input.contract_address === "string" ? input.contract_address : undefined
+      const target = contractAddress
+        ? watchedContracts.find(c => c.address.toLowerCase() === contractAddress.toLowerCase())
+        : watchedContracts.length === 1 ? watchedContracts[0] : undefined
+      if (!target) throw new Error("Specify which contract (contract_address)")
+      const fns = contractFunctions(target.abi ?? undefined)
+      return { contract: target.name, readFunctions: fns.read, writeFunctions: fns.write }
+    }
+
+    case "get_upgrade_history": {
+      const contractAddress = typeof input.contract_address === "string" ? input.contract_address : undefined
+      const target = contractAddress
+        ? watchedContracts.find(c => c.address.toLowerCase() === contractAddress.toLowerCase())
+        : watchedContracts.length === 1 ? watchedContracts[0] : undefined
+      if (!target) throw new Error("Specify which contract (contract_address)")
+      if (isSolanaChain(target.chain)) {
+        return { upgrades: [], note: "Upgrade history is only available on EVM chains." }
+      }
+      const upgrades = await getUpgradeHistory(target.address, target.chain)
+      return { contract: target.name, count: upgrades.length, upgrades }
+    }
+
     default:
       throw new Error(`Unknown tool: ${name}`)
   }
@@ -508,6 +567,103 @@ export function buildContractStateTool(
 }
 
 /**
+ * Contract data reader WITH arguments — offered when a watched contract has an
+ * ABI with argument-taking view functions (getUserLock(address), allowance,
+ * balanceOf, locks(uint256)…). This answers "about my position" questions.
+ */
+export function buildContractDataTool(
+  watchedContracts: WatchedContractSnapshot[] = [],
+): Anthropic.Tool | null {
+  const withArgFns = watchedContracts
+    .map(c => ({ c, fns: viewFunctionsWithArgs(c.abi) }))
+    .filter(x => x.fns.length > 0)
+  if (withArgFns.length === 0) return null
+  const lines = withArgFns.map(({ c, fns }) => `${c.name} at ${c.address} (chain ${c.chain}) — functions: ${fns.slice(0, 30).join("; ")}`).join(" | ")
+  return {
+    name: "get_contract_data",
+    description:
+      "Call a view function that takes ARGUMENTS on one of the protocol's contracts and get the decoded result — e.g. a user's lock (getUserLock(address)), an allowance, a balanceOf, a lock by index. " +
+      "Use for questions about a specific address or index, especially the connected wallet's own position. Pass contract_address, function_name, and args in the exact order the function expects (addresses as 0x…, numbers as strings). " +
+      `Available contracts and their argument-taking functions: ${lines}.`,
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        contract_address: { type: "string", description: "The contract address (from the list above)." },
+        function_name: { type: "string", description: "The exact function name, e.g. 'getUserLock'." },
+        args: {
+          type: "array",
+          items: { type: "string" },
+          description: "Arguments in order. Addresses as 0x…, numbers as decimal strings, booleans as 'true'/'false'.",
+        },
+      },
+      required: ["contract_address", "function_name", "args"],
+    },
+  }
+}
+
+/**
+ * Contract verification / proxy info + function catalogue + upgrade history.
+ * Three lightweight tools offered whenever watched contracts exist.
+ */
+export function buildContractInfoTool(
+  watchedContracts: WatchedContractSnapshot[] = [],
+): Anthropic.Tool | null {
+  if (watchedContracts.length === 0) return null
+  const list = watchedContracts.map(c => `${c.name} at ${c.address} (chain ${c.chain})`).join(", ")
+  return {
+    name: "get_contract_info",
+    description:
+      "Get whether a contract is verified, whether it is a proxy, its implementation address, contract name, and compiler. " +
+      "Use for 'is this contract verified', 'is it a proxy', 'is it safe/audited-on-chain', 'what's the implementation'. " +
+      `Contracts: ${list}.`,
+    input_schema: {
+      type: "object" as const,
+      properties: { contract_address: { type: "string", description: "The contract address (from the list above)." } },
+      required: ["contract_address"],
+    },
+  }
+}
+
+export function buildContractFunctionsTool(
+  watchedContracts: WatchedContractSnapshot[] = [],
+): Anthropic.Tool | null {
+  const withAbi = watchedContracts.filter(c => c.abi)
+  if (withAbi.length === 0) return null
+  const list = withAbi.map(c => `${c.name} at ${c.address}`).join(", ")
+  return {
+    name: "get_contract_functions",
+    description:
+      "List what a contract can do — its read (view) functions and write (state-changing) functions, from the ABI. " +
+      "Use for 'what can this contract do', 'what functions does it have', 'how do I interact with it'. " +
+      `Contracts: ${list}.`,
+    input_schema: {
+      type: "object" as const,
+      properties: { contract_address: { type: "string", description: "The contract address (from the list above)." } },
+      required: ["contract_address"],
+    },
+  }
+}
+
+export function buildUpgradeHistoryTool(
+  watchedContracts: WatchedContractSnapshot[] = [],
+): Anthropic.Tool | null {
+  if (watchedContracts.length === 0) return null
+  const list = watchedContracts.map(c => `${c.name} at ${c.address} (chain ${c.chain})`).join(", ")
+  return {
+    name: "get_upgrade_history",
+    description:
+      "Get a proxy contract's implementation upgrade history (each Upgraded event: new implementation, date, tx). " +
+      "Use for 'has this contract been upgraded', 'when was it last upgraded', 'implementation history'. " +
+      `Contracts: ${list}.`,
+    input_schema: {
+      type: "object" as const,
+      properties: { contract_address: { type: "string", description: "The contract address (from the list above)." } },
+      required: ["contract_address"],
+    },
+  }
+}
+
+/**
  * Escalation tool — always offered, not wallet-gated.
  * When Claude calls this, the widget intercepts it and shows a ticket form
  * (name + email) instead of executing it server-side.
@@ -553,4 +709,8 @@ export const TOOL_LABELS: Record<string, string> = {
   get_contract_deployment: "Checking contract deployment…",
   get_contract_holdings: "Checking contract holdings…",
   get_contract_state: "Reading contract state…",
+  get_contract_data: "Reading contract data…",
+  get_contract_info: "Checking contract verification…",
+  get_contract_functions: "Reading contract functions…",
+  get_upgrade_history: "Checking upgrade history…",
 }

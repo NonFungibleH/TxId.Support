@@ -1,7 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk"
 import OpenAI from "openai"
 import type { ChatMessage, WatchedContractSnapshot } from "./types"
-import { buildWalletTools, buildTxLookupTool, buildContractTxsTool, buildContractEventsTool, buildContractDeploymentTool, buildContractHoldingsTool, buildContractStateTool, buildEscalationTool, executeTool } from "./tools"
+import { buildWalletTools, buildTxLookupTool, buildContractTxsTool, buildContractEventsTool, buildContractDeploymentTool, buildContractHoldingsTool, buildContractStateTool, buildContractDataTool, buildContractInfoTool, buildContractFunctionsTool, buildUpgradeHistoryTool, buildEscalationTool, executeTool } from "./tools"
 import type { WalletConfig } from "./tools"
 
 // ── Model selection ──────────────────────────────────────────────────────────
@@ -74,20 +74,16 @@ export async function* streamChatWithTools(
     const TX_KEYWORDS = /\b(fail|failed|error|stuck|pending|didn[‘’]t|did not|went wrong|lost|missing|not received|refund|my balance|what(‘s| is) my balance|my wallet|my tokens?|what do i have|my eth|my bnb|how much (do i|eth|bnb|have)|transaction (fail|stuck|didn)|tx |txn\b)/i
     const needsWalletTools = walletConfig !== null && TX_KEYWORDS.test(latestUserMsg)
 
-    // Wallet tools only when connected + relevant; tx lookup, contract lookup, and escalation always available
-    const contractTool = buildContractTxsTool(watchedContracts)
-    const eventsTool = buildContractEventsTool(watchedContracts)
-    const deploymentTool = buildContractDeploymentTool(watchedContracts)
-    const holdingsTool = buildContractHoldingsTool(watchedContracts)
-    const stateTool = buildContractStateTool(watchedContracts)
+    // Wallet tools only when connected + relevant; tx lookup, contract tools, and escalation always available
+    const contractToolset = [
+      buildContractTxsTool, buildContractEventsTool, buildContractDeploymentTool,
+      buildContractHoldingsTool, buildContractStateTool, buildContractDataTool,
+      buildContractInfoTool, buildContractFunctionsTool, buildUpgradeHistoryTool,
+    ].map(b => b(watchedContracts)).filter((t): t is NonNullable<typeof t> => t !== null)
     const anthropicTools = [
       ...(needsWalletTools ? buildWalletTools(watchedContracts) : []),
       buildTxLookupTool(),
-      ...(contractTool ? [contractTool] : []),
-      ...(eventsTool ? [eventsTool] : []),
-      ...(deploymentTool ? [deploymentTool] : []),
-      ...(holdingsTool ? [holdingsTool] : []),
-      ...(stateTool ? [stateTool] : []),
+      ...contractToolset,
       buildEscalationTool(),
     ]
     const groqTools: OpenAI.ChatCompletionTool[] = anthropicTools.map((t) => ({
@@ -197,19 +193,15 @@ export async function* streamChatWithTools(
   }
 
   // ── Claude with agentic tool use ─────────────────────────────────────────
-  const contractTool = buildContractTxsTool(watchedContracts)
-  const eventsTool = buildContractEventsTool(watchedContracts)
-  const deploymentTool = buildContractDeploymentTool(watchedContracts)
-  const holdingsTool = buildContractHoldingsTool(watchedContracts)
-  const stateTool = buildContractStateTool(watchedContracts)
+  const contractToolset = [
+    buildContractTxsTool, buildContractEventsTool, buildContractDeploymentTool,
+    buildContractHoldingsTool, buildContractStateTool, buildContractDataTool,
+    buildContractInfoTool, buildContractFunctionsTool, buildUpgradeHistoryTool,
+  ].map(b => b(watchedContracts)).filter((t): t is NonNullable<typeof t> => t !== null)
   const tools = [
     ...(walletConfig ? buildWalletTools(watchedContracts) : []),
     buildTxLookupTool(),
-    ...(contractTool ? [contractTool] : []),
-    ...(eventsTool ? [eventsTool] : []),
-    ...(deploymentTool ? [deploymentTool] : []),
-    ...(holdingsTool ? [holdingsTool] : []),
-    ...(stateTool ? [stateTool] : []),
+    ...contractToolset,
     buildEscalationTool(),
   ]
 

@@ -1,5 +1,6 @@
 import { CHAIN_CONFIGS } from "./types"
 import { functionSelector } from "./keccak"
+import { decodeParams, encodeStaticArg, flattenOutputs, isStaticType } from "./abi"
 
 async function ethCall(rpcUrl: string, to: string, data: string): Promise<string | null> {
   try {
@@ -17,13 +18,18 @@ async function ethCall(rpcUrl: string, to: string, data: string): Promise<string
   }
 }
 
+type AbiIO = { type: string; name?: string; components?: Array<{ type: string; name?: string }> }
 type AbiFn = {
   type: string
   name?: string
-  inputs?: unknown[]
-  outputs?: Array<{ type: string }>
+  inputs?: AbiIO[]
+  outputs?: AbiIO[]
   stateMutability?: string
   constant?: boolean
+}
+
+function isView(f: AbiFn): boolean {
+  return f.stateMutability === "view" || f.stateMutability === "pure" || f.constant === true
 }
 
 export interface ContractStateValue {
@@ -101,4 +107,86 @@ export async function getContractState(
   } catch {
     return null
   }
+}
+
+// ── Getters WITH arguments ─────────────────────────────────────────────────
+
+/** View functions that take arguments, as human-readable signatures (for the AI). */
+export function viewFunctionsWithArgs(abiJson: string | undefined): string[] {
+  if (!abiJson) return []
+  try {
+    const abi = JSON.parse(abiJson) as AbiFn[]
+    return abi
+      .filter(f => f.type === "function" && !!f.name && isView(f) && (f.inputs?.length ?? 0) > 0)
+      .map(f => `${f.name}(${(f.inputs ?? []).map(i => i.type + (i.name ? " " + i.name : "")).join(", ")})`)
+  } catch {
+    return []
+  }
+}
+
+export interface ContractCallResult {
+  function: string
+  result: Record<string, string>
+}
+
+/**
+ * Call a view function WITH arguments (e.g. getUserLock(address), allowance,
+ * balanceOf) and decode the return. Encodes static argument types (address,
+ * uint/int, bool, bytesN) and decodes static return values, including a single
+ * struct return (flattened to fields). Returns null on anything unsupported or
+ * on failure — never throws.
+ */
+export async function getContractData(
+  contractAddress: string,
+  chainId: string,
+  functionName: string,
+  args: string[],
+  abiJson: string | undefined,
+): Promise<ContractCallResult | null> {
+  try {
+    if (!abiJson) return null
+    const abi = JSON.parse(abiJson) as AbiFn[]
+    const fn = abi.find(
+      f =>
+        f.type === "function" &&
+        f.name?.toLowerCase() === functionName.toLowerCase() &&
+        (f.inputs?.length ?? 0) === args.length &&
+        isView(f),
+    )
+    if (!fn?.name || !fn.outputs?.length) return null
+    const inputs = fn.inputs ?? []
+    if (inputs.some(i => !isStaticType(i.type))) return null // only static args supported
+    const rpcUrl = CHAIN_CONFIGS[chainId]?.rpcUrl
+    if (!rpcUrl) return null
+
+    const selector = functionSelector(`${fn.name}(${inputs.map(i => i.type).join(",")})`)
+    const encoded = inputs.map((inp, i) => encodeStaticArg(inp.type, args[i] ?? "0")).join("")
+    const raw = await ethCall(rpcUrl, contractAddress, selector + encoded)
+    if (!raw || raw === "0x") return null
+
+    const flat = flattenOutputs(fn.outputs)
+    const result = decodeParams(flat, raw)
+    return { function: fn.name, result }
+  } catch {
+    return null
+  }
+}
+
+/** Categorised function list from an ABI — "what can this contract do". */
+export function contractFunctions(abiJson: string | undefined): { read: string[]; write: string[] } {
+  const read: string[] = []
+  const write: string[] = []
+  if (!abiJson) return { read, write }
+  try {
+    const abi = JSON.parse(abiJson) as AbiFn[]
+    for (const f of abi) {
+      if (f.type !== "function" || !f.name) continue
+      const sig = `${f.name}(${(f.inputs ?? []).map(i => i.type).join(",")})`
+      if (isView(f)) read.push(sig)
+      else write.push(sig)
+    }
+  } catch {
+    /* ignore */
+  }
+  return { read, write }
 }

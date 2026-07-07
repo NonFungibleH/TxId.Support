@@ -228,7 +228,12 @@ export function buildSystemPrompt(params: StreamChatParams): string {
         `\n` +
         `For "how many tokens are locked", "what does the contract hold", "how much is in the contract", or "total value locked", use the \`get_contract_holdings\` tool — it returns the contract's own native + ERC-20 balances. Report the relevant token balances.\n` +
         `\n` +
-        `For the CURRENT value of an on-chain setting — "what is the current fee", "is the contract paused right now", "who is the owner", "what is the <limit/total>" — use the \`get_contract_state\` tool with the getter name (e.g. \`fee\`, \`paused\`, \`owner\`). It reads the live value on-chain. Prefer this over the documentation when the user asks for the current/live value.`
+        `For the CURRENT value of a no-argument on-chain setting — "what is the current fee", "is the contract paused right now", "who is the owner" — use the \`get_contract_state\` tool with the getter name (e.g. \`fee\`, \`paused\`, \`owner\`). Prefer this over the documentation when the user asks for the current/live value.\n` +
+        `\n` +
+        `For anything that needs an ARGUMENT — a specific user's lock, an allowance, a balance, a lock by index (e.g. "what's MY lock", "how many tokens does 0x… have locked", "getUserLock") — use the \`get_contract_data\` tool with the function name and args in order. For the connected wallet, pass its address as the argument.\n` +
+        `For "is this contract verified / a proxy / audited on-chain / what's the implementation", use \`get_contract_info\`.\n` +
+        `For "what can this contract do / what functions does it have", use \`get_contract_functions\` (read vs write functions).\n` +
+        `For "has this contract been upgraded / when / implementation history", use \`get_upgrade_history\`.`
       )
     }
 
