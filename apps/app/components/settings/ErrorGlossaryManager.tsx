@@ -108,6 +108,7 @@ export function ErrorGlossaryManager({ projectId, contract }: Props) {
   const [showForm, setShowForm] = useState(false)
   const [entryName, setEntryName] = useState("")
   const [explanation, setExplanation] = useState("")
+  const [glossaryOpen, setGlossaryOpen] = useState(false)
 
   const entries = contract.errorGlossary ?? []
 
@@ -158,10 +159,27 @@ export function ErrorGlossaryManager({ projectId, contract }: Props) {
     })
   }
 
+  const pendingCount = unexplainedErrors.length + unexplainedEvents.length
+
   return (
     <div className="mt-3 space-y-3">
-      <p className="text-xs font-medium text-muted-foreground">Contract glossary</p>
+      <button
+        type="button"
+        onClick={() => setGlossaryOpen(o => !o)}
+        aria-expanded={glossaryOpen}
+        className="w-full flex items-center gap-2 text-left"
+      >
+        <span className="text-xs font-medium text-muted-foreground">Contract glossary</span>
+        {(entries.length > 0 || pendingCount > 0) && (
+          <span className="text-[10px] text-muted-foreground/80">
+            {entries.length} labelled{pendingCount > 0 ? ` · ${pendingCount} to describe` : ""}
+          </span>
+        )}
+        <ChevronDown className={`size-3.5 text-muted-foreground ml-auto transition-transform ${glossaryOpen ? "rotate-180" : ""}`} />
+      </button>
 
+      {glossaryOpen && (
+      <div className="space-y-3">
       {/* Already-labelled entries */}
       {entries.length > 0 && (
         <div className="space-y-1.5">
@@ -275,6 +293,8 @@ export function ErrorGlossaryManager({ projectId, contract }: Props) {
           <Plus className="size-3" />
           {hasAbiEntries ? "Add manual entry" : "Add entry"}
         </Button>
+      )}
+      </div>
       )}
     </div>
   )
