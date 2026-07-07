@@ -1,7 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk"
 import OpenAI from "openai"
 import type { ChatMessage, WatchedContractSnapshot } from "./types"
-import { buildWalletTools, buildTxLookupTool, buildContractTxsTool, buildEscalationTool, executeTool } from "./tools"
+import { buildWalletTools, buildTxLookupTool, buildContractTxsTool, buildContractEventsTool, buildEscalationTool, executeTool } from "./tools"
 import type { WalletConfig } from "./tools"
 
 // ── Model selection ──────────────────────────────────────────────────────────
@@ -76,10 +76,12 @@ export async function* streamChatWithTools(
 
     // Wallet tools only when connected + relevant; tx lookup, contract lookup, and escalation always available
     const contractTool = buildContractTxsTool(watchedContracts)
+    const eventsTool = buildContractEventsTool(watchedContracts)
     const anthropicTools = [
       ...(needsWalletTools ? buildWalletTools(watchedContracts) : []),
       buildTxLookupTool(),
       ...(contractTool ? [contractTool] : []),
+      ...(eventsTool ? [eventsTool] : []),
       buildEscalationTool(),
     ]
     const groqTools: OpenAI.ChatCompletionTool[] = anthropicTools.map((t) => ({
@@ -190,10 +192,12 @@ export async function* streamChatWithTools(
 
   // ── Claude with agentic tool use ─────────────────────────────────────────
   const contractTool = buildContractTxsTool(watchedContracts)
+  const eventsTool = buildContractEventsTool(watchedContracts)
   const tools = [
     ...(walletConfig ? buildWalletTools(watchedContracts) : []),
     buildTxLookupTool(),
     ...(contractTool ? [contractTool] : []),
+    ...(eventsTool ? [eventsTool] : []),
     buildEscalationTool(),
   ]
 

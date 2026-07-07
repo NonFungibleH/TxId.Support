@@ -203,6 +203,14 @@ export function buildSystemPrompt(params: StreamChatParams): string {
         `- If it's unclear which contract a pasted transaction touches, you may check it, but if it turns out not to involve one of ${projectName}'s contracts, stop and decline as above rather than analysing another protocol.\n` +
         `- Never speculate about, compare, or comment on competitor protocols.`
       )
+
+      parts.push(
+        `## Reading contract event history\n` +
+        `You can read the on-chain event log of the contracts above with the \`get_contract_events\` tool. ` +
+        `Use it whenever the user asks WHEN something happened or HOW OFTEN — e.g. "when were fees last changed", "when was the last deposit", "how many times has X happened". ` +
+        `Pass the contract address and the exact event name (e.g. \`FeesChanged\`). It returns each occurrence's timestamp and transaction hash, newest first — answer with the most recent date and cite the transaction. ` +
+        `If it returns no events, say the event has not been emitted in the history available, rather than saying you have no access.`
+      )
     }
 
     if (walletConfig) {

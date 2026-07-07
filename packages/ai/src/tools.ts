@@ -14,6 +14,8 @@ import {
   getTransactionByHash,
   getContractTransactions,
   diagnosePendingTx,
+  getContractEvents,
+  eventNamesFromAbi,
 } from "@txid/blockchain"
 import {
   getSolanaWalletBalance,
@@ -198,6 +200,21 @@ export async function executeTool(
       return getContractTransactions(contractAddress, chainId, limit)
     }
 
+    case "get_contract_events": {
+      const eventName = typeof input.event_name === "string" ? input.event_name : ""
+      const contractAddress = typeof input.contract_address === "string" ? input.contract_address : undefined
+      if (!eventName) throw new Error("event_name is required")
+      const target = contractAddress
+        ? watchedContracts.find(c => c.address.toLowerCase() === contractAddress.toLowerCase())
+        : watchedContracts.length === 1 ? watchedContracts[0] : undefined
+      if (!target) throw new Error("Specify which contract (contract_address) to read events from")
+      if (isSolanaChain(target.chain)) {
+        return { events: [], note: "Event history lookups are only available on EVM chains." }
+      }
+      const events = await getContractEvents(target.address, target.chain, eventName, target.abi ?? undefined)
+      return { contract: target.name, event: eventName, count: events.length, events }
+    }
+
     default:
       throw new Error(`Unknown tool: ${name}`)
   }
@@ -247,6 +264,46 @@ export function buildContractTxsTool(
 }
 
 /**
+ * Contract event-history lookup — offered when a watched contract has an ABI
+ * (needed to derive the event's topic0). Lets Claude answer "when did X happen"
+ * / "how often" questions by reading the contract's on-chain event log.
+ */
+export function buildContractEventsTool(
+  watchedContracts: WatchedContractSnapshot[] = [],
+): Anthropic.Tool | null {
+  const withAbi = watchedContracts.filter(c => c.abi)
+  if (withAbi.length === 0) return null
+  const lines = withAbi
+    .map(c => {
+      const events = eventNamesFromAbi(c.abi).slice(0, 40)
+      return `${c.name} at ${c.address} (chain ${c.chain}) — events: ${events.join(", ") || "none"}`
+    })
+    .join("; ")
+  return {
+    name: "get_contract_events",
+    description:
+      "Read the on-chain history of a specific EVENT emitted by one of the protocol's contracts, newest first. " +
+      "Use this to answer questions about WHEN something happened or HOW OFTEN — e.g. 'when were fees last changed', " +
+      "'when was the last deposit', 'how many times has X happened'. Returns each occurrence's block timestamp and transaction hash. " +
+      `Available contracts and their events: ${lines}.`,
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        contract_address: {
+          type: "string",
+          description: "The contract address to read events from (use one from the list above).",
+        },
+        event_name: {
+          type: "string",
+          description: "The exact event name to look up, e.g. 'FeesChanged' (choose from the events listed for that contract).",
+        },
+      },
+      required: ["contract_address", "event_name"],
+    },
+  }
+}
+
+/**
  * Escalation tool — always offered, not wallet-gated.
  * When Claude calls this, the widget intercepts it and shows a ticket form
  * (name + email) instead of executing it server-side.
@@ -288,4 +345,5 @@ export const TOOL_LABELS: Record<string, string> = {
   get_recent_transactions: "Looking up your transactions…",
   get_transaction_by_hash: "Diagnosing transaction…",
   get_contract_transactions: "Checking contract activity…",
+  get_contract_events: "Reading contract event history…",
 }

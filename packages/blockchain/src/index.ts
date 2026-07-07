@@ -1,6 +1,8 @@
 export { getNativeBalance, getTokenBalances, getRecentTransactions, getTransactionByHash, getContractTransactions } from "./wallet"
 export { decodeTxRevert, fetchAbiFromExplorer } from "./decoder"
 export { diagnosePendingTx } from "./pending"
+export { getContractEvents, eventNamesFromAbi } from "./events"
+export type { ContractEvent } from "./events"
 export {
   getExplorerUrl,
   getTxUrl,
