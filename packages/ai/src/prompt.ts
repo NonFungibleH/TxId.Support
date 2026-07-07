@@ -299,7 +299,8 @@ export function buildSystemPrompt(params: StreamChatParams): string {
             `- \`pending_congestion\` → It's simply waiting to be mined (recent submission or a busy network). Advise patience; they can speed it up if it's urgent.\n` +
             `- \`dropped\` → The hash is unknown to the network: dropped from the mempool, replaced by a same-nonce transaction, or never broadcast. Tell them to check their wallet activity and resubmit; if it keeps dropping, gas is likely too low or their wallet RPC is failing (suggest switching to a public RPC via Chainlist.org).\n` +
             `- \`insufficient_gas_balance\` → The wallet has no native token to pay gas. Tell them to add the network's native token (named in the reason) before retrying.\n` +
-            `- \`status: "not_found"\` with no diagnosis → could not be classified: likely wallet RPC failure (switch to a public RPC via Chainlist.org), a very recent submission, or a mistyped hash.`
+            `- \`status: "not_found"\` with no diagnosis → could not be classified. Diagnose the RPC angle: call \`get_network_status\` for the chain — if it responds (responsive: true), the CHAIN is healthy, so if the user is sure they sent it, their own wallet RPC is lagging or failing: tell them to switch to a public RPC via Chainlist.org. Also consider a very recent submission or a mistyped hash.\n\n` +
+            `**Network / gas questions:** For "what's the current gas price", "how much gas should I set", "is the network congested", use \`get_network_status\`. State the current gas (\`baseFeeGwei\`/\`gasPriceGwei\`) and tell the user to set their max fee to at least \`suggestedMaxFeeGwei\`. If \`responsive\` is false, the chain itself may be having issues.`
         )
       )
     } else {

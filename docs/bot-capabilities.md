@@ -104,12 +104,12 @@ Key files: `packages/blockchain/src/*` (data + decode), `packages/ai/src/tools.t
 
 ## 5. Network / RPC level
 
-| Capability | Status | Notes |
+| Capability | Status | Tool |
 |---|---|---|
 | Nonce gaps / mempool (stuck/dropped) | ✅ | `diagnosePendingTx` |
-| RPC health ("your tx isn't visible → switch RPC") | ⚠️ | prompt guidance; could be an explicit check |
-| Current gas price / base fee → recommended gas | ⚠️ | fetched internally; not surfaced as its own answer |
-| Chain-level incident awareness | ❌ | needs a status feed |
+| RPC health (chain up but tx not visible → user's RPC) | ✅ | `get_network_status` responsiveness + prompt diagnosis |
+| Current gas price / base fee → recommended max fee | ✅ | `get_network_status` (`suggestedMaxFeeGwei`) |
+| Chain-level incident awareness | ⚠️ | `get_network_status` detects an unresponsive RPC; no external status feed |
 
 ## 6. Protocol / docs
 

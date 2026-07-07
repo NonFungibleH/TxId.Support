@@ -10,6 +10,8 @@ export { enrichTransaction } from "./enrich"
 export type { TxEnrichment } from "./enrich"
 export { getTokenInfo, getTokenAllowance, getTokenPrice } from "./token"
 export type { TokenInfo, TokenAllowance, TokenPrice } from "./token"
+export { getNetworkStatus } from "./network"
+export type { NetworkStatus } from "./network"
 export {
   getExplorerUrl,
   getTxUrl,

@@ -29,6 +29,7 @@ import {
   getTokenAllowance,
   getTokenPrice,
   getWalletApprovals,
+  getNetworkStatus,
 } from "@txid/blockchain"
 import {
   getSolanaWalletBalance,
@@ -431,6 +432,13 @@ export async function executeTool(
       return price ?? { token, note: "No price found — the token may have no liquid DEX pair." }
     }
 
+    case "get_network_status": {
+      const chainId = typeof input.chain_id === "string" ? input.chain_id : (wallet?.chainId ?? watchedContracts[0]?.chain ?? "0x1")
+      if (isSolanaChain(chainId)) return { chainId, note: "Network status here is EVM-only." }
+      const status = await getNetworkStatus(chainId)
+      return status ?? { chainId, responsive: false, note: "The network RPC did not respond — the chain may be having issues." }
+    }
+
     default:
       throw new Error(`Unknown tool: ${name}`)
   }
@@ -764,6 +772,23 @@ export function buildTokenTools(): Anthropic.Tool[] {
   ]
 }
 
+/** Live network status — current gas, base fee, recommended max fee, RPC health. */
+export function buildNetworkTool(): Anthropic.Tool {
+  return {
+    name: "get_network_status",
+    description:
+      "Get a chain's live status: current gas price, base fee, a recommended max fee to set, the latest block, and whether the chain's RPC is responding. " +
+      "Use for 'what's the current gas price', 'how much gas should I set', 'is the network busy/congested', and to confirm the CHAIN is healthy when a user's transaction can't be found (if the chain responds but the tx isn't visible, it's the user's own wallet RPC that's failing).",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        chain_id: { type: "string", description: "Optional chain ID; defaults to the connected wallet or the protocol's chain." },
+      },
+      required: [],
+    },
+  }
+}
+
 /**
  * Escalation tool — always offered, not wallet-gated.
  * When Claude calls this, the widget intercepts it and shows a ticket form
@@ -818,4 +843,5 @@ export const TOOL_LABELS: Record<string, string> = {
   get_token_info: "Reading token details…",
   get_token_allowance: "Checking token approval…",
   get_token_price: "Checking token price…",
+  get_network_status: "Checking network status…",
 }
