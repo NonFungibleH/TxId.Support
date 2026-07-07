@@ -747,7 +747,7 @@ export function WidgetApp() {
   // ── Error state ──────────────────────────────────────────────────────────
   if (configError) {
     return (
-      <div className="flex h-screen items-center justify-center bg-zinc-950 p-4">
+      <div className="flex h-full items-center justify-center bg-zinc-950 p-4">
         <div className="flex items-center gap-2 text-sm text-red-400">
           <AlertCircleIcon className="size-4 shrink-0" />
           {configError}
@@ -758,7 +758,7 @@ export function WidgetApp() {
 
   if (!config) {
     return (
-      <div className="flex h-screen items-center justify-center bg-zinc-950">
+      <div className="flex h-full items-center justify-center bg-zinc-950">
         <Loader2Icon className="size-5 animate-spin text-zinc-500" />
       </div>
     )
@@ -805,7 +805,7 @@ export function WidgetApp() {
   } as React.CSSProperties
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden" style={cssVars}>
+    <div className="flex h-full flex-col overflow-hidden" style={cssVars}>
       {/* Header */}
       <div
         className="flex shrink-0 items-center gap-2 px-4 py-3"

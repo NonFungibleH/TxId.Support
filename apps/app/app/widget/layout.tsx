@@ -6,7 +6,7 @@
 export default function WidgetLayout({ children }: { children: React.ReactNode }) {
   return (
     <>
-      <style>{`html,body{background-color:#0a0a0f}`}</style>
+      <style>{`html,body{height:100%;background-color:#0a0a0f}`}</style>
       {children}
     </>
   )

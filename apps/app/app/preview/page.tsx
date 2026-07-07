@@ -1,6 +1,7 @@
 "use client"
 
 import { Suspense, useState } from "react"
+import { useTheme } from "next-themes"
 import { WidgetApp } from "@/app/widget/WidgetApp"
 import { ErrorBoundary } from "@/components/shared/ErrorBoundary"
 import Link from "next/link"
@@ -38,7 +39,10 @@ function sendPrompt(text: string) {
 }
 
 export default function PreviewPage() {
-  const [isDark, setIsDark] = useState(true)
+  // Follow the dashboard's theme by default; the toggle sets a local override.
+  const { resolvedTheme } = useTheme()
+  const [override, setOverride] = useState<boolean | null>(null)
+  const isDark = override ?? (resolvedTheme !== "light")
 
   const bg = isDark ? "bg-[#0b0c14]" : "bg-[#f8f9fb]"
   const headerBg = isDark ? "bg-[rgba(11,12,20,0.92)] border-white/8" : "bg-[rgba(248,249,251,0.92)] border-gray-200"
@@ -78,7 +82,7 @@ export default function PreviewPage() {
 
             {/* Theme toggle */}
             <button
-              onClick={() => setIsDark(d => !d)}
+              onClick={() => setOverride(!isDark)}
               className={`flex items-center gap-1.5 text-xs rounded-full px-3 py-1.5 border transition-colors ${
                 isDark
                   ? "border-white/10 text-white/50 hover:text-white hover:border-white/20"
