@@ -11,7 +11,7 @@ import { ColorPicker } from "./ColorPicker"
 import { updateConfig } from "@/lib/actions/project"
 import { fetchBrandColors } from "@/lib/actions/brand"
 import type { BrandingConfig } from "@/lib/types/config"
-import { SUPPORTED_FONTS, PERSONAS, PERSONA_LABELS, SUPPORTED_LANGUAGES, autoInputTextColor } from "@/lib/types/config"
+import { SUPPORTED_FONTS, PERSONAS, PERSONA_LABELS, autoInputTextColor } from "@/lib/types/config"
 
 type ColorPreset = Pick<BrandingConfig, "primaryColor" | "secondaryColor" | "backgroundColor" | "textColor">
 const PRESETS: Array<{ name: string } & ColorPreset> = [
@@ -269,31 +269,6 @@ export function BrandingForm({ projectId, initial, onBrandingChange }: BrandingF
               )
             })}
           </div>
-        </div>
-
-        {/* Language */}
-        <div className="space-y-2">
-          <div>
-            <h3 className="text-sm font-medium">Language</h3>
-            <p className="text-xs text-muted-foreground mt-0.5">The bot will respond in this language and stay consistent rather than switching.</p>
-          </div>
-          <Select
-            value={branding.language ?? "en"}
-            onValueChange={v => update("language", v === "en" ? null : v)}
-          >
-            <SelectTrigger>
-              <SelectValue>
-                {(value: string) =>
-                  SUPPORTED_LANGUAGES.find(l => l.code === value)?.label ?? "English"
-                }
-              </SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              {SUPPORTED_LANGUAGES.map(lang => (
-                <SelectItem key={lang.code} value={lang.code}>{lang.label}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
         </div>
 
         {/* Agent name + avatar */}
