@@ -24,7 +24,11 @@ Legend: ✅ built today · 🔨 near-term build · 🔮 larger build / needs a d
 
 ## B. AML / sanctions / address screening  *(the premium module)*
 
-- 🔮 **Sanctions screening** — flag if a counterparty address is on OFAC / UN / EU lists.
+- ✅ **OFAC sanctions screening** — `check_address_sanctions` screens any address
+  (or the connected wallet) against the OFAC SDN list via the Chainalysis
+  on-chain oracle. Keyless, live-accurate (reflects OFAC delistings), validated
+  in the eval harness. This is the shippable v1 of the compliance module.
+- 🔮 **UN / EU + expanded lists** — beyond OFAC (needs additional sources).
 - 🔮 **Illicit-activity screening** — known hacks, mixers, scam addresses, high-risk exposure (integrate Chainalysis / TRM / Elliptic).
 - 🔮 **Counterparty risk scoring** — a risk band on the address a user is about to interact with.
 - 🔨 **Screen-on-connect / pre-transaction** — run screening when a wallet connects or before a flagged action.

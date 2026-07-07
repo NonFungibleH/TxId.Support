@@ -30,6 +30,7 @@ import {
   getTokenPrice,
   getWalletApprovals,
   getNetworkStatus,
+  checkSanctioned,
 } from "@txid/blockchain"
 import {
   getSolanaWalletBalance,
@@ -440,6 +441,14 @@ export async function executeTool(
       return status ?? { chainId, responsive: false, note: "The network RPC did not respond — the chain may be having issues." }
     }
 
+    case "check_address_sanctions": {
+      const address = typeof input.address === "string" ? input.address
+        : (typeof input.address === "undefined" ? wallet?.address : undefined)
+      if (!address) throw new Error("address is required")
+      const result = await checkSanctioned(address)
+      return result ?? { address, note: "Could not screen this address against the sanctions oracle." }
+    }
+
     default:
       throw new Error(`Unknown tool: ${name}`)
   }
@@ -774,6 +783,24 @@ export function buildTokenTools(): Anthropic.Tool[] {
   ]
 }
 
+/** OFAC sanctions screening for an address (Chainalysis on-chain oracle). */
+export function buildSanctionsTool(): Anthropic.Tool {
+  return {
+    name: "check_address_sanctions",
+    description:
+      "Screen an address against the OFAC sanctions list (via the Chainalysis on-chain oracle). " +
+      "Use for 'is this address sanctioned / safe / OFAC-listed', 'is my counterparty flagged', or before advising interaction with an unknown address. " +
+      "Omit the address to screen the connected wallet. Returns whether the address is sanctioned and the source.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        address: { type: "string", description: "The address to screen (0x…). Omit to screen the connected wallet." },
+      },
+      required: [],
+    },
+  }
+}
+
 /** Live network status — current gas, base fee, recommended max fee, RPC health. */
 export function buildNetworkTool(): Anthropic.Tool {
   return {
@@ -846,4 +873,5 @@ export const TOOL_LABELS: Record<string, string> = {
   get_token_allowance: "Checking token approval…",
   get_token_price: "Checking token price…",
   get_network_status: "Checking network status…",
+  check_address_sanctions: "Screening address (OFAC)…",
 }

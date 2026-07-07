@@ -12,6 +12,8 @@ export { getTokenInfo, getTokenAllowance, getTokenPrice } from "./token"
 export type { TokenInfo, TokenAllowance, TokenPrice } from "./token"
 export { getNetworkStatus } from "./network"
 export type { NetworkStatus } from "./network"
+export { checkSanctioned } from "./sanctions"
+export type { SanctionsResult } from "./sanctions"
 export {
   getExplorerUrl,
   getTxUrl,

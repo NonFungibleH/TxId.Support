@@ -236,7 +236,8 @@ export function buildSystemPrompt(params: StreamChatParams): string {
         `For "has this contract been upgraded / when / implementation history", use \`get_upgrade_history\`.\n` +
         `\n` +
         `**Token questions:** For "what's the token supply / symbol / decimals" use \`get_token_info\`. For "what's the price of the token" use \`get_token_price\`. For "do I need to approve / what's my allowance" use \`get_token_allowance\` (owner = the connected wallet; spender = the protocol contract they're interacting with). Use the protocol's own token address from the context above unless the user names a different token.\n` +
-        `For "what have I approved / which approvals do I have out / is my wallet safe", use \`get_wallet_approvals\` — list the wallet's approvals and flag any UNLIMITED ones as worth reviewing or revoking.`
+        `For "what have I approved / which approvals do I have out / is my wallet safe", use \`get_wallet_approvals\` — list the wallet's approvals and flag any UNLIMITED ones as worth reviewing or revoking.\n` +
+        `For "is this address sanctioned / OFAC-listed / safe to interact with", use \`check_address_sanctions\` (omit the address to screen the connected wallet). If it returns sanctioned:true, warn the user clearly and advise against interacting; if false, say it is not on the OFAC list but this is not a guarantee of safety. Cite the source.`
       )
     }
 

@@ -8,6 +8,7 @@ import {
   fetchAbiFromExplorer,
   enrichTransaction,
   getWalletApprovals,
+  checkSanctioned,
 } from "@txid/blockchain"
 
 // A fixed set of on-chain checks with KNOWN-correct answers, so regressions in
@@ -110,7 +111,17 @@ export async function runEval(opts?: { tx?: string; txChain?: string }): Promise
     return { pass: Array.isArray(approvals) && approvals.length > 0, detail: `${approvals.length} approvals returned` }
   }))
 
-  // 9. Optional: enrich a real transaction the caller supplies.
+  // 9. Sanctions screening: a known OFAC SDN address must flag; a clean one must not.
+  checks.push(await check("sanctions (known SDN address flags)", async () => {
+    const s = await checkSanctioned("0x8576aCC5C05D6Ce88f4e49bf65BdF0C62F91353C")
+    return { pass: s?.sanctioned === true, detail: `sanctioned=${s?.sanctioned} (${s?.source ?? "no result"})` }
+  }))
+  checks.push(await check("sanctions (clean address does not flag)", async () => {
+    const s = await checkSanctioned("0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045")
+    return { pass: s?.sanctioned === false, detail: `sanctioned=${s?.sanctioned}` }
+  }))
+
+  // 10. Optional: enrich a real transaction the caller supplies.
   if (opts?.tx && opts.txChain) {
     checks.push(await check(`tx_enrichment (${opts.tx.slice(0, 10)}…)`, async () => {
       const e = await enrichTransaction(opts.tx!, opts.txChain!, usdcAbi ? [usdcAbi] : [])
