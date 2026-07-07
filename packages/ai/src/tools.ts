@@ -223,10 +223,10 @@ export async function executeTool(
             }
           }
         }
-        // Enrich the mined tx with decoded args, events, token transfers, gas
+        // Enrich the mined tx with decoded args, EVERY event (decoded against all
+        // known ABIs + standard events + 4byte fallback), token transfers, gas
         // verdict and confirmations (once, on the chain it was found on).
-        const abi = tx.to ? knownAbis[tx.to.toLowerCase()] : undefined
-        const enrichment = await enrichTransaction(hash, hit.chainId, abi).catch(() => null)
+        const enrichment = await enrichTransaction(hash, hit.chainId, Object.values(knownAbis)).catch(() => null)
         return enrichment ? { ...tx, ...enrichment } : tx
       }
 

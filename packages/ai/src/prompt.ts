@@ -267,8 +267,8 @@ export function buildSystemPrompt(params: StreamChatParams): string {
             `- Do not tell the user to check a block explorer — you are the block explorer\n\n` +
             `**What a transaction did:** A transaction result can include rich decoded detail — use it to explain the transaction concretely:\n` +
             `- \`method\` = the function called (e.g. \`lockTokens\`); \`methodArgs\` = its decoded arguments — state what was actually done, with the values.\n` +
-            `- \`events\` = the events it emitted, with decoded params (e.g. a lock/deposit event with amounts and dates) — use these to say what happened.\n` +
-            `- \`tokenTransfers\` = ERC-20/721 transfers in the transaction (token, from, to, value in raw units) — report who sent/received what. Convert raw values to human units only if you know the token's decimals; otherwise present the raw value and say it's in base units.\n` +
+            `- \`events\` = EVERY event the transaction emitted, decoded with params and the emitting \`contract\`. \`inferred: true\` means the name/params came from a public signature database (best-effort) — you may still use it, just don't overstate certainty. \`UnknownEvent\` means only the topic is known. Use the events to narrate exactly what happened.\n` +
+            `- \`tokenTransfers\` = ERC-20/721/1155 transfers in the transaction: \`token\`, \`symbol\`, \`from\`, \`to\`, \`value\` (raw), and \`valueFormatted\` (human amount when decimals are known). Prefer \`valueFormatted\` + \`symbol\` (e.g. "5,000 TEAM"); if only raw \`value\` is present, say it's in base units.\n` +
             `- \`gas.verdict\` = "overpaid" means the user paid well above the base fee; \`confirmations\` = how many blocks have confirmed it.\n` +
             `Only state fields that are present — never invent amounts, tokens, or dates. If \`status: "out_of_scope"\`, do NOT analyse the transaction at all — decline in one sentence.\n\n` +
             `**Interpreting failed transactions — decodedRevert field:**\n` +
