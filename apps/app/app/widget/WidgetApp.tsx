@@ -834,7 +834,7 @@ export function WidgetApp() {
             <button
               onClick={connectWallet}
               disabled={walletConnecting}
-              className="rounded-full px-2 py-0.5 text-[10px] font-medium transition-opacity disabled:opacity-40 active:opacity-70"
+              className="rounded-full px-2.5 py-1 text-xs font-medium transition-opacity disabled:opacity-40 active:opacity-70"
               style={{ backgroundColor: b.secondaryColor, color: b.textColor }}
             >
               {walletConnecting ? "Connecting…" : isSolanaProject ? "Connect Phantom" : "Connect wallet"}
@@ -842,7 +842,7 @@ export function WidgetApp() {
           ) : (
             <button
               onClick={() => setWalletSetup("manual-input")}
-              className="rounded-full px-2 py-0.5 text-[10px] font-medium transition-opacity active:opacity-70"
+              className="rounded-full px-2.5 py-1 text-xs font-medium transition-opacity active:opacity-70"
               style={{ backgroundColor: b.secondaryColor, color: b.textColor }}
             >
               Enter address
@@ -1560,7 +1560,7 @@ export function WidgetApp() {
                             <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: adaptiveText, opacity: 0.5 }}>{block.title}</p>
                           </div>
                         )}
-                        <div className="rounded-xl overflow-hidden" style={{ height: "360px" }}>
+                        <div className="rounded-xl overflow-hidden" style={{ height: "460px" }}>
                           <iframe src={embedUrl} className="w-full h-full border-0" title={block.title || "Token Chart"} />
                         </div>
                       </div>

@@ -112,11 +112,15 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Se
   let escalationRate: number | null = null
   const periodConvCount = (conversations ?? []).length
   if (periodConvCount > 0) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: escalCount } = await (supabase as any)
-      .rpc("get_project_escalation_count", { p_project_id: projectId, p_since: since.toISOString() })
-    const escalated = (escalCount as number | null) ?? 0
-    escalationRate = Math.round((escalated / periodConvCount) * 100)
+    // Count tickets for this project in the period directly — robust to whether
+    // the escalation RPC has been applied to the database.
+    const { count: escalCount } = await supabase
+      .from("tickets")
+      .select("id", { count: "exact", head: true })
+      .eq("project_id", projectId)
+      .gte("created_at", since.toISOString())
+    const escalated = escalCount ?? 0
+    escalationRate = Math.min(100, Math.round((escalated / periodConvCount) * 100))
   }
 
   // Chain breakdown (all-time) — normalize hex IDs before counting to avoid duplicates

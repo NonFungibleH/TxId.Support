@@ -4,7 +4,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import {
   LayoutDashboard, Paintbrush, FileCode2, BookOpen,
-  LayoutList, Code2, BarChart3, Globe, MessageSquare, Eye, Ticket, MessagesSquare, ExternalLink,
+  LayoutList, Code2, BarChart3, Globe, MessageSquare, Eye, Ticket, MessagesSquare,
   Sun, Moon, Zap, Send,
 } from "lucide-react"
 import { useTheme } from "next-themes"
@@ -184,18 +184,17 @@ export function Sidebar({ mode = "support", plan = "free", isOpen = false, onClo
             : <><Moon className="size-3.5 shrink-0" /> Dark mode</>
           }
         </button>
-        <p className="text-xs text-muted-foreground px-1">© {new Date().getFullYear()} TxID Support</p>
-        <div className="flex flex-wrap gap-x-3 gap-y-1 px-1">
-          <a href={`${WEB_URL}/terms`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-0.5 text-[11px] text-muted-foreground hover:text-foreground transition-colors">
-            Terms <ExternalLink className="size-2.5 opacity-40" />
-          </a>
-          <a href={`${WEB_URL}/privacy`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-0.5 text-[11px] text-muted-foreground hover:text-foreground transition-colors">
-            Privacy <ExternalLink className="size-2.5 opacity-40" />
-          </a>
-          <a href="mailto:team@txid.support" className="text-[11px] text-muted-foreground hover:text-foreground transition-colors">Contact</a>
-          <a href="https://t.me/Non_Fungible_Howard" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-0.5 text-[11px] text-muted-foreground hover:text-foreground transition-colors">
-            Telegram <ExternalLink className="size-2.5 opacity-40" />
-          </a>
+        {/* Slim footer — condensed link row instead of a stacked block */}
+        <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 px-1 text-[10px] text-muted-foreground/70">
+          <span>© {new Date().getFullYear()}</span>
+          <span className="opacity-40">·</span>
+          <a href={`${WEB_URL}/terms`} target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors">Terms</a>
+          <span className="opacity-40">·</span>
+          <a href={`${WEB_URL}/privacy`} target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors">Privacy</a>
+          <span className="opacity-40">·</span>
+          <a href="mailto:team@txid.support" className="hover:text-foreground transition-colors">Contact</a>
+          <span className="opacity-40">·</span>
+          <a href="https://t.me/Non_Fungible_Howard" target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors">Telegram</a>
         </div>
       </div>
     </aside>
