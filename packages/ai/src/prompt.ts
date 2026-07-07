@@ -211,7 +211,9 @@ export function buildSystemPrompt(params: StreamChatParams): string {
         `Pass the contract address and the exact event name (e.g. \`FeesChanged\`). It returns each occurrence's timestamp and transaction hash, newest first — answer with the most recent date and cite the transaction. ` +
         `If it returns no events, say the event has not been emitted in the history available, rather than saying you have no access.\n` +
         `\n` +
-        `For "when was the contract deployed / created", "how old is the contract", or "who deployed it", use the \`get_contract_deployment\` tool (deployment date is the contract's creation, not an event). Answer with the deployment date and cite the creation transaction.`
+        `For "when was the contract deployed / created", "how old is the contract", or "who deployed it", use the \`get_contract_deployment\` tool (deployment date is the contract's creation, not an event). Answer with the deployment date and cite the creation transaction.\n` +
+        `\n` +
+        `For "how many tokens are locked", "what does the contract hold", "how much is in the contract", or "total value locked", use the \`get_contract_holdings\` tool — it returns the contract's own native + ERC-20 balances. Report the relevant token balances.`
       )
     }
 

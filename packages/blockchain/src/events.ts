@@ -1,4 +1,3 @@
-import { CHAIN_CONFIGS } from "./types"
 import { eventTopic0 } from "./keccak"
 import { getTransactionByHash } from "./wallet"
 
@@ -6,18 +5,6 @@ const ETHERSCAN_V2_BASE = "https://api.etherscan.io/v2/api"
 // Same numeric chain IDs the decoder uses for Etherscan V2.
 const ETHERSCAN_CHAIN_IDS: Record<string, number> = {
   "0x1": 1, "0x2105": 8453, "0x38": 56, "0x89": 137, "0xa4b1": 42161, "0xa": 10, "0xaa36a7": 11155111,
-}
-
-const MORALIS_BASE = "https://deep-index.moralis.io/api/v2.2"
-
-function moralisChain(chainId: string): string {
-  return CHAIN_CONFIGS[chainId]?.moralisChain ?? "eth"
-}
-
-function moralisHeaders(): Record<string, string> {
-  const apiKey = process.env.MORALIS_API_KEY
-  if (!apiKey) throw new Error("MORALIS_API_KEY is not set")
-  return { "X-API-Key": apiKey, "Content-Type": "application/json" }
 }
 
 type AbiEntry = { type: string; name?: string; inputs?: Array<{ type: string; name?: string }> }
@@ -105,21 +92,31 @@ export async function getContractEvents(
     if (!ev?.name) return []
     const signature = `${ev.name}(${(ev.inputs ?? []).map(i => i.type).join(",")})`
     const topic0 = eventTopic0(signature)
-    const chain = moralisChain(chainId)
-    const res = await fetch(
-      `${MORALIS_BASE}/${contractAddress}/logs?chain=${chain}&topic0=${topic0}`,
-      { headers: moralisHeaders(), signal: AbortSignal.timeout(9000) },
-    )
+    const numericChainId = ETHERSCAN_CHAIN_IDS[chainId]
+    if (numericChainId === undefined) return []
+    const apiKey = process.env.ETHERSCAN_API_KEY ?? ""
+    // Etherscan V2 getLogs — proven working with our key. Ascending by block, so
+    // the newest matches are at the end; we take the tail and reverse.
+    const url =
+      `${ETHERSCAN_V2_BASE}?chainid=${numericChainId}&module=logs&action=getLogs` +
+      `&address=${contractAddress}&topic0=${topic0}&fromBlock=0&toBlock=latest&page=1&offset=1000` +
+      (apiKey ? `&apikey=${apiKey}` : "")
+    const res = await fetch(url, { signal: AbortSignal.timeout(10000) })
     if (!res.ok) return []
-    const json = (await res.json()) as {
-      result?: Array<{ transaction_hash: string; block_timestamp: string; block_number: string }>
+    const data = (await res.json()) as {
+      status: string
+      result?: Array<{ transactionHash: string; blockNumber: string; timeStamp: string }>
     }
-    return (json.result ?? []).slice(0, limit).map(r => ({
-      event: ev.name!,
-      timestamp: r.block_timestamp,
-      blockNumber: r.block_number,
-      txHash: r.transaction_hash,
-    }))
+    if (data.status !== "1" || !Array.isArray(data.result)) return []
+    return data.result
+      .slice(-limit)
+      .reverse()
+      .map(r => ({
+        event: ev.name!,
+        timestamp: new Date(parseInt(r.timeStamp, 16) * 1000).toISOString(),
+        blockNumber: String(parseInt(r.blockNumber, 16)),
+        txHash: r.transactionHash,
+      }))
   } catch {
     return []
   }

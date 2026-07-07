@@ -231,6 +231,22 @@ export async function executeTool(
         : { contract: target.name, note: "Deployment details could not be retrieved." }
     }
 
+    case "get_contract_holdings": {
+      const contractAddress = typeof input.contract_address === "string" ? input.contract_address : undefined
+      const target = contractAddress
+        ? watchedContracts.find(c => c.address.toLowerCase() === contractAddress.toLowerCase())
+        : watchedContracts.length === 1 ? watchedContracts[0] : undefined
+      if (!target) throw new Error("Specify which contract (contract_address) to check holdings for")
+      if (isSolanaChain(target.chain)) {
+        return getSolanaWalletBalance(target.address)
+      }
+      const [native, tokens] = await Promise.all([
+        getNativeBalance(target.address, target.chain),
+        getTokenBalances(target.address, target.chain).catch(() => []),
+      ])
+      return { contract: target.name, address: target.address, native, tokens: tokens.slice(0, 30) }
+    }
+
     default:
       throw new Error(`Unknown tool: ${name}`)
   }
@@ -349,6 +365,36 @@ export function buildContractDeploymentTool(
 }
 
 /**
+ * Contract holdings lookup — offered when watched contracts exist. Answers
+ * "how many tokens are locked / what does the contract hold" by reading the
+ * contract's own native + ERC-20 balances.
+ */
+export function buildContractHoldingsTool(
+  watchedContracts: WatchedContractSnapshot[] = [],
+): Anthropic.Tool | null {
+  if (watchedContracts.length === 0) return null
+  const list = watchedContracts.map(c => `${c.name} at ${c.address} (chain ${c.chain})`).join(", ")
+  return {
+    name: "get_contract_holdings",
+    description:
+      "Look up the tokens held BY one of the protocol's contracts — i.e. how many tokens are locked or custodied in it. " +
+      "Use for 'how many tokens are locked', 'what does the contract hold', 'how much is in the contract', 'total value locked'. " +
+      "Returns the contract's native balance and its ERC-20 token balances. " +
+      `This protocol's contracts: ${list}.`,
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        contract_address: {
+          type: "string",
+          description: "The contract address to check holdings for (use one from the list above).",
+        },
+      },
+      required: ["contract_address"],
+    },
+  }
+}
+
+/**
  * Escalation tool — always offered, not wallet-gated.
  * When Claude calls this, the widget intercepts it and shows a ticket form
  * (name + email) instead of executing it server-side.
@@ -392,4 +438,5 @@ export const TOOL_LABELS: Record<string, string> = {
   get_contract_transactions: "Checking contract activity…",
   get_contract_events: "Reading contract event history…",
   get_contract_deployment: "Checking contract deployment…",
+  get_contract_holdings: "Checking contract holdings…",
 }
