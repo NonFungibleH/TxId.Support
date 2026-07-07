@@ -1542,10 +1542,11 @@ export function WidgetApp() {
                         .split("?")[0] +
                         "?theme=dark&chartType=2&chartResolution=1D&drawingToolbars=false"
                     } else {
-                      // DexScreener embed
+                      // DexScreener embed. trades=0 hides the transactions table
+                      // (unusable at widget width) so only the chart shows.
                       embedUrl = c.url.includes("?")
-                        ? `${c.url}&embed=1&theme=dark&info=0`
-                        : `${c.url}?embed=1&theme=dark&info=0`
+                        ? `${c.url}&embed=1&theme=dark&info=0&trades=0`
+                        : `${c.url}?embed=1&theme=dark&info=0&trades=0`
                     }
                     return (
                       <div key={block.id}>
