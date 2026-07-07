@@ -22,6 +22,7 @@ interface BrandingConfig {
   secondaryColor: string
   backgroundColor: string
   textColor: string
+  inputTextColor?: string | null
   font: string
   logoUrl: string | null
   theme: "dark" | "light"
@@ -1133,7 +1134,7 @@ export function WidgetApp() {
                 placeholder="Ask anything…"
                 disabled={isStreaming}
                 className="flex-1 bg-transparent text-xs outline-none placeholder:opacity-40"
-                style={{ color: b.textColor }}
+                style={{ color: b.inputTextColor ?? adaptiveText }}
               />
               <button
                 onClick={() => sendMessage()}
@@ -1323,7 +1324,7 @@ export function WidgetApp() {
                   placeholder="Ask anything…"
                   disabled={isStreaming}
                   className="flex-1 bg-transparent text-xs outline-none placeholder:opacity-40"
-                  style={{ color: b.textColor }}
+                  style={{ color: b.inputTextColor ?? adaptiveText }}
                 />
                 <button
                   onClick={() => sendMessage()}

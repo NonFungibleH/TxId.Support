@@ -11,7 +11,7 @@ import { ColorPicker } from "./ColorPicker"
 import { updateConfig } from "@/lib/actions/project"
 import { fetchBrandColors } from "@/lib/actions/brand"
 import type { BrandingConfig } from "@/lib/types/config"
-import { SUPPORTED_FONTS, PERSONAS, PERSONA_LABELS, SUPPORTED_LANGUAGES } from "@/lib/types/config"
+import { SUPPORTED_FONTS, PERSONAS, PERSONA_LABELS, SUPPORTED_LANGUAGES, autoInputTextColor } from "@/lib/types/config"
 
 type ColorPreset = Pick<BrandingConfig, "primaryColor" | "secondaryColor" | "backgroundColor" | "textColor">
 const PRESETS: Array<{ name: string } & ColorPreset> = [
@@ -174,6 +174,12 @@ export function BrandingForm({ projectId, initial, onBrandingChange }: BrandingF
           <ColorPicker value={branding.secondaryColor} onChange={v => update("secondaryColor", v)} label="Secondary" />
           <ColorPicker value={branding.backgroundColor} onChange={v => update("backgroundColor", v)} label="Background" />
           <ColorPicker value={branding.textColor} onChange={v => update("textColor", v)} label="Text" />
+          <ColorPicker
+            value={branding.inputTextColor ?? autoInputTextColor(branding.backgroundColor)}
+            onChange={v => update("inputTextColor", v)}
+            label="Input text"
+          />
+          <p className="text-xs text-muted-foreground">Colour of what visitors type. Defaults to auto-contrast with the background so it is never invisible.</p>
         </div>
 
         {/* Logo */}

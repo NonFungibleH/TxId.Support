@@ -1,6 +1,7 @@
 "use client"
 
 import type { BrandingConfig } from "@/lib/types/config"
+import { autoInputTextColor } from "@/lib/types/config"
 import { MessageCircleIcon, XIcon, SendIcon } from "lucide-react"
 import { useTheme } from "next-themes"
 
@@ -154,7 +155,7 @@ export function WidgetPreview({
             readOnly
             placeholder="Ask anything…"
             className="flex-1 bg-transparent text-xs outline-none placeholder:opacity-50"
-            style={{ color: branding.textColor }}
+            style={{ color: branding.inputTextColor ?? autoInputTextColor(branding.backgroundColor) }}
           />
           <button
             className="flex size-6 items-center justify-center rounded-full"

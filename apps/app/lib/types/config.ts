@@ -93,6 +93,7 @@ export interface BrandingConfig {
   secondaryColor: string
   backgroundColor: string
   textColor: string
+  inputTextColor?: string | null  // colour of what the user types; falls back to auto-contrast with the background
   font: SupportedFont
   logoUrl: string | null
   position: "bottom-right" | "bottom-left" | "inline"
@@ -165,6 +166,21 @@ export interface ProjectConfig {
   plan?: Plan
   telegramBotToken?: string | null
   telegramBotUsername?: string | null
+}
+
+/**
+ * Pick a readable text colour (near-black or near-white) for a given background,
+ * using relative luminance. Used as the fallback for the widget input text when
+ * no explicit inputTextColor is set, so typed text is never invisible.
+ */
+export function autoInputTextColor(backgroundColor: string): string {
+  const hex = backgroundColor.replace("#", "")
+  const full = hex.length === 3 ? hex.split("").map(c => c + c).join("") : hex
+  const r = parseInt(full.slice(0, 2), 16) || 0
+  const g = parseInt(full.slice(2, 4), 16) || 0
+  const b = parseInt(full.slice(4, 6), 16) || 0
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255
+  return luminance > 0.5 ? "#111827" : "#ffffff"
 }
 
 export const DEFAULT_CONFIG: ProjectConfig = {
