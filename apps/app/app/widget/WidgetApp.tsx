@@ -1112,7 +1112,7 @@ export function WidgetApp() {
                     className="text-[10px] rounded-full px-2.5 py-1 border transition-opacity hover:opacity-90 active:scale-95"
                     style={{
                       borderColor: `${b.primaryColor}50`,
-                      color: b.textColor,
+                      color: adaptiveText,
                       background: `${b.primaryColor}12`,
                       opacity: 0.75,
                     }}
@@ -1232,7 +1232,7 @@ export function WidgetApp() {
                       onChange={e => setTicketName(e.target.value)}
                       placeholder="Your name"
                       className="w-full bg-transparent text-xs outline-none border-b pb-1.5 placeholder:opacity-30"
-                      style={{ color: b.textColor, borderColor: `var(--w-border)` }}
+                      style={{ color: b.inputTextColor ?? adaptiveText, borderColor: `var(--w-border)` }}
                     />
                     <input
                       type="email"
@@ -1240,7 +1240,7 @@ export function WidgetApp() {
                       onChange={e => setTicketEmail(e.target.value)}
                       placeholder="Your email"
                       className="w-full bg-transparent text-xs outline-none border-b pb-1.5 placeholder:opacity-30"
-                      style={{ color: b.textColor, borderColor: `var(--w-border)` }}
+                      style={{ color: b.inputTextColor ?? adaptiveText, borderColor: `var(--w-border)` }}
                     />
                     <div className="flex items-center gap-2 pt-0.5">
                       <button
@@ -1254,7 +1254,7 @@ export function WidgetApp() {
                       <button
                         onClick={() => { setEscalation(null); setTicketName(""); setTicketEmail("") }}
                         className="text-[11px] opacity-30 hover:opacity-60 transition-opacity"
-                        style={{ color: b.textColor }}
+                        style={{ color: adaptiveText }}
                       >
                         Cancel
                       </button>
@@ -1267,7 +1267,7 @@ export function WidgetApp() {
                     <button
                       onClick={() => { setEscalation(null); setTicketRef(null) }}
                       className="text-[11px] opacity-40 hover:opacity-70 transition-opacity"
-                      style={{ color: b.textColor }}
+                      style={{ color: adaptiveText }}
                     >
                       Continue chatting →
                     </button>
@@ -1286,7 +1286,7 @@ export function WidgetApp() {
                     className="text-[10px] rounded-full px-2.5 py-1 border transition-opacity hover:opacity-90 active:scale-95"
                     style={{
                       borderColor: `${b.primaryColor}50`,
-                      color: b.textColor,
+                      color: adaptiveText,
                       background: `${b.primaryColor}12`,
                       opacity: 0.75,
                     }}
@@ -1303,7 +1303,7 @@ export function WidgetApp() {
                 <button
                   onClick={() => setEscalation({ summary: "User requested to speak with a person.", reason: "user_requested" })}
                   className="text-[10px] transition-opacity hover:opacity-70"
-                  style={{ color: b.textColor, opacity: 0.28 }}
+                  style={{ color: adaptiveText, opacity: 0.28 }}
                 >
                   Speak to a person →
                 </button>
