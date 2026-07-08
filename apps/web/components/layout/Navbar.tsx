@@ -10,7 +10,6 @@ import { APP_URL } from "@/lib/config";
 const NAV_LINKS = [
   { label: "Features", href: "/#features" },
   { label: "Pricing", href: "/pricing" },
-  { label: "Diagnose", href: "/check" },
 ];
 
 type NavLink = { label: string; href: string; highlight?: boolean };

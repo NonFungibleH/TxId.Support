@@ -36,7 +36,6 @@ Add one script tag before the closing `</body>` tag. No SDK, no build step. Work
 - [Pricing](https://txid.support/pricing): plans
 - [Docs](https://txid.support/docs): setup, branding, smart contracts, knowledge base, chains, embed
 - [Live demo](https://txid.support/demo): try the agent
-- [Transaction checker](https://txid.support/check): diagnose a transaction
 - [Blog](https://txid.support/blog): articles
 
 ## Contact
