@@ -51,6 +51,28 @@ async function lookupEventSig(topic0: string): Promise<string | null> {
   }
 }
 
+/**
+ * Look up a function signature by its 4-byte selector on 4byte.directory —
+ * lets us name the method of a transaction even when the contract's ABI isn't
+ * available. Prefers the oldest registered signature (least likely to be a
+ * collision spoof). Returns e.g. "lockTokens(address,uint256,uint256)".
+ */
+async function lookupFunctionSig(selector: string): Promise<string | null> {
+  try {
+    const res = await fetch(
+      `https://www.4byte.directory/api/v1/signatures/?hex_signature=${selector}`,
+      { signal: AbortSignal.timeout(4000) },
+    )
+    if (!res.ok) return null
+    const data = (await res.json()) as { results?: Array<{ text_signature: string; id: number }> }
+    if (!data.results?.length) return null
+    // Lowest id = earliest registered = most likely the genuine signature.
+    return data.results.reduce((a, b) => (a.id < b.id ? a : b)).text_signature
+  } catch {
+    return null
+  }
+}
+
 /** Read a token's symbol + decimals via eth_call (best-effort). */
 async function tokenMeta(rpcUrl: string, token: string): Promise<{ symbol?: string; decimals?: number }> {
   try {
@@ -96,6 +118,8 @@ type RpcLog = { address: string; topics: string[]; data: string }
 
 export interface TxEnrichment {
   method?: string
+  methodSignature?: string
+  methodInferred?: boolean
   methodArgs?: Record<string, string>
   events?: Array<{ name: string; contract: string; params?: Record<string, string>; inferred?: boolean; topic0?: string }>
   tokenTransfers?: Array<{ token: string; symbol?: string; from: string; to: string; value: string; valueFormatted?: string; kind: "erc20" | "erc721" | "erc1155" }>
@@ -153,6 +177,15 @@ export async function enrichTransaction(
       if (fn?.name) {
         out.method = fn.name
         if ((fn.inputs?.length ?? 0) > 0) out.methodArgs = decodeParams(fn.inputs ?? [], "0x" + input.slice(10))
+      } else {
+        // No ABI match — resolve the selector via 4byte so we can still name the
+        // action (e.g. "lockTokens") even when the contract's ABI isn't uploaded.
+        const sig = await lookupFunctionSig(selector)
+        if (sig) {
+          out.method = sig.slice(0, sig.indexOf("(") >= 0 ? sig.indexOf("(") : sig.length)
+          out.methodSignature = sig
+          out.methodInferred = true
+        }
       }
     }
 

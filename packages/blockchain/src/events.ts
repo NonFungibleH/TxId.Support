@@ -80,11 +80,59 @@ export function eventNamesFromAbi(abiJson: string | undefined): string[] {
   }
 }
 
+// Known signatures for common events, so we can compute topic0 and query the
+// full history WITHOUT an ABI. Keyed by lowercased event name.
+const COMMON_EVENT_SIGS: Record<string, string[]> = {
+  paused: ["Paused(address)", "Paused()"],
+  unpaused: ["Unpaused(address)", "Unpaused()"],
+  ownershiptransferred: ["OwnershipTransferred(address,address)"],
+  transfer: ["Transfer(address,address,uint256)"],
+  approval: ["Approval(address,address,uint256)"],
+  upgraded: ["Upgraded(address)"],
+  adminchanged: ["AdminChanged(address,address)"],
+  rolegranted: ["RoleGranted(bytes32,address,address)"],
+  rolerevoked: ["RoleRevoked(bytes32,address,address)"],
+  deposit: ["Deposit(address,uint256)", "Deposit(address,uint256,uint256)"],
+  withdraw: ["Withdraw(address,uint256)", "Withdrawal(address,uint256)"],
+  withdrawal: ["Withdrawal(address,uint256)"],
+}
+
+/** Query a contract's log history for one specific topic0 (full range). */
+async function logsForTopic(
+  contractAddress: string,
+  chainId: string,
+  topic0: string,
+  eventLabel: string,
+  limit: number,
+): Promise<ContractEvent[]> {
+  const r = await explorerQuery(chainId, {
+    module: "logs", action: "getLogs", address: contractAddress,
+    topic0, fromBlock: "0", toBlock: "latest", page: "1", offset: "1000",
+  })
+  if (!r || r.status !== "1" || !Array.isArray(r.result)) return []
+  const rows = r.result as Array<{ transactionHash: string; blockNumber: string; timeStamp: string }>
+  return rows.slice(-limit).reverse().map(row => ({
+    event: eventLabel,
+    timestamp: new Date(parseInt(row.timeStamp, 16) * 1000).toISOString(),
+    blockNumber: String(parseInt(row.blockNumber, 16)),
+    txHash: row.transactionHash,
+  }))
+}
+
 /**
  * Read a contract's recent history for a named event (e.g. "FeesChanged").
- * Derives the event's topic0 from the uploaded ABI, then queries Moralis logs
- * (newest first). Returns [] if the ABI/event is unknown or the lookup fails —
- * never throws, so a bad response degrades to "no history found".
+ *
+ * Two paths, so this works even without a complete ABI:
+ *  1. ABI path — when the event is in the uploaded ABI, derive its exact topic0
+ *     and query logs filtered to it (precise, cheap).
+ *  2. ABI-free fallback — otherwise scan the contract's raw event log, resolve
+ *     each distinct topic0 via 4byte.directory, and return the occurrences whose
+ *     resolved name matches the requested event. This answers "has it ever been
+ *     paused" / "when was the fee changed" from what ACTUALLY fired on-chain,
+ *     even when the event isn't in the stored ABI (e.g. an un-merged proxy).
+ *
+ * Returns [] only when the event genuinely never fired (or the chain is
+ * unreachable) — never throws.
  */
 export async function getContractEvents(
   contractAddress: string,
@@ -94,34 +142,44 @@ export async function getContractEvents(
   limit = 10,
 ): Promise<ContractEvent[]> {
   try {
-    if (!abiJson) return []
-    const abi = JSON.parse(abiJson) as AbiEntry[]
-    const ev = abi.find(
-      e => e.type === "event" && e.name?.toLowerCase() === eventName.toLowerCase(),
-    )
-    if (!ev?.name) return []
-    const signature = `${ev.name}(${(ev.inputs ?? []).map(i => i.type).join(",")})`
-    const topic0 = eventTopic0(signature)
-    // getLogs is ascending by block, so the newest matches are at the end.
-    const r = await explorerQuery(chainId, {
-      module: "logs", action: "getLogs", address: contractAddress,
-      topic0, fromBlock: "0", toBlock: "latest", page: "1", offset: "1000",
-    })
-    if (!r || r.status !== "1" || !Array.isArray(r.result)) return []
-    const rows = r.result as Array<{ transactionHash: string; blockNumber: string; timeStamp: string }>
-    return rows
-      .slice(-limit)
-      .reverse()
-      .map(row => ({
-        event: ev.name!,
-        timestamp: new Date(parseInt(row.timeStamp, 16) * 1000).toISOString(),
-        blockNumber: String(parseInt(row.blockNumber, 16)),
-        txHash: row.transactionHash,
-      }))
+    // ── Path 1: exact topic0 from the ABI ──────────────────────────────────
+    let topic0: string | null = null
+    let resolvedName = eventName
+    if (abiJson) {
+      try {
+        const abi = JSON.parse(abiJson) as AbiEntry[]
+        const ev = abi.find(e => e.type === "event" && e.name?.toLowerCase() === eventName.toLowerCase())
+        if (ev?.name) {
+          topic0 = eventTopic0(`${ev.name}(${(ev.inputs ?? []).map(i => i.type).join(",")})`)
+          resolvedName = ev.name
+        }
+      } catch { /* fall through to scan */ }
+    }
+
+    if (topic0) {
+      const hits = await logsForTopic(contractAddress, chainId, topic0, resolvedName, limit)
+      if (hits.length > 0) return hits
+      // Fall through: 0 hits could be genuine, but also fall back to candidate
+      // signatures in case the ABI's arg types produced a different topic0.
+    }
+
+    // ── Path 2: ABI-free — compute topic0 from known signatures of the named
+    // event and query each (full history, precise). Answers "has it ever been
+    // paused" / OwnershipTransferred / Transfer etc. even with no ABI.
+    const candidates = COMMON_EVENT_SIGS[eventName.toLowerCase()]
+    if (candidates) {
+      for (const sig of candidates) {
+        const hits = await logsForTopic(contractAddress, chainId, eventTopic0(sig), eventNameOf(sig), limit)
+        if (hits.length > 0) return hits
+      }
+    }
+    return []
   } catch {
     return []
   }
 }
+
+const eventNameOf = (sig: string) => sig.slice(0, sig.indexOf("(") >= 0 ? sig.indexOf("(") : sig.length)
 
 // ── Contract verification / proxy info (Etherscan getsourcecode) ────────────
 

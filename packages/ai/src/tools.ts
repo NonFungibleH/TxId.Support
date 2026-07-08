@@ -647,21 +647,22 @@ export function buildContractTxsTool(
 export function buildContractEventsTool(
   watchedContracts: WatchedContractSnapshot[] = [],
 ): Anthropic.Tool | null {
-  const withAbi = watchedContracts.filter(c => c.abi)
-  if (withAbi.length === 0) return null
-  const lines = withAbi
+  if (watchedContracts.length === 0) return null
+  const lines = watchedContracts
     .map(c => {
       const events = eventNamesFromAbi(c.abi).slice(0, 40)
-      return `${c.name} at ${c.address} (chain ${c.chain}) — events: ${events.join(", ") || "none"}`
+      return `${c.name} at ${c.address} (chain ${c.chain})${events.length ? ` — known events: ${events.join(", ")}` : ""}`
     })
     .join("; ")
   return {
     name: "get_contract_events",
     description:
       "Read the on-chain history of a specific EVENT emitted by one of the protocol's contracts, newest first. " +
-      "Use this to answer questions about WHEN something happened or HOW OFTEN — e.g. 'when were fees last changed', " +
-      "'when was the last deposit', 'how many times has X happened'. Returns each occurrence's block timestamp and transaction hash. " +
-      `Available contracts and their events: ${lines}.`,
+      "Use this to answer WHEN something happened or HOW OFTEN — e.g. 'when were fees last changed' (FeesChanged), " +
+      "'has this ever been paused' (Paused), 'when was the last deposit', 'how many times has X happened'. " +
+      "You can request ANY event by name — it works even if the event isn't in the listed ABI (it resolves events from the live log). " +
+      "Always TRY it before saying you lack event history. Returns each occurrence's block timestamp and transaction hash; an empty result means that event genuinely has not fired. " +
+      `Contracts${lines ? ` and their known events: ${lines}` : ""}.`,
     input_schema: {
       type: "object" as const,
       properties: {
