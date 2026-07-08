@@ -78,8 +78,11 @@ Key files: `packages/blockchain/src/*` (data + decode), `packages/ai/src/tools.t
 | ERC-20/721/1155 **token transfers** (with symbol/decimals) | ✅ | receipt logs + token metadata |
 | Pending/stuck: underpriced gas · stuck nonce · congestion | ✅ | `diagnosePendingTx` |
 | Gas over/underpaid | ✅ | `gas.verdict` (effective vs base fee) |
+| L2 fee explanation (OP-stack L1 data fee) | ✅ | `gas.l1DataFeeNative` from the receipt (Base/Optimism) |
 | Confirmations | ✅ | latest block − tx block |
-| Internal traces / re-simulation | ❌ | needs a tracing provider (Tenderly / Alchemy) |
+| Pre-flight ("would it work if I retried now?" / "what will X cost?") | ✅ | `estimate_action` (eth_estimateGas from the user's wallet; revert = would fail now, with reason) |
+| Bridge awareness (two-leg model, don't call funds lost) | ✅ | prompt-level guidance on bridge sends |
+| Full internal traces / step-by-step re-simulation | ❌ | needs a tracing provider (Tenderly / Alchemy) |
 
 ## 2. Smart-contract level
 
@@ -104,7 +107,9 @@ Key files: `packages/blockchain/src/*` (data + decode), `packages/ai/src/tools.t
 | Allowances / approvals ("do I need to approve?") | ✅ | `get_token_allowance` (standard ERC-20) |
 | Per-user lock / vesting schedule | ✅* | `get_contract_data` (getter with args) |
 | Price (USD) | ✅ | `get_token_price` (DexScreener, free) |
-| Fee-on-transfer / rebasing detection | ❌ | heuristic / simulation |
+| Scam/honeypot screen (sell tax, mintable, blacklist…) | ✅ | `check_token_safety` (GoPlus, free + keyless; validated live) |
+| Fee-on-transfer detection | ✅ | prompt heuristic: transfer deltas + `check_token_safety` corroboration |
+| ENS name resolution (vitalik.eth → 0x…) | ✅ | `resolve_ens_name` (on-chain registry; validated live) |
 
 \* works when the watched contract exposes the getter and its ABI is uploaded.
 
@@ -170,20 +175,17 @@ Key files: `packages/blockchain/src/*` (data + decode), `packages/ai/src/tools.t
 
 Ordered by how often real support conversations would hit the gap:
 
-| # | Gap | User issue it blocks | Effort / dependency |
+| # | Gap | User issue it blocks | Status |
 |---|---|---|---|
-| 1 | **Simulation & internal traces** | "Would it work if I retried now?"; reverts inside internal calls; pre-flight checks before the user signs | Tenderly/Alchemy key (free tiers exist) |
-| 2 | **Token safety screen** (honeypot, sell tax, mint/blacklist flags) | "I bought a token I can't sell"; "is this token a scam?" | GoPlus Security API — free, keyless; one new tool |
-| 3 | **Solana parity** | Every contract/token/network tool is EVM-only; Solana projects get a second-class bot | medium build; needs non-rate-limited RPC |
-| 4 | **Screenshot input** | Users paste error screenshots constantly in real support; widget is text-only (Haiku is vision-capable) | widget + route change, medium |
-| 5 | **Bridge awareness** | "I bridged and my tokens haven't arrived" — very common, currently unanswerable beyond generic advice | recognise bridge txs + explain two-leg model (small); full tracking (large) |
-| 6 | **Page-context awareness** | Bot doesn't know which page/screen the user is on when they ask | pass embedding page URL into the prompt — small |
-| 7 | **ENS resolution** | User pastes `name.eth`, bot can't act on it | eth_call to ENS resolver — small |
-| 8 | **Gas estimate for a planned action** | "How much will locking cost me?" | eth_estimateGas with encoded call — small/medium |
-| 9 | **L2 fee explanation** (OP-stack L1 data fee) | "Why did I pay more than gasLimit × gasPrice on Base?" | decode `l1Fee` from receipt — small |
-| 10 | **Fee-on-transfer / rebase detection** | "I received fewer tokens than I sent" | heuristic from transfer deltas (partial today via tokenTransfers) |
-| 11 | **UN/EU sanctions + risk scoring** | institutional compliance asks | list source / paid API |
-| 12 | **BSC explorer depth** | ABI auto-fetch/history on BSC | paid Etherscan tier or alternative |
-
-Everything above the line ships without changing the architecture — each is one
-more tool + prompt guidance in the existing pattern.
+| 1 | **Full simulation & internal traces** | reverts inside internal calls; step-by-step replay | ❌ needs Tenderly/Alchemy key (free tiers exist). Partially covered by `estimate_action` pre-flight. |
+| 2 | **Token safety screen** | "I bought a token I can't sell"; "is this a scam?" | ✅ shipped 2026-07-08 (`check_token_safety`, GoPlus) |
+| 3 | **Solana parity** | contract/token/network tools are EVM-only | ❌ medium build; needs non-rate-limited RPC |
+| 4 | **Screenshot input** | users paste error screenshots; widget is text-only (Haiku is vision-capable) | ❌ widget + route change, medium |
+| 5 | **Bridge awareness** | "I bridged and my tokens haven't arrived" | ⚠️ two-leg guidance shipped; full destination-chain tracking not built |
+| 6 | **Page-context awareness** | bot doesn't know which page the user is on | ❌ pass embedding page URL into the prompt — small |
+| 7 | **ENS resolution** | user pastes `name.eth` | ✅ shipped 2026-07-08 (`resolve_ens_name`, validated live) |
+| 8 | **Pre-flight / gas estimate** | "how much will X cost?"; "would it work now?" | ✅ shipped 2026-07-08 (`estimate_action`) |
+| 9 | **L2 fee explanation** | "why did I pay more than gasLimit × gasPrice on Base?" | ✅ shipped 2026-07-08 (`l1DataFeeNative`) |
+| 10 | **Fee-on-transfer detection** | "I received fewer tokens than I sent" | ✅ shipped 2026-07-08 (transfer-delta heuristic + safety corroboration) |
+| 11 | **UN/EU sanctions + risk scoring** | institutional compliance asks | ❌ list source / paid API |
+| 12 | **BSC explorer depth** | ABI auto-fetch/history on BSC | ❌ paid Etherscan tier or alternative |

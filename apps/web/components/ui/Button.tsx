@@ -40,6 +40,15 @@ export function Button({
   const classes = clsx(base, variants[variant], sizes[size], className);
 
   if (href) {
+    // mailto:/tel: must be a plain anchor with no target so the OS hands off
+    // to the mail client instead of the browser opening a blank tab.
+    if (href.startsWith("mailto:") || href.startsWith("tel:")) {
+      return (
+        <a href={href} className={classes}>
+          {children}
+        </a>
+      );
+    }
     return external ? (
       <a href={href} target="_blank" rel="noopener noreferrer" className={classes}>
         {children}

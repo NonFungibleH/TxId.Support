@@ -31,3 +31,9 @@ export type {
   PendingDiagnosis,
 } from "./types"
 export { CHAIN_CONFIGS } from "./types"
+export { getTokenSafety } from "./safety"
+export type { TokenSafety } from "./safety"
+export { resolveEnsName, namehash } from "./ens"
+export type { EnsResolution } from "./ens"
+export { estimateAction } from "./estimate"
+export type { ActionEstimate } from "./estimate"

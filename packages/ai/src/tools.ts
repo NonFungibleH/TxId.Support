@@ -31,6 +31,9 @@ import {
   getWalletApprovals,
   getNetworkStatus,
   checkSanctioned,
+  getTokenSafety,
+  resolveEnsName,
+  estimateAction,
 } from "@txid/blockchain"
 import {
   getSolanaWalletBalance,
@@ -441,6 +444,41 @@ export async function executeTool(
       return status ?? { chainId, responsive: false, note: "The network RPC did not respond — the chain may be having issues." }
     }
 
+    case "check_token_safety": {
+      const token = typeof input.token_address === "string" ? input.token_address : undefined
+      if (!token) throw new Error("token_address is required")
+      const chainId = typeof input.chain_id === "string" ? input.chain_id : (wallet?.chainId ?? watchedContracts[0]?.chain ?? "0x1")
+      if (isSolanaChain(chainId)) return { token, note: "Token safety screening is EVM-only." }
+      const safety = await getTokenSafety(token, chainId)
+      return safety ?? { token, note: "Could not screen this token — the chain may be unsupported or the safety API unavailable." }
+    }
+
+    case "resolve_ens_name": {
+      const name = typeof input.name === "string" ? input.name.trim() : ""
+      if (!name || !name.includes(".")) throw new Error("name is required, e.g. 'vitalik.eth'")
+      const resolution = await resolveEnsName(name)
+      return resolution ?? { name, note: "ENS lookup failed — the resolver RPC did not respond." }
+    }
+
+    case "estimate_action": {
+      const functionName = typeof input.function_name === "string" ? input.function_name : ""
+      const contractAddress = typeof input.contract_address === "string" ? input.contract_address : undefined
+      const args = Array.isArray(input.args) ? input.args.map(a => String(a)) : []
+      if (!functionName) throw new Error("function_name is required")
+      if (!wallet) throw new Error("Wallet not connected — estimates simulate from the user's address")
+      const target = contractAddress
+        ? watchedContracts.find(c => c.address.toLowerCase() === contractAddress.toLowerCase())
+        : watchedContracts.length === 1 ? watchedContracts[0] : undefined
+      if (!target) throw new Error("Specify which contract (contract_address)")
+      if (isSolanaChain(target.chain)) {
+        return { note: "Action estimates are only available on EVM chains." }
+      }
+      const estimate = await estimateAction(target.address, target.chain, functionName, args, wallet.address, target.abi ?? undefined)
+      return estimate
+        ? { contractName: target.name, ...estimate }
+        : { contractName: target.name, function: functionName, note: "Could not estimate — the function may take unsupported argument types or not exist on this contract." }
+    }
+
     case "check_address_sanctions": {
       const address = typeof input.address === "string" ? input.address
         : (typeof input.address === "undefined" ? wallet?.address : undefined)
@@ -783,6 +821,85 @@ export function buildTokenTools(): Anthropic.Tool[] {
   ]
 }
 
+/** Token scam/honeypot screen (GoPlus, free + keyless) — always offered. */
+export function buildTokenSafetyTool(): Anthropic.Tool {
+  return {
+    name: "check_token_safety",
+    description:
+      "Screen a token contract for scam characteristics: honeypot (can't sell), buy/sell tax, owner minting, " +
+      "balance manipulation, pausable transfers, blacklists, unverified source. " +
+      "Use for 'is this token a scam', 'why can't I sell this token', 'is it safe to buy', or when a diagnosis " +
+      "suggests a token is behaving abnormally. Returns structured flags — report the red flags plainly.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        token_address: { type: "string", description: "The token contract address to screen." },
+        chain_id: { type: "string", description: "Optional chain ID; defaults to the connected wallet or the protocol's chain." },
+      },
+      required: ["token_address"],
+    },
+  }
+}
+
+/** ENS forward resolution — always offered. */
+export function buildEnsTool(): Anthropic.Tool {
+  return {
+    name: "resolve_ens_name",
+    description:
+      "Resolve an ENS name like 'vitalik.eth' to its Ethereum address. " +
+      "Use whenever the user provides a .eth (or other ENS) name instead of a 0x address, " +
+      "then use the resolved address with the other tools.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        name: { type: "string", description: "The ENS name, e.g. 'vitalik.eth'." },
+      },
+      required: ["name"],
+    },
+  }
+}
+
+/**
+ * Pre-flight estimate of a write action from the connected wallet —
+ * offered when a wallet is connected and a watched contract has an ABI.
+ * Doubles as a lightweight simulation: a revert here means the action
+ * would fail right now, with the reason.
+ */
+export function buildEstimateActionTool(
+  watchedContracts: WatchedContractSnapshot[] = [],
+): Anthropic.Tool | null {
+  const withAbi = watchedContracts.filter(c => c.abi)
+  if (withAbi.length === 0) return null
+  const lines = withAbi
+    .map(c => {
+      const writes = contractFunctions(c.abi).write.slice(0, 30)
+      return `${c.name} at ${c.address} (chain ${c.chain}) — write functions: ${writes.join("; ") || "none"}`
+    })
+    .join(" | ")
+  return {
+    name: "estimate_action",
+    description:
+      "Pre-flight a write action WITHOUT sending it: simulates the exact call from the connected wallet via eth_estimateGas. " +
+      "Two uses: (1) 'how much will X cost?' → returns gas units, gas price and estimated cost in the native token; " +
+      "(2) 'would it work if I retried now?' → if the node reports a revert, the action would FAIL right now and the revert reason says why. " +
+      "Pass contract_address, function_name and args in order (addresses as 0x…, numbers as decimal strings in the token's base units). " +
+      `Available contracts and write functions: ${lines}.`,
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        contract_address: { type: "string", description: "The contract address (from the list above)." },
+        function_name: { type: "string", description: "The exact write function name, e.g. 'lockTokens'." },
+        args: {
+          type: "array",
+          items: { type: "string" },
+          description: "Arguments in order. Addresses as 0x…, numbers as decimal strings, booleans as 'true'/'false'.",
+        },
+      },
+      required: ["contract_address", "function_name", "args"],
+    },
+  }
+}
+
 /** OFAC sanctions screening for an address (Chainalysis on-chain oracle). */
 export function buildSanctionsTool(): Anthropic.Tool {
   return {
@@ -874,4 +991,7 @@ export const TOOL_LABELS: Record<string, string> = {
   get_token_price: "Checking token price…",
   get_network_status: "Checking network status…",
   check_address_sanctions: "Screening address (OFAC)…",
+  check_token_safety: "Screening token safety…",
+  resolve_ens_name: "Resolving ENS name…",
+  estimate_action: "Simulating the action…",
 }

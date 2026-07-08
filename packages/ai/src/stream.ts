@@ -1,7 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk"
 import OpenAI from "openai"
 import type { ChatMessage, WatchedContractSnapshot } from "./types"
-import { buildWalletTools, buildTxLookupTool, buildContractTxsTool, buildContractEventsTool, buildContractDeploymentTool, buildContractHoldingsTool, buildContractStateTool, buildContractDataTool, buildContractInfoTool, buildContractFunctionsTool, buildUpgradeHistoryTool, buildTokenTools, buildNetworkTool, buildSanctionsTool, buildEscalationTool, executeTool } from "./tools"
+import { buildWalletTools, buildTxLookupTool, buildContractTxsTool, buildContractEventsTool, buildContractDeploymentTool, buildContractHoldingsTool, buildContractStateTool, buildContractDataTool, buildContractInfoTool, buildContractFunctionsTool, buildUpgradeHistoryTool, buildTokenTools, buildNetworkTool, buildSanctionsTool, buildTokenSafetyTool, buildEnsTool, buildEstimateActionTool, buildEscalationTool, executeTool } from "./tools"
 import type { WalletConfig } from "./tools"
 
 // ── Model selection ──────────────────────────────────────────────────────────
@@ -87,6 +87,9 @@ export async function* streamChatWithTools(
       ...buildTokenTools(),
       buildNetworkTool(),
       buildSanctionsTool(),
+      buildTokenSafetyTool(),
+      buildEnsTool(),
+      ...(walletConfig ? [buildEstimateActionTool(watchedContracts)].filter((t): t is NonNullable<typeof t> => t !== null) : []),
       buildEscalationTool(),
     ]
     const groqTools: OpenAI.ChatCompletionTool[] = anthropicTools.map((t) => ({
@@ -206,8 +209,11 @@ export async function* streamChatWithTools(
     buildTxLookupTool(),
     ...contractToolset,
     ...buildTokenTools(),
-      buildNetworkTool(),
-      buildSanctionsTool(),
+    buildNetworkTool(),
+    buildSanctionsTool(),
+    buildTokenSafetyTool(),
+    buildEnsTool(),
+    ...(walletConfig ? [buildEstimateActionTool(watchedContracts)].filter((t): t is NonNullable<typeof t> => t !== null) : []),
     buildEscalationTool(),
   ]
 

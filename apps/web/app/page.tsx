@@ -6,6 +6,7 @@ import { ForWho } from "@/components/sections/ForWho";
 import { HowItWorks } from "@/components/sections/HowItWorks";
 import { FeatureGrid } from "@/components/sections/FeatureGrid";
 import { EmbedPreview } from "@/components/sections/EmbedPreview";
+import { ComplianceSection } from "@/components/sections/ComplianceSection";
 import { PlatformTeaser } from "@/components/sections/PlatformTeaser";
 import { PricingSection } from "@/components/sections/PricingSection";
 import { FAQ, FAQS } from "@/components/sections/FAQ";
@@ -32,6 +33,7 @@ export default function HomePage() {
         <HowItWorks />
         <FeatureGrid />
         <EmbedPreview />
+        <ComplianceSection />
         <PlatformTeaser />
         <PricingSection compact />
         <FAQ />

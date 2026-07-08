@@ -100,7 +100,7 @@ export interface TxEnrichment {
   events?: Array<{ name: string; contract: string; params?: Record<string, string>; inferred?: boolean; topic0?: string }>
   tokenTransfers?: Array<{ token: string; symbol?: string; from: string; to: string; value: string; valueFormatted?: string; kind: "erc20" | "erc721" | "erc1155" }>
   confirmations?: number
-  gas?: { effectiveGwei: string; baseFeeGwei?: string; verdict: "normal" | "overpaid" }
+  gas?: { effectiveGwei: string; baseFeeGwei?: string; verdict: "normal" | "overpaid"; l1DataFeeNative?: string }
   logCount?: number
 }
 
@@ -126,7 +126,7 @@ export async function enrichTransaction(
       rpc(rpcUrl, "eth_blockNumber", []),
     ])) as [
       { input?: string } | null,
-      { logs?: RpcLog[]; blockNumber?: string; effectiveGasPrice?: string } | null,
+      { logs?: RpcLog[]; blockNumber?: string; effectiveGasPrice?: string; l1Fee?: string } | null,
       string | null,
     ]
     if (!receiptRaw) return null
@@ -253,10 +253,15 @@ export async function enrichTransaction(
       const eff = BigInt(receiptRaw.effectiveGasPrice)
       const block = (await rpc(rpcUrl, "eth_getBlockByNumber", [receiptRaw.blockNumber, false])) as { baseFeePerGas?: string } | null
       const baseFee = block?.baseFeePerGas ? BigInt(block.baseFeePerGas) : null
+      // OP-stack chains (Base, Optimism) charge an L1 data fee ON TOP of the
+      // L2 execution fee — receipts expose it as l1Fee. Surface it so "why did
+      // I pay more than gasLimit × gasPrice?" is answerable.
+      const l1Fee = receiptRaw.l1Fee ? BigInt(receiptRaw.l1Fee) : null
       out.gas = {
         effectiveGwei: gwei(eff),
         ...(baseFee ? { baseFeeGwei: gwei(baseFee) } : {}),
         verdict: baseFee && baseFee > 0n && eff > baseFee * 3n ? "overpaid" : "normal",
+        ...(l1Fee && l1Fee > 0n ? { l1DataFeeNative: (Number(l1Fee) / 1e18).toFixed(8) } : {}),
       }
     }
 

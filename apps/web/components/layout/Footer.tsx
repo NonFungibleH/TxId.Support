@@ -18,8 +18,8 @@ const LEGAL = [
   { label: "Privacy", href: "/privacy" },
 ];
 
-function NavLink({ label, href, external }: { label: string; href: string; external?: boolean }) {
-  const cls = "inline-flex items-center gap-1 text-sm text-muted hover:text-white transition-colors";
+function NavLink({ label, href, external, small }: { label: string; href: string; external?: boolean; small?: boolean }) {
+  const cls = `inline-flex items-center gap-1 ${small ? "text-xs" : "text-sm"} text-muted hover:text-white transition-colors`;
   const isNewTab = external && !href.startsWith("mailto");
   return external ? (
     <a href={href} className={cls} target={isNewTab ? "_blank" : undefined} rel={isNewTab ? "noopener noreferrer" : undefined}>
@@ -50,30 +50,28 @@ export function Footer() {
             </span>
           </Link>
 
-          {/* Nav groups */}
-          <div className="flex flex-wrap items-center gap-x-8 gap-y-3">
-            <div className="flex items-center gap-6">
-              {NAV.map((l) => <NavLink key={l.label} {...l} />)}
-            </div>
-            <div className="w-px h-4 bg-[var(--border)] hidden md:block" />
-            <div className="flex items-center gap-6">
-              {LEGAL.map((l) => <NavLink key={l.label} {...l} />)}
-            </div>
+          {/* Nav group: product links only */}
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
+            {NAV.map((l) => <NavLink key={l.label} {...l} />)}
           </div>
         </div>
 
-        {/* Bottom strip */}
-        <div className="mt-6 pt-5 border-t border-[var(--border)] flex flex-col sm:flex-row items-center justify-between gap-2">
+        {/* Bottom strip: contact + legal */}
+        <div className="mt-6 pt-5 border-t border-[var(--border)] flex flex-col sm:flex-row items-center justify-between gap-3">
           <p className="text-xs text-muted/50">© {year} TxID Support. All rights reserved.</p>
-          <a
-            href="https://www.3uild.io/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 text-xs text-muted/40 hover:text-muted/70 transition-colors"
-          >
-            Built by 3UILD
-            <ExternalLink className="w-2.5 h-2.5 opacity-40" />
-          </a>
+          <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
+            {LEGAL.map((l) => <NavLink key={l.label} {...l} small />)}
+            <div className="w-px h-3 bg-[var(--border)] hidden sm:block" />
+            <a
+              href="https://www.3uild.io/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-xs text-muted/40 hover:text-muted/70 transition-colors"
+            >
+              Built by 3UILD
+              <ExternalLink className="w-2.5 h-2.5 opacity-40" />
+            </a>
+          </div>
         </div>
       </div>
     </footer>
