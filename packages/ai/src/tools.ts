@@ -244,14 +244,18 @@ export async function executeTool(
       if (hit?.tx) {
         const tx = hit.tx
         // Scope guard: only diagnose transactions to THIS protocol's own contracts.
-        if (watchedContracts.length > 0 && tx.to) {
-          const isOwn = watchedContracts.some(c => c.address.toLowerCase() === tx.to!.toLowerCase())
+        // A null `to` is a contract-creation tx — those are out of scope too
+        // (otherwise they'd silently bypass the guard).
+        if (watchedContracts.length > 0) {
+          const isOwn = tx.to
+            ? watchedContracts.some(c => c.address.toLowerCase() === tx.to!.toLowerCase())
+            : false
           if (!isOwn) {
             return {
               hash,
               chainId: hit.chainId,
               status: "out_of_scope",
-              to: tx.to,
+              to: tx.to ?? "contract creation",
               note: "This transaction is not to one of this protocol's own contracts, so it is outside what you can diagnose. Do NOT analyse it — decline in one sentence and offer to help with this protocol's own transactions.",
             }
           }
@@ -283,7 +287,18 @@ export async function executeTool(
       if (typeof contractAddress !== "string" || !contractAddress) {
         throw new Error("contract_address is required")
       }
-      const chainId = typeof input.chain_id === "string" ? input.chain_id : (wallet?.chainId ?? "0x1")
+      // Scope guard (enforced, not just prompted): only THIS protocol's own
+      // contracts can be read — otherwise the bot becomes a free analytics
+      // tool for any address a user pastes.
+      const target = watchedContracts.find(c => c.address.toLowerCase() === contractAddress.toLowerCase())
+      if (!target) {
+        return {
+          contract: contractAddress,
+          status: "out_of_scope",
+          note: "This address is not one of this protocol's own contracts. Do NOT analyse it — decline in one sentence.",
+        }
+      }
+      const chainId = typeof input.chain_id === "string" ? input.chain_id : target.chain
       const limit = Math.min(Number(input.limit ?? 10), 20)
       if (isSolanaChain(chainId)) {
         // For Solana, treat contract_address as a program address and fetch recent txs

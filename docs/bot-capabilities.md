@@ -171,6 +171,38 @@ Key files: `packages/blockchain/src/*` (data + decode), `packages/ai/src/tools.t
 - Enrichment uses **public RPCs** — fine for demo/light traffic; a dedicated RPC
   (Alchemy/Infura) is recommended for production reliability and rate limits.
 
+## Security posture (adversarial audit 2026-07-08)
+
+**Enforced in code (not just prompted):**
+- Tx lookup scope guard: only txs TO a watched contract are analysed; contract-creation
+  txs (`to = null`) are out of scope; "not found" reports exactly which chains were checked.
+- `get_contract_transactions` scope guard: only watched contracts (was unscoped — fixed).
+- All contract read tools (`state/data/events/info/functions/upgrades/holdings/estimate`)
+  resolve strictly against the watched-contract list.
+- `estimate_action` always simulates from the CONNECTED wallet — `from` cannot be spoofed.
+- Route: per-IP rate limiting + message length caps; history capped at 20 messages.
+- Groq path: malformed tool-call JSON can no longer crash the stream.
+
+**Enforced in prompt (Security rules block):**
+- On-chain data (token names, event strings, revert messages) is untrusted DATA —
+  embedded instructions are ignored; links found on-chain are never relayed.
+- Tokens identified by address, never by self-reported symbol (fake-USDC defence);
+  unexpected airdrops treated as probable scam bait.
+- Address-poisoning warning: never copy addresses from tx history.
+- Seed phrases / private keys: never requested; if shared, wallet treated as compromised.
+- System prompt / config / tool internals never revealed regardless of claimed identity.
+- Token tools are not a general market-data service; wallet history is only for
+  finding protocol-relevant transactions.
+
+**Accepted risks / known limitations (documented, not fixed):**
+- Router/aggregator txs that touch the protocol via INTERNAL calls are declined as
+  out-of-scope (`to` = router). False negative; needs trace support (Tenderly) to fix.
+- Protocols with NO watched contracts get an unscoped bot (their configuration choice).
+- Protocol-controlled inputs (docs, glossary, descriptions) are trusted — a customer
+  can only "inject" their own bot.
+- ENS names are not UTS-46 normalised (homograph names resolve as-is).
+- GoPlus / 4byte / DexScreener are shared keyless services — rate limits apply.
+
 ## Gap analysis — toward "any issue a user can have" (2026-07-08)
 
 Ordered by how often real support conversations would hit the gap:

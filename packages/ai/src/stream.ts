@@ -136,7 +136,10 @@ export async function* streamChatWithTools(
           // Escalation is handled client-side — yield event and stop stream
           const escalationCall = fnCalls.find(tc => tc.function.name === "create_support_ticket")
           if (escalationCall) {
-            const input = JSON.parse(escalationCall.function.arguments || "{}") as { summary?: string; reason?: string }
+            let input: { summary?: string; reason?: string } = {}
+            try {
+              input = JSON.parse(escalationCall.function.arguments || "{}") as { summary?: string; reason?: string }
+            } catch { /* malformed args from the model — escalate with defaults */ }
             yield { type: "escalate", summary: input.summary ?? "Issue needs further attention", reason: input.reason ?? "unresolved" }
             return
           }
