@@ -11,6 +11,7 @@ const NAV_LINKS = [
   { label: "Features", href: "/#features" },
   { label: "Platform", href: "/platform" },
   { label: "Pricing", href: "/pricing" },
+  { label: "Diagnose", href: "/check" },
 ];
 
 type NavLink = { label: string; href: string; highlight?: boolean };

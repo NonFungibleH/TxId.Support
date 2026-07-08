@@ -88,6 +88,7 @@ Ethereum, Solana, Base, BNB Chain, Polygon, Arbitrum, and Optimism.
 - Pricing: https://txid.support/pricing
 - Documentation: https://txid.support/docs
 - Live demo: https://txid.support/demo
+- Free transaction checker: https://txid.support/check
 - Blog: https://txid.support/blog
 - Guide, why a transaction fails: https://txid.support/blog/why-did-my-transaction-fail
 - Guide, what "out of gas" means: https://txid.support/blog/what-does-out-of-gas-mean
