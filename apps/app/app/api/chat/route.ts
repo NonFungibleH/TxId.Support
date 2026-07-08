@@ -17,6 +17,39 @@ const CORS_HEADERS = {
   "Access-Control-Allow-Headers": "Content-Type",
 }
 
+const EXEMPT_HOSTS = new Set(["localhost", "127.0.0.1", "::1"])
+
+function extractHostname(originOrReferer: string): string | null {
+  try {
+    return new URL(originOrReferer).hostname.toLowerCase()
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Domain allowlist enforcement — mirrors /api/widget-config so the expensive
+ * chat endpoint is gated the same way the config endpoint is. Without this a
+ * copied publishable key lets any browser origin burn a project's conversation
+ * quota + LLM spend. Empty allowedDomains = not yet restricted (open); once the
+ * protocol adds at least one domain, only those origins may call chat. Preview
+ * requests are exempt (they carry a server-signed token, checked separately).
+ */
+function originAllowed(
+  request: Request,
+  allowedDomains: string[] | undefined,
+  preview: boolean,
+): boolean {
+  if (preview) return true
+  const originHeader = request.headers.get("origin") ?? request.headers.get("referer")
+  const requestHost = originHeader ? extractHostname(originHeader) : null
+  if (!requestHost || EXEMPT_HOSTS.has(requestHost)) return true
+  const allowed = allowedDomains ?? []
+  if (allowed.length === 0) return true
+  const normalised = allowed.map((d) => d.replace(/^https?:\/\//, "").toLowerCase())
+  return normalised.includes(requestHost)
+}
+
 export async function OPTIONS() {
   return new Response(null, { status: 204, headers: CORS_HEADERS })
 }
@@ -130,6 +163,15 @@ export async function POST(request: Request) {
     // limits are defined in lib/limits.ts.
     const rawConfig = typedProject.config as unknown as ProjectConfig
     const plan = (rawConfig.plan ?? "free") as Plan
+
+    // Domain allowlist — reject before claiming a conversation slot or calling
+    // the LLM, so a copied key from a non-registered origin can't drain quota.
+    if (!originAllowed(request, rawConfig.allowedDomains, preview === true)) {
+      return new Response(JSON.stringify({ error: "Domain not registered for this key" }), {
+        status: 403,
+        headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
+      })
+    }
 
     const existingConv = await supabase
       .from("conversations")

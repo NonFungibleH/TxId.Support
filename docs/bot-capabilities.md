@@ -173,6 +173,20 @@ Key files: `packages/blockchain/src/*` (data + decode), `packages/ai/src/tools.t
 
 ## Security posture (adversarial audit 2026-07-08)
 
+**Platform audit (2026-07-08, dashboard + API sweep):**
+- FIXED (HIGH): `/api/chat` now enforces the domain allowlist (was key-only) — a
+  copied publishable key can no longer burn a project's quota + LLM spend from an
+  unregistered browser origin. Matches the existing `/api/widget-config` gate.
+- Verified clean: Stripe webhook (signature + plan-from-Stripe-only), Telegram
+  webhook (constant-time secret compare), widget-config (no secret leakage),
+  server actions (consistent `resolveProjectWithOwnership`), SSRF guards on
+  server-fetched URLs (webhook/docs/brand via `isPrivateUrl`).
+- Latent (not fixed — feature doesn't exist yet): ticket actions assume one
+  project per org; revisit when multi-project ships.
+- Residual bound: scripted abuse (spoofed Origin, rotating IPs) is bounded by the
+  atomic conversation-slot quota, not the per-IP limit — accepted for an
+  embeddable widget.
+
 **Enforced in code (not just prompted):**
 - Tx lookup scope guard: only txs TO a watched contract are analysed; contract-creation
   txs (`to = null`) are out of scope; "not found" reports exactly which chains were checked.
