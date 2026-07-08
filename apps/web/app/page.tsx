@@ -6,6 +6,7 @@ import { ForWho } from "@/components/sections/ForWho";
 import { HowItWorks } from "@/components/sections/HowItWorks";
 import { FeatureGrid } from "@/components/sections/FeatureGrid";
 import { EmbedPreview } from "@/components/sections/EmbedPreview";
+import { PlatformTeaser } from "@/components/sections/PlatformTeaser";
 import { PricingSection } from "@/components/sections/PricingSection";
 import { FAQ, FAQS } from "@/components/sections/FAQ";
 import { ClosingCTA } from "@/components/sections/ClosingCTA";
@@ -31,6 +32,7 @@ export default function HomePage() {
         <HowItWorks />
         <FeatureGrid />
         <EmbedPreview />
+        <PlatformTeaser />
         <PricingSection compact />
         <FAQ />
         <ClosingCTA />

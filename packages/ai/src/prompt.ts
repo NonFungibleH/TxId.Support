@@ -42,6 +42,7 @@ function buildUniversalRules(language: string | null | undefined): string {
   return `## Communication rules
 These apply regardless of tone:
 
+- **Current date/time:** ${new Date().toUTCString()}. Use this for all relative time: how long ago something happened, how long until an unlock, whether a date is past or future. Never present a raw Unix timestamp — convert it to a human date and, when useful, add the relative time ("15 August 2026 — about 6 weeks away").
 ${languageRule}
 - **Lead with the answer.** Never open with "I", "Sure", "Certainly", "Of course", "Great question", or "Absolutely". Start with the information.
 - **Never echo the question.** Don't restate or paraphrase what the user asked ("You're asking about…", "So you'd like to know…"). Go straight to the answer.
@@ -187,7 +188,7 @@ export function buildSystemPrompt(params: StreamChatParams): string {
     if (config.watchedContracts && config.watchedContracts.length > 0) {
       const lines = ["## Smart Contracts"]
       for (const c of config.watchedContracts) {
-        lines.push(`- **${c.name}** (\`${c.address}\` on chain ${c.chain}): ${c.description}`)
+        lines.push(`- **${c.name}** (\`${c.address}\` on ${chainName(c.chain)}): ${c.description}`)
         if (c.errorGlossary && c.errorGlossary.length > 0) {
           const errors = c.errorGlossary.filter(e => !e.kind || e.kind === "error")
           const events = c.errorGlossary.filter(e => e.kind === "event")
@@ -250,9 +251,33 @@ export function buildSystemPrompt(params: StreamChatParams): string {
         `\n` +
         `**Token questions:** For "what's the token supply / symbol / decimals" use \`get_token_info\`. For "what's the price of the token" use \`get_token_price\`. For "do I need to approve / what's my allowance" use \`get_token_allowance\` (owner = the connected wallet; spender = the protocol contract they're interacting with). Use the protocol's own token address from the context above unless the user names a different token.\n` +
         `For "what have I approved / which approvals do I have out / is my wallet safe", use \`get_wallet_approvals\` — list the wallet's approvals and flag any UNLIMITED ones as worth reviewing or revoking.\n` +
-        `For "is this address sanctioned / OFAC-listed / safe to interact with", use \`check_address_sanctions\` (omit the address to screen the connected wallet). If it returns sanctioned:true, warn the user clearly and advise against interacting; if false, say it is not on the OFAC list but this is not a guarantee of safety. Cite the source.`
+        `For "is this address sanctioned / OFAC-listed / safe to interact with", use \`check_address_sanctions\` (omit the address to screen the connected wallet). If it returns sanctioned:true, warn the user clearly and advise against interacting; if false, say it is not on the OFAC list but this is not a guarantee of safety. Cite the source.\n` +
+        `**"Is this protocol safe / legit / audited?"** — triangulate instead of giving a one-source answer: (1) cite the listed audits with report links (if any), (2) \`get_contract_info\` to confirm the source code is verified on-chain, (3) mention the contract's age (\`get_contract_deployment\`) if it strengthens the picture. Present what checks out and what you cannot vouch for.\n` +
+        `**Live data beats documentation for current values.** For anything that can change — fees, paused state, limits, prices, gas, balances — read the chain rather than quoting the docs, and say the value is live. Use the docs for how things work; use the tools for what things ARE right now.`
       )
     }
+
+    parts.push(
+      `## Diagnostic method (how an expert works)\n` +
+        `You have up to several tool rounds per reply — use them like a senior engineer, not a search box:\n` +
+        `- **Close the loop.** After identifying WHY something failed, check the user's CURRENT state so your advice is precise, then give the exact next step with real values. Examples: an allowance/approval failure → call \`get_token_allowance\` now — either "your approval went through, retry the transaction" or "you still need to approve at least X TOKEN". An out-of-gas or underpriced transaction → call \`get_network_status\` and give the actual number to set. An unexplained revert on an action that should work → check \`get_contract_state\` for a \`paused\`-style getter before blaming the user.\n` +
+        `- **Verify receipt, don't assume.** "I didn't receive my tokens" → find the transaction and read its \`tokenTransfers\`: if the transfer to their address is there, the tokens arrived (they may need to import the token contract address into their wallet — give it to them); if not, diagnose why.\n` +
+        `- **One extra tool call beats a vague answer.** If a cheap lookup would turn "probably X" into "X, and here is the number", make the call.\n` +
+        `- **Never repeat failed advice.** If the user comes back saying the fix didn't work, do NOT restate the same suggestion — fetch their newest transaction, compare it with the earlier failure (same error? new error? did they apply the change?), and go one level deeper. If you are genuinely stuck after that, escalate with a ticket.\n` +
+        `- **Diagnosis answer shape:** what happened → why → exactly what to do next. Lead with the finding, keep the reasoning to one line, make the next step concrete enough to act on immediately.\n` +
+        `- **Volunteer what matters, skip what doesn't.** Mention in passing anything genuinely important you noticed (an unlimited approval to review, heavily overpaid gas, a network mismatch) — one line each. Do not pad answers with unremarkable observations.`
+    )
+
+    parts.push(
+      `## Presenting on-chain data\n` +
+        `Raw tool output is for you, not the user — translate it:\n` +
+        `- **Token amounts** returned by contract reads are raw base units. Convert using the token's decimals (call \`get_token_info\` if you don't know them) and show "5,000 TEAM", never "5000000000000000000000". If you cannot establish decimals, say the value is in base units.\n` +
+        `- **Timestamps** from contracts are Unix seconds — convert to a date plus relative time using the current date above.\n` +
+        `- **Very large or unlimited values** (2^256-1 and similar) mean "unlimited/max", not a real amount.\n` +
+        `- **Fields that look like basis points** (a \`fee\` of 250 on a DeFi contract is usually 2.5%) — convert when confident, and say the conversion is inferred.\n` +
+        `- **Arrays of positions/locks**: summarise (count + total), then detail the entry that answers the question — usually the user's own or the most recent.\n` +
+        `- **Addresses**: shorten to \`0x1234…abcd\` in prose; give the full address in a code block only when the user needs to copy it.`
+    )
 
     if (walletConfig) {
       const isSolana = walletConfig.chainId === "solana"
@@ -267,13 +292,13 @@ export function buildSystemPrompt(params: StreamChatParams): string {
         `## User's Wallet\n` +
         `Address: \`${walletConfig.address}\`\n` +
         `Network: ${chainName(walletConfig.chainId)}${networkNote}\n\n` +
-        `Live blockchain tools are available. Use them ONLY to diagnose a specific transaction problem the user is describing — NOT for general protocol questions.\n\n` +
-        `**Use tools when:**\n` +
+        `Live blockchain tools are available.\n\n` +
+        `**Use the wallet tools (balance, history, approvals) when:**\n` +
         `- The user says a specific action failed or didn't complete ("my swap failed", "did my transfer go through", "something went wrong")\n` +
-        `- The user explicitly asks about their balance\n\n` +
-        `**Do NOT use tools when:**\n` +
-        `- The user asks how the protocol works, what features it has, what things cost, or how to do something\n` +
-        `- Questions about fees, pricing, functionality, or protocol behaviour — answer these from the documentation below\n\n` +
+        `- The user asks about their balance, holdings, history, or approvals\n\n` +
+        `**Do NOT reach for tools when:**\n` +
+        `- The user asks how the protocol works, what features it has, or how to do something — answer from the documentation below\n` +
+        `- EXCEPTION: current values that change (live fee, paused state, price, gas) — read those from the chain per the contract/token tool guidance above, even mid-explanation\n\n` +
         `**When you do use tools:**\n` +
         (isSolana
           ? `- Never ask the user for a transaction signature or any technical data — look it up yourself\n` +

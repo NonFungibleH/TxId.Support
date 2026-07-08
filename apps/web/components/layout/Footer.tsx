@@ -4,6 +4,7 @@ import { APP_URL } from "@/lib/config";
 
 const NAV = [
   { label: "Features", href: "/#features" },
+  { label: "Platform", href: "/platform" },
   { label: "Pricing", href: "/pricing" },
   { label: "Docs", href: "/docs" },
   { label: "Blog", href: "/blog" },
