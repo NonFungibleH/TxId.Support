@@ -158,6 +158,86 @@ export async function getContractInfo(
   }
 }
 
+// EIP-1967 implementation slot (and legacy OpenZeppelin slot as a fallback).
+const EIP1967_IMPL_SLOT = "0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc"
+const OZ_LEGACY_IMPL_SLOT = "0x7050c9e0f4ca769c69bd3a8ef740bc37934f8e2c036e5a723fd8ee048ed3f8c3"
+
+/**
+ * Read a proxy's implementation address from its EIP-1967 storage slot via RPC.
+ * Chain-agnostic and keyless — works where the explorer's proxy flag doesn't
+ * (notably the Blockscout fallback chains). Returns null when the slot is empty
+ * (not a standard proxy).
+ */
+async function readProxyImplementation(address: string, chainId: string): Promise<string | null> {
+  const rpcUrl = CHAIN_CONFIGS[chainId]?.rpcUrl
+  if (!rpcUrl) return null
+  for (const slot of [EIP1967_IMPL_SLOT, OZ_LEGACY_IMPL_SLOT]) {
+    try {
+      const res = await fetch(rpcUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "eth_getStorageAt", params: [address, slot, "latest"] }),
+        signal: AbortSignal.timeout(6000),
+      })
+      if (!res.ok) continue
+      const json = (await res.json()) as { result?: string }
+      const raw = json.result?.replace(/^0x/, "") ?? ""
+      if (raw.length < 64) continue
+      const impl = "0x" + raw.slice(24) // last 20 bytes
+      if (/^0x0+$/.test(impl)) continue
+      return impl
+    } catch {
+      /* try next slot */
+    }
+  }
+  return null
+}
+
+/**
+ * Fetch a contract's ABI, and when it is a proxy, MERGE in the implementation's
+ * ABI. A proxy's own ABI only exposes upgrade plumbing (Upgraded, admin,
+ * upgradeTo) — the business interface (FeesChanged, paused, fee, lockTokens…)
+ * lives in the implementation. Without this, event/state/decode tools read the
+ * proxy ABI and can't see the real events or getters, so the bot wrongly says
+ * "I don't have access to the event history". Returns the merged ABI JSON
+ * string (implementation entries take precedence), the plain ABI when not a
+ * proxy, or null. Never throws.
+ */
+export async function fetchAbiWithProxy(
+  address: string,
+  chainId: string,
+  fetchAbi: (a: string, c: string) => Promise<string | null>,
+): Promise<string | null> {
+  const ownAbi = await fetchAbi(address, chainId).catch(() => null)
+  // Resolve the implementation two ways: the explorer's proxy flag (reliable on
+  // Etherscan, but NOT on the Blockscout fallback chains), and — as the robust
+  // fallback — reading the EIP-1967 implementation storage slot directly via
+  // RPC, which works on any chain regardless of the explorer.
+  const info = await getContractInfo(address, chainId).catch(() => null)
+  const implementation =
+    (info?.isProxy && info.implementation ? info.implementation : null) ??
+    (await readProxyImplementation(address, chainId).catch(() => null))
+  if (!implementation) return ownAbi
+  const implAbi = await fetchAbi(implementation, chainId).catch(() => null)
+  if (!implAbi) return ownAbi
+  try {
+    const own = ownAbi ? (JSON.parse(ownAbi) as AbiEntry[]) : []
+    const impl = JSON.parse(implAbi) as AbiEntry[]
+    const seen = new Set<string>()
+    const merged: AbiEntry[] = []
+    // Implementation first so its entries win on any signature collision.
+    for (const e of [...impl, ...own]) {
+      const key = `${e.type}:${e.name ?? ""}:${(e.inputs ?? []).map(i => i.type).join(",")}`
+      if (seen.has(key)) continue
+      seen.add(key)
+      merged.push(e)
+    }
+    return JSON.stringify(merged)
+  } catch {
+    return implAbi
+  }
+}
+
 // ── Proxy upgrade history (Upgraded(address) events) ────────────────────────
 
 export interface UpgradeEvent {

@@ -8,7 +8,7 @@ import { z } from "zod"
 import type { ProjectConfig, WatchedContract, ErrorGlossaryEntry, Plan } from "@/lib/types/config"
 import { PLAN_CHAIN_LIMITS } from "@/lib/types/config"
 import type { Database, Json } from "@/lib/supabase/types"
-import { fetchAbiFromExplorer } from "@txid/blockchain"
+import { fetchAbiFromExplorer, fetchAbiWithProxy } from "@txid/blockchain"
 import { fetchIdlFromRegistry } from "@txid/solana"
 
 type ProjectRow = Database["public"]["Tables"]["projects"]["Row"]
@@ -79,10 +79,13 @@ export async function addContract(
     }
   }
 
-  // Try to fetch ABI from the block explorer automatically
-  const abi = await fetchAbiFromExplorer(
+  // Try to fetch ABI from the block explorer automatically. Proxy-aware: if the
+  // address is a proxy, the implementation ABI is merged in so the bot can read
+  // the real events/getters, not just upgrade plumbing.
+  const abi = await fetchAbiWithProxy(
     parsed.data.address.toLowerCase(),
     parsed.data.chain,
+    fetchAbiFromExplorer,
   ).catch(() => null)
 
   const newContract: WatchedContract = {
@@ -118,7 +121,7 @@ export async function refreshContractAbi(projectId: string, contractId: string) 
 
   const abi = contract.chain === "solana"
     ? await fetchIdlFromRegistry(contract.address)
-    : await fetchAbiFromExplorer(contract.address, contract.chain)
+    : await fetchAbiWithProxy(contract.address, contract.chain, fetchAbiFromExplorer)
 
   const updated: ProjectConfig = {
     ...config,

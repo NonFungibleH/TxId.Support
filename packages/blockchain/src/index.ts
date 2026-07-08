@@ -2,7 +2,7 @@ export { getNativeBalance, getTokenBalances, getRecentTransactions, getTransacti
 export type { WalletApproval } from "./wallet"
 export { decodeTxRevert, fetchAbiFromExplorer } from "./decoder"
 export { diagnosePendingTx } from "./pending"
-export { getContractEvents, eventNamesFromAbi, getContractDeployment, getContractInfo, getUpgradeHistory } from "./events"
+export { getContractEvents, eventNamesFromAbi, getContractDeployment, getContractInfo, getUpgradeHistory, fetchAbiWithProxy } from "./events"
 export type { ContractEvent, ContractDeployment, ContractInfo, UpgradeEvent } from "./events"
 export { getContractState, viewGetterNames, getContractData, viewFunctionsWithArgs, contractFunctions } from "./read"
 export type { ContractStateValue, ContractCallResult } from "./read"
