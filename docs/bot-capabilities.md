@@ -46,6 +46,23 @@ Key files: `packages/blockchain/src/*` (data + decode), `packages/ai/src/tools.t
 8. Suggest only answerable questions (suggestion generator is capability-aware).
 9. Escalate cleanly to a ticket rather than looping.
 
+**Expert method (added 2026-07-08)**
+10. **Clock** — every prompt carries the current UTC time; timestamps become
+    dates + relative time ("15 Aug 2026 — about 6 weeks away").
+11. **Humanized data** — base units → decimals-adjusted amounts, 2^256-1 =
+    "unlimited", basis-point inference, arrays summarised, addresses shortened.
+12. **Close the loop** — after finding WHY something failed, check the user's
+    CURRENT state (allowance now, gas now, paused now) and give the exact next
+    step with real values.
+13. **Verify receipt** — "didn't receive tokens" → read the tx's tokenTransfers
+    before assuming; if they arrived, provide the token address to import.
+14. **Never repeat failed advice** — on "still failing", fetch the newest tx,
+    compare with the earlier failure, go deeper or escalate.
+15. **Safety triangulation** — "is this safe/audited?" → declared audits +
+    on-chain verification + contract age, stated as what checks out vs not.
+16. **Live data beats docs** for anything that changes (fees, paused, price,
+    gas, balances); docs for how things work.
+
 ---
 
 ## 1. Transaction level
@@ -116,6 +133,18 @@ Key files: `packages/blockchain/src/*` (data + decode), `packages/ai/src/tools.t
 | Capability | Status |
 |---|---|
 | Features, fees, how-to, tokenomics, FAQ (RAG) | ✅ |
+| Custom error/event glossary (team's exact wording) | ✅ |
+
+## 7. Compliance & trust
+
+| Capability | Status | Tool / mechanism |
+|---|---|---|
+| OFAC sanctions screening (any address or connected wallet) | ✅ | `check_address_sanctions` (Chainalysis on-chain oracle, keyless) |
+| Protocol-declared audits cited with report links | ✅ | dashboard Audits manager → prompt injection |
+| On-chain source verification / proxy transparency | ✅ | `get_contract_info` |
+| Safety triangulation (audits + verification + age) | ✅ | prompt-level method |
+| UN / EU sanctions lists | ❌ | needs additional list source |
+| Risk scoring (mixer exposure, stolen funds) | ❌ | needs Chainalysis/TRM paid API |
 
 ---
 
@@ -137,10 +166,24 @@ Key files: `packages/blockchain/src/*` (data + decode), `packages/ai/src/tools.t
 - Enrichment uses **public RPCs** — fine for demo/light traffic; a dedicated RPC
   (Alchemy/Infura) is recommended for production reliability and rate limits.
 
-## Next candidates (by leverage)
+## Gap analysis — toward "any issue a user can have" (2026-07-08)
 
-1. Wrong-network detection as an explicit answer (easy).
-2. Gas-price / recommended-gas as its own answer (easy).
-3. Token price via DexScreener (medium; unlocks a common question).
-4. Internal traces / simulation via Tenderly (higher effort; powerful).
-5. Blockscout fallback so Base/BSC reach Ethereum parity (medium).
+Ordered by how often real support conversations would hit the gap:
+
+| # | Gap | User issue it blocks | Effort / dependency |
+|---|---|---|---|
+| 1 | **Simulation & internal traces** | "Would it work if I retried now?"; reverts inside internal calls; pre-flight checks before the user signs | Tenderly/Alchemy key (free tiers exist) |
+| 2 | **Token safety screen** (honeypot, sell tax, mint/blacklist flags) | "I bought a token I can't sell"; "is this token a scam?" | GoPlus Security API — free, keyless; one new tool |
+| 3 | **Solana parity** | Every contract/token/network tool is EVM-only; Solana projects get a second-class bot | medium build; needs non-rate-limited RPC |
+| 4 | **Screenshot input** | Users paste error screenshots constantly in real support; widget is text-only (Haiku is vision-capable) | widget + route change, medium |
+| 5 | **Bridge awareness** | "I bridged and my tokens haven't arrived" — very common, currently unanswerable beyond generic advice | recognise bridge txs + explain two-leg model (small); full tracking (large) |
+| 6 | **Page-context awareness** | Bot doesn't know which page/screen the user is on when they ask | pass embedding page URL into the prompt — small |
+| 7 | **ENS resolution** | User pastes `name.eth`, bot can't act on it | eth_call to ENS resolver — small |
+| 8 | **Gas estimate for a planned action** | "How much will locking cost me?" | eth_estimateGas with encoded call — small/medium |
+| 9 | **L2 fee explanation** (OP-stack L1 data fee) | "Why did I pay more than gasLimit × gasPrice on Base?" | decode `l1Fee` from receipt — small |
+| 10 | **Fee-on-transfer / rebase detection** | "I received fewer tokens than I sent" | heuristic from transfer deltas (partial today via tokenTransfers) |
+| 11 | **UN/EU sanctions + risk scoring** | institutional compliance asks | list source / paid API |
+| 12 | **BSC explorer depth** | ABI auto-fetch/history on BSC | paid Etherscan tier or alternative |
+
+Everything above the line ships without changing the architecture — each is one
+more tool + prompt guidance in the existing pattern.
