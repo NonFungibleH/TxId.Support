@@ -12,7 +12,7 @@ export const PLAN_CHAIN_LIMITS: Record<Plan, number> = {
 }
 
 export const PLAN_CONV_LIMITS: Record<Plan, number> = {
-  free:       50,       // trial tier — enough to evaluate, then contact us
+  free:       150,      // trial tier — enough to evaluate, then contact us
   starter:    200,      // legacy
   pro:        2500,     // legacy / internal
   enterprise: Infinity,
@@ -50,6 +50,13 @@ export const SUPPORTED_CHAINS = [
 ] as const
 
 export type ChainId = (typeof SUPPORTED_CHAINS)[number]["id"]
+
+// Chains kept in the integration but temporarily hidden from pickers
+// (existing configs keep working; new selections are EVM-only for now).
+const PAUSED_CHAINS = new Set<string>(["solana"])
+
+/** Chains offered in chain pickers — SUPPORTED_CHAINS minus paused ones. */
+export const SELECTABLE_CHAINS = SUPPORTED_CHAINS.filter(c => !PAUSED_CHAINS.has(c.id))
 
 export const SUPPORTED_FONTS = [
   "Inter", "Sora", "Space Mono", "DM Sans", "IBM Plex Mono", "Outfit",

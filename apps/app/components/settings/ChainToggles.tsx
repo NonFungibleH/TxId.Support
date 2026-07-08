@@ -5,7 +5,7 @@ import { toast } from "sonner"
 import Link from "next/link"
 import { AlertCircle, Lock } from "lucide-react"
 import { updateConfig } from "@/lib/actions/project"
-import { SUPPORTED_CHAINS } from "@/lib/types/config"
+import { SUPPORTED_CHAINS, SELECTABLE_CHAINS } from "@/lib/types/config"
 import type { ChainId, Plan } from "@/lib/types/config"
 
 // Chains stored in DB may be hex ("0x1") or decimal ("1") — support both
@@ -21,7 +21,7 @@ const CHAIN_LOGOS: Record<string, string> = {
 
 const TESTNETS = new Set(["0xaa36a7"])
 
-const MAINNETS = SUPPORTED_CHAINS.filter(c => !TESTNETS.has(c.id))
+const MAINNETS = SELECTABLE_CHAINS.filter(c => !TESTNETS.has(c.id))
 const TESTNET_CHAINS = SUPPORTED_CHAINS.filter(c => TESTNETS.has(c.id))
 
 interface ChainTogglesProps {

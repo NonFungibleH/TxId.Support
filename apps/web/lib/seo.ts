@@ -41,7 +41,7 @@ export const softwareApplicationSchema = {
     price: "0",
     priceCurrency: "USD",
     description:
-      "Free plan: 50 conversations per month to evaluate the product, with wallet detection, transaction diagnostics, and docs Q&A. No credit card required.",
+      "Free plan: 150 conversations per month to evaluate the product, with wallet detection, transaction diagnostics, and docs Q&A. No credit card required.",
   },
   featureList: [
     "Automatic wallet detection (MetaMask, WalletConnect, Coinbase Wallet, Phantom)",
@@ -51,7 +51,7 @@ export const softwareApplicationSchema = {
     "Escalation to human support tickets",
     "White-label custom branding",
     "Telegram bot integration",
-    "Multi-chain: Ethereum, Solana, Base, BNB Chain, Polygon, Arbitrum, Optimism",
+    "Multi-chain: Ethereum, Base, BNB Chain, Polygon, Arbitrum, Optimism",
     "One script-tag embed, works with any stack",
   ],
 }

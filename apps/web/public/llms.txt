@@ -15,7 +15,7 @@ For the full, self-contained reference (all capabilities, the failed-transaction
 
 ## Chains supported
 
-Ethereum, Solana, Base, BNB Chain, Polygon, Arbitrum, and Optimism.
+Ethereum, Base, BNB Chain, Polygon, Arbitrum, and Optimism.
 
 ## Who it's for
 
@@ -27,7 +27,7 @@ Add one script tag before the closing `</body>` tag. No SDK, no build step. Work
 
 ## Pricing
 
-- **Free**: 50 conversations/month to evaluate the product — wallet detection, transaction diagnostics, docs Q&A, and custom branding. No credit card required.
+- **Free**: 150 conversations/month to evaluate the product — wallet detection, transaction diagnostics, docs Q&A, and custom branding. No credit card required.
 - **Custom**: for protocols running the agent in production — higher volume, multiple chains, escalation webhooks, integrations, and priority support. Contact the team for a demo and pricing.
 
 ## Key pages

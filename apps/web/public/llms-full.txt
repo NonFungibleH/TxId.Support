@@ -23,7 +23,7 @@ It is white-label: the agent uses the protocol's own colours, font, and logo, so
 ## Core capabilities
 
 ### Automatic wallet detection
-When a user opens the agent, it silently reads the connected wallet address from whatever provider is connected to the site (MetaMask, WalletConnect, Coinbase Wallet, Phantom on Solana). It uses that address to look up balances and transactions on the relevant chain. No signing, no seed phrase, and no permission is ever requested — it reads public on-chain data only, so there is nothing it can do to move or access funds.
+When a user opens the agent, it silently reads the connected wallet address from whatever provider is connected to the site (MetaMask, WalletConnect, Coinbase Wallet). It uses that address to look up balances and transactions on the relevant chain. No signing, no seed phrase, and no permission is ever requested — it reads public on-chain data only, so there is nothing it can do to move or access funds.
 
 ### Failed-transaction diagnostics
 The agent replays a transaction and explains, in plain English, why it failed. It covers every common cause:
@@ -51,7 +51,7 @@ When the agent cannot resolve an issue, it opens a human support ticket for the 
 
 ## Supported blockchains
 
-Ethereum, Solana, Base, BNB Chain, Polygon, Arbitrum, and Optimism.
+Ethereum, Base, BNB Chain, Polygon, Arbitrum, and Optimism.
 
 ## How to install (three steps)
 
@@ -61,7 +61,7 @@ Ethereum, Solana, Base, BNB Chain, Polygon, Arbitrum, and Optimism.
 
 ## Pricing
 
-- **Free** — 50 conversations per month to evaluate the product on your own site. Includes wallet detection, transaction diagnostics, documentation Q&A, custom branding, and an analytics dashboard. No credit card required. A conversation starts when a user opens the agent and sends a message, and ends after 30 minutes of inactivity; all messages in one session count as a single conversation.
+- **Free** — 150 conversations per month to evaluate the product on your own site. Includes wallet detection, transaction diagnostics, documentation Q&A, custom branding, and an analytics dashboard. No credit card required. A conversation starts when a user opens the agent and sends a message, and ends after 30 minutes of inactivity; all messages in one session count as a single conversation.
 - **Custom** — for protocols running the agent in production: higher volume, multiple chains, escalation webhooks, integrations, and priority support. Contact the team for a demo and pricing. No long-term contract.
 
 ## Frequently asked questions
@@ -72,7 +72,7 @@ Ethereum, Solana, Base, BNB Chain, Polygon, Arbitrum, and Optimism.
 
 **What stack does it work with?** Any stack. One script tag; works with React, Next.js, Vue, Svelte, or plain HTML. No SDK, no build step.
 
-**Which blockchains are supported?** Ethereum, Solana, Base, BNB Chain, Polygon, Arbitrum, and Optimism.
+**Which blockchains are supported?** Ethereum, Base, BNB Chain, Polygon, Arbitrum, and Optimism.
 
 **Can it explain why a transaction failed?** Yes. It replays the transaction and explains the cause in plain English: out of gas, revert reasons, custom errors, or Solidity panics.
 

@@ -215,7 +215,7 @@ export default function BlogPostPage({ params }: { params: { slug: string } }) {
               href="https://app.txid.support/sign-up"
               className="inline-flex items-center gap-2 rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-white hover:opacity-90 transition-opacity"
             >
-              Start free: 50 conversations/month
+              Start free: 150 conversations/month
             </a>
           </div>
         </div>

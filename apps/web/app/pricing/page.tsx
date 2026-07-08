@@ -66,7 +66,7 @@ const COMPARISON = [
 const FAQ = [
   {
     q: "What does the free trial include?",
-    a: "The Free plan lets you evaluate the product with no credit card: you get 50 conversations/month, the full feature set (wallet detection, transaction diagnostics, knowledge base Q&A, token widget), and a full analytics dashboard. It is enough to test on your own site and validate it with real users before you move to a paid plan.",
+    a: "The Free plan lets you evaluate the product with no credit card: you get 150 conversations/month, the full feature set (wallet detection, transaction diagnostics, knowledge base Q&A, token widget), and a full analytics dashboard. It is enough to test on your own site and validate it with real users before you move to a paid plan.",
   },
   {
     q: "What counts as a conversation?",
@@ -74,7 +74,7 @@ const FAQ = [
   },
   {
     q: "How does the Pro plan work?",
-    a: "The Custom plan is for protocols running the agent in production: once you are past the free 50-conversation trial and have real users relying on it. It unlocks higher volume, multiple chains, escalation webhooks, integrations, and priority support. Contact us for a demo and pricing, no long-term contract, cancel anytime.",
+    a: "The Custom plan is for protocols running the agent in production: once you are past the free 150-conversation trial and have real users relying on it. It unlocks higher volume, multiple chains, escalation webhooks, integrations, and priority support. Contact us for a demo and pricing, no long-term contract, cancel anytime.",
   },
   {
     q: "What chains are supported?",

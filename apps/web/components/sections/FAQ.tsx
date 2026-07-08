@@ -20,7 +20,7 @@ export const FAQS = [
   },
   {
     q: "Can I try it before committing?",
-    a: "Yes, the Free plan has no credit card required. You get 50 conversations per month, wallet detection, transaction diagnostics, and docs Q&A. It is enough to evaluate the product on your own site; when you are ready to run it in production, talk to us about a Custom plan.",
+    a: "Yes, the Free plan has no credit card required. You get 150 conversations per month, wallet detection, transaction diagnostics, and docs Q&A. It is enough to evaluate the product on your own site; when you are ready to run it in production, talk to us about a Custom plan.",
   },
   {
     q: "Is it really white-label on the free plan?",
@@ -28,7 +28,7 @@ export const FAQS = [
   },
   {
     q: "Which blockchains does TxID Support work with?",
-    a: "TxID Support works across Ethereum, Solana, Base, BNB Chain, Polygon, Arbitrum, and Optimism. It detects the connected wallet on any of these and looks up balances and transactions on the relevant chain.",
+    a: "TxID Support works across Ethereum, Base, BNB Chain, Polygon, Arbitrum, and Optimism. It detects the connected wallet on any of these and looks up balances and transactions on the relevant chain.",
   },
   {
     q: "Can it explain why a transaction failed?",

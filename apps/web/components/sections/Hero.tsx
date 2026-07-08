@@ -51,13 +51,12 @@ export function Hero() {
 
             <FadeIn delay={0.32}>
               <p className="text-xs text-muted mt-4 mb-6">
-                No credit card required · Free tier includes 50 conversations/mo
+                No credit card required · Free tier includes 150 conversations/mo
               </p>
               <div className="flex flex-wrap items-center gap-x-2.5 gap-y-2">
                 <span className="text-xs text-muted/50 font-mono shrink-0">Available on</span>
                 {[
                   { name: "Ethereum", file: "Ethereum.png", whiteBg: false },
-                  { name: "Solana",   file: "Solana.svg",   whiteBg: false },
                   { name: "Base",     file: "Base.png",     whiteBg: true  },
                   { name: "Arbitrum", file: "Arbitrum.png", whiteBg: false },
                   { name: "Polygon",  file: "Polygon.png",  whiteBg: true  },

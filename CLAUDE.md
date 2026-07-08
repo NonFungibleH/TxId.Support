@@ -324,7 +324,7 @@ Key updated page: `app/docs/contracts/page.tsx` — documents transaction diagno
 
 ### Em dash cleanup (marketing site)
 - Removed all em dashes across `apps/web` (FeatureGrid, ForWho, HowItWorks, FAQ, EmbedPreview, layout, opengraph-image, not-found)
-- Updated FAQ: free tier is 50 conversations (was 200); branding included in free
+- Updated FAQ: free tier is 150 conversations (was 200, then 50); branding included in free
 
 ### Transaction decoder
 - `packages/blockchain/src/decoder.ts` — replays failed txs via `eth_call` at mined block
@@ -382,7 +382,7 @@ Plans: `free | starter | pro | enterprise | custom`
 
 | Plan | Chains | Conversations/mo |
 |---|---|---|
-| free | 1 | 50 |
+| free | 1 | 150 |
 | starter (legacy) | 1 | 200 |
 | pro | 1 | 2500 |
 | enterprise | unlimited | unlimited |

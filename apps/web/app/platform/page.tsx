@@ -217,7 +217,7 @@ export default function PlatformPage() {
                 </h2>
                 <p className="text-muted max-w-xl mx-auto">
                   Every diagnostic the embedded product runs is a tool the platform
-                  will expose. EVM chains today, Solana growing.
+                  will expose, across all major EVM chains.
                 </p>
               </div>
             </FadeIn>

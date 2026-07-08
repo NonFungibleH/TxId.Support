@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { updateConfig } from "@/lib/actions/project"
 import type { TokenConfig } from "@/lib/types/config"
-import { SUPPORTED_CHAINS } from "@/lib/types/config"
+import { SELECTABLE_CHAINS } from "@/lib/types/config"
 
 interface TokenFormProps {
   projectId: string
@@ -77,7 +77,7 @@ export function TokenForm({ projectId, initial }: TokenFormProps) {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {SUPPORTED_CHAINS.map(c => (
+            {SELECTABLE_CHAINS.map(c => (
               <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
             ))}
           </SelectContent>

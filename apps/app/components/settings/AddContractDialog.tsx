@@ -16,7 +16,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { addContract, peekContractFunctions } from "@/lib/actions/contracts"
-import { SUPPORTED_CHAINS } from "@/lib/types/config"
+import { SUPPORTED_CHAINS, SELECTABLE_CHAINS } from "@/lib/types/config"
 import { Plus, AlertTriangle, Loader2 } from "lucide-react"
 import Link from "next/link"
 
@@ -109,7 +109,7 @@ export function AddContractDialog({ projectId, activeChains, chainLimit }: AddCo
                 </SelectValue>
               </SelectTrigger>
               <SelectContent>
-                {SUPPORTED_CHAINS.map(c => (
+                {SELECTABLE_CHAINS.map(c => (
                   <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
                 ))}
               </SelectContent>
