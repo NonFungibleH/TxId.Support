@@ -195,8 +195,11 @@ Key files: `packages/blockchain/src/*` (data + decode), `packages/ai/src/tools.t
   finding protocol-relevant transactions.
 
 **Accepted risks / known limitations (documented, not fixed):**
-- Router/aggregator txs that touch the protocol via INTERNAL calls are declined as
-  out-of-scope (`to` = router). False negative; needs trace support (Tenderly) to fix.
+- Router/aggregator txs are now IN scope when the protocol's own contract emits an
+  event or is the transferred token in the tx (checked post-enrichment across
+  `to` + event contracts + token transfers). Still a false negative only if the
+  protocol contract is touched purely via an internal call that emits NO event and
+  moves NO token — that residual case needs trace support (Tenderly).
 - Protocols with NO watched contracts get an unscoped bot (their configuration choice).
 - Protocol-controlled inputs (docs, glossary, descriptions) are trusted — a customer
   can only "inject" their own bot.

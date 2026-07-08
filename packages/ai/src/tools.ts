@@ -243,27 +243,36 @@ export async function executeTool(
       const hit = results.find(r => r.tx)
       if (hit?.tx) {
         const tx = hit.tx
-        // Scope guard: only diagnose transactions to THIS protocol's own contracts.
-        // A null `to` is a contract-creation tx — those are out of scope too
-        // (otherwise they'd silently bypass the guard).
+        // Enrich the mined tx with decoded args, EVERY event (decoded against all
+        // known ABIs + standard events + 4byte fallback), token transfers, gas
+        // verdict and confirmations (once, on the chain it was found on).
+        const enrichment = await enrichTransaction(hash, hit.chainId, Object.values(knownAbis)).catch(() => null)
+
+        // Scope guard: only diagnose transactions that TOUCH one of THIS
+        // protocol's own contracts. We check three surfaces, not just `tx.to`:
+        //   1. the top-level recipient (direct interaction)
+        //   2. any event emitted BY a watched contract (catches interactions
+        //      via a router/aggregator, where tx.to is the router but the
+        //      protocol's own contract still emits its events)
+        //   3. any token transfer whose token is a watched contract
+        // A null `to` with no watched-contract involvement is out of scope
+        // (e.g. a bare contract-creation tx).
         if (watchedContracts.length > 0) {
-          const isOwn = tx.to
-            ? watchedContracts.some(c => c.address.toLowerCase() === tx.to!.toLowerCase())
-            : false
-          if (!isOwn) {
+          const owned = new Set(watchedContracts.map(c => c.address.toLowerCase()))
+          const touches =
+            (tx.to ? owned.has(tx.to.toLowerCase()) : false) ||
+            (enrichment?.events ?? []).some(e => e.contract && owned.has(e.contract.toLowerCase())) ||
+            (enrichment?.tokenTransfers ?? []).some(t => owned.has(t.token.toLowerCase()))
+          if (!touches) {
             return {
               hash,
               chainId: hit.chainId,
               status: "out_of_scope",
               to: tx.to ?? "contract creation",
-              note: "This transaction is not to one of this protocol's own contracts, so it is outside what you can diagnose. Do NOT analyse it — decline in one sentence and offer to help with this protocol's own transactions.",
+              note: "This transaction does not involve any of this protocol's own contracts, so it is outside what you can diagnose. Do NOT analyse it — decline in one sentence and offer to help with this protocol's own transactions.",
             }
           }
         }
-        // Enrich the mined tx with decoded args, EVERY event (decoded against all
-        // known ABIs + standard events + 4byte fallback), token transfers, gas
-        // verdict and confirmations (once, on the chain it was found on).
-        const enrichment = await enrichTransaction(hash, hit.chainId, Object.values(knownAbis)).catch(() => null)
         return enrichment ? { ...tx, ...enrichment } : tx
       }
 
