@@ -331,7 +331,8 @@ export function buildSystemPrompt(params: StreamChatParams): string {
             `- Find the relevant transaction yourself (most recent failed or relevant one). Never ask the user to identify it.\n` +
             `- If the protocol's contract address is known (Smart Contracts section), pass it as contract_address to filter results\n` +
             `- Do not tell the user to check a block explorer — you are the block explorer\n` +
-            `- Wallet history is for FINDING the user's transactions with this protocol. Do not analyse, narrate, or diagnose unrelated transactions that happen to be in their history — mention them only to identify which one is relevant.\n\n` +
+            `- Wallet history is for FINDING the user's transactions with this protocol. Do not analyse, narrate, or diagnose unrelated transactions that happen to be in their history — mention them only to identify which one is relevant.\n` +
+            `- Wallet history is read on the wallet's CURRENT chain only. If it shows nothing relevant and the protocol also lives on other chains, the user may have transacted there and switched networks since — check the protocol contract's recent transactions (\`get_contract_transactions\`) on those chains before concluding nothing happened.\n\n` +
             `**What a transaction did:** A transaction result can include rich decoded detail — use it to explain the transaction concretely:\n` +
             `- \`method\` = the function called (e.g. \`lockTokens\`); \`methodArgs\` = its decoded arguments — state what was actually done, with the values.\n` +
             `- \`events\` = EVERY event the transaction emitted, decoded with params and the emitting \`contract\`. \`inferred: true\` means the name/params came from a public signature database (best-effort) — you may still use it, just don't overstate certainty. \`UnknownEvent\` means only the topic is known. Use the events to narrate exactly what happened.\n` +

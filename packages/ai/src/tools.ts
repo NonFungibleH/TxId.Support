@@ -49,6 +49,31 @@ export interface WalletConfig {
 }
 
 /**
+ * Resolve which watched contract a tool call refers to — chain-aware.
+ * The same address is often deployed on several chains (CREATE2 / planned
+ * nonces), so an address alone can be ambiguous: never silently pick the
+ * first match. chainId (when provided) disambiguates; otherwise the caller
+ * gets the ambiguousChains list back to re-ask with a chain.
+ */
+function findWatched(
+  watchedContracts: WatchedContractSnapshot[],
+  contractAddress: string | undefined,
+  chainId: string | undefined,
+): { target?: WatchedContractSnapshot; ambiguousChains?: string[] } {
+  if (!contractAddress) {
+    return watchedContracts.length === 1 ? { target: watchedContracts[0]! } : {}
+  }
+  const matches = watchedContracts.filter(c => c.address.toLowerCase() === contractAddress.toLowerCase())
+  if (matches.length === 0) return {}
+  if (matches.length === 1) return { target: matches[0]! }
+  if (chainId) {
+    const m = matches.find(c => c.chain.toLowerCase() === chainId.toLowerCase())
+    if (m) return { target: m }
+  }
+  return { ambiguousChains: matches.map(c => c.chain) }
+}
+
+/**
  * Build balance + history tools — only offered when a wallet is connected.
  * Includes watched contract addresses as hints in the description so Claude
  * knows to filter `get_recent_transactions` to relevant contracts.
@@ -276,12 +301,22 @@ export async function executeTool(
         return enrichment ? { ...tx, ...enrichment } : tx
       }
 
-      // Not mined on any candidate chain — diagnose pending/dropped on the most
-      // likely chain, and report exactly which chains were checked.
-      const diagChain = candidates[0]!
-      const pendingDiagnosis = await diagnosePendingTx(hash, diagChain, wallet?.address).catch(() => null)
-      if (pendingDiagnosis) {
-        return { hash, chainId: diagChain, status: "not_mined", pendingDiagnosis, checkedChains: candidates }
+      // Not mined on any candidate chain — diagnose pending/dropped on EVERY
+      // candidate in parallel and prefer the chain where the tx is actually
+      // visible (any cause other than "dropped"). Diagnosing only the first
+      // candidate would misreport a tx that is pending on the protocol's
+      // other chain as dropped.
+      const pendingResults = await Promise.all(
+        candidates.map(async chainId => ({
+          chainId,
+          diag: await diagnosePendingTx(hash, chainId, wallet?.address).catch(() => null),
+        })),
+      )
+      const best =
+        pendingResults.find(r => r.diag && r.diag.cause !== "dropped") ??
+        pendingResults.find(r => r.diag)
+      if (best?.diag) {
+        return { hash, chainId: best.chainId, status: "not_mined", pendingDiagnosis: best.diag, checkedChains: candidates }
       }
       return {
         hash,
@@ -320,9 +355,14 @@ export async function executeTool(
       const eventName = typeof input.event_name === "string" ? input.event_name : ""
       const contractAddress = typeof input.contract_address === "string" ? input.contract_address : undefined
       if (!eventName) throw new Error("event_name is required")
-      const target = contractAddress
-        ? watchedContracts.find(c => c.address.toLowerCase() === contractAddress.toLowerCase())
-        : watchedContracts.length === 1 ? watchedContracts[0] : undefined
+      const chainHint = typeof input.chain_id === "string" ? input.chain_id : undefined
+      const { target, ambiguousChains } = findWatched(watchedContracts, contractAddress, chainHint)
+      if (ambiguousChains) {
+        return {
+          contract: contractAddress,
+          note: `This address is watched on multiple chains (${ambiguousChains.join(", ")}). Call this tool again with chain_id set to the chain the user means — infer it from context (their wallet's chain, the chain they named) or ask which chain if genuinely unclear.`,
+        }
+      }
       if (!target) throw new Error("Specify which contract (contract_address) to read events from")
       if (isSolanaChain(target.chain)) {
         return { events: [], note: "Event history lookups are only available on EVM chains." }
@@ -333,9 +373,14 @@ export async function executeTool(
 
     case "get_contract_deployment": {
       const contractAddress = typeof input.contract_address === "string" ? input.contract_address : undefined
-      const target = contractAddress
-        ? watchedContracts.find(c => c.address.toLowerCase() === contractAddress.toLowerCase())
-        : watchedContracts.length === 1 ? watchedContracts[0] : undefined
+      const chainHint = typeof input.chain_id === "string" ? input.chain_id : undefined
+      const { target, ambiguousChains } = findWatched(watchedContracts, contractAddress, chainHint)
+      if (ambiguousChains) {
+        return {
+          contract: contractAddress,
+          note: `This address is watched on multiple chains (${ambiguousChains.join(", ")}). Call this tool again with chain_id set to the chain the user means — infer it from context (their wallet's chain, the chain they named) or ask which chain if genuinely unclear.`,
+        }
+      }
       if (!target) throw new Error("Specify which contract (contract_address) to look up")
       if (isSolanaChain(target.chain)) {
         return { note: "Deployment lookup is only available on EVM chains." }
@@ -348,9 +393,14 @@ export async function executeTool(
 
     case "get_contract_holdings": {
       const contractAddress = typeof input.contract_address === "string" ? input.contract_address : undefined
-      const target = contractAddress
-        ? watchedContracts.find(c => c.address.toLowerCase() === contractAddress.toLowerCase())
-        : watchedContracts.length === 1 ? watchedContracts[0] : undefined
+      const chainHint = typeof input.chain_id === "string" ? input.chain_id : undefined
+      const { target, ambiguousChains } = findWatched(watchedContracts, contractAddress, chainHint)
+      if (ambiguousChains) {
+        return {
+          contract: contractAddress,
+          note: `This address is watched on multiple chains (${ambiguousChains.join(", ")}). Call this tool again with chain_id set to the chain the user means — infer it from context (their wallet's chain, the chain they named) or ask which chain if genuinely unclear.`,
+        }
+      }
       if (!target) throw new Error("Specify which contract (contract_address) to check holdings for")
       if (isSolanaChain(target.chain)) {
         return getSolanaWalletBalance(target.address)
@@ -366,9 +416,14 @@ export async function executeTool(
       const functionName = typeof input.function_name === "string" ? input.function_name : ""
       const contractAddress = typeof input.contract_address === "string" ? input.contract_address : undefined
       if (!functionName) throw new Error("function_name is required")
-      const target = contractAddress
-        ? watchedContracts.find(c => c.address.toLowerCase() === contractAddress.toLowerCase())
-        : watchedContracts.length === 1 ? watchedContracts[0] : undefined
+      const chainHint = typeof input.chain_id === "string" ? input.chain_id : undefined
+      const { target, ambiguousChains } = findWatched(watchedContracts, contractAddress, chainHint)
+      if (ambiguousChains) {
+        return {
+          contract: contractAddress,
+          note: `This address is watched on multiple chains (${ambiguousChains.join(", ")}). Call this tool again with chain_id set to the chain the user means — infer it from context (their wallet's chain, the chain they named) or ask which chain if genuinely unclear.`,
+        }
+      }
       if (!target) throw new Error("Specify which contract (contract_address) to read")
       if (isSolanaChain(target.chain)) {
         return { note: "Reading contract state is only available on EVM chains." }
@@ -384,9 +439,14 @@ export async function executeTool(
       const contractAddress = typeof input.contract_address === "string" ? input.contract_address : undefined
       const args = Array.isArray(input.args) ? input.args.map(a => String(a)) : []
       if (!functionName) throw new Error("function_name is required")
-      const target = contractAddress
-        ? watchedContracts.find(c => c.address.toLowerCase() === contractAddress.toLowerCase())
-        : watchedContracts.length === 1 ? watchedContracts[0] : undefined
+      const chainHint = typeof input.chain_id === "string" ? input.chain_id : undefined
+      const { target, ambiguousChains } = findWatched(watchedContracts, contractAddress, chainHint)
+      if (ambiguousChains) {
+        return {
+          contract: contractAddress,
+          note: `This address is watched on multiple chains (${ambiguousChains.join(", ")}). Call this tool again with chain_id set to the chain the user means — infer it from context (their wallet's chain, the chain they named) or ask which chain if genuinely unclear.`,
+        }
+      }
       if (!target) throw new Error("Specify which contract (contract_address) to read")
       if (isSolanaChain(target.chain)) {
         return { note: "Reading contract data is only available on EVM chains." }
@@ -399,9 +459,14 @@ export async function executeTool(
 
     case "get_contract_info": {
       const contractAddress = typeof input.contract_address === "string" ? input.contract_address : undefined
-      const target = contractAddress
-        ? watchedContracts.find(c => c.address.toLowerCase() === contractAddress.toLowerCase())
-        : watchedContracts.length === 1 ? watchedContracts[0] : undefined
+      const chainHint = typeof input.chain_id === "string" ? input.chain_id : undefined
+      const { target, ambiguousChains } = findWatched(watchedContracts, contractAddress, chainHint)
+      if (ambiguousChains) {
+        return {
+          contract: contractAddress,
+          note: `This address is watched on multiple chains (${ambiguousChains.join(", ")}). Call this tool again with chain_id set to the chain the user means — infer it from context (their wallet's chain, the chain they named) or ask which chain if genuinely unclear.`,
+        }
+      }
       if (!target) throw new Error("Specify which contract (contract_address) to look up")
       if (isSolanaChain(target.chain)) {
         return { note: "Verification/proxy info is only available on EVM chains." }
@@ -412,9 +477,14 @@ export async function executeTool(
 
     case "get_contract_functions": {
       const contractAddress = typeof input.contract_address === "string" ? input.contract_address : undefined
-      const target = contractAddress
-        ? watchedContracts.find(c => c.address.toLowerCase() === contractAddress.toLowerCase())
-        : watchedContracts.length === 1 ? watchedContracts[0] : undefined
+      const chainHint = typeof input.chain_id === "string" ? input.chain_id : undefined
+      const { target, ambiguousChains } = findWatched(watchedContracts, contractAddress, chainHint)
+      if (ambiguousChains) {
+        return {
+          contract: contractAddress,
+          note: `This address is watched on multiple chains (${ambiguousChains.join(", ")}). Call this tool again with chain_id set to the chain the user means — infer it from context (their wallet's chain, the chain they named) or ask which chain if genuinely unclear.`,
+        }
+      }
       if (!target) throw new Error("Specify which contract (contract_address)")
       const fns = contractFunctions(target.abi ?? undefined)
       return { contract: target.name, readFunctions: fns.read, writeFunctions: fns.write }
@@ -422,9 +492,14 @@ export async function executeTool(
 
     case "get_upgrade_history": {
       const contractAddress = typeof input.contract_address === "string" ? input.contract_address : undefined
-      const target = contractAddress
-        ? watchedContracts.find(c => c.address.toLowerCase() === contractAddress.toLowerCase())
-        : watchedContracts.length === 1 ? watchedContracts[0] : undefined
+      const chainHint = typeof input.chain_id === "string" ? input.chain_id : undefined
+      const { target, ambiguousChains } = findWatched(watchedContracts, contractAddress, chainHint)
+      if (ambiguousChains) {
+        return {
+          contract: contractAddress,
+          note: `This address is watched on multiple chains (${ambiguousChains.join(", ")}). Call this tool again with chain_id set to the chain the user means — infer it from context (their wallet's chain, the chain they named) or ask which chain if genuinely unclear.`,
+        }
+      }
       if (!target) throw new Error("Specify which contract (contract_address)")
       if (isSolanaChain(target.chain)) {
         return { upgrades: [], note: "Upgrade history is only available on EVM chains." }
@@ -490,9 +565,14 @@ export async function executeTool(
       const args = Array.isArray(input.args) ? input.args.map(a => String(a)) : []
       if (!functionName) throw new Error("function_name is required")
       if (!wallet) throw new Error("Wallet not connected — estimates simulate from the user's address")
-      const target = contractAddress
-        ? watchedContracts.find(c => c.address.toLowerCase() === contractAddress.toLowerCase())
-        : watchedContracts.length === 1 ? watchedContracts[0] : undefined
+      const chainHint = typeof input.chain_id === "string" ? input.chain_id : undefined
+      const { target, ambiguousChains } = findWatched(watchedContracts, contractAddress, chainHint)
+      if (ambiguousChains) {
+        return {
+          contract: contractAddress,
+          note: `This address is watched on multiple chains (${ambiguousChains.join(", ")}). Call this tool again with chain_id set to the chain the user means — infer it from context (their wallet's chain, the chain they named) or ask which chain if genuinely unclear.`,
+        }
+      }
       if (!target) throw new Error("Specify which contract (contract_address)")
       if (isSolanaChain(target.chain)) {
         return { note: "Action estimates are only available on EVM chains." }
@@ -589,6 +669,11 @@ export function buildContractEventsTool(
           type: "string",
           description: "The contract address to read events from (use one from the list above).",
         },
+        chain_id: {
+          type: "string",
+          description: "Chain ID — required when the same address is watched on multiple chains.",
+        },
+       
         event_name: {
           type: "string",
           description: "The exact event name to look up, e.g. 'FeesChanged' (choose from the events listed for that contract).",
@@ -622,6 +707,11 @@ export function buildContractDeploymentTool(
           type: "string",
           description: "The contract address to look up (use one from the list above).",
         },
+        chain_id: {
+          type: "string",
+          description: "Chain ID — required when the same address is watched on multiple chains.",
+        },
+       
       },
       required: ["contract_address"],
     },
@@ -652,6 +742,11 @@ export function buildContractHoldingsTool(
           type: "string",
           description: "The contract address to check holdings for (use one from the list above).",
         },
+        chain_id: {
+          type: "string",
+          description: "Chain ID — required when the same address is watched on multiple chains.",
+        },
+       
       },
       required: ["contract_address"],
     },
@@ -686,6 +781,11 @@ export function buildContractStateTool(
           type: "string",
           description: "The contract address to read (use one from the list above).",
         },
+        chain_id: {
+          type: "string",
+          description: "Chain ID — required when the same address is watched on multiple chains.",
+        },
+       
         function_name: {
           type: "string",
           description: "The exact getter name to read, e.g. 'fee' or 'paused' (choose from the getters listed for that contract).",
@@ -718,7 +818,7 @@ export function buildContractDataTool(
     input_schema: {
       type: "object" as const,
       properties: {
-        contract_address: { type: "string", description: "The contract address (from the list above)." },
+        contract_address: { type: "string", description: "The contract address (from the list above)." }, chain_id: { type: "string", description: "Chain ID — required when the same address is watched on multiple chains." },
         function_name: { type: "string", description: "The exact function name, e.g. 'getUserLock'." },
         args: {
           type: "array",
@@ -748,7 +848,7 @@ export function buildContractInfoTool(
       `Contracts: ${list}.`,
     input_schema: {
       type: "object" as const,
-      properties: { contract_address: { type: "string", description: "The contract address (from the list above)." } },
+      properties: { contract_address: { type: "string", description: "The contract address (from the list above)." }, chain_id: { type: "string", description: "Chain ID — required when the same address is watched on multiple chains." } },
       required: ["contract_address"],
     },
   }
@@ -768,7 +868,7 @@ export function buildContractFunctionsTool(
       `Contracts: ${list}.`,
     input_schema: {
       type: "object" as const,
-      properties: { contract_address: { type: "string", description: "The contract address (from the list above)." } },
+      properties: { contract_address: { type: "string", description: "The contract address (from the list above)." }, chain_id: { type: "string", description: "Chain ID — required when the same address is watched on multiple chains." } },
       required: ["contract_address"],
     },
   }
@@ -787,7 +887,7 @@ export function buildUpgradeHistoryTool(
       `Contracts: ${list}.`,
     input_schema: {
       type: "object" as const,
-      properties: { contract_address: { type: "string", description: "The contract address (from the list above)." } },
+      properties: { contract_address: { type: "string", description: "The contract address (from the list above)." }, chain_id: { type: "string", description: "Chain ID — required when the same address is watched on multiple chains." } },
       required: ["contract_address"],
     },
   }
@@ -911,7 +1011,7 @@ export function buildEstimateActionTool(
     input_schema: {
       type: "object" as const,
       properties: {
-        contract_address: { type: "string", description: "The contract address (from the list above)." },
+        contract_address: { type: "string", description: "The contract address (from the list above)." }, chain_id: { type: "string", description: "Chain ID — required when the same address is watched on multiple chains." },
         function_name: { type: "string", description: "The exact write function name, e.g. 'lockTokens'." },
         args: {
           type: "array",
