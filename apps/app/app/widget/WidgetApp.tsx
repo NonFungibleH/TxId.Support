@@ -16,6 +16,33 @@ import {
   LogOut as LogOutIcon,
 } from "lucide-react"
 
+// Human-readable status shown while the bot runs each tool. Kept in sync with
+// TOOL_LABELS in packages/ai/src/tools.ts (duplicated here to avoid pulling the
+// server-only ai package into the client bundle).
+const TOOL_LABELS: Record<string, string> = {
+  get_wallet_balance: "Checking your balance…",
+  get_recent_transactions: "Looking up your transactions…",
+  get_wallet_approvals: "Checking your token approvals…",
+  get_transaction_by_hash: "Diagnosing transaction…",
+  get_contract_transactions: "Checking contract activity…",
+  get_contract_events: "Reading contract event history…",
+  get_contract_deployment: "Checking contract deployment…",
+  get_contract_holdings: "Checking contract holdings…",
+  get_contract_state: "Reading contract state…",
+  get_contract_data: "Reading contract data…",
+  get_contract_info: "Checking contract verification…",
+  get_contract_functions: "Reading contract functions…",
+  get_upgrade_history: "Checking upgrade history…",
+  get_token_info: "Reading token details…",
+  get_token_allowance: "Checking token approval…",
+  get_token_price: "Checking token price…",
+  get_network_status: "Checking network status…",
+  check_address_sanctions: "Screening address (OFAC)…",
+  check_token_safety: "Screening token safety…",
+  resolve_ens_name: "Resolving ENS name…",
+  estimate_action: "Simulating the action…",
+}
+
 // ─── Types ──────────────────────────────────────────────────────────────────
 
 interface BrandingConfig {
@@ -453,6 +480,10 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
   const [ticketEmail, setTicketEmail] = useState("")
   const [ticketSubmitting, setTicketSubmitting] = useState(false)
   const [ticketRef, setTicketRef] = useState<string | null>(null)
+  const [ticketError, setTicketError] = useState<string | null>(null)
+  const [manualOpen, setManualOpen] = useState(false)
+  const [manualValue, setManualValue] = useState("")
+  const [manualError, setManualError] = useState(false)
 
 
   // Quick-reply suggestion chips
@@ -469,7 +500,9 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
       setConfigError("No API key provided")
       return
     }
-    fetch(`/api/widget-config/${apiKey}${isPreview ? `?preview=1&pt=${previewToken ?? ""}` : ""}`)
+    fetch(`/api/widget-config/${apiKey}${isPreview ? `?preview=1&pt=${previewToken ?? ""}` : ""}`, {
+      signal: AbortSignal.timeout(12000),
+    })
       .then((r) => r.json())
       .then((data: WidgetConfig | { error: string }) => {
         if ("error" in data) setConfigError(data.error)
@@ -540,6 +573,25 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [apiKey, config])
 
+  // ── Manual address entry (for users with no injected wallet) ─────────────
+  const submitManualAddress = useCallback(() => {
+    const addr = manualValue.trim()
+    if (!/^0x[0-9a-fA-F]{40}$/.test(addr)) {
+      setManualError(true)
+      return
+    }
+    const cid = (config?.chains ?? []).find((c) => c !== "solana") ?? "0x1"
+    setWalletAddress(addr)
+    setChainId(cid)
+    setWalletSetup("manual")
+    saveWalletSession(apiKey, { setup: "manual", address: addr, chainId: cid })
+    setManualOpen(false)
+    setManualValue("")
+    setManualError(false)
+    setTab("chat")
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [manualValue, config, apiKey])
+
   // ── Connect wallet ───────────────────────────────────────────────────────
   const connectWallet = useCallback(async () => {
     if (typeof window === "undefined") return
@@ -608,8 +660,9 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
           conversation: messages.map(m => ({ role: m.role, content: m.content })),
         }),
       })
-      const data = (await res.json()) as { ref?: string; error?: string }
-      if (data.ref) {
+      const data = res.ok ? (await res.json()) as { ref?: string; error?: string } : null
+      if (data?.ref) {
+        setTicketError(null)
         setTicketRef(data.ref)
         setMessages(prev => [...prev, {
           id: nanoid(),
@@ -617,9 +670,11 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
           content: `Ticket ${data.ref} has been raised — the team will be in touch at ${ticketEmail.trim()}.`,
           streaming: false,
         }])
+      } else {
+        setTicketError(`Couldn't submit your ticket. Please try again, or email us at team@txid.support.`)
       }
     } catch {
-      // non-fatal
+      setTicketError(`Couldn't reach the server. Please try again, or email us at team@txid.support.`)
     } finally {
       setTicketSubmitting(false)
     }
@@ -656,7 +711,22 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
         }),
       })
 
-      if (!res.ok || !res.body) throw new Error("Stream failed")
+      if (!res.ok) {
+        // The route returns JSON (not SSE) for quota/rate-limit/domain/auth
+        // errors. Surface the real message ("Monthly conversation limit
+        // reached…", "Too many requests…") instead of a generic failure.
+        let msg = "Sorry, something went wrong. Please try again."
+        try {
+          const body = (await res.json()) as { error?: string }
+          if (body?.error) msg = body.error
+        } catch { /* non-JSON body — keep the generic message */ }
+        setMessages((prev) =>
+          prev.map((m) => (m.id === assistantId ? { ...m, content: msg, streaming: false } : m)),
+        )
+        setIsStreaming(false)
+        return
+      }
+      if (!res.body) throw new Error("Stream failed")
 
       const reader = res.body.getReader()
       const decoder = new TextDecoder()
@@ -858,9 +928,28 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
             >
               {walletConnecting ? "Connecting…" : isSolanaProject ? "Connect Phantom" : "Connect wallet"}
             </button>
+          ) : manualOpen ? (
+            <div className="flex items-center gap-1">
+              <input
+                autoFocus
+                value={manualValue}
+                onChange={(e) => { setManualValue(e.target.value); setManualError(false) }}
+                onKeyDown={(e) => { if (e.key === "Enter") submitManualAddress() }}
+                placeholder="0x address…"
+                className="w-32 rounded-full px-2.5 py-1 text-xs font-mono outline-none"
+                style={{ backgroundColor: bgIsLight ? "rgba(0,0,0,0.04)" : "rgba(255,255,255,0.06)", color: b.inputTextColor ?? adaptiveText, border: manualError ? "1px solid #f87171" : `1px solid var(--w-border)` }}
+              />
+              <button
+                onClick={submitManualAddress}
+                className="rounded-full px-2 py-1 text-xs font-medium transition-opacity active:opacity-70"
+                style={{ backgroundColor: b.secondaryColor, color: b.textColor }}
+              >
+                Go
+              </button>
+            </div>
           ) : (
             <button
-              onClick={() => setWalletSetup("manual-input")}
+              onClick={() => setManualOpen(true)}
               className="rounded-full px-2.5 py-1 text-xs font-medium transition-opacity active:opacity-70"
               style={{ backgroundColor: b.secondaryColor, color: b.textColor }}
             >
@@ -1217,10 +1306,7 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
                           <span className="inline-flex items-center gap-1.5 opacity-70">
                             <Loader2Icon className="size-2.5 animate-spin" />
                             <span className="text-[11px]">
-                              {m.toolCall === "get_wallet_balance" && "Checking your balance…"}
-                              {m.toolCall === "get_recent_transactions" && "Looking up your transactions…"}
-                              {m.toolCall === "get_transaction_by_hash" && "Fetching transaction details…"}
-                              {!["get_wallet_balance","get_recent_transactions","get_transaction_by_hash"].includes(m.toolCall) && "Looking up data…"}
+                              {TOOL_LABELS[m.toolCall] ?? "Looking up data…"}
                             </span>
                           </span>
                         ) : (
@@ -1267,6 +1353,9 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
                       className="w-full bg-transparent text-xs outline-none border-b pb-1.5 placeholder:opacity-30"
                       style={{ color: b.inputTextColor ?? adaptiveText, borderColor: `var(--w-border)` }}
                     />
+                    {ticketError && (
+                      <p className="text-[11px] text-red-400 leading-snug">{ticketError}</p>
+                    )}
                     <div className="flex items-center gap-2 pt-0.5">
                       <button
                         onClick={submitTicket}

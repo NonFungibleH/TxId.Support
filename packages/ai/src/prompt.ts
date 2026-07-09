@@ -246,7 +246,7 @@ export function buildSystemPrompt(params: StreamChatParams): string {
         `You can read the on-chain event log of the contracts above with the \`get_contract_events\` tool. ` +
         `Use it whenever the user asks WHEN something happened or HOW OFTEN — e.g. "when were fees last changed", "when was the last deposit", "how many times has X happened". ` +
         `Pass the contract address and the exact event name (e.g. \`FeesChanged\`). It returns each occurrence's timestamp and transaction hash, newest first — answer with the most recent date and cite the transaction. ` +
-        `If it returns no events, say the event has not been emitted in the history available, rather than saying you have no access.\n` +
+        `If it returns events, answer with the most recent date and cite the transaction. If it returns \`checked: true\` with zero events, the event genuinely has not fired — say so. If it returns \`checked: false\`, you could NOT verify that specific event (its signature isn't derivable without the ABI) — do NOT say it never happened; say you couldn't check that event and offer to have the team upload the contract's ABI.\n` +
         `\n` +
         `For "when was the contract deployed / created", "how old is the contract", or "who deployed it", use the \`get_contract_deployment\` tool (deployment date is the contract's creation, not an event). Answer with the deployment date and cite the creation transaction.\n` +
         `\n` +

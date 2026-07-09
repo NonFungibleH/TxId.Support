@@ -15,6 +15,7 @@ import {
   getContractTransactions,
   diagnosePendingTx,
   getContractEvents,
+  canCheckEvent,
   eventNamesFromAbi,
   getContractDeployment,
   getContractState,
@@ -368,7 +369,19 @@ export async function executeTool(
         return { events: [], note: "Event history lookups are only available on EVM chains." }
       }
       const events = await getContractEvents(target.address, target.chain, eventName, target.abi ?? undefined)
-      return { contract: target.name, event: eventName, count: events.length, events }
+      if (events.length === 0 && !canCheckEvent(eventName, target.abi ?? undefined)) {
+        // Empty AND we had no way to compute this event's topic (custom event,
+        // no/partial ABI) — do NOT let the model claim it never fired.
+        return {
+          contract: target.name,
+          event: eventName,
+          count: 0,
+          events: [],
+          checked: false,
+          note: `Could not verify the ${eventName} event — it isn't a standard event and this contract's ABI (or, for a proxy, its implementation ABI) isn't available, so its signature can't be derived. Do NOT say it never happened; say you couldn't check this specific event and offer to have the team upload the contract's ABI.`,
+        }
+      }
+      return { contract: target.name, event: eventName, count: events.length, events, checked: true }
     }
 
     case "get_contract_deployment": {

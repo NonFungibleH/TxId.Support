@@ -39,6 +39,25 @@ export type StreamEvent =
   // each response; the caller persists them for per-project usage accounting.
   | { type: "usage"; inputTokens: number; outputTokens: number; model: string }
 
+// Hard ceiling on any single tool execution, so one hung RPC/API call can't
+// stall the whole stream (the widget would otherwise spin forever). Individual
+// fetches have their own shorter timeouts; this is the backstop.
+const TOOL_TIMEOUT_MS = 25_000
+
+async function executeToolWithTimeout(
+  name: string,
+  input: Record<string, unknown>,
+  wallet: WalletConfig | null,
+  watchedContracts: WatchedContractSnapshot[],
+): Promise<unknown> {
+  return Promise.race([
+    executeTool(name, input, wallet, watchedContracts),
+    new Promise((_, reject) =>
+      setTimeout(() => reject(new Error(`${name} timed out — the data source is slow or unreachable right now`)), TOOL_TIMEOUT_MS),
+    ),
+  ])
+}
+
 // ── Agentic streaming with tool use ─────────────────────────────────────────
 
 /**
@@ -68,13 +87,13 @@ export async function* streamChatWithTools(
   if (!anthropic) {
     const client = getGroqClient()
 
-    // Only offer blockchain tools when the latest message looks like a
-    // transaction diagnostic query — not for general protocol/docs questions.
-    const latestUserMsg = [...messages].reverse().find((m) => m.role === "user")?.content ?? ""
-    const TX_KEYWORDS = /\b(fail|failed|error|stuck|pending|didn[‘’]t|did not|went wrong|lost|missing|not received|refund|my balance|what(‘s| is) my balance|my wallet|my tokens?|what do i have|my eth|my bnb|how much (do i|eth|bnb|have)|transaction (fail|stuck|didn)|tx |txn\b)/i
-    const needsWalletTools = walletConfig !== null && TX_KEYWORDS.test(latestUserMsg)
+    // Offer wallet tools whenever a wallet is connected — same rule as the
+    // Claude path. (A previous keyword-regex gate produced false negatives:
+    // "is my withdrawal complete?" wouldn't match, so a connected wallet
+    // couldn't be used. The prompt handles when NOT to call them.)
+    const needsWalletTools = walletConfig !== null
 
-    // Wallet tools only when connected + relevant; tx lookup, contract tools, and escalation always available
+    // Wallet tools only when connected; tx lookup, contract tools, and escalation always available
     const contractToolset = [
       buildContractTxsTool, buildContractEventsTool, buildContractDeploymentTool,
       buildContractHoldingsTool, buildContractStateTool, buildContractDataTool,
@@ -154,7 +173,7 @@ export async function* streamChatWithTools(
             fnCalls.map(async (tc) => {
               try {
                 const input = JSON.parse(tc.function.arguments || "{}") as Record<string, unknown>
-                const result = await executeTool(tc.function.name, input, walletConfig, watchedContracts)
+                const result = await executeToolWithTimeout(tc.function.name, input, walletConfig, watchedContracts)
                 return { role: "tool" as const, tool_call_id: tc.id, content: JSON.stringify(result, null, 2) }
               } catch (err) {
                 return { role: "tool" as const, tool_call_id: tc.id, content: `Error: ${err instanceof Error ? err.message : "Tool failed"}` }
@@ -198,6 +217,23 @@ export async function* streamChatWithTools(
       }
       return
     }
+
+    // Exhausted MAX_ROUNDS without a text answer — force one final no-tools
+    // completion so the user never gets a blank response.
+    const closing = await client.chat.completions.create({
+      model: "llama-3.3-70b-versatile",
+      max_tokens: maxTokens,
+      messages: [...groqMessages, { role: "user", content: "Give your best final answer now in plain English using what you found above. Do not call any more tools." }],
+      stream: true,
+    })
+    let emittedClosing = false
+    for await (const chunk of closing) {
+      const text = chunk.choices[0]?.delta?.content
+      if (text) { emittedClosing = true; yield { type: "text", text } }
+    }
+    if (!emittedClosing) {
+      yield { type: "text", text: "I looked into that but couldn't complete the diagnosis in one go. Could you rephrase, or share the specific transaction hash so I can dig in directly?" }
+    }
     return
   }
 
@@ -232,6 +268,8 @@ export async function* streamChatWithTools(
   const MAX_ROUNDS = 5
   let totalInputTokens = 0
   let totalOutputTokens = 0
+  let endedWithText = false
+  let anyTextThisTurn = false
 
   for (let round = 0; round < MAX_ROUNDS; round++) {
     const stream = anthropic.messages.stream({
@@ -258,6 +296,7 @@ export async function* streamChatWithTools(
         event.type === "content_block_delta" &&
         event.delta.type === "text_delta"
       ) {
+        anyTextThisTurn = true
         yield { type: "text", text: event.delta.text }
       }
     }
@@ -270,7 +309,7 @@ export async function* streamChatWithTools(
     totalOutputTokens += finalMsg.usage.output_tokens
 
     // Claude gave a text response with no tool calls — done
-    if (!hasToolCalls) break
+    if (!hasToolCalls) { endedWithText = true; break }
 
     const toolUseBlocks = finalMsg.content.filter(
       (b): b is Anthropic.ToolUseBlock => b.type === "tool_use",
@@ -289,7 +328,7 @@ export async function* streamChatWithTools(
     const toolResults = await Promise.all(
       toolUseBlocks.map(async (block) => {
         try {
-          const result = await executeTool(
+          const result = await executeToolWithTimeout(
             block.name,
             block.input as Record<string, unknown>,
             walletConfig,
@@ -317,6 +356,34 @@ export async function* streamChatWithTools(
       { role: "assistant", content: finalMsg.content },
       { role: "user", content: toolResults },
     ]
+  }
+
+  // Exhausted MAX_ROUNDS still calling tools, and never produced a final
+  // answer → the user would otherwise get a blank bubble. Do ONE final
+  // completion with tools disabled to force a text summary of what was found.
+  if (!endedWithText && !anyTextThisTurn) {
+    try {
+      const closing = anthropic.messages.stream({
+        model: MODEL,
+        max_tokens: maxTokens,
+        system: systemPrompt + "\n\nYou have gathered tool results above. Give the user your best final answer now in plain English, using what you found. Do not call any more tools.",
+        messages: currentMessages,
+      })
+      for await (const event of closing) {
+        if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
+          anyTextThisTurn = true
+          yield { type: "text", text: event.delta.text }
+        }
+      }
+      const fm = await closing.finalMessage()
+      totalInputTokens += fm.usage.input_tokens
+      totalOutputTokens += fm.usage.output_tokens
+    } catch { /* fall through to the guaranteed fallback below */ }
+  }
+
+  // Absolute backstop: never end a turn with zero text.
+  if (!anyTextThisTurn) {
+    yield { type: "text", text: "I looked into that but couldn't complete the diagnosis in one go. Could you rephrase, or share the specific transaction hash so I can dig in directly?" }
   }
 
   yield { type: "usage", inputTokens: totalInputTokens, outputTokens: totalOutputTokens, model: MODEL }

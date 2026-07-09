@@ -97,6 +97,23 @@ const COMMON_EVENT_SIGS: Record<string, string[]> = {
   withdrawal: ["Withdrawal(address,uint256)"],
 }
 
+/**
+ * Whether we can actually CHECK for a named event — true if it's in the ABI or
+ * a known common event. When false, an empty result means "couldn't verify"
+ * (needs the implementation ABI), NOT "never happened" — the caller must not
+ * claim the event never fired.
+ */
+export function canCheckEvent(eventName: string, abiJson: string | undefined): boolean {
+  if (COMMON_EVENT_SIGS[eventName.toLowerCase()]) return true
+  if (!abiJson) return false
+  try {
+    const abi = JSON.parse(abiJson) as AbiEntry[]
+    return abi.some(e => e.type === "event" && e.name?.toLowerCase() === eventName.toLowerCase())
+  } catch {
+    return false
+  }
+}
+
 /** Query a contract's log history for one specific topic0 (full range). */
 async function logsForTopic(
   contractAddress: string,
