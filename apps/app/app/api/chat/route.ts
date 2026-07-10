@@ -240,6 +240,12 @@ export async function POST(request: Request) {
         address: c.address,
         chain: c.chain,
         description: c.description,
+        // These were being dropped — without abi the contract-read tools are
+        // never offered/usable, and without errorGlossary the team's custom
+        // wording never reaches the prompt. Both are needed downstream.
+        ...(c.errorGlossary ? { errorGlossary: c.errorGlossary } : {}),
+        ...(c.abi ? { abi: c.abi } : {}),
+        ...(c.abiSource ? { abiSource: c.abiSource } : {}),
       })),
       docsUrl: config.docsUrl,
       ...(config.audits && config.audits.length > 0
