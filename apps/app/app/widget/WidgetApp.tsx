@@ -1469,7 +1469,7 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
                 }}
               >
                 <p className="text-[10px] font-bold uppercase tracking-widest mb-1" style={{ color: b.primaryColor, opacity: 0.75 }}>Token</p>
-                <p className="text-sm font-bold" style={{ color: adaptiveText }}>{config.token.symbol ?? "Unknown"}</p>
+                <p className="text-sm font-bold" style={{ color: adaptiveText }}>{config.token.symbol ?? (config.token.address ? `${config.token.address.slice(0, 6)}…${config.token.address.slice(-4)}` : "Token")}</p>
                 {config.token.dexUrl && (
                   <a
                     href={config.token.dexUrl}

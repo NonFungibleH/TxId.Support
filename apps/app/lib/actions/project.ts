@@ -192,9 +192,30 @@ export async function updateConfig(
     assertSafeWebhookUrl(partial.webhookUrl)
   }
 
+  // When a token is being saved, resolve its symbol + name from on-chain so the
+  // widget shows e.g. "PHAR" instead of "Unknown". Best-effort — never blocks
+  // the save if the lookup fails.
+  let resolvedPartial = partial
+  if (partial.token && partial.token.address) {
+    try {
+      const { getTokenInfo } = await import("@txid/blockchain")
+      const info = await getTokenInfo(partial.token.address, partial.token.chain as string)
+      if (info && (info.symbol || info.name)) {
+        resolvedPartial = {
+          ...partial,
+          token: {
+            ...partial.token,
+            symbol: info.symbol ?? partial.token.symbol ?? null,
+            name: info.name ?? partial.token.name ?? null,
+          },
+        }
+      }
+    } catch { /* keep whatever was provided */ }
+  }
+
   const merged = {
     ...(current.config as unknown as ProjectConfig),
-    ...partial,
+    ...resolvedPartial,
   }
 
   const { error: updateError } = await supabase
