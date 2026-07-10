@@ -7,6 +7,15 @@ import { verifyPreviewToken } from "@/lib/preview-token"
 import { rateLimit } from "@/lib/rate-limit"
 import { log } from "@/lib/logger"
 import { CHAT_LIMITS, conversationLimitsFor } from "@/lib/limits"
+import { fetchAbiWithProxy, fetchAbiFromExplorer } from "@txid/blockchain"
+
+// Public inspect tool: convert a decimal or hex chain id to our hex form.
+function toHexChain(chainId: string | undefined): string {
+  if (!chainId) return "0x1"
+  if (chainId.startsWith("0x")) return chainId.toLowerCase()
+  const n = Number(chainId)
+  return Number.isFinite(n) ? "0x" + n.toString(16) : "0x1"
+}
 
 type ProjectRow = Database["public"]["Tables"]["projects"]["Row"]
 
@@ -78,9 +87,10 @@ export async function POST(request: Request) {
       preview?: boolean
       previewToken?: string
       turnstileToken?: string
+      contractAddress?: string
     }
 
-    const { key, sessionId, messages, walletAddress, chainId, preview, previewToken, turnstileToken } = body
+    const { key, sessionId, messages, walletAddress, chainId, preview, previewToken, turnstileToken, contractAddress } = body
 
     if (!key || !sessionId || !Array.isArray(messages) || messages.length === 0) {
       return new Response(JSON.stringify({ error: "Invalid request" }), {
@@ -108,6 +118,42 @@ export async function POST(request: Request) {
           headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
         })
       }
+    }
+
+    // ── Public "inspect any contract" mode (the /check diagnose tool) ─────────
+    // Only the demo key may point the bot at an arbitrary pasted contract.
+    // Gated by Turnstile + a hard 3-per-IP-per-day cap so it can't be abused or
+    // run up LLM/RPC cost. Real project keys never enter this mode, so the
+    // normal scope guard is untouched for them.
+    const inspectAddress = typeof contractAddress === "string" ? contractAddress.trim() : ""
+    const inspectMode =
+      key === process.env.DEMO_WIDGET_KEY && /^0x[0-9a-fA-F]{40}$/.test(inspectAddress)
+    let inspectContracts: ProjectConfigSnapshot["watchedContracts"] | null = null
+    if (inspectMode) {
+      // Require a bot-check token when Turnstile is configured.
+      if (process.env.TURNSTILE_SECRET_KEY && !turnstileToken) {
+        return new Response(JSON.stringify({ error: "Please complete the bot check to run a diagnosis." }), {
+          status: 403, headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
+        })
+      }
+      // Hard cap: 3 diagnoses per IP per 24h. Server-enforced — a refresh can't reset it.
+      const daily = await rateLimit(`inspect:${ip}`, 3, 86_400_000)
+      if (!daily.allowed) {
+        return new Response(JSON.stringify({
+          error: "You've used today's 3 free diagnoses. Create a free account to keep going — it's free.",
+          limitReached: true,
+        }), { status: 429, headers: { ...CORS_HEADERS, "Content-Type": "application/json" } })
+      }
+      const hexChain = toHexChain(chainId)
+      const abi = await fetchAbiWithProxy(inspectAddress, hexChain, fetchAbiFromExplorer).catch(() => null)
+      inspectContracts = [{
+        id: "inspect",
+        name: `Contract ${inspectAddress.slice(0, 6)}…${inspectAddress.slice(-4)}`,
+        address: inspectAddress,
+        chain: hexChain,
+        description: "A smart contract the user pasted into the public diagnostics tool to inspect. Diagnose it with the tools: what it is, whether it's verified, when it was deployed, its events/state, and any token it represents (price, safety).",
+        ...(abi ? { abi, abiSource: "explorer" as const } : {}),
+      }]
     }
 
     // Cap message history to prevent context-stuffing / runaway LLM costs
@@ -253,9 +299,14 @@ export async function POST(request: Request) {
         : {}),
     }
 
-    // RAG: only run for support mode
+    // Inspect mode: scope the whole session to the pasted contract only. Its
+    // scope guard then permits that contract (and blocks everything else), and
+    // there are no docs to retrieve.
+    if (inspectContracts) configSnapshot.watchedContracts = inspectContracts
+
+    // RAG: only run for support mode (never for the docs-less inspect tool)
     let ragContext = ""
-    if (projectMode === "support") {
+    if (projectMode === "support" && !inspectMode) {
       const latestUserMessage = [...messages].reverse().find((m) => m.role === "user")
       if (latestUserMessage) {
         const ragResult = await retrieveContext(supabase, typedProject.id, latestUserMessage.content)

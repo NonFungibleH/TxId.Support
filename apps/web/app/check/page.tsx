@@ -21,6 +21,7 @@ const CHAINS = [
   { id: "42161", name: "Arbitrum",  logo: "/chains/Arbitrum.png" },
   { id: "137",   name: "Polygon",   logo: "/chains/Polygon.png"  },
   { id: "10",    name: "Optimism",  logo: "/chains/Optimism.png" },
+  { id: "43114", name: "Avalanche", logo: "/chains/Avalanche.svg" },
   { id: "56",    name: "BNB Chain", logo: "/chains/BNB.png"      },
 ]
 
@@ -112,6 +113,7 @@ export default function CheckPage() {
   const [manualAddress, setManualAddress] = useState("")
   const [contractAddress, setContractAddress] = useState("")
   const [connectError, setConnectError] = useState("")
+  const [limitReached, setLimitReached] = useState(false)
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState("")
   const [loading, setLoading] = useState(false)
@@ -177,7 +179,8 @@ export default function CheckPage() {
       })
 
       if (!res.ok || !res.body) {
-        const errData = await res.json().catch(() => ({})) as { error?: string }
+        const errData = await res.json().catch(() => ({})) as { error?: string; limitReached?: boolean }
+        if (errData.limitReached) setLimitReached(true)
         throw new Error(errData.error ?? "API error")
       }
 
@@ -253,13 +256,20 @@ export default function CheckPage() {
 
   function enterChat(addr: string) {
     const displayChain = chain.name
-    const short = shortAddr(addr)
-    const contractNote = contractAddress
-      ? `\n\nI'll focus on your interactions with contract ${shortAddr(contractAddress)}.`
-      : ""
+    const contract = contractAddress.trim()
+    // Contract-inspect mode: a contract was given (with or without a wallet).
+    if (contract) {
+      const walletNote = addr ? ` Your wallet ${shortAddr(addr)} is connected, so I can also check your interactions with it.` : ""
+      setMessages([{
+        role: "assistant",
+        content: `Hi! I'm TxID Support. I'm looking at contract ${shortAddr(contract)} on ${displayChain}.${walletNote}\n\nAsk me anything about it — is it verified, when was it deployed, has it ever been paused, what does it do, is its token safe? What would you like to know?`,
+      }])
+      setStep("chat")
+      return
+    }
     setMessages([{
       role: "assistant",
-      content: `Hi! I'm TxID Support. I can see your wallet ${short} is connected on ${displayChain}.${contractNote}\n\nWhat's going on? Did a transaction fail, are funds missing, or is something else not looking right?`,
+      content: `Hi! I'm TxID Support. I can see your wallet ${shortAddr(addr)} is connected on ${displayChain}.\n\nWhat's going on? Did a transaction fail, are funds missing, or is something else not looking right?`,
     }])
     setStep("chat")
   }
@@ -283,13 +293,21 @@ export default function CheckPage() {
   }
 
   function goWithManual() {
+    setConnectError("")
     const addr = manualAddress.trim()
-    if (!/^0x[0-9a-fA-F]{40}$/.test(addr)) {
-      setConnectError("Enter a valid Ethereum address (0x…)")
+    const contract = contractAddress.trim()
+    const addrOk = /^0x[0-9a-fA-F]{40}$/.test(addr)
+    const contractOk = /^0x[0-9a-fA-F]{40}$/.test(contract)
+    // Either path works: a wallet to diagnose, or a contract to inspect (or both).
+    if (!addr && !contract) {
+      setConnectError("Enter a wallet address to diagnose, or a contract address to inspect.")
       return
     }
-    const contract = contractAddress.trim()
-    if (contract && !/^0x[0-9a-fA-F]{40}$/.test(contract)) {
+    if (addr && !addrOk) {
+      setConnectError("Enter a valid wallet address (0x…)")
+      return
+    }
+    if (contract && !contractOk) {
       setConnectError("Enter a valid contract address (0x…)")
       return
     }
@@ -319,6 +337,7 @@ export default function CheckPage() {
     setContractAddress("")
     setMessages([])
     setConnectError("")
+    setLimitReached(false)
     sessionId.current = crypto.randomUUID()
     if (window.turnstile && turnstileWidgetId.current) {
       window.turnstile.reset(turnstileWidgetId.current)
@@ -343,10 +362,10 @@ export default function CheckPage() {
                 <CheckCircle2 className="w-3 h-3" /> Free · No sign-up · No private keys
               </span>
               <h1 className="font-display text-4xl font-bold text-white leading-tight mb-4">
-                Diagnose any crypto transaction
+                Diagnose any transaction or contract
               </h1>
               <p className="text-muted text-base leading-relaxed">
-                Connect your wallet and ask TxID Support anything: why a transaction failed, where your tokens went, what a revert reason means.
+                Paste a smart contract to inspect it, or connect your wallet to diagnose a transaction. Ask TxID Support anything: is this contract verified, why did my transaction fail, is this token safe.
               </p>
             </div>
 
@@ -378,7 +397,7 @@ export default function CheckPage() {
 
                 <input
                   type="text"
-                  placeholder="Smart contract address (optional)"
+                  placeholder="Smart contract address to inspect (0x…)"
                   value={contractAddress}
                   onChange={e => { setContractAddress(e.target.value); setConnectError("") }}
                   onKeyDown={e => e.key === "Enter" && goWithManual()}
@@ -420,10 +439,10 @@ export default function CheckPage() {
 
                 <button
                   onClick={goWithManual}
-                  disabled={!manualAddress}
+                  disabled={!manualAddress && !contractAddress}
                   className="w-full flex items-center justify-center gap-2 rounded-xl border border-[#1e1e3a] bg-transparent text-white text-sm font-semibold py-3 hover:border-accent hover:bg-accent/5 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                 >
-                  Analyse address
+                  {contractAddress && !manualAddress ? "Inspect contract" : "Analyse address"}
                   <ArrowRight className="w-4 h-4" />
                 </button>
               </div>
@@ -508,32 +527,48 @@ export default function CheckPage() {
           </div>
         </div>
 
-        {/* Input */}
+        {/* Input, or the sign-up wall once the free daily limit is hit */}
         <div className="border-t border-[#1e1e3a] bg-[#0a0a12]">
           <div className="max-w-3xl mx-auto px-6 py-4">
-            <div className="flex items-end gap-3 bg-[#0f0f1a] rounded-2xl border border-[#1e1e3a] focus-within:border-accent/40 transition-colors px-4 py-3">
-              <textarea
-                ref={inputRef}
-                rows={1}
-                value={input}
-                onChange={e => setInput(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder="Ask anything…"
-                disabled={loading}
-                className="flex-1 bg-transparent resize-none text-sm text-white placeholder:text-muted focus:outline-none leading-relaxed max-h-40 disabled:opacity-50"
-                style={{ scrollbarWidth: "none" }}
-              />
-              <button
-                onClick={() => handleSend()}
-                disabled={!input.trim() || loading}
-                className="rounded-xl bg-accent text-white p-2 hover:bg-accent/90 disabled:opacity-40 disabled:cursor-not-allowed transition-colors shrink-0"
-              >
-                {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-              </button>
-            </div>
-            <p className="text-[11px] text-muted/40 text-center mt-2 font-mono">
-              Reads public on-chain data only · Never asks for seed phrases or private keys
-            </p>
+            {limitReached ? (
+              <div className="text-center py-2">
+                <p className="text-sm text-white font-medium mb-1">You&apos;ve used today&apos;s 3 free diagnoses.</p>
+                <p className="text-xs text-muted mb-4">Create a free account to keep diagnosing — no credit card required.</p>
+                <Link
+                  href={`${APP_URL}/sign-up`}
+                  className="inline-flex items-center gap-2 rounded-xl bg-accent text-white text-sm font-semibold px-5 py-2.5 hover:bg-accent/90 transition-colors"
+                >
+                  Get started free
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
+              </div>
+            ) : (
+              <>
+                <div className="flex items-end gap-3 bg-[#0f0f1a] rounded-2xl border border-[#1e1e3a] focus-within:border-accent/40 transition-colors px-4 py-3">
+                  <textarea
+                    ref={inputRef}
+                    rows={1}
+                    value={input}
+                    onChange={e => setInput(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    placeholder="Ask anything…"
+                    disabled={loading}
+                    className="flex-1 bg-transparent resize-none text-sm text-white placeholder:text-muted focus:outline-none leading-relaxed max-h-40 disabled:opacity-50"
+                    style={{ scrollbarWidth: "none" }}
+                  />
+                  <button
+                    onClick={() => handleSend()}
+                    disabled={!input.trim() || loading}
+                    className="rounded-xl bg-accent text-white p-2 hover:bg-accent/90 disabled:opacity-40 disabled:cursor-not-allowed transition-colors shrink-0"
+                  >
+                    {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                  </button>
+                </div>
+                <p className="text-[11px] text-muted/40 text-center mt-2 font-mono">
+                  Reads public on-chain data only · Never asks for seed phrases or private keys
+                </p>
+              </>
+            )}
           </div>
         </div>
 
