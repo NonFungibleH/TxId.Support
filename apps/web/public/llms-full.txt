@@ -51,7 +51,7 @@ When the agent cannot resolve an issue, it opens a human support ticket for the 
 
 ## Supported blockchains
 
-Ethereum, Base, BNB Chain, Polygon, Arbitrum, and Optimism.
+Ethereum, Base, BNB Chain, Polygon, Arbitrum, Optimism, and Avalanche.
 
 ## How to install (three steps)
 
@@ -72,7 +72,7 @@ Ethereum, Base, BNB Chain, Polygon, Arbitrum, and Optimism.
 
 **What stack does it work with?** Any stack. One script tag; works with React, Next.js, Vue, Svelte, or plain HTML. No SDK, no build step.
 
-**Which blockchains are supported?** Ethereum, Base, BNB Chain, Polygon, Arbitrum, and Optimism.
+**Which blockchains are supported?** Ethereum, Base, BNB Chain, Polygon, Arbitrum, Optimism, and Avalanche.
 
 **Can it explain why a transaction failed?** Yes. It replays the transaction and explains the cause in plain English: out of gas, revert reasons, custom errors, or Solidity panics.
 

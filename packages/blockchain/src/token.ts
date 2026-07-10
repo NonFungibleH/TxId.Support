@@ -149,7 +149,7 @@ export interface TokenPrice {
 // impostor token on a different chain (e.g. a PulseChain fork of USDC).
 const DEXSCREENER_CHAIN: Record<string, string> = {
   "0x1": "ethereum", "0x2105": "base", "0x38": "bsc", "0x89": "polygon",
-  "0xa4b1": "arbitrum", "0xa": "optimism",
+  "0xa4b1": "arbitrum", "0xa": "optimism", "0xa86a": "avalanche",
 }
 
 /**

@@ -51,7 +51,7 @@ const FEATURES = [
     icon: Globe2,
     title: "Multi-Chain",
     description:
-      "Ethereum, Sepolia, Base, BNB Chain, Polygon, Arbitrum, and Optimism. Wallet detection and transaction data across all of them.",
+      "Ethereum, Base, BNB Chain, Polygon, Arbitrum, Optimism, and Avalanche. Wallet detection and transaction data across all of them.",
   },
   {
     icon: BarChart3,

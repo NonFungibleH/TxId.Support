@@ -15,7 +15,7 @@ For the full, self-contained reference (all capabilities, the failed-transaction
 
 ## Chains supported
 
-Ethereum, Base, BNB Chain, Polygon, Arbitrum, and Optimism.
+Ethereum, Base, BNB Chain, Polygon, Arbitrum, Optimism, and Avalanche.
 
 ## Who it's for
 

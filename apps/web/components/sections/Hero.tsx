@@ -61,6 +61,7 @@ export function Hero() {
                   { name: "Arbitrum", file: "Arbitrum.png", whiteBg: false },
                   { name: "Polygon",  file: "Polygon.png",  whiteBg: true  },
                   { name: "Optimism", file: "Optimism.png", whiteBg: false },
+                  { name: "Avalanche", file: "Avalanche.svg", whiteBg: false },
                   { name: "BNB",      file: "BNB.png",      whiteBg: false },
                 ].map(({ name, file, whiteBg }) => (
                   <div

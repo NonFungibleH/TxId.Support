@@ -9,6 +9,7 @@ const GOPLUS_CHAINS: Record<string, string> = {
   "0xa": "10",
   "0xa4b1": "42161",
   "0x2105": "8453",
+  "0xa86a": "43114",
   "0xe708": "59144",
 }
 

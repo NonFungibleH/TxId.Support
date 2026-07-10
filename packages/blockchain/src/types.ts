@@ -110,4 +110,12 @@ export const CHAIN_CONFIGS: Record<string, ChainConfig> = {
     moralisChain: "optimism",
     rpcUrl: "https://mainnet.optimism.io",
   },
+  "0xa86a": {
+    id: "0xa86a",
+    name: "Avalanche",
+    nativeCurrency: "AVAX",
+    explorer: "https://snowtrace.io",
+    moralisChain: "avalanche",
+    rpcUrl: "https://api.avax.network/ext/bc/C/rpc",
+  },
 }

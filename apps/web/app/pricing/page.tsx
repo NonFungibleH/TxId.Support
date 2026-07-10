@@ -78,7 +78,7 @@ const FAQ = [
   },
   {
     q: "What chains are supported?",
-    a: "Ethereum, Sepolia (testnet), Base, BNB Chain, Polygon, Arbitrum, and Optimism are supported. Starter plans include 1 chain, Pro includes up to 3, and Enterprise unlocks all chains plus custom ones.",
+    a: "Ethereum, Sepolia (testnet), Base, BNB Chain, Polygon, Arbitrum, Optimism, and Avalanche are supported. Starter plans include 1 chain, Pro includes up to 3, and Enterprise unlocks all chains plus custom ones.",
   },
   {
     q: "How does the docs Q&A work?",

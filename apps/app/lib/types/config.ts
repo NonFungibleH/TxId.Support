@@ -46,6 +46,7 @@ export const SUPPORTED_CHAINS = [
   { id: "0x89",     name: "Polygon",           explorer: "polygonscan.com" },
   { id: "0xa4b1",   name: "Arbitrum",          explorer: "arbiscan.io" },
   { id: "0xa",      name: "Optimism",          explorer: "optimistic.etherscan.io" },
+  { id: "0xa86a",   name: "Avalanche",         explorer: "snowtrace.io" },
   { id: "solana",   name: "Solana",            explorer: "solscan.io" },
 ] as const
 
