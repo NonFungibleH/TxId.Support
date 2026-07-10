@@ -77,8 +77,11 @@ export async function GET(
   const config = typedProject.config as unknown as ProjectConfig
 
   // ── Domain enforcement ──────────────────────────────────────────────────
-  // Skip for preview requests (dashboard preview uses a signed token)
-  if (!preview) {
+  // Skip for preview requests (dashboard preview uses a signed token) and for
+  // our own public demo key, which powers the /demo + /check pages on the
+  // marketing site by design.
+  const isDemoKey = key === process.env.DEMO_WIDGET_KEY
+  if (!preview && !isDemoKey) {
     const originHeader = request.headers.get("origin") ?? request.headers.get("referer")
     const requestHost = originHeader ? extractHostname(originHeader) : null
 

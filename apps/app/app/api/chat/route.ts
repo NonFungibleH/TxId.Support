@@ -212,7 +212,11 @@ export async function POST(request: Request) {
 
     // Domain allowlist — reject before claiming a conversation slot or calling
     // the LLM, so a copied key from a non-registered origin can't drain quota.
-    if (!originAllowed(request, rawConfig.allowedDomains, preview === true)) {
+    // Exempt OUR own public demo key: it powers the /demo + /check pages on our
+    // marketing site (any origin by design) and is protected by the per-IP rate
+    // cap + Turnstile, not the per-customer domain allowlist.
+    const isDemoKey = key === process.env.DEMO_WIDGET_KEY
+    if (!isDemoKey && !originAllowed(request, rawConfig.allowedDomains, preview === true)) {
       return new Response(JSON.stringify({ error: "Domain not registered for this key" }), {
         status: 403,
         headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
