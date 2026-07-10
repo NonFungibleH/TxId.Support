@@ -8,7 +8,7 @@ export { getContractState, viewGetterNames, getContractData, viewFunctionsWithAr
 export type { ContractStateValue, ContractCallResult } from "./read"
 export { enrichTransaction } from "./enrich"
 export type { TxEnrichment } from "./enrich"
-export { getTokenInfo, getTokenAllowance, getTokenPrice } from "./token"
+export { getTokenInfo, getTokenAllowance, getTokenPrice, getNativeTokenPrice } from "./token"
 export type { TokenInfo, TokenAllowance, TokenPrice } from "./token"
 export { getNetworkStatus } from "./network"
 export type { NetworkStatus } from "./network"

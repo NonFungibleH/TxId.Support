@@ -29,6 +29,7 @@ import {
   getTokenInfo,
   getTokenAllowance,
   getTokenPrice,
+  getNativeTokenPrice,
   getWalletApprovals,
   getNetworkStatus,
   checkSanctioned,
@@ -370,15 +371,19 @@ export async function executeTool(
       }
       const events = await getContractEvents(target.address, target.chain, eventName, target.abi ?? undefined)
       if (events.length === 0 && !canCheckEvent(eventName, target.abi ?? undefined)) {
-        // Empty AND we had no way to compute this event's topic (custom event,
-        // no/partial ABI) — do NOT let the model claim it never fired.
+        // Empty AND we couldn't compute this event's topic. Two very different
+        // cases — do NOT let the model claim it never fired, and do NOT claim
+        // the ABI is missing when it isn't:
+        const hasAbi = !!target.abi
         return {
           contract: target.name,
           event: eventName,
           count: 0,
           events: [],
           checked: false,
-          note: `Could not verify the ${eventName} event — it isn't a standard event and this contract's ABI (or, for a proxy, its implementation ABI) isn't available, so its signature can't be derived. Do NOT say it never happened; say you couldn't check this specific event and offer to have the team upload the contract's ABI.`,
+          note: hasAbi
+            ? `This contract's ABI is available, but it does not define a "${eventName}" event, so there is nothing to query. The most likely reason is that this contract simply does not emit that event — e.g. a swap router / periphery contract does NOT emit Swap or PoolCreated events; those are emitted by the individual pool/pair contracts (and factory), not the router. Tell the user this contract doesn't emit "${eventName}", suggest the specific pool/pair/factory address if they have it, and do NOT say the event never happened or that the ABI is missing.`
+            : `Could not verify the "${eventName}" event — this contract's ABI isn't available yet, so the event signature can't be derived. Do NOT say it never happened; say you couldn't check this specific event and offer to have the team upload the contract's ABI.`,
         }
       }
       return { contract: target.name, event: eventName, count: events.length, events, checked: true }
@@ -547,6 +552,13 @@ export async function executeTool(
       const chainId = typeof input.chain_id === "string" ? input.chain_id : (wallet?.chainId ?? watchedContracts[0]?.chain)
       const price = await getTokenPrice(token, chainId)
       return price ?? { token, note: "No price found — the token may have no liquid DEX pair on this chain." }
+    }
+
+    case "get_native_price": {
+      const chainId = typeof input.chain_id === "string" ? input.chain_id : (wallet?.chainId ?? watchedContracts[0]?.chain ?? "0x1")
+      if (isSolanaChain(chainId)) return { chainId, note: "Native price here is EVM-only." }
+      const price = await getNativeTokenPrice(chainId)
+      return price ?? { chainId, note: "Could not fetch the native token price for this chain." }
     }
 
     case "get_network_status": {
@@ -1056,6 +1068,23 @@ export function buildSanctionsTool(): Anthropic.Tool {
   }
 }
 
+/** Native gas-token price (AVAX / ETH / BNB / POL) — always offered. */
+export function buildNativePriceTool(): Anthropic.Tool {
+  return {
+    name: "get_native_price",
+    description:
+      "Get the current USD price of a chain's NATIVE gas token — AVAX on Avalanche, ETH on Ethereum/Base/Arbitrum/Optimism, BNB on BNB Chain, POL on Polygon. " +
+      "Use for 'what's the price of AVAX / ETH / BNB', 'how much is the native token'. Defaults to the connected wallet's chain or the protocol's chain if chain_id is omitted.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        chain_id: { type: "string", description: "Optional chain ID; defaults to the connected wallet or the protocol's chain." },
+      },
+      required: [],
+    },
+  }
+}
+
 /** Live network status — current gas, base fee, recommended max fee, RPC health. */
 export function buildNetworkTool(): Anthropic.Tool {
   return {
@@ -1128,6 +1157,7 @@ export const TOOL_LABELS: Record<string, string> = {
   get_token_allowance: "Checking token approval…",
   get_token_price: "Checking token price…",
   get_network_status: "Checking network status…",
+  get_native_price: "Checking native token price…",
   check_address_sanctions: "Screening address (OFAC)…",
   check_token_safety: "Screening token safety…",
   resolve_ens_name: "Resolving ENS name…",

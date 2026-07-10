@@ -194,3 +194,28 @@ export async function getTokenPrice(token: string, chainId?: string): Promise<To
     return null
   }
 }
+
+// A chain's native gas token → its wrapped ERC-20 (which DexScreener prices)
+// and the native symbol to report. Lets us answer "what's the price of AVAX/
+// ETH/BNB" — the native token has no ERC-20 address of its own.
+const NATIVE_WRAPPED: Record<string, { symbol: string; wrapped: string }> = {
+  "0x1":    { symbol: "ETH",   wrapped: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2" },
+  "0x2105": { symbol: "ETH",   wrapped: "0x4200000000000000000000000000000000000006" },
+  "0xa":    { symbol: "ETH",   wrapped: "0x4200000000000000000000000000000000000006" },
+  "0xa4b1": { symbol: "ETH",   wrapped: "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1" },
+  "0x38":   { symbol: "BNB",   wrapped: "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c" },
+  "0x89":   { symbol: "POL",   wrapped: "0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270" },
+  "0xa86a": { symbol: "AVAX",  wrapped: "0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7" },
+}
+
+/**
+ * USD price of a chain's NATIVE gas token (AVAX, ETH, BNB, POL…), via its
+ * wrapped ERC-20 on DexScreener. Returns null for unknown chains.
+ */
+export async function getNativeTokenPrice(chainId: string): Promise<TokenPrice | null> {
+  const native = NATIVE_WRAPPED[chainId]
+  if (!native) return null
+  const price = await getTokenPrice(native.wrapped, chainId)
+  if (!price) return null
+  return { ...price, symbol: native.symbol }
+}

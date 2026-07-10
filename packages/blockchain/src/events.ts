@@ -63,6 +63,27 @@ export async function getContractDeployment(
       timestamp = tx?.timestamp ?? null
     }
     if (!timestamp && row.blockNumber) timestamp = await blockTimestamp(chainId, row.blockNumber)
+    // Keyless RPC fallback: resolve the creation tx's block → timestamp directly
+    // (Routescan/Avalanche returns the txHash but no timestamp or blockNumber,
+    // and Moralis can miss old txs).
+    if (!timestamp && row.txHash) {
+      const rpcUrl = CHAIN_CONFIGS[chainId]?.rpcUrl
+      if (rpcUrl) {
+        try {
+          const res = await fetch(rpcUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "eth_getTransactionByHash", params: [row.txHash] }),
+            signal: AbortSignal.timeout(6000),
+          })
+          if (res.ok) {
+            const json = (await res.json()) as { result?: { blockNumber?: string } }
+            const bn = json.result?.blockNumber
+            if (bn) timestamp = await blockTimestamp(chainId, bn)
+          }
+        } catch { /* leave timestamp null */ }
+      }
+    }
     return { deployer: row.contractCreator ?? "", txHash: row.txHash ?? "", timestamp }
   } catch {
     return null

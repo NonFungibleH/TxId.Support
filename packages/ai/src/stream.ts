@@ -1,7 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk"
 import OpenAI from "openai"
 import type { ChatMessage, WatchedContractSnapshot } from "./types"
-import { buildWalletTools, buildTxLookupTool, buildContractTxsTool, buildContractEventsTool, buildContractDeploymentTool, buildContractHoldingsTool, buildContractStateTool, buildContractDataTool, buildContractInfoTool, buildContractFunctionsTool, buildUpgradeHistoryTool, buildTokenTools, buildNetworkTool, buildSanctionsTool, buildTokenSafetyTool, buildEnsTool, buildEstimateActionTool, buildEscalationTool, executeTool } from "./tools"
+import { buildWalletTools, buildTxLookupTool, buildContractTxsTool, buildContractEventsTool, buildContractDeploymentTool, buildContractHoldingsTool, buildContractStateTool, buildContractDataTool, buildContractInfoTool, buildContractFunctionsTool, buildUpgradeHistoryTool, buildTokenTools, buildNetworkTool, buildNativePriceTool, buildSanctionsTool, buildTokenSafetyTool, buildEnsTool, buildEstimateActionTool, buildEscalationTool, executeTool } from "./tools"
 import type { WalletConfig } from "./tools"
 
 // ── Model selection ──────────────────────────────────────────────────────────
@@ -105,6 +105,7 @@ export async function* streamChatWithTools(
       ...contractToolset,
       ...buildTokenTools(),
       buildNetworkTool(),
+      buildNativePriceTool(),
       buildSanctionsTool(),
       buildTokenSafetyTool(),
       buildEnsTool(),
@@ -249,6 +250,7 @@ export async function* streamChatWithTools(
     ...contractToolset,
     ...buildTokenTools(),
     buildNetworkTool(),
+    buildNativePriceTool(),
     buildSanctionsTool(),
     buildTokenSafetyTool(),
     buildEnsTool(),

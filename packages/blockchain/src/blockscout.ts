@@ -10,13 +10,17 @@ export const ETHERSCAN_CHAIN_IDS: Record<string, number> = {
   "0x1": 1, "0x2105": 8453, "0x38": 56, "0x89": 137, "0xa4b1": 42161, "0xa": 10, "0xa86a": 43114, "0xaa36a7": 11155111,
 }
 
-// Blockscout instances (Etherscan-compatible API). Ethereum is intentionally
-// omitted — Etherscan's free tier covers it. BSC has no official Blockscout.
+// Etherscan-compatible fallback explorers (Blockscout / Routescan), used when
+// Etherscan V2 doesn't cover a call for a chain. Ethereum is omitted (V2 free
+// tier covers it); BSC has no official instance. Avalanche uses Routescan —
+// Etherscan V2 serves getabi for 43114 but NOT getcontractcreation, so the
+// deployment lookup needs this fallback.
 const BLOCKSCOUT_BASES: Record<string, string> = {
   "0x2105": "https://base.blockscout.com",
   "0xa": "https://optimism.blockscout.com",
   "0x89": "https://polygon.blockscout.com",
   "0xa4b1": "https://arbitrum.blockscout.com",
+  "0xa86a": "https://api.routescan.io/v2/network/mainnet/evm/43114/etherscan",
 }
 
 export interface ExplorerResponse {
