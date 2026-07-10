@@ -3,6 +3,7 @@ import { redirect } from "next/navigation"
 import { ContractList } from "@/components/settings/ContractList"
 import { AddContractDialog } from "@/components/settings/AddContractDialog"
 import { AuditsManager } from "@/components/settings/AuditsManager"
+import { TokenForm } from "@/components/settings/TokenForm"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import type { ProjectConfig, Plan } from "@/lib/types/config"
 import { PLAN_CHAIN_LIMITS, SUPPORTED_CHAINS } from "@/lib/types/config"
@@ -38,9 +39,21 @@ export default async function ContractsPage() {
       <div>
         <h1 className="text-2xl font-bold">Smart Contracts</h1>
         <p className="text-muted-foreground mt-1">
-          Add any contract addresses the AI should be able to look up — smart contracts, your token contract, treasury wallets, vesting contracts, and more. The AI uses the name and description to decide when to query each one.
+          Your protocol&apos;s own token has its own section below. Add any other contract addresses the AI should be able to look up — treasury wallets, vesting, staking, and more. The AI uses the name and description to decide when to query each one.
         </p>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Token contract</CardTitle>
+          <CardDescription>
+            Your protocol&apos;s own token. Powers live price, the buy link, and token questions in the widget — kept separate from the watched contracts below.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <TokenForm projectId={typedProject.id} initial={config.token} />
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
