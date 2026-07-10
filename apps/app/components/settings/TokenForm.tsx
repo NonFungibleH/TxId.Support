@@ -74,7 +74,9 @@ export function TokenForm({ projectId, initial }: TokenFormProps) {
         <Label htmlFor="token-chain">Chain</Label>
         <Select value={chain} onValueChange={v => setChain(v as TokenConfig["chain"])}>
           <SelectTrigger id="token-chain" className="w-64">
-            <SelectValue />
+            <SelectValue>
+              {SELECTABLE_CHAINS.find(c => c.id === chain)?.name ?? chain}
+            </SelectValue>
           </SelectTrigger>
           <SelectContent>
             {SELECTABLE_CHAINS.map(c => (

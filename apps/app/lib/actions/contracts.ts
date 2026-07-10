@@ -173,6 +173,38 @@ export async function saveContractAbi(projectId: string, contractId: string, abi
   revalidatePath("/dashboard/contracts")
 }
 
+export async function updateContractDetails(
+  projectId: string,
+  contractId: string,
+  input: { name: string; description: string },
+) {
+  const name = input.name.trim()
+  const description = input.description.trim()
+  if (!name) throw new Error("Name is required")
+  if (name.length > 80) throw new Error("Name is too long (max 80)")
+  if (!description) throw new Error("Description is required")
+  if (description.length > 500) throw new Error("Description is too long (max 500)")
+
+  const project = await resolveProjectWithOwnership(projectId)
+  const config = project.config as unknown as ProjectConfig
+
+  const updated: ProjectConfig = {
+    ...config,
+    watchedContracts: (config.watchedContracts ?? []).map((c) =>
+      c.id !== contractId ? c : { ...c, name, description },
+    ),
+  }
+
+  const supabase = createServiceClient()
+  const { error } = await supabase
+    .from("projects")
+    .update({ config: updated as unknown as Json })
+    .eq("id", projectId)
+
+  if (error) throw new Error(error.message)
+  revalidatePath("/dashboard/contracts")
+}
+
 export async function addAudit(projectId: string, input: { auditor: string; url: string; date?: string }) {
   const auditor = input.auditor.trim()
   const url = input.url.trim()
