@@ -21,7 +21,7 @@ const CHAINS = [
   { id: "42161", name: "Arbitrum",  logo: "/chains/Arbitrum.png" },
   { id: "137",   name: "Polygon",   logo: "/chains/Polygon.png"  },
   { id: "10",    name: "Optimism",  logo: "/chains/Optimism.png" },
-  { id: "43114", name: "Avalanche", logo: "/chains/Avalanche.svg" },
+  { id: "43114", name: "Avalanche", logo: "/chains/Avalanche.png" },
   { id: "56",    name: "BNB Chain", logo: "/chains/BNB.png"      },
 ]
 
