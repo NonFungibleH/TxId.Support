@@ -30,7 +30,7 @@ const VALUE_PROPS = [
   {
     icon: SearchCheck,
     title: "Reads the real transaction",
-    description: "Not a canned FAQ — it looks up the user's actual on-chain transaction and decodes what happened.",
+    description: "Not a canned FAQ. It looks up the user's actual on-chain transaction and decodes what happened.",
   },
   {
     icon: MessagesSquare,
@@ -206,7 +206,7 @@ export default function ChainPage({ params }: { params: { slug: string } }) {
               </h2>
               <p className="text-muted mb-8 max-w-lg mx-auto">
                 {isLive
-                  ? `Install TxID in minutes and turn failed transactions into resolved ones — right inside your product.`
+                  ? `Install TxID in minutes and turn failed transactions into resolved ones, right inside your product.`
                   : `We're bringing TxID to ${chain.name} and onboarding design partners first. Tell us what you're building.`}
               </p>
               <a

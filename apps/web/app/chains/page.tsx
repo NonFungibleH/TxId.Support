@@ -10,7 +10,7 @@ import { ArrowRight } from "lucide-react";
 export const metadata: Metadata = {
   title: "Supported Chains | TxID Support",
   description:
-    "TxID Support diagnoses failed transactions across every major EVM chain — Ethereum, Base, BNB Chain, Polygon, Arbitrum, Optimism, Avalanche — with Solana, Stellar, TON and Aptos on the way.",
+    "TxID Support diagnoses failed transactions across every major EVM chain (Ethereum, Base, BNB Chain, Polygon, Arbitrum, Optimism, Avalanche), with Solana, Stellar, TON and Aptos on the way.",
   alternates: { canonical: "/chains" },
 };
 
@@ -72,7 +72,7 @@ export default function ChainsPage() {
                 <span className="text-accent">Every chain your users are on.</span>
               </h1>
               <p className="text-lg text-muted max-w-2xl mx-auto">
-                TxID diagnoses failed transactions natively on each chain — decoding the real cause and the fix, not a
+                TxID diagnoses failed transactions natively on each chain, decoding the real cause and the fix, not a
                 generic FAQ. Live across the major EVM networks, with the biggest non-EVM ecosystems on the way.
               </p>
             </FadeIn>
@@ -84,7 +84,7 @@ export default function ChainsPage() {
           <div className="max-w-6xl mx-auto px-6">
             <FadeIn>
               <div className="flex items-baseline justify-between mb-6">
-                <h2 className="font-display text-2xl font-bold text-white">Live now — EVM</h2>
+                <h2 className="font-display text-2xl font-bold text-white">Live now: EVM</h2>
                 <p className="text-sm text-muted">{evm.length} chains</p>
               </div>
             </FadeIn>
@@ -103,7 +103,7 @@ export default function ChainsPage() {
           <div className="max-w-6xl mx-auto px-6">
             <FadeIn>
               <div className="flex items-baseline justify-between mb-6">
-                <h2 className="font-display text-2xl font-bold text-white">On the roadmap — non-EVM</h2>
+                <h2 className="font-display text-2xl font-bold text-white">On the roadmap: non-EVM</h2>
                 <p className="text-sm text-muted">{nonEvm.length} chains</p>
               </div>
             </FadeIn>
