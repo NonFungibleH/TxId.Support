@@ -22,12 +22,14 @@ export const CHAT_LIMITS = {
   windowMs: 60_000,
   /** Max prior messages sent to the model (context/cost cap). */
   maxHistoryMessages: 30,
-  /** Max characters kept per message. */
-  maxMessageChars: 2000,
-  /** User turns allowed per session before it must be restarted. */
-  sessionMessages: 30,
+  /** Max characters kept per message. A tx hash (66) + address (42) + a short
+   *  sentence fits comfortably; anything longer is pasted logs/spam. */
+  maxMessageChars: 500,
+  /** User turns allowed per session. On the 10th the bot escalates to a human
+   *  ticket and the conversation ends (see /api/chat cap handoff). */
+  sessionMessages: 10,
   /** Stricter session cap for the public demo key. */
-  demoSessionMessages: 10,
+  demoSessionMessages: 5,
 } as const
 
 /** Ticket creation endpoint (`/api/tickets`). */

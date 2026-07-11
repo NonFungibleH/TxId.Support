@@ -241,9 +241,41 @@ export async function POST(request: Request) {
         .eq("conversation_id", existingConv.data.id)
         .eq("role", "user")
       if ((msgCount ?? 0) >= sessionCap) {
-        return new Response(JSON.stringify({ error: "Session message limit reached. Start a new conversation to continue." }), {
-          status: 429,
-          headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
+        // Cap reached — don't cold-error the user out. Escalate to a human:
+        // emit the same SSE `escalate` event the AI uses, which the widget
+        // renders as its ticket form and ends the conversation gracefully.
+        const enc = new TextEncoder()
+        const capStream = new ReadableStream({
+          start(controller) {
+            controller.enqueue(
+              enc.encode(
+                `data: ${JSON.stringify({
+                  text: "We've covered a lot in this chat. So nothing gets lost, I'll hand you over to the team — drop your details below and someone will follow up with you directly.",
+                })}\n\n`,
+              ),
+            )
+            controller.enqueue(
+              enc.encode(
+                `data: ${JSON.stringify({
+                  escalate: {
+                    summary:
+                      "You've reached the message limit for this conversation. Leave your name and email and a team member will pick it up from here.",
+                    reason: "message_limit",
+                  },
+                })}\n\n`,
+              ),
+            )
+            controller.enqueue(enc.encode("data: [DONE]\n\n"))
+            controller.close()
+          },
+        })
+        return new Response(capStream, {
+          headers: {
+            ...CORS_HEADERS,
+            "Content-Type": "text/event-stream",
+            "Cache-Control": "no-cache",
+            Connection: "keep-alive",
+          },
         })
       }
     } else if (preview) {
