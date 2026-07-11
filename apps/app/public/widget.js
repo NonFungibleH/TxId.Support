@@ -104,9 +104,12 @@
   var open = false;
 
   btn.addEventListener("click", function () {
+    // A drag just ended — swallow the click so the panel doesn't toggle.
+    if (suppressClick) { suppressClick = false; return; }
     open = !open;
     if (open) {
       wrap.classList.add("open");
+      positionPanel();
       btn.innerHTML = CLOSE_ICON;
       btn.setAttribute("aria-label", "Close support chat");
     } else {
@@ -118,6 +121,95 @@
 
   // Base panel size (kept in sync with the CSS above). Text-scale grows it.
   var BASE_W = 380, BASE_H = 560;
+
+  // ── Drag to reposition (desktop only) ──────────────────────────────────────
+  // Additive: until the user actually drags, customPos stays null and the CSS
+  // defaults (bottom-right) apply untouched — existing embeds are unchanged.
+  var STORE_KEY = "txid-widget-pos:" + key;
+  var BTN_SIZE = parseInt(SIZE, 10);
+  var customPos = null; // {left, top} of the launcher once the user has moved it
+  try {
+    var savedPos = localStorage.getItem(STORE_KEY);
+    if (savedPos) customPos = JSON.parse(savedPos);
+  } catch (e) { /* storage blocked — drag simply won't persist */ }
+
+  function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
+
+  // Position the launcher. On mobile, or before any drag, hand back to the CSS.
+  function applyButtonPos() {
+    if (window.innerWidth <= 440 || !customPos) {
+      btn.style.left = ""; btn.style.top = ""; btn.style.right = ""; btn.style.bottom = "";
+      return;
+    }
+    customPos.left = clamp(customPos.left, 8, window.innerWidth - BTN_SIZE - 8);
+    customPos.top = clamp(customPos.top, 8, window.innerHeight - BTN_SIZE - 8);
+    btn.style.left = customPos.left + "px";
+    btn.style.top = customPos.top + "px";
+    btn.style.right = "auto";
+    btn.style.bottom = "auto";
+  }
+
+  // Anchor the open panel to the launcher's nearest corner. On mobile, or
+  // before any drag, clear inline positioning so the CSS (bottom-right on
+  // desktop, full-width sheet on mobile) takes over.
+  function positionPanel() {
+    if (window.innerWidth <= 440 || !customPos) {
+      wrap.style.left = ""; wrap.style.top = ""; wrap.style.right = ""; wrap.style.bottom = "";
+      return;
+    }
+    var r = btn.getBoundingClientRect();
+    var w = wrap.offsetWidth || BASE_W;
+    var h = wrap.offsetHeight || BASE_H;
+    var gap = 12;
+    // Horizontal: align the panel edge with the button's nearest side.
+    var left = (r.left + r.width / 2 > window.innerWidth / 2) ? r.right - w : r.left;
+    // Vertical: prefer above the button; drop below if there isn't room.
+    var top = (r.top - gap - h >= 8) ? r.top - gap - h : r.bottom + gap;
+    wrap.style.left = clamp(left, 8, window.innerWidth - w - 8) + "px";
+    wrap.style.top = clamp(top, 8, window.innerHeight - h - 8) + "px";
+    wrap.style.right = "auto";
+    wrap.style.bottom = "auto";
+  }
+
+  var dragState = null;
+  var suppressClick = false;
+
+  btn.addEventListener("pointerdown", function (e) {
+    if (window.innerWidth <= 440) return;            // no drag on the mobile sheet
+    if (e.button !== undefined && e.button !== 0) return; // left button / touch only
+    var r = btn.getBoundingClientRect();
+    dragState = { startX: e.clientX, startY: e.clientY, offsetX: e.clientX - r.left, offsetY: e.clientY - r.top, moved: false };
+  });
+
+  window.addEventListener("pointermove", function (e) {
+    if (!dragState) return;
+    if (!dragState.moved && Math.abs(e.clientX - dragState.startX) + Math.abs(e.clientY - dragState.startY) < 6) return;
+    dragState.moved = true;
+    customPos = {
+      left: clamp(e.clientX - dragState.offsetX, 8, window.innerWidth - BTN_SIZE - 8),
+      top: clamp(e.clientY - dragState.offsetY, 8, window.innerHeight - BTN_SIZE - 8),
+    };
+    applyButtonPos();
+    if (open) positionPanel();
+  });
+
+  window.addEventListener("pointerup", function () {
+    if (!dragState) return;
+    if (dragState.moved) {
+      suppressClick = true; // the trailing click must not toggle the panel
+      try { localStorage.setItem(STORE_KEY, JSON.stringify(customPos)); } catch (e) { /* ignore */ }
+    }
+    dragState = null;
+  });
+
+  // Keep everything on-screen when the host window resizes.
+  window.addEventListener("resize", function () {
+    applyButtonPos();
+    if (open) positionPanel();
+  });
+
+  // Apply any saved position on load.
+  applyButtonPos();
 
   window.addEventListener("message", function (e) {
     // Close when the iframe posts a "txid-close" message
@@ -136,6 +228,8 @@
       if (window.innerWidth > 440) {
         wrap.style.width = Math.round(BASE_W * s) + "px";
         wrap.style.height = Math.round(BASE_H * s) + "px";
+        // Re-anchor to the launcher if the user has dragged it.
+        if (open) positionPanel();
       }
     }
   });
