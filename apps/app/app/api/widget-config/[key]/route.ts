@@ -120,6 +120,7 @@ export async function GET(
           chain: config.token.chain,
           dexUrl: config.token.dexUrl,
           address: config.token.address,
+          showInWidget: config.token.showInWidget !== false,
         }
       : null,
     community: config.community ?? null,

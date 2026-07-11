@@ -122,6 +122,10 @@ export interface TokenConfig {
   dexUrl: string | null
   symbol: string | null
   name: string | null
+  // Whether to show the token card in the widget's Content tab. The token still
+  // powers price, the buy link, and token-aware answers regardless. Undefined =
+  // shown (backward-compatible default).
+  showInWidget?: boolean
 }
 
 export interface ErrorGlossaryEntry {

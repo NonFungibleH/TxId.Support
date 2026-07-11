@@ -79,7 +79,7 @@ interface WidgetConfig {
   projectName: string
   branding: BrandingConfig
   chains: string[]
-  token: { symbol: string | null; chain: string; dexUrl: string | null; address: string } | null
+  token: { symbol: string | null; chain: string; dexUrl: string | null; address: string; showInWidget?: boolean } | null
   watchedContracts: WatchedContract[]
   mode?: "support" | "token"
   community?: {
@@ -1460,7 +1460,7 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
         {/* Info tab */}
         {!isTokenMode && tab === "info" && (
           <div className="flex-1 overflow-y-auto p-3 space-y-3">
-            {config.token && (
+            {config.token && config.token.showInWidget !== false && (
               <div
                 className="rounded-xl px-4 py-3 relative overflow-hidden"
                 style={{
