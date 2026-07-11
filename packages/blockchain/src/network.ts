@@ -74,3 +74,76 @@ export async function getNetworkStatus(chainId: string): Promise<NetworkStatus |
   }
   return out
 }
+
+export interface WalletRpcDiagnosis {
+  chainId: string
+  /** Human name of the chain the wallet is connected to (e.g. "Base"). */
+  chainName: string
+  nativeCurrency: string
+  /** Did the chain's public RPC respond at all? false → the chain (or its RPC) is down. */
+  networkResponsive: boolean
+  /** Human-readable native balance, e.g. "0.0123". Absent if the RPC didn't answer. */
+  nativeBalance?: string
+  /** True when the wallet is effectively empty and cannot pay gas for anything. */
+  outOfGasFunds?: boolean
+  /** Confirmed transaction count = the next nonce the chain expects. */
+  confirmedNonce?: number
+  /** Nonce including still-pending txs. */
+  pendingNonce?: number
+  /** Pending txs stuck in the mempool that block every newer tx until they clear/are replaced. */
+  stuckPendingTxs?: number
+  /** Recommended max fee (gwei) if the wallet's RPC is under-pricing gas. */
+  suggestedMaxFeeGwei?: string
+}
+
+/**
+ * Wallet-level RPC health check for the connected wallet, run against the
+ * chain's own public RPC. Surfaces the failures that happen BEFORE a tx ever
+ * lands — an empty gas balance, a stuck pending nonce blocking new sends, or
+ * an unresponsive network — so the bot can diagnose "nothing works / my
+ * transactions won't go through" without needing a tx hash. Chain-mismatch
+ * (wallet on the wrong network) is judged by the caller against the protocol's
+ * contracts. Returns null for unknown/non-EVM chains.
+ */
+export async function diagnoseWalletRpc(
+  address: string,
+  chainId: string,
+): Promise<WalletRpcDiagnosis | null> {
+  const cfg = CHAIN_CONFIGS[chainId]
+  if (!cfg?.rpcUrl) return null
+  const rpcUrl = cfg.rpcUrl
+
+  const [status, balanceRaw, latestRaw, pendingRaw] = (await Promise.all([
+    getNetworkStatus(chainId),
+    rpc(rpcUrl, "eth_getBalance", [address, "latest"]),
+    rpc(rpcUrl, "eth_getTransactionCount", [address, "latest"]),
+    rpc(rpcUrl, "eth_getTransactionCount", [address, "pending"]),
+  ])) as [NetworkStatus | null, string | null, string | null, string | null]
+
+  const networkResponsive = !!status?.responsive || balanceRaw !== null
+  const out: WalletRpcDiagnosis = {
+    chainId,
+    chainName: cfg.name,
+    nativeCurrency: cfg.nativeCurrency,
+    networkResponsive,
+  }
+  const toBig = (h: string | null) => {
+    if (!h) return null
+    try { return BigInt(h) } catch { return null }
+  }
+  const bal = toBig(balanceRaw)
+  if (bal !== null) {
+    out.nativeBalance = (Number(bal) / 1e18).toLocaleString("en-US", { maximumFractionDigits: 6 })
+    // Effectively empty: below ~0.00005 native, not enough to cover even cheap L2 gas.
+    out.outOfGasFunds = bal < 50_000_000_000_000n
+  }
+  const latest = toBig(latestRaw)
+  const pending = toBig(pendingRaw)
+  if (latest !== null) out.confirmedNonce = Number(latest)
+  if (pending !== null) out.pendingNonce = Number(pending)
+  if (latest !== null && pending !== null) {
+    out.stuckPendingTxs = pending > latest ? Number(pending - latest) : 0
+  }
+  if (status?.suggestedMaxFeeGwei) out.suggestedMaxFeeGwei = status.suggestedMaxFeeGwei
+  return out
+}

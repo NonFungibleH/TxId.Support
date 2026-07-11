@@ -37,6 +37,7 @@ const TOOL_LABELS: Record<string, string> = {
   get_token_allowance: "Checking token approval…",
   get_token_price: "Checking token price…",
   get_network_status: "Checking network status…",
+  diagnose_wallet: "Diagnosing your wallet & network…",
   check_address_sanctions: "Screening address (OFAC)…",
   check_token_safety: "Screening token safety…",
   resolve_ens_name: "Resolving ENS name…",

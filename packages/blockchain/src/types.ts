@@ -68,7 +68,9 @@ export const CHAIN_CONFIGS: Record<string, ChainConfig> = {
     nativeCurrency: "ETH",
     explorer: "https://etherscan.io",
     moralisChain: "eth",
-    rpcUrl: "https://cloudflare-eth.com",
+    // cloudflare-eth.com was decommissioned (returns -32046 "Cannot fulfill
+    // request"); PublicNode is a reliable keyless replacement.
+    rpcUrl: "https://ethereum-rpc.publicnode.com",
   },
   "0x2105": {
     id: "0x2105",
@@ -92,7 +94,9 @@ export const CHAIN_CONFIGS: Record<string, ChainConfig> = {
     nativeCurrency: "MATIC",
     explorer: "https://polygonscan.com",
     moralisChain: "polygon",
-    rpcUrl: "https://polygon-rpc.com",
+    // polygon-rpc.com now returns "tenant disabled" (403); PublicNode is a
+    // reliable keyless replacement.
+    rpcUrl: "https://polygon-bor-rpc.publicnode.com",
   },
   "0xa4b1": {
     id: "0xa4b1",

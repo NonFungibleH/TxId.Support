@@ -32,6 +32,7 @@ import {
   getNativeTokenPrice,
   getWalletApprovals,
   getNetworkStatus,
+  diagnoseWalletRpc,
   checkSanctioned,
   getTokenSafety,
   resolveEnsName,
@@ -568,6 +569,29 @@ export async function executeTool(
       return status ?? { chainId, responsive: false, note: "The network RPC did not respond — the chain may be having issues." }
     }
 
+    case "diagnose_wallet": {
+      if (!wallet) throw new Error("Wallet not connected — connect a wallet to diagnose its network/RPC state")
+      if (solana) return { note: "Wallet RPC diagnosis is EVM-only." }
+      const chainId = wallet.chainId
+      // Which chains does the protocol actually have contracts on? Used to spot
+      // the #1 pre-tx failure: the wallet is connected to the wrong network.
+      const protocolChains = Array.from(
+        new Set(watchedContracts.map(c => c.chain).filter((c): c is string => !!c)),
+      )
+      const onProtocolChain = protocolChains.length === 0 || protocolChains.includes(chainId)
+      const diag = await diagnoseWalletRpc(wallet.address, chainId)
+      if (!diag) {
+        return {
+          walletAddress: wallet.address,
+          chainId,
+          onProtocolChain,
+          protocolChains,
+          note: "Could not reach a public RPC for this chain — it may be unsupported or non-EVM.",
+        }
+      }
+      return { ...diag, walletAddress: wallet.address, onProtocolChain, protocolChains }
+    }
+
     case "check_token_safety": {
       const token = typeof input.token_address === "string" ? input.token_address : undefined
       if (!token) throw new Error("token_address is required")
@@ -1102,6 +1126,23 @@ export function buildNetworkTool(): Anthropic.Tool {
   }
 }
 
+/** Wallet-level RPC/network diagnosis for the connected wallet. Wallet-gated. */
+export function buildWalletDiagnosisTool(): Anthropic.Tool {
+  return {
+    name: "diagnose_wallet",
+    description:
+      "Diagnose the connected wallet's network/RPC state — the failures that happen BEFORE a transaction ever lands. " +
+      "Call this FIRST when the user reports that things fail with no specific tx hash: 'nothing works', 'my transactions won't go through / keep failing', 'I can't send / swap / claim', 'MetaMask internal JSON-RPC error', 'stuck pending', or 'wrong network'. " +
+      "Returns: which chain the wallet is on and whether that matches the protocol's contracts (onProtocolChain — false means the user is on the WRONG NETWORK, the single most common cause), the wallet's native balance and whether it's too empty to pay gas (outOfGasFunds), any stuck pending transactions blocking new sends (stuckPendingTxs), and whether the chain's RPC is responding (networkResponsive false → the network/RPC is down). " +
+      "If networkResponsive is true but the user still can't transact, their own wallet RPC endpoint is likely failing — tell them to switch to a fresh public RPC via Chainlist.org.",
+    input_schema: {
+      type: "object" as const,
+      properties: {},
+      required: [],
+    },
+  }
+}
+
 /**
  * Escalation tool — always offered, not wallet-gated.
  * When Claude calls this, the widget intercepts it and shows a ticket form
@@ -1157,6 +1198,7 @@ export const TOOL_LABELS: Record<string, string> = {
   get_token_allowance: "Checking token approval…",
   get_token_price: "Checking token price…",
   get_network_status: "Checking network status…",
+  diagnose_wallet: "Diagnosing your wallet & network…",
   get_native_price: "Checking native token price…",
   check_address_sanctions: "Screening address (OFAC)…",
   check_token_safety: "Screening token safety…",
