@@ -402,6 +402,8 @@ export async function POST(request: Request) {
             } else if (event.type === "escalate") {
               wasEscalated = true
               data = `data: ${JSON.stringify({ escalate: { summary: event.summary, reason: event.reason } })}\n\n`
+            } else if (event.type === "switch_chain") {
+              data = `data: ${JSON.stringify({ switch_chain: { chainId: event.chainId, chainName: event.chainName } })}\n\n`
             } else if (event.type === "usage") {
               // Internal — captured for per-project cost accounting, not forwarded.
               usage = { inputTokens: event.inputTokens, outputTokens: event.outputTokens, model: event.model }

@@ -33,6 +33,7 @@ import {
   getWalletApprovals,
   getNetworkStatus,
   diagnoseWalletRpc,
+  CHAIN_CONFIGS,
   checkSanctioned,
   getTokenSafety,
   resolveEnsName,
@@ -579,6 +580,15 @@ export async function executeTool(
         new Set(watchedContracts.map(c => c.chain).filter((c): c is string => !!c)),
       )
       const onProtocolChain = protocolChains.length === 0 || protocolChains.includes(chainId)
+      // If the wallet is on the wrong network AND the protocol lives on exactly
+      // one known EVM chain, surface a one-tap switch target. The stream layer
+      // turns this into a "Switch to X" button in the widget.
+      let switchTo: { chainId: string; chainName: string } | undefined
+      const target = protocolChains[0]
+      if (!onProtocolChain && protocolChains.length === 1 && target && !isSolanaChain(target)) {
+        const cfg = CHAIN_CONFIGS[target]
+        if (cfg) switchTo = { chainId: target, chainName: cfg.name }
+      }
       const diag = await diagnoseWalletRpc(wallet.address, chainId)
       if (!diag) {
         return {
@@ -586,10 +596,11 @@ export async function executeTool(
           chainId,
           onProtocolChain,
           protocolChains,
+          ...(switchTo ? { switchTo } : {}),
           note: "Could not reach a public RPC for this chain — it may be unsupported or non-EVM.",
         }
       }
-      return { ...diag, walletAddress: wallet.address, onProtocolChain, protocolChains }
+      return { ...diag, walletAddress: wallet.address, onProtocolChain, protocolChains, ...(switchTo ? { switchTo } : {}) }
     }
 
     case "check_token_safety": {

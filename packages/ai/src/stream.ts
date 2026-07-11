@@ -34,10 +34,29 @@ export type StreamEvent =
   | { type: "text"; text: string }
   | { type: "tool_call"; tool: string }
   | { type: "escalate"; summary: string; reason: string }
+  // Emitted when diagnose_wallet finds the wallet on the wrong network and the
+  // protocol lives on a single known EVM chain — the widget renders a one-tap
+  // "Switch to <chainName>" button.
+  | { type: "switch_chain"; chainId: string; chainName: string }
   // Emitted once at the very end with the total tokens spent on this turn
   // (summed across all tool-loop rounds). The API returns these for free in
   // each response; the caller persists them for per-project usage accounting.
   | { type: "usage"; inputTokens: number; outputTokens: number; model: string }
+
+/**
+ * Extract client-side action events from executed tool results. Currently the
+ * only one: diagnose_wallet may attach a `switchTo` target when the wallet is
+ * on the wrong network, which becomes a "Switch to X" button in the widget.
+ */
+function clientActionsFrom(executed: Array<{ name: string; result: unknown }>): StreamEvent[] {
+  const events: StreamEvent[] = []
+  for (const { name, result } of executed) {
+    if (name !== "diagnose_wallet" || !result || typeof result !== "object") continue
+    const s = (result as { switchTo?: { chainId?: string; chainName?: string } }).switchTo
+    if (s?.chainId && s?.chainName) events.push({ type: "switch_chain", chainId: s.chainId, chainName: s.chainName })
+  }
+  return events
+}
 
 // Hard ceiling on any single tool execution, so one hung RPC/API call can't
 // stall the whole stream (the widget would otherwise spin forever). Individual
@@ -171,16 +190,25 @@ export async function* streamChatWithTools(
 
           groqMessages.push({ role: "assistant", content: msg.content ?? null, ...(msg.tool_calls ? { tool_calls: msg.tool_calls } : {}) })
 
-          const toolResults = await Promise.all(
+          const executed = await Promise.all(
             fnCalls.map(async (tc) => {
               try {
                 const input = JSON.parse(tc.function.arguments || "{}") as Record<string, unknown>
                 const result = await executeToolWithTimeout(tc.function.name, input, walletConfig, watchedContracts)
-                return { role: "tool" as const, tool_call_id: tc.id, content: JSON.stringify(result, null, 2) }
+                return { name: tc.function.name, id: tc.id, result: result as unknown, error: null as unknown }
               } catch (err) {
-                return { role: "tool" as const, tool_call_id: tc.id, content: `Error: ${err instanceof Error ? err.message : "Tool failed"}` }
+                return { name: tc.function.name, id: tc.id, result: null as unknown, error: err }
               }
             }),
+          )
+
+          // Surface any client-side actions a tool asked for (e.g. switch network).
+          for (const ev of clientActionsFrom(executed)) yield ev
+
+          const toolResults = executed.map(({ id, result, error }) =>
+            error
+              ? { role: "tool" as const, tool_call_id: id, content: `Error: ${error instanceof Error ? error.message : "Tool failed"}` }
+              : { role: "tool" as const, tool_call_id: id, content: JSON.stringify(result, null, 2) },
           )
           groqMessages.push(...toolResults)
           continue
@@ -329,7 +357,7 @@ export async function* streamChatWithTools(
     }
 
     // Execute all wallet tool calls in parallel
-    const toolResults = await Promise.all(
+    const executed = await Promise.all(
       toolUseBlocks.map(async (block) => {
         try {
           const result = await executeToolWithTimeout(
@@ -338,20 +366,29 @@ export async function* streamChatWithTools(
             walletConfig,
             watchedContracts,
           )
-          return {
-            type: "tool_result" as const,
-            tool_use_id: block.id,
-            content: JSON.stringify(result, null, 2),
-          }
+          return { name: block.name, id: block.id, result: result as unknown, error: null as unknown }
         } catch (err) {
-          return {
-            type: "tool_result" as const,
-            tool_use_id: block.id,
-            content: `Error: ${err instanceof Error ? err.message : "Tool execution failed"}`,
-            is_error: true,
-          }
+          return { name: block.name, id: block.id, result: null as unknown, error: err }
         }
       }),
+    )
+
+    // Surface any client-side actions a tool asked for (e.g. switch network).
+    for (const ev of clientActionsFrom(executed)) yield ev
+
+    const toolResults = executed.map(({ id, result, error }) =>
+      error
+        ? {
+            type: "tool_result" as const,
+            tool_use_id: id,
+            content: `Error: ${error instanceof Error ? error.message : "Tool execution failed"}`,
+            is_error: true,
+          }
+        : {
+            type: "tool_result" as const,
+            tool_use_id: id,
+            content: JSON.stringify(result, null, 2),
+          },
     )
 
     // Append assistant + tool results and continue to next round

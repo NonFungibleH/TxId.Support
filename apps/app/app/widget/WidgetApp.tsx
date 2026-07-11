@@ -171,6 +171,8 @@ interface Message {
   streaming?: boolean
   /** Tool currently being called — shown while Claude fetches blockchain data */
   toolCall?: string | null
+  /** One-tap "switch network" prompt when the wallet is on the wrong chain */
+  switchAction?: { chainId: string; chainName: string }
 }
 
 // ─── Token Mode types ─────────────────────────────────────────────────────────
@@ -478,7 +480,7 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
   const isSolanaProject = (config?.chains ?? []).includes("solana")
 
   // Wallet setup flow: prompt → (connected | manual | skipped)
-  const [, setWalletSetup] = useState<"prompt" | "manual-input" | "connected" | "manual" | "skipped">("prompt")
+  const [walletSetup, setWalletSetup] = useState<"prompt" | "manual-input" | "connected" | "manual" | "skipped">("prompt")
 
   // Ticket escalation state
   const [escalation, setEscalation] = useState<{ summary: string; reason: string } | null>(null)
@@ -657,6 +659,29 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
     clearWalletSession(apiKey)
   }, [apiKey])
 
+  // ── Switch network (one-tap, EIP-3326) ────────────────────────────────────
+  const [switching, setSwitching] = useState(false)
+  const switchChain = useCallback(async (targetChainId: string, chainName: string) => {
+    if (typeof window === "undefined" || !("ethereum" in window)) return
+    const eth = (window as unknown as { ethereum: { request: (a: { method: string; params?: unknown[] }) => Promise<unknown> } }).ethereum
+    setSwitching(true)
+    try {
+      await eth.request({ method: "wallet_switchEthereumChain", params: [{ chainId: targetChainId }] })
+      setChainId(targetChainId)
+      if (walletAddress) saveWalletSession(apiKey, { setup: "connected", address: walletAddress, chainId: targetChainId })
+      setMessages((prev) => [...prev, { id: nanoid(), role: "assistant", content: `✅ Switched to ${chainName}. Try your transaction again now.` }])
+    } catch (err) {
+      const code = (err as { code?: number })?.code
+      if (code === 4001) return // user rejected — say nothing
+      const msg = code === 4902
+        ? `Your wallet doesn't have ${chainName} added yet — add ${chainName} in your wallet, then try again.`
+        : `Couldn't switch automatically. Please change your wallet's network to ${chainName} manually.`
+      setMessages((prev) => [...prev, { id: nanoid(), role: "assistant", content: msg }])
+    } finally {
+      setSwitching(false)
+    }
+  }, [apiKey, walletAddress])
+
 
   // ── Submit support ticket ────────────────────────────────────────────────
   const submitTicket = useCallback(async () => {
@@ -763,6 +788,7 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
               error?: string
               escalate?: { summary: string; reason: string }
               suggestions?: { items: string[] }
+              switch_chain?: { chainId: string; chainName: string }
             }
             if (parsed.error) {
               setMessages((prev) =>
@@ -793,6 +819,14 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
             }
             if (parsed.suggestions?.items?.length) {
               setSuggestions(parsed.suggestions.items)
+            }
+            if (parsed.switch_chain) {
+              // Wallet is on the wrong network — attach a one-tap switch button
+              // to this message (only actionable for injected/connected wallets).
+              const sc = parsed.switch_chain
+              setMessages((prev) =>
+                prev.map((m) => (m.id === assistantId ? { ...m, switchAction: sc } : m)),
+              )
             }
             if (parsed.text) {
               // Text is streaming — clear any tool indicator
@@ -1338,6 +1372,21 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
                           </span>
                         )
                       ))}
+                      {m.switchAction &&
+                        walletSetup === "connected" &&
+                        chainId !== "solana" &&
+                        chainId !== m.switchAction.chainId &&
+                        typeof window !== "undefined" &&
+                        "ethereum" in window && (
+                          <button
+                            onClick={() => switchChain(m.switchAction!.chainId, m.switchAction!.chainName)}
+                            disabled={switching}
+                            className="mt-2 w-full rounded-lg py-1.5 text-[11px] font-semibold transition-opacity disabled:opacity-50"
+                            style={{ backgroundColor: b.primaryColor, color: b.textColor }}
+                          >
+                            {switching ? "Switching…" : `Switch to ${m.switchAction.chainName} →`}
+                          </button>
+                        )}
                     </div>
                   </div>
                 </div>
