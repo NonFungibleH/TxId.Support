@@ -9,7 +9,7 @@ import { redirect } from "next/navigation"
 import { GoLiveToggle } from "@/components/dashboard/GoLiveToggle"
 import { ProjectNameEditor } from "@/components/dashboard/ProjectNameEditor"
 import type { ProjectConfig } from "@/lib/types/config"
-import { PLAN_CHAIN_LIMITS, PLAN_CONV_LIMITS, SUPPORTED_CHAINS, isPaidPlan } from "@/lib/types/config"
+import { PLAN_CHAIN_LIMITS, PLAN_CONV_LIMITS, PLAN_LABELS, SUPPORTED_CHAINS, isPaidPlan } from "@/lib/types/config"
 import type { Database } from "@/lib/supabase/types"
 import { cn } from "@/lib/utils"
 
@@ -172,6 +172,54 @@ export default async function DashboardPage() {
         <StatsCard title="Chains enabled" value={activeChains.length} description={`of ${chainLimitLabel} on ${plan}`} icon={Zap} />
       </div>
 
+      {/* Plan usage toward the monthly ceiling — always visible (both free and
+          paid) so users see how close they are and can upgrade before hitting
+          the limit. */}
+      <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-surface)] p-5">
+        <div className="flex items-center justify-between mb-3">
+          <div>
+            <p className="text-sm font-medium">Conversations this month</p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {PLAN_LABELS[plan]} plan{convLimitLabel ? ` · ${convLimitLabel} included / month` : ""}
+            </p>
+          </div>
+          <span className="text-sm tabular-nums">
+            <span className="font-semibold text-base">{monthlyCount.toLocaleString()}</span>
+            {convLimitLabel && <span className="text-muted-foreground font-normal"> / {convLimitLabel}</span>}
+          </span>
+        </div>
+        {convLimitLabel ? (
+          <>
+            <div className="h-2 rounded-full bg-muted overflow-hidden">
+              <div
+                className={cn(
+                  "h-2 rounded-full transition-all",
+                  usagePct >= 100 ? "bg-red-500" : usagePct >= 80 ? "bg-amber-500" : "bg-primary",
+                )}
+                style={{ width: `${Math.min(usagePct, 100)}%` }}
+              />
+            </div>
+            <div className="flex items-center justify-between gap-3 mt-2.5 flex-wrap">
+              <p className="text-xs text-muted-foreground">
+                {usagePct >= 100
+                  ? "Monthly limit reached — new conversations are paused until next month."
+                  : `${Math.max(0, convLimit - monthlyCount).toLocaleString()} left this month (${usagePct}% used)`}
+              </p>
+              {usagePct >= 80 && (
+                <a
+                  href="mailto:team@txid.support?subject=TxID%20Support%20—%20higher%20volume%20plan"
+                  className="text-xs font-medium text-amber-400 underline underline-offset-2 hover:text-amber-300"
+                >
+                  {usagePct >= 100 ? "Upgrade to resume →" : "Need more conversations? Upgrade →"}
+                </a>
+              )}
+            </div>
+          </>
+        ) : (
+          <p className="text-xs text-muted-foreground">Unlimited conversations on your {PLAN_LABELS[plan]} plan.</p>
+        )}
+      </div>
+
       {/* Free-trial upsell — always visible for free projects so the paid
           path is one click away. Paid/demo plans never see it. */}
       {!isPaidPlan(plan) && (
@@ -196,47 +244,6 @@ export default async function DashboardPage() {
 
       {liveDone ? (
         <div className="space-y-4">
-          {/* Monthly usage */}
-          <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-surface)] p-5">
-            <div className="flex items-center justify-between mb-3">
-              <p className="text-sm font-medium">Conversations this month</p>
-              <span className="text-sm tabular-nums">
-                <span className="font-semibold">{monthlyCount.toLocaleString()}</span>
-                {convLimitLabel && (
-                  <span className="text-muted-foreground font-normal"> / {convLimitLabel}</span>
-                )}
-              </span>
-            </div>
-            {convLimitLabel ? (
-              <>
-                <div className="h-1.5 rounded-full bg-muted overflow-hidden">
-                  <div
-                    className={cn(
-                      "h-1.5 rounded-full transition-all",
-                      usagePct >= 90 ? "bg-amber-500" : "bg-primary"
-                    )}
-                    style={{ width: `${Math.min(usagePct, 100)}%` }}
-                  />
-                </div>
-                {usagePct >= 80 && (
-                  <p className="text-xs text-amber-400 mt-2.5">
-                    {usagePct >= 100
-                      ? "You've hit your monthly limit — conversations are paused. "
-                      : `${usagePct}% used — `}
-                    <a
-                      href="mailto:team@txid.support?subject=Upgrade enquiry"
-                      className="underline underline-offset-2 hover:text-amber-300"
-                    >
-                      Upgrade to avoid interruptions →
-                    </a>
-                  </p>
-                )}
-              </>
-            ) : (
-              <p className="text-xs text-muted-foreground">Unlimited conversations on your plan.</p>
-            )}
-          </div>
-
           {/* Recent conversations */}
           <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-surface)] overflow-hidden">
             <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--border)]">
