@@ -275,7 +275,7 @@ export function BrandingForm({ projectId, initial, onBrandingChange }: BrandingF
         <div className="space-y-2">
           <div>
             <h3 className="text-sm font-medium">Agent name</h3>
-            <p className="text-xs text-muted-foreground mt-0.5">Users see this instead of &ldquo;AI&rdquo;.</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Shown as the widget&apos;s title (and avatar initials). Leave blank to use your project name.</p>
           </div>
           <Input
             placeholder="e.g. Alex, Aria, Support"

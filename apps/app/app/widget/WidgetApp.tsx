@@ -906,7 +906,7 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
           </div>
         )}
         <span className="flex-1 text-sm font-semibold" style={{ color: b.textColor }}>
-          {config.projectName}
+          {b.agentName?.trim() || config.projectName}
         </span>
         {!isTokenMode && (
           walletAddress ? (
