@@ -19,10 +19,10 @@ import {
 } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "Platform: API + MCP | TxID Support",
+  title: "API & MCP | TxID Support",
   description:
     "The on-chain diagnostic engine behind TxID Support, available headless. A REST API and MCP server so your app, support desk, or AI tooling can diagnose transactions directly.",
-  alternates: { canonical: "/platform" },
+  alternates: { canonical: "/api" },
 };
 
 const PRODUCTS = [
@@ -116,7 +116,7 @@ export default function PlatformPage() {
           <div className="max-w-6xl mx-auto px-6 pt-10 pb-16 text-center relative">
             <FadeIn>
               <div className="flex items-center justify-center gap-3 mb-4">
-                <p className="font-mono text-sm text-accent">{`Platform`}</p>
+                <p className="font-mono text-sm text-accent">{`API & MCP`}</p>
                 <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border border-accent/40 bg-accent/10 font-mono text-[11px] text-accent">
                   <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
                   REST API live · MCP rolling out
@@ -217,8 +217,8 @@ export default function PlatformPage() {
                   The same tools the widget uses
                 </h2>
                 <p className="text-muted max-w-xl mx-auto">
-                  Every diagnostic the embedded product runs is a tool the platform
-                  will expose, across all major EVM chains.
+                  Every diagnostic the embedded product runs is a tool the API
+                  exposes, across all major EVM chains.
                 </p>
               </div>
             </FadeIn>

@@ -14,7 +14,7 @@ export function PlatformTeaser() {
       <div className="max-w-6xl mx-auto px-6">
         <FadeIn>
           <Link
-            href="/platform"
+            href="/api"
             className="block bg-[var(--bg-surface)] border border-[var(--border)] rounded-2xl p-8 lg:p-10 hover:border-[var(--border-accent)] transition-colors group relative overflow-hidden"
           >
             <div
@@ -27,10 +27,10 @@ export function PlatformTeaser() {
             <div className="relative flex flex-col lg:flex-row lg:items-center gap-8">
               <div className="flex-1">
                 <div className="flex items-center gap-3 mb-3">
-                  <p className="font-mono text-sm text-accent">{`Platform`}</p>
+                  <p className="font-mono text-sm text-accent">{`API & MCP`}</p>
                   <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border border-accent/40 bg-accent/10 font-mono text-[11px] text-accent">
                     <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
-                    Coming soon
+                    REST API live
                   </span>
                 </div>
                 <h2 className="font-display text-3xl font-bold text-white mb-3">
