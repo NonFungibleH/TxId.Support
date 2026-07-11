@@ -98,6 +98,13 @@ export const PERSONA_LABELS: Record<Persona, { name: string; tagline: string }> 
   supportive:   { name: "Supportive",   tagline: "Patient and reassuring for stressed users" },
 }
 
+export const FONT_SCALES = ["sm", "md", "lg", "xl"] as const
+export type FontScale = (typeof FONT_SCALES)[number]
+// Uniform zoom applied to the whole widget so text + spacing scale together.
+// "md" = 1.0 is the default and a no-op (existing widgets unchanged).
+export const FONT_SCALE_VALUE: Record<FontScale, number> = { sm: 0.9, md: 1.0, lg: 1.12, xl: 1.25 }
+export const FONT_SCALE_LABEL: Record<FontScale, string> = { sm: "Small", md: "Default", lg: "Large", xl: "Extra large" }
+
 export interface BrandingConfig {
   primaryColor: string
   secondaryColor: string
@@ -114,6 +121,7 @@ export interface BrandingConfig {
   websiteUrl?: string | null
   welcomeMessage?: string | null
   language?: string | null
+  fontScale?: FontScale
 }
 
 export interface TokenConfig {

@@ -11,7 +11,7 @@ import { ColorPicker } from "./ColorPicker"
 import { updateConfig } from "@/lib/actions/project"
 import { fetchBrandColors } from "@/lib/actions/brand"
 import type { BrandingConfig } from "@/lib/types/config"
-import { SUPPORTED_FONTS, PERSONAS, PERSONA_LABELS, autoInputTextColor } from "@/lib/types/config"
+import { SUPPORTED_FONTS, PERSONAS, PERSONA_LABELS, FONT_SCALES, FONT_SCALE_LABEL, autoInputTextColor } from "@/lib/types/config"
 
 type ColorPreset = Pick<BrandingConfig, "primaryColor" | "secondaryColor" | "backgroundColor" | "textColor">
 const PRESETS: Array<{ name: string } & ColorPreset> = [
@@ -233,6 +233,20 @@ export function BrandingForm({ projectId, initial, onBrandingChange }: BrandingF
                 <SelectItem value="inline">Inline</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+          <div className="space-y-2">
+            <h3 className="text-sm font-medium">Text size</h3>
+            <Select value={branding.fontScale ?? "md"} onValueChange={v => update("fontScale", v as BrandingConfig["fontScale"])}>
+              <SelectTrigger>
+                <SelectValue>{FONT_SCALE_LABEL[branding.fontScale ?? "md"]}</SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {FONT_SCALES.map(s => (
+                  <SelectItem key={s} value={s}>{FONT_SCALE_LABEL[s]}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">Scales the whole widget so it fits your site. Larger sizes grow the widget too.</p>
           </div>
         </div>
       </div>

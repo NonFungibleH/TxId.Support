@@ -116,13 +116,27 @@
     }
   });
 
-  // Close when iframe posts a "txid-close" message
+  // Base panel size (kept in sync with the CSS above). Text-scale grows it.
+  var BASE_W = 380, BASE_H = 560;
+
   window.addEventListener("message", function (e) {
-    if (e.data !== "txid-close") return;
-    // Force-close regardless of open state to guard against any state drift
-    open = false;
-    wrap.classList.remove("open");
-    btn.innerHTML = CHAT_ICON;
-    btn.setAttribute("aria-label", "Open support chat");
+    // Close when the iframe posts a "txid-close" message
+    if (e.data === "txid-close") {
+      // Force-close regardless of open state to guard against any state drift
+      open = false;
+      wrap.classList.remove("open");
+      btn.innerHTML = CHAT_ICON;
+      btn.setAttribute("aria-label", "Open support chat");
+      return;
+    }
+    // Grow the frame to fit the chosen text scale so larger fonts don't clip.
+    if (e.data && e.data.type === "txid-resize" && typeof e.data.scale === "number") {
+      var s = Math.max(0.8, Math.min(1.5, e.data.scale));
+      // Only widen on desktop; mobile is already a full-width sheet.
+      if (window.innerWidth > 440) {
+        wrap.style.width = Math.round(BASE_W * s) + "px";
+        wrap.style.height = Math.round(BASE_H * s) + "px";
+      }
+    }
   });
 })();

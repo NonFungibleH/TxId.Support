@@ -56,7 +56,10 @@ interface BrandingConfig {
   theme: "dark" | "light"
   agentName?: string | null
   agentIconUrl?: string | null
+  fontScale?: "sm" | "md" | "lg" | "xl"
 }
+
+const FONT_SCALE_VALUE: Record<string, number> = { sm: 0.9, md: 1.0, lg: 1.12, xl: 1.25 }
 
 interface WatchedContract {
   id: string
@@ -526,6 +529,15 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
       .catch(() => setConfigError("Failed to load widget config"))
   }, [apiKey, isPreview, previewToken])
 
+  // ── Ask the embed (widget.js) to grow the iframe to fit the chosen text
+  // scale, so a larger font doesn't clip inside the fixed 380×560 frame. ──────
+  useEffect(() => {
+    const scale = FONT_SCALE_VALUE[config?.branding?.fontScale ?? "md"] ?? 1
+    if (scale !== 1 && typeof window !== "undefined" && window.parent !== window) {
+      window.parent.postMessage({ type: "txid-resize", scale }, "*")
+    }
+  }, [config])
+
   // ── Auto-scroll to latest message ───────────────────────────────────────
   useEffect(() => {
     const el = messagesContainerRef.current
@@ -861,6 +873,10 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
   // Ensure text always contrasts with the background regardless of branding config
   const bgIsLight = getBgLuminance(b.backgroundColor) > 0.5
   const adaptiveText = bgIsLight ? "#111111" : b.textColor
+  // Desktop only — on mobile the widget is a full-width sheet, so zooming would
+  // clip horizontally. (Panel renders after async config load, so window is safe.)
+  const isNarrow = typeof window !== "undefined" && window.innerWidth <= 440
+  const widgetScale = isNarrow ? 1 : (FONT_SCALE_VALUE[b.fontScale ?? "md"] ?? 1)
 
   const hasInfoContent = !!(config?.token || (config?.contentBlocks ?? []).length > 0)
 
@@ -887,6 +903,8 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
     fontFamily: `'${b.font}', sans-serif`,
     backgroundColor: b.backgroundColor,
     color: adaptiveText,
+    // Uniform zoom scales all text + spacing together. md (1.0) is a no-op.
+    ...(widgetScale !== 1 ? { zoom: widgetScale } : {}),
   } as React.CSSProperties
 
   return (
