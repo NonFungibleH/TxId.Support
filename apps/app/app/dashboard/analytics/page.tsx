@@ -3,7 +3,7 @@ import { redirect } from "next/navigation"
 import { createServiceClient } from "@/lib/supabase/server"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import dynamic from "next/dynamic"
-import { MessageSquare, AlertCircle, Zap } from "lucide-react"
+import { MessageSquare, AlertCircle, Zap, ThumbsUp } from "lucide-react"
 import Link from "next/link"
 import type { Database } from "@/lib/supabase/types"
 import type { ProjectConfig, Plan } from "@/lib/types/config"
@@ -132,6 +132,24 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Se
     const escalated = escalCount ?? 0
     escalationRate = Math.min(100, Math.round((escalated / periodConvCount) * 100))
   }
+
+  // Satisfaction: 👍 / (👍 + 👎) across all rated assistant answers (all-time).
+  const [{ count: upCount }, { count: downCount }] = await Promise.all([
+    supabase
+      .from("messages")
+      .select("id, conversations!inner(project_id)", { count: "exact", head: true })
+      .eq("conversations.project_id", projectId)
+      .eq("feedback", 1),
+    supabase
+      .from("messages")
+      .select("id, conversations!inner(project_id)", { count: "exact", head: true })
+      .eq("conversations.project_id", projectId)
+      .eq("feedback", -1),
+  ])
+  const thumbsUp = upCount ?? 0
+  const thumbsDown = downCount ?? 0
+  const ratingsTotal = thumbsUp + thumbsDown
+  const satisfaction = ratingsTotal > 0 ? Math.round((thumbsUp / ratingsTotal) * 100) : null
 
   // Chain breakdown (all-time) — normalize hex IDs before counting to avoid duplicates
   const chainCounts = new Map<string, number>()
@@ -282,17 +300,27 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Se
           </CardContent>
         </Card>
 
-        <Card className="opacity-50">
+        <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
-              <AlertCircle className="size-3.5" />
+              <ThumbsUp className="size-3.5" />
               Satisfaction
-              <span className="ml-auto text-[10px] font-medium bg-muted px-1.5 py-0.5 rounded-full">Roadmap</span>
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold text-muted-foreground">—</p>
-            <p className="text-xs text-muted-foreground mt-0.5">Thumbs up / down coming soon</p>
+            {satisfaction !== null ? (
+              <>
+                <p className="text-2xl font-bold">{satisfaction}%</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {thumbsUp} 👍 · {thumbsDown} 👎 ({ratingsTotal} rated)
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="text-2xl font-bold text-muted-foreground">—</p>
+                <p className="text-xs text-muted-foreground mt-0.5">No ratings yet</p>
+              </>
+            )}
           </CardContent>
         </Card>
       </div>

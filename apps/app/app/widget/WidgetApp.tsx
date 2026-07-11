@@ -14,6 +14,8 @@ import {
   ChevronDownIcon,
   X as XIcon,
   LogOut as LogOutIcon,
+  ThumbsUp as ThumbsUpIcon,
+  ThumbsDown as ThumbsDownIcon,
 } from "lucide-react"
 
 // Human-readable status shown while the bot runs each tool. Kept in sync with
@@ -173,6 +175,10 @@ interface Message {
   toolCall?: string | null
   /** One-tap "switch network" prompt when the wallet is on the wrong chain */
   switchAction?: { chainId: string; chainName: string }
+  /** Client-only line (e.g. a switch confirmation) — never persisted, not ratable */
+  local?: boolean
+  /** User's 👍/👎 on this assistant answer: 1 up, -1 down, 0/undefined none */
+  feedback?: number
 }
 
 // ─── Token Mode types ─────────────────────────────────────────────────────────
@@ -669,18 +675,30 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
       await eth.request({ method: "wallet_switchEthereumChain", params: [{ chainId: targetChainId }] })
       setChainId(targetChainId)
       if (walletAddress) saveWalletSession(apiKey, { setup: "connected", address: walletAddress, chainId: targetChainId })
-      setMessages((prev) => [...prev, { id: nanoid(), role: "assistant", content: `✅ Switched to ${chainName}. Try your transaction again now.` }])
+      setMessages((prev) => [...prev, { id: nanoid(), role: "assistant", content: `✅ Switched to ${chainName}. Try your transaction again now.`, local: true }])
     } catch (err) {
       const code = (err as { code?: number })?.code
       if (code === 4001) return // user rejected — say nothing
       const msg = code === 4902
         ? `Your wallet doesn't have ${chainName} added yet — add ${chainName} in your wallet, then try again.`
         : `Couldn't switch automatically. Please change your wallet's network to ${chainName} manually.`
-      setMessages((prev) => [...prev, { id: nanoid(), role: "assistant", content: msg }])
+      setMessages((prev) => [...prev, { id: nanoid(), role: "assistant", content: msg, local: true }])
     } finally {
       setSwitching(false)
     }
   }, [apiKey, walletAddress])
+
+  // ── Answer feedback (👍/👎) ───────────────────────────────────────────────
+  // Optimistic + fire-and-forget. Clicking the active rating again clears it.
+  const sendFeedback = useCallback((msgId: string, content: string, rating: number, current: number) => {
+    const next = current === rating ? 0 : rating
+    setMessages((prev) => prev.map((m) => (m.id === msgId ? { ...m, feedback: next } : m)))
+    void fetch("/api/feedback", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ key: apiKey, sessionId: sessionId.current, content, rating: next }),
+    }).catch(() => { /* non-fatal — feedback is best-effort */ })
+  }, [apiKey])
 
 
   // ── Submit support ticket ────────────────────────────────────────────────
@@ -1387,6 +1405,26 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
                             {switching ? "Switching…" : `Switch to ${m.switchAction.chainName} →`}
                           </button>
                         )}
+                      {m.role === "assistant" && !m.local && !!m.content && !m.streaming && (
+                        <div className="mt-1.5 flex items-center gap-2.5">
+                          <button
+                            aria-label="Helpful"
+                            onClick={() => sendFeedback(m.id, m.content, 1, m.feedback ?? 0)}
+                            className="transition-opacity hover:opacity-100"
+                            style={{ opacity: m.feedback === 1 ? 1 : 0.4 }}
+                          >
+                            <ThumbsUpIcon className="size-3" style={{ fill: m.feedback === 1 ? "currentColor" : "none" }} />
+                          </button>
+                          <button
+                            aria-label="Not helpful"
+                            onClick={() => sendFeedback(m.id, m.content, -1, m.feedback ?? 0)}
+                            className="transition-opacity hover:opacity-100"
+                            style={{ opacity: m.feedback === -1 ? 1 : 0.4 }}
+                          >
+                            <ThumbsDownIcon className="size-3" style={{ fill: m.feedback === -1 ? "currentColor" : "none" }} />
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
