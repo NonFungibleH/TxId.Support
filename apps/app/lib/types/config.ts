@@ -86,7 +86,7 @@ export const SUPPORTED_LANGUAGES = [
 
 export type SupportedLanguageCode = (typeof SUPPORTED_LANGUAGES)[number]["code"]
 
-export const PERSONAS = ["concise", "friendly", "professional", "technical"] as const
+export const PERSONAS = ["concise", "friendly", "professional", "technical", "degen", "supportive"] as const
 export type Persona = (typeof PERSONAS)[number]
 
 export const PERSONA_LABELS: Record<Persona, { name: string; tagline: string }> = {
@@ -94,6 +94,8 @@ export const PERSONA_LABELS: Record<Persona, { name: string; tagline: string }> 
   friendly:     { name: "Friendly",     tagline: "Warm and approachable" },
   professional: { name: "Professional", tagline: "Formal and precise" },
   technical:    { name: "Technical",    tagline: "Data-first, cites sources" },
+  degen:        { name: "Degen",        tagline: "Crypto-native and casual, facts still exact" },
+  supportive:   { name: "Supportive",   tagline: "Patient and reassuring for stressed users" },
 }
 
 export interface BrandingConfig {

@@ -96,7 +96,6 @@ export function Sidebar({ mode = "support", plan = "free", isOpen = false, onClo
   const GROUPS = mode === "token" ? TOKEN_GROUPS : SUPPORT_GROUPS
   const badge = PLAN_BADGE[plan] ?? PLAN_BADGE.free
   const showUpgrade = plan === "free" || plan === "starter"
-  const modeLabel = mode === "token" ? "Community Widget" : "Support Agent"
 
   return (
     <aside
@@ -169,7 +168,6 @@ export function Sidebar({ mode = "support", plan = "free", isOpen = false, onClo
               </Link>
             )}
           </div>
-          <p className="text-[11px] text-muted-foreground">{modeLabel}</p>
         </div>
 
         <button
