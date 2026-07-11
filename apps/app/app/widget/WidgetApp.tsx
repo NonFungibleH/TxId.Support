@@ -460,7 +460,9 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState("")
   const [isStreaming, setIsStreaming] = useState(false)
-  const sessionId = useRef<string>(nanoid())
+  // Preview sessions carry a "preview-" prefix so the dashboard can flag them
+  // (like Telegram's "tg-") and the route can keep them out of the paid quota.
+  const sessionId = useRef<string>(isPreview ? `preview-${nanoid()}` : nanoid())
   const messagesContainerRef = useRef<HTMLDivElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)

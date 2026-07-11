@@ -168,6 +168,11 @@ export default async function ConversationsPage({
             ? `${shownCount} result${shownCount !== 1 ? "s" : ""} — click any to expand the transcript.`
             : `${shownCount} session${shownCount !== 1 ? "s" : ""}${total > shownCount ? ` of ${total}` : ""} — click any to expand the transcript.`}
         </p>
+        {data.some(c => c.session_id?.startsWith("preview-")) && (
+          <p className="text-xs text-violet-400 mt-1">
+            Sessions marked <span className="font-medium">Preview</span> are from your dashboard testing — recorded so you can see this working, and they don&apos;t count toward your quota.
+          </p>
+        )}
       </div>
       {filters}
       <ConversationList conversations={data} existingTickets={ticketByConvId} />

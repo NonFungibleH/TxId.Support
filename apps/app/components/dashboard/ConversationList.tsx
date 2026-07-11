@@ -178,6 +178,11 @@ export function ConversationList({
                       {tRef}
                     </Badge>
                   )}
+                  {conv.session_id?.startsWith("preview-") && (
+                    <Badge className="text-[10px] px-1.5 py-0.5 leading-none shrink-0 bg-violet-500/10 text-violet-400 border-violet-500/20">
+                      Preview
+                    </Badge>
+                  )}
                 </div>
                 <p className="text-sm truncate text-muted-foreground">{preview || "No messages"}</p>
               </div>

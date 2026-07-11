@@ -246,6 +246,10 @@ export async function POST(request: Request) {
           headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
         })
       }
+    } else if (preview) {
+      // Preview sessions (dashboard testing) are recorded so the user can see
+      // Conversations/Analytics working, but they never count toward the paid
+      // conversation quota. persistMessages will create the conversation row.
     } else {
       // New session — atomically claim a slot against the monthly + daily caps.
       const { monthly, daily } = conversationLimitsFor(plan)

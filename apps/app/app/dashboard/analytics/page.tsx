@@ -82,6 +82,14 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Se
   const monthlyUsed = monthlyCount ?? 0
   const usagePct = convLimit === Infinity ? 0 : Math.round((monthlyUsed / convLimit) * 100)
 
+  // Preview/testing sessions are flagged so pre-launch users can see the
+  // dashboard working; noted here since they're included in the counts below.
+  const { count: previewCount } = await supabase
+    .from("conversations")
+    .select("id", { count: "exact", head: true })
+    .eq("project_id", projectId)
+    .like("session_id", "preview-%")
+
   const days = Math.min(parseInt(searchParams.days ?? "14", 10) || 14, 90)
 
   const since = new Date(now)
@@ -176,6 +184,11 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Se
         <div>
           <h1 className="text-2xl font-bold">Analytics</h1>
           <p className="text-muted-foreground mt-1">Conversation insights for your support widget.</p>
+          {(previewCount ?? 0) > 0 && (
+            <p className="text-xs text-violet-400 mt-1">
+              Includes {previewCount} preview session{previewCount === 1 ? "" : "s"} from your dashboard testing — proof it works before you go live. These are flagged in Conversations and never count toward your quota.
+            </p>
+          )}
         </div>
         <AnalyticsPeriodSelector current={days} />
       </div>
