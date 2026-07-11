@@ -1,6 +1,8 @@
 export { getNativeBalance, getTokenBalances, getRecentTransactions, getTransactionByHash, getContractTransactions, getWalletApprovals } from "./wallet"
 export type { WalletApproval } from "./wallet"
 export { decodeTxRevert, fetchAbiFromExplorer } from "./decoder"
+export { diagnoseTransaction } from "./diagnose"
+export type { TxDiagnosis } from "./diagnose"
 export { diagnosePendingTx } from "./pending"
 export { getContractEvents, canCheckEvent, eventNamesFromAbi, getContractDeployment, getContractInfo, getUpgradeHistory, fetchAbiWithProxy } from "./events"
 export type { ContractEvent, ContractDeployment, ContractInfo, UpgradeEvent } from "./events"

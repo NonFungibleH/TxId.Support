@@ -2,6 +2,7 @@ import { getProject } from "@/lib/actions/project"
 import { toggleActive } from "@/lib/actions/project"
 import { redirect } from "next/navigation"
 import { EmbedCodeDisplay } from "@/components/settings/EmbedCodeDisplay"
+import { ApiAccessDisplay } from "@/components/settings/ApiAccessDisplay"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { CheckCircle2, PauseCircle } from "lucide-react"
@@ -74,6 +75,21 @@ export default async function EmbedPage() {
           <EmbedCodeDisplay
             publishableKey={typedProject.publishable_key}
             widgetBaseUrl={process.env.NEXT_PUBLIC_WIDGET_URL ?? "https://app.txid.support"}
+          />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>API access</CardTitle>
+          <CardDescription>
+            The same diagnostic engine, headless. Diagnose a transaction from your own backend, support desk, or AI tooling.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ApiAccessDisplay
+            secretKey={typedProject.secret_key}
+            apiBaseUrl={process.env.NEXT_PUBLIC_WIDGET_URL ?? "https://app.txid.support"}
           />
         </CardContent>
       </Card>

@@ -35,10 +35,10 @@ const PRODUCTS = [
   },
   {
     icon: Plug,
-    label: "MCP SERVER",
+    label: "MCP SERVER · ROLLING OUT",
     title: "MCP for support",
     description:
-      "Add TxID to any MCP-compatible client and give your AI tooling real on-chain diagnostic tools: transaction lookup, contract reads, sanctions screening, and more.",
+      "Add TxID to any MCP-compatible client and give your AI tooling real on-chain diagnostic tools: transaction lookup, contract reads, sanctions screening, and more. Rolling out now — talk to us for early access.",
   },
   {
     icon: Bot,
@@ -81,7 +81,8 @@ const USE_CASES = [
   },
 ];
 
-const EXAMPLE_REQUEST = `POST /v1/diagnose
+const EXAMPLE_REQUEST = `POST /api/v1/diagnose
+Authorization: Bearer sk_live_…
 {
   "tx": "0x8f2a4c…d41c"
 }`;
@@ -118,7 +119,7 @@ export default function PlatformPage() {
                 <p className="font-mono text-sm text-accent">{`Platform`}</p>
                 <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border border-accent/40 bg-accent/10 font-mono text-[11px] text-accent">
                   <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
-                  Coming soon
+                  REST API live · MCP rolling out
                 </span>
               </div>
               <h1 className="font-display text-5xl font-bold text-white mb-4 leading-[1.1] tracking-tight">
@@ -169,7 +170,7 @@ export default function PlatformPage() {
           <div className="max-w-6xl mx-auto px-6">
             <FadeIn>
               <div className="text-center mb-12">
-                <p className="font-mono text-sm text-accent mb-3">{`How it will work`}</p>
+                <p className="font-mono text-sm text-accent mb-3">{`How it works`}</p>
                 <h2 className="font-display text-4xl font-bold text-white mb-4">
                   One call in. A diagnosis out.
                 </h2>
