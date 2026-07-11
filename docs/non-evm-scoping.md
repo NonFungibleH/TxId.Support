@@ -1,6 +1,6 @@
 # Non-EVM Support — Scoping (Stellar & TON)
 
-_Status: scoping only, nothing built. Written 2026-07-11._
+_Status: scoping only, nothing built. Written 2026-07-11; revised same day to add Aptos._
 
 The pitch deck now says "EVM today, non-EVM on the roadmap." This document scopes
 what it actually takes to diagnose transactions on **Stellar** and **TON**, so we
@@ -13,20 +13,22 @@ can speak credibly in ecosystem conversations and size the build before committi
 - **We already have a non-EVM template.** Solana is fully integrated (currently
   paused in the UI, code intact) as its own `packages/solana` package with an
   `isSolanaChain()` guard threaded through ~6 branch points in the AI tool layer.
-  Stellar and TON follow the exact same shape: a new package + a chain guard +
-  the same wiring points. **The architecture does not need re-plumbing.**
-- **The hard part is not wiring — it's the diagnosis semantics.** EVM, Stellar
-  and TON have three genuinely different transaction models. "Why did it fail"
-  means something different on each, so the failure-decoding logic is net-new per
-  chain (it can't be shared the way the plumbing can).
+  Stellar, TON and Aptos follow the exact same shape: a new package + a chain
+  guard + the same wiring points. **The architecture does not need re-plumbing.**
+- **The hard part is not wiring — it's the diagnosis semantics.** EVM, Stellar,
+  TON and Aptos (Move) have four genuinely different transaction models. "Why did
+  it fail" means something different on each, so the failure-decoding logic is
+  net-new per chain (it can't be shared the way the plumbing can).
 - **Rough effort:** ~1–1.5 weeks per chain for a solid v1 (wallet balance, recent
   activity, transaction diagnosis, explorer links, widget wallet-connect), on top
   of ~2 days of shared groundwork to generalise a couple of EVM-only assumptions.
-- **Recommendation:** Do **Stellar first** (simpler, well-documented failure
-  codes, strong compliance story), then **TON**. Promise "diagnosis + wallet
-  context" in conversations; do **not** promise EVM-depth contract introspection
-  on day one — Stellar classic has no EVM-style contracts and TON's async model
-  makes tracing multi-message flows materially harder.
+- **Recommendation:** order by difficulty — **Stellar → Aptos → TON**. Stellar and
+  Aptos both have documented, closed failure-code sets and injected-style wallets;
+  TON is hardest (async message model + QR-based TON Connect). Promise "diagnosis +
+  wallet context" in conversations; do **not** promise EVM-depth contract
+  introspection on day one — Stellar classic has no EVM-style contracts, Aptos/TON
+  custom codes need module source to name precisely, and TON's async model makes
+  tracing multi-message flows materially harder.
 
 ---
 
@@ -146,14 +148,59 @@ TON Connect + explorer links. **Defer:** full multi-message trace reconstruction
 
 ---
 
+## 3b. Aptos
+
+**Transaction model.** Aptos runs the **Move VM**. Transactions are synchronous
+and atomic (closer to EVM's mental model than TON's async messages), which makes
+Aptos the *easiest* of the three to diagnose after Stellar. Smart-contract logic
+lives in Move modules; failures surface as **Move aborts** or VM status codes.
+
+**Why-it-failed = VM status + Move abort codes.** When a transaction fails the
+Fullnode REST API returns `success: false` and a `vm_status` describing why. Two
+big buckets:
+- **Move aborts** — the module that aborted (its address + name) plus a numeric
+  **abort code** the contract chose. Like EVM custom errors / TON custom exit
+  codes, naming it precisely needs the module's source, but the module+code pair
+  is always available and many are conventional.
+- **Execution/validation statuses** — `OUT_OF_GAS` (raise max gas and resubmit),
+  `SEQUENCE_NUMBER_TOO_OLD` / `_TOO_NEW` (sequence reuse or gap — resubmit with
+  the right one), `INSUFFICIENT_BALANCE_FOR_TRANSACTION_FEE`, and the standard
+  Move categories (resource already/doesn't exist, arithmetic error).
+
+This is a **documented, closed set** at the framework level — friendly to map to
+plain-English fixes, on par with Stellar.
+
+**Data surfaces (keyless / generous):**
+- **Fullnode REST API** — accounts, resources, transactions, `vm_status`, and
+  **transaction simulation** (a genuine advantage: we can dry-run and explain a
+  failure *before* the user even submits).
+- **Indexer GraphQL API** — richer queries (coin/token activity, history) for
+  wallet context.
+- **Aptos Explorer** — explorer links.
+
+**Wallet-connect (widget):** the **Aptos Wallet Adapter** (Petra, Pontem, etc.) —
+a standard adapter interface, closer to EVM's injected model than TON Connect, so
+lower widget risk than TON.
+
+**v1 scope:** balances + coin/token activity + Move-abort / VM-status diagnosis +
+Wallet Adapter connect + explorer links. Simulation-based "this *will* fail
+because…" is a strong differentiator to add early. **Defer:** naming arbitrary
+custom abort codes without the module source (same limitation as EVM/TON).
+
+**Effort:** ~1 week — between Stellar (easiest) and TON (hardest). Synchronous
+atomic model + simulation API keep it tractable.
+
+---
+
 ## 4. Effort & phasing
 
 | Phase | Work | Est. |
 |------|------|------|
 | 0 | Shared groundwork: generalise the two EVM-only assumptions — the REST `diagnoseTransaction` dispatch and any place that assumes hex chain ids — plus a `ChainFamily` notion so guards compose. | ~2 days |
 | 1 | **Stellar v1**: `packages/stellar`, Horizon client, `result_codes` → fix mapping, Freighter connect, config/prompt/logo, REST dispatch. | ~1 week |
-| 2 | **TON v1**: `packages/ton`, TON Center/TON API client, exit-code → fix mapping, TON Connect, config/prompt/logo, REST dispatch. | ~1.5 weeks |
-| 3 | Depth (later): Soroban (Stellar) + multi-message trace (TON) contract-level introspection. | open-ended |
+| 2 | **Aptos v1**: `packages/aptos`, Fullnode REST + Indexer client, VM-status / Move-abort → fix mapping, Wallet Adapter connect, config/prompt/logo, REST dispatch. Simulation-based pre-flight as a fast-follow. | ~1 week |
+| 3 | **TON v1**: `packages/ton`, TON Center/TON API client, exit-code → fix mapping, TON Connect, config/prompt/logo, REST dispatch. | ~1.5 weeks |
+| 4 | Depth (later): Soroban (Stellar) + multi-message trace (TON) + arbitrary Move-abort naming (Aptos) contract-level introspection. | open-ended |
 
 _These assume one engineer and reuse of the Solana pattern. The estimates are for a
 credible v1 a protocol could actually use, not a demo._
@@ -181,9 +228,11 @@ credible v1 a protocol could actually use, not a demo._
 
 Lead ecosystem conversations with **"transaction diagnosis + wallet context + plain-
 English fixes,"** which we can deliver on Stellar and TON on the same timeline shown
-above. Position deep contract introspection as a fast-follow. Do **Stellar first** —
-cleaner failure model, strong trustline/compliance wins, lower wallet-connect risk —
-then **TON**.
+above. Position deep contract introspection as a fast-follow. Ship in
+difficulty order — **Stellar → Aptos → TON**: Stellar (cleanest failure model,
+trustline/compliance wins) and Aptos (documented VM statuses, injected wallet,
+plus a simulation API for pre-flight "this will fail because…") are both low-risk;
+TON last, where the async model and TON Connect add the most work.
 
 ---
 
@@ -192,3 +241,6 @@ then **TON**.
 - Stellar transaction failed: <https://developers.stellar.org/docs/data/apis/horizon/api-reference/errors/http-status-codes/horizon-specific/transaction-failed>
 - TON exit codes: <https://docs.ton.org/v3/documentation/tvm/exit-codes>
 - TON transaction exploration / APIs: <https://docs.ton.org/v3/guidelines/dapps/transactions/explore-transactions>
+- Aptos error codes: <https://aptos.dev/reference/error-codes/>
+- Aptos transactions & states (vm_status): <https://aptos.dev/network/blockchain/txns-states>
+- Aptos Fullnode REST API: <https://aptos.dev/build/apis/fullnode-rest-api>
