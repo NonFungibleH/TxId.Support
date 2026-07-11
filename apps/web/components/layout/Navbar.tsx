@@ -9,6 +9,7 @@ import { APP_URL } from "@/lib/config";
 
 const NAV_LINKS = [
   { label: "Features", href: "/#features" },
+  { label: "Chains", href: "/chains" },
   { label: "Platform", href: "/platform" },
   { label: "Pricing", href: "/pricing" },
   { label: "Diagnose", href: "/check" },
