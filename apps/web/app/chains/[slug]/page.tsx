@@ -5,8 +5,9 @@ import { Footer } from "@/components/layout/Footer";
 import { FadeIn } from "@/components/ui/FadeIn";
 import { Button } from "@/components/ui/Button";
 import { ChainLogo } from "@/components/chains/ChainLogo";
+import { ChainDemo } from "@/components/chains/ChainDemo";
 import { APP_URL } from "@/lib/config";
-import { CHAINS, getChain, accentVars, readableText, hexToRgba } from "@/lib/chains";
+import { CHAINS, getChain, getChainDemo, accentVars, readableText, hexToRgba } from "@/lib/chains";
 import { ArrowRight, Check, SearchCheck, MessagesSquare, Wallet } from "lucide-react";
 
 export function generateStaticParams() {
@@ -54,6 +55,9 @@ export default function ChainPage({ params }: { params: { slug: string } }) {
   const primaryLabel = isLive ? `Add TxID to ${chain.name}` : "Get early access";
   const secondaryHref = isLive ? "/demo" : "/api";
   const secondaryLabel = isLive ? "See it live" : "See how it works";
+
+  const demo = getChainDemo(chain.slug);
+  const walletLabel = chain.family === "evm" ? "0x1a2b…3c4d connected" : "Wallet connected";
 
   const faqLd = {
     "@context": "https://schema.org",
@@ -139,6 +143,39 @@ export default function ChainPage({ params }: { params: { slug: string } }) {
             </FadeIn>
           </div>
         </section>
+
+        {/* Live demo */}
+        {demo && (
+          <section className="py-16">
+            <div className="max-w-6xl mx-auto px-6">
+              <div className="flex flex-col lg:flex-row items-center gap-10 lg:gap-16">
+                <FadeIn className="flex-1 text-center lg:text-left">
+                  <p className="font-mono text-sm mb-3" style={{ color: chain.color }}>See it in action</p>
+                  <h2 className="font-display text-4xl font-bold text-white mb-4 leading-tight">
+                    Watch it diagnose a<br className="hidden lg:block" /> {chain.name} failure
+                  </h2>
+                  <p className="text-muted leading-relaxed max-w-md mx-auto lg:mx-0 mb-8">
+                    This is a scripted example. On {chain.name}, TxID reads the user&apos;s real transaction, finds
+                    the actual cause, and hands back the fix, right inside your product.
+                  </p>
+                  <div className="flex flex-wrap justify-center lg:justify-start gap-3">
+                    <a
+                      href="/check"
+                      className="inline-flex items-center justify-center gap-2 rounded-lg px-6 py-3 text-base font-medium transition-all duration-200"
+                      style={{ background: chain.color, color: ctaText, boxShadow: `0 10px 30px -10px ${hexToRgba(chain.color, 0.5)}` }}
+                    >
+                      Try it live on a real tx
+                      <ArrowRight className="w-4 h-4" />
+                    </a>
+                  </div>
+                </FadeIn>
+                <FadeIn delay={0.1} direction="none" className="shrink-0">
+                  <ChainDemo messages={demo} chainName={chain.name} walletLabel={walletLabel} />
+                </FadeIn>
+              </div>
+            </div>
+          </section>
+        )}
 
         {/* What it diagnoses */}
         <section className="py-16">
