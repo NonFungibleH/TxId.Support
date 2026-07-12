@@ -1568,7 +1568,7 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
         {/* Info tab */}
         {!isTokenMode && tab === "info" && (
           <div className="flex-1 overflow-y-auto p-3 space-y-3">
-            {config.token && config.token.showInWidget !== false && (
+            {config.token && config.token.showInWidget === true && (
               <div
                 className="rounded-xl px-4 py-3 relative overflow-hidden"
                 style={{
