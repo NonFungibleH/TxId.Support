@@ -1,3 +1,4 @@
+import Link from "next/link"
 import { currentUser } from "@clerk/nextjs/server"
 import { notFound } from "next/navigation"
 import { createServiceClient } from "@/lib/supabase/server"
@@ -134,6 +135,14 @@ export default async function AdminPage() {
         <p className="text-xs text-muted-foreground uppercase tracking-wider font-mono mb-1">Internal — do not share</p>
         <h1 className="text-3xl font-bold">Admin Console</h1>
         <p className="text-muted-foreground mt-1">Logged in as {primaryEmail}</p>
+        <div className="mt-3 flex flex-wrap gap-2">
+          <Link href="/admin/roadmap" className="rounded-lg border border-border px-3 py-1.5 text-sm font-medium hover:border-indigo-500/40 hover:text-indigo-400 transition-colors">
+            Product roadmap →
+          </Link>
+          <Link href="/admin/eval" className="rounded-lg border border-border px-3 py-1.5 text-sm font-medium hover:border-border/80 transition-colors text-muted-foreground hover:text-foreground">
+            Eval →
+          </Link>
+        </div>
       </div>
 
       {/* Platform stats */}
