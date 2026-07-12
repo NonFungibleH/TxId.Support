@@ -432,6 +432,21 @@ export function buildSystemPrompt(params: StreamChatParams): string {
       )
     }
 
+    // Documentation links — pages the protocol wants the bot to hand users for
+    // self-serve detail. Distinct from the RAG excerpts above: these are exact
+    // URLs to link, not text to quote.
+    if (config.docLinks && config.docLinks.length > 0) {
+      const docLines = ["## Documentation links"]
+      for (const d of config.docLinks) {
+        docLines.push(`- ${d.label}: ${d.url}`)
+      }
+      docLines.push(
+        `When a user wants step-by-step detail, a full guide, or more depth than a chat answer gives, point them to the single most relevant page above and include its exact link. ` +
+        `Only ever link pages listed here; never invent a documentation URL.`,
+      )
+      parts.push(docLines.join("\n"))
+    }
+
     parts.push(
       `## Escalation\n` +
       `You have a \`create_support_ticket\` tool. Use it when:\n` +

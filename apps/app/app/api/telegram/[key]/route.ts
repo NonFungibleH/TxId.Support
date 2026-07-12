@@ -276,6 +276,17 @@ export async function POST(
   const incomingMessage: ChatMessage = { role: "user", content: userText }
   const messages: ChatMessage[] = [...historyMessages, incomingMessage]
 
+  const tgDocLinks = (config.contentBlocks ?? [])
+    .filter(bl => bl.type === "docs")
+    .flatMap(bl => {
+      const c = (bl.content && typeof bl.content === "object" ? bl.content : {}) as Record<string, string>
+      return [1, 2, 3, 4, 5]
+        .map(n => ({ label: (c[`label${n}`] ?? "").trim(), url: (c[`url${n}`] ?? "").trim() }))
+        .filter(p => p.url)
+        .map(p => ({ label: p.label || p.url, url: p.url }))
+    })
+    .slice(0, 20)
+
   const configSnapshot: ProjectConfigSnapshot = {
     token: config.token
       ? {
@@ -294,6 +305,7 @@ export async function POST(
       description: c.description,
     })),
     docsUrl: config.docsUrl,
+    ...(tgDocLinks.length > 0 ? { docLinks: tgDocLinks } : {}),
   }
 
   const systemPrompt = buildSystemPrompt({

@@ -39,6 +39,9 @@ export interface ProjectConfigSnapshot {
   watchedContracts: WatchedContractSnapshot[]
   docsUrl: string | null
   audits?: AuditSnapshot[]
+  /** Curated documentation/KB page links (from the "docs" content block) the
+   *  bot can point users to for more detail. */
+  docLinks?: { label: string; url: string }[]
 }
 
 export interface RagChunk {

@@ -16,6 +16,7 @@ import {
   LogOut as LogOutIcon,
   ThumbsUp as ThumbsUpIcon,
   ThumbsDown as ThumbsDownIcon,
+  BookOpen as BookOpenIcon,
 } from "lucide-react"
 
 // Human-readable status shown while the bot runs each tool. Kept in sync with
@@ -1718,6 +1719,51 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
                                 <SocialIcon platform={link.key} />
                               </div>
                               <span className="flex-1 text-xs font-semibold">{link.label}</span>
+                              <ExternalLinkIcon className="size-3.5 opacity-25 shrink-0" />
+                            </a>
+                          ))}
+                        </div>
+                      </div>
+                    )
+                  }
+
+                  if (block.type === "docs") {
+                    const pages = [
+                      { label: c.label1, url: c.url1 },
+                      { label: c.label2, url: c.url2 },
+                      { label: c.label3, url: c.url3 },
+                      { label: c.label4, url: c.url4 },
+                      { label: c.label5, url: c.url5 },
+                    ].filter((p) => p.url) as { label?: string; url: string }[]
+                    if (pages.length === 0) return null
+                    const pageLabel = (p: { label?: string; url: string }) => {
+                      if (p.label?.trim()) return p.label // as typed
+                      // Derive a readable title from the URL path (last segment).
+                      try {
+                        const u = new URL(p.url)
+                        const seg = u.pathname.replace(/\/$/, "").split("/").filter(Boolean).pop()
+                        if (!seg) return u.hostname
+                        return seg.replace(/[-_]/g, " ").replace(/\b\w/g, (m) => m.toUpperCase())
+                      } catch { return p.url }
+                    }
+                    return (
+                      <div key={block.id} className="rounded-xl overflow-hidden" style={{ backgroundColor: b.backgroundColor, border: `1px solid ${b.primaryColor}22` }}>
+                        <div className="h-0.5" style={{ background: `linear-gradient(90deg, ${b.primaryColor}, ${b.primaryColor}30)` }} />
+                        <p className="text-[10px] font-bold uppercase tracking-widest px-3 pt-2.5 pb-1" style={{ color: adaptiveText, opacity: 0.5 }}>{block.title || "Documentation"}</p>
+                        <div>
+                          {pages.map((p, pi) => (
+                            <a
+                              key={pi}
+                              href={p.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center gap-3 px-3 py-2.5 transition-opacity hover:opacity-80 active:opacity-50"
+                              style={{ color: adaptiveText, borderTop: pi > 0 ? `1px solid ${adaptiveText}10` : undefined }}
+                            >
+                              <div className="flex size-8 shrink-0 items-center justify-center rounded-lg" style={{ backgroundColor: `${b.primaryColor}18` }}>
+                                <BookOpenIcon className="size-3.5" style={{ color: b.primaryColor }} />
+                              </div>
+                              <span className="flex-1 text-xs font-semibold truncate capitalize">{pageLabel(p)}</span>
                               <ExternalLinkIcon className="size-3.5 opacity-25 shrink-0" />
                             </a>
                           ))}

@@ -310,6 +310,19 @@ export async function POST(request: Request) {
     const projectMode = (typedProject as unknown as { mode?: string }).mode ?? "support"
 
     // Build snapshot for AI package (no Clerk types)
+    // Curated documentation links from "docs" content blocks — the bot can
+    // point users to specific pages for more detail.
+    const docLinks = (config.contentBlocks ?? [])
+      .filter((bl) => bl.type === "docs")
+      .flatMap((bl) => {
+        const c = (bl.content && typeof bl.content === "object" ? bl.content : {}) as Record<string, string>
+        return [1, 2, 3, 4, 5]
+          .map((n) => ({ label: (c[`label${n}`] ?? "").trim(), url: (c[`url${n}`] ?? "").trim() }))
+          .filter((p) => p.url)
+          .map((p) => ({ label: p.label || p.url, url: p.url }))
+      })
+      .slice(0, 20)
+
     const configSnapshot: ProjectConfigSnapshot = {
       token: config.token
         ? {
@@ -337,6 +350,7 @@ export async function POST(request: Request) {
       ...(config.audits && config.audits.length > 0
         ? { audits: config.audits.map(a => ({ auditor: a.auditor, url: a.url, date: a.date ?? null })) }
         : {}),
+      ...(docLinks.length > 0 ? { docLinks } : {}),
     }
 
     // Inspect mode: scope the whole session to the pasted contract only. Its

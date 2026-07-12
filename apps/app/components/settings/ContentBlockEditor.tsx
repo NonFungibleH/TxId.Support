@@ -25,6 +25,7 @@ const TITLE_MAX = 50
 const BLOCK_TYPES: { value: ContentBlockType; label: string }[] = [
   { value: "video",       label: "Video" },
   { value: "text",        label: "Text / Announcement" },
+  { value: "docs",        label: "Docs / Knowledge Base" },
   { value: "link",        label: "Link" },
   { value: "faq",         label: "FAQ" },
   { value: "image",       label: "Image" },
@@ -45,6 +46,18 @@ const CONTENT_FIELDS: Partial<Record<ContentBlockType, FieldDef[]>> = {
   link: [
     { key: "url",         label: "URL",                    placeholder: "https://docs.yourprotocol.com" },
     { key: "description", label: "Description (optional)", placeholder: "View our documentation" },
+  ],
+  docs: [
+    { key: "label1", label: "Page 1 label",            placeholder: "Getting Started" },
+    { key: "url1",   label: "Page 1 URL",              placeholder: "https://docs.yourprotocol.com/getting-started" },
+    { key: "label2", label: "Page 2 label (optional)", placeholder: "Staking Guide" },
+    { key: "url2",   label: "Page 2 URL",              placeholder: "https://docs.yourprotocol.com/staking" },
+    { key: "label3", label: "Page 3 label (optional)", placeholder: "How swaps work" },
+    { key: "url3",   label: "Page 3 URL",              placeholder: "https://docs.yourprotocol.com/swaps" },
+    { key: "label4", label: "Page 4 label (optional)", placeholder: "FAQ" },
+    { key: "url4",   label: "Page 4 URL",              placeholder: "https://docs.yourprotocol.com/faq" },
+    { key: "label5", label: "Page 5 label (optional)", placeholder: "Troubleshooting" },
+    { key: "url5",   label: "Page 5 URL",              placeholder: "https://docs.yourprotocol.com/troubleshooting" },
   ],
   image: [
     { key: "url", label: "Image URL",           placeholder: "https://yourprotocol.com/banner.png" },
@@ -107,7 +120,7 @@ function deriveTitle(type: ContentBlockType, content: Record<string, string>): s
   const defaults: Partial<Record<ContentBlockType, string>> = {
     video: "Video", text: "Announcement", image: "Image",
     faq: "FAQ", social: "Social Links", html: "Custom Content", link: "Link",
-    dexscreener: "Token Chart",
+    dexscreener: "Token Chart", docs: "Documentation",
   }
   return defaults[type] ?? "Content Block"
 }
@@ -127,6 +140,10 @@ function contentPreview(block: ContentBlock): string | null {
   if (block.type === "social") {
     const set = [c.twitter, c.discord, c.telegram, c.github, c.website].filter(Boolean)
     return set.length ? set.join(" · ") : null
+  }
+  if (block.type === "docs") {
+    const count = [c.url1, c.url2, c.url3, c.url4, c.url5].filter(Boolean).length
+    return count ? `${count} page${count !== 1 ? "s" : ""}` : null
   }
   return null
 }

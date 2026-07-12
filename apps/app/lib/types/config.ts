@@ -153,7 +153,7 @@ export interface WatchedContract {
   abiSource?: "explorer" | "uploaded"
 }
 
-export type ContentBlockType = "video" | "text" | "tokenomics" | "link" | "image" | "html" | "social" | "faq" | "dexscreener"
+export type ContentBlockType = "video" | "text" | "tokenomics" | "link" | "image" | "html" | "social" | "faq" | "dexscreener" | "docs"
 
 export interface ContentBlock {
   id: string
