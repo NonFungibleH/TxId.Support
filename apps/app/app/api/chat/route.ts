@@ -147,11 +147,13 @@ export async function POST(request: Request) {
           status: 403, headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
         })
       }
-      // Hard cap: 3 diagnoses per IP per 24h. Server-enforced — a refresh can't reset it.
+      // Hard cap: 3 messages per IP per 24h. Server-enforced (a refresh, a new
+      // session, or switching demo protocol can't reset it) so the public demo
+      // can never run up our LLM/RPC cost.
       const daily = await rateLimit(`inspect:${ip}`, 3, 86_400_000)
       if (!daily.allowed) {
         return new Response(JSON.stringify({
-          error: "You've used today's 3 free diagnoses. Create a free account to keep going — it's free.",
+          error: "That's the end of your free test. Add TxID to your own protocol to give your users this.",
           limitReached: true,
         }), { status: 429, headers: { ...CORS_HEADERS, "Content-Type": "application/json" } })
       }

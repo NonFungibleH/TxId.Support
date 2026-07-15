@@ -382,13 +382,13 @@ export default function CheckPage() {
 
             <div className="text-center mb-10">
               <span className="inline-flex items-center gap-1.5 rounded-full bg-accent/10 border border-accent/20 px-3 py-1 text-xs font-mono text-accent mb-5">
-                <CheckCircle2 className="w-3 h-3" /> Free · No sign-up · No private keys
+                <CheckCircle2 className="w-3 h-3" /> Live test · A few free questions · No sign-up
               </span>
               <h1 className="font-display text-4xl font-bold text-white leading-tight mb-4">
-                Try TxID on a protocol you&apos;ve used
+                Test-drive TxID on a protocol you&apos;ve used
               </h1>
               <p className="text-muted text-base leading-relaxed">
-                Pick a protocol, connect your wallet, and TxID diagnoses your real transactions with it, exactly as it would embedded in their app.
+                Pick a protocol, connect your wallet, and watch TxID diagnose your real transactions live. It&apos;s exactly what your users get once you add it to your own protocol.
               </p>
             </div>
 
@@ -574,14 +574,14 @@ export default function CheckPage() {
           <div className="max-w-3xl mx-auto px-6 py-4">
             {limitReached ? (
               <div className="text-center py-2">
-                <p className="text-sm text-white font-medium mb-1">You&apos;ve used today&apos;s 3 free diagnoses.</p>
-                <p className="text-xs text-muted mb-4">Create a free account to keep diagnosing. No credit card required.</p>
+                <p className="text-sm text-white font-medium mb-1">That&apos;s the end of your free test.</p>
+                <p className="text-xs text-muted mb-4">You just saw the support your users would get. Set it up for your own protocol in a couple of minutes, free.</p>
                 <Link
                   href={`${APP_URL}/sign-up`}
                   style={{ color: ctaText }}
                   className="inline-flex items-center gap-2 rounded-xl bg-accent text-sm font-semibold px-5 py-2.5 hover:bg-accent/90 transition-colors"
                 >
-                  Get started free
+                  Add TxID to your protocol
                   <ArrowRight className="w-4 h-4" />
                 </Link>
               </div>
@@ -620,8 +620,8 @@ export default function CheckPage() {
         <div className="border-t border-[#1e1e3a] bg-[#07070d]">
           <div className="max-w-3xl mx-auto px-6 py-5 flex flex-col sm:flex-row items-center justify-between gap-4">
             <div>
-              <p className="text-sm font-semibold text-white">Want this inside your protocol?</p>
-              <p className="text-xs text-muted mt-0.5">Embed wallet-aware AI support in your app. One script tag.</p>
+              <p className="text-sm font-semibold text-white">Like what you&apos;re seeing?</p>
+              <p className="text-xs text-muted mt-0.5">This is a live test. Give your users the same support: one script tag, set up in minutes.</p>
             </div>
             <Link
               href={`${APP_URL}/sign-up`}
