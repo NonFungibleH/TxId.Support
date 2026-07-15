@@ -68,7 +68,12 @@ export function RoadmapBoard() {
   const setStatus = (id: string, s: Status) => setStore((p) => ({ ...p, status: { ...p.status, [id]: s } }))
   const setNote = (id: string, v: string) => setStore((p) => ({ ...p, notes: { ...p.notes, [id]: v } }))
   const toggleNote = (id: string) =>
-    setOpenNotes((prev) => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n })
+    setOpenNotes((prev) => {
+      const n = new Set(prev)
+      if (n.has(id)) n.delete(id)
+      else n.add(id)
+      return n
+    })
 
   const items = useMemo(
     () => (filter === "all" ? ROADMAP : ROADMAP.filter((i) => i.area === filter)),
