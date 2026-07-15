@@ -20,11 +20,16 @@ const CHAINS = [
   { id: "8453",  name: "Base",      logo: "/chains/Base.png"     },
   { id: "42161", name: "Arbitrum",  logo: "/chains/Arbitrum.png" },
   { id: "137",   name: "Polygon",   logo: "/chains/Polygon.png"  },
-  { id: "10",    name: "Optimism",  logo: "/chains/Optimism.png" },
-  { id: "43114", name: "Avalanche", logo: "/chains/Avalanche.png" },
   { id: "56",    name: "BNB Chain", logo: "/chains/BNB.png"      },
 ]
 
+// Pre-configured demo protocols. Users have almost certainly used one of these,
+// so the bot can surface their real past transactions. The server (chat route)
+// resolves the id to the protocol's router contracts + ABIs.
+const PROTOCOLS = [
+  { id: "uniswap",     name: "Uniswap",     color: "#FF007A", chains: ["1", "8453", "42161", "137"], blurb: "The biggest DEX. Swaps on Ethereum, Base, Arbitrum, Polygon." },
+  { id: "pancakeswap", name: "PancakeSwap", color: "#1FC7D4", chains: ["56"],                        blurb: "The biggest DEX on BNB Chain." },
+]
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -49,6 +54,18 @@ function AgentAvatar() {
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src="/brand/txid-icon-64.png" alt="TxID Support" className="w-full h-full object-cover" />
     </div>
+  )
+}
+
+function ProtocolBadge({ name, color, size = 40 }: { name: string; color: string; size?: number }) {
+  return (
+    <span
+      className="inline-flex items-center justify-center font-bold text-white shrink-0"
+      style={{ width: size, height: size, borderRadius: size * 0.28, background: color, fontSize: size * 0.44 }}
+      aria-hidden
+    >
+      {name.charAt(0)}
+    </span>
   )
 }
 
@@ -108,10 +125,10 @@ declare global {
 
 export default function CheckPage() {
   const [step, setStep] = useState<"connect" | "chat">("connect")
+  const [protocolId, setProtocolId] = useState("uniswap")
   const [wallet, setWallet] = useState("")
   const [chainId, setChainId] = useState("1")
   const [manualAddress, setManualAddress] = useState("")
-  const [contractAddress, setContractAddress] = useState("")
   const [connectError, setConnectError] = useState("")
   const [limitReached, setLimitReached] = useState(false)
   const [messages, setMessages] = useState<Message[]>([])
@@ -125,13 +142,21 @@ export default function CheckPage() {
   const turnstileWidgetId = useRef<string | null>(null)
   const turnstileContainerRef = useRef<HTMLDivElement>(null)
 
-  const chain = CHAINS.find(c => c.id === chainId) ?? CHAINS[0]
+  const protocol = PROTOCOLS.find(p => p.id === protocolId) ?? PROTOCOLS[0]
+  const chainOptions = CHAINS.filter(c => protocol.chains.includes(c.id))
+  const chain = chainOptions.find(c => c.id === chainId) ?? chainOptions[0]
+
+  // Keep the chain valid for the selected protocol.
+  function pickProtocol(id: string) {
+    const p = PROTOCOLS.find(x => x.id === id) ?? PROTOCOLS[0]
+    setProtocolId(id)
+    if (!p.chains.includes(chainId)) setChainId(p.chains[0])
+    setConnectError("")
+  }
 
   useEffect(() => {
     messagesEnd.current?.scrollIntoView({ behavior: "smooth" })
   }, [messages, loading])
-
-  // ── Render Turnstile widget when script loads ─────────────────────────────
 
   function renderTurnstile() {
     if (!window.turnstile || !TURNSTILE_SITE_KEY || !turnstileContainerRef.current || turnstileWidgetId.current) return
@@ -173,7 +198,7 @@ export default function CheckPage() {
           ],
           walletAddress: wallet || manualAddress || undefined,
           chainId,
-          ...(contractAddress ? { contractAddress } : {}),
+          demoProtocol: protocolId,
           ...(turnstileToken ? { turnstileToken } : {}),
         }),
       })
@@ -247,29 +272,17 @@ export default function CheckPage() {
       })
     } finally {
       setLoading(false)
-      void assistantId // suppress unused warning
+      void assistantId
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [wallet, manualAddress, contractAddress, chainId, messages])
+  }, [wallet, manualAddress, protocolId, chainId, messages])
 
-  // ── Enter chat — show greeting without API call ───────────────────────────
+  // ── Enter chat — greeting scoped to the chosen protocol ───────────────────
 
   function enterChat(addr: string) {
-    const displayChain = chain.name
-    const contract = contractAddress.trim()
-    // Contract-inspect mode: a contract was given (with or without a wallet).
-    if (contract) {
-      const walletNote = addr ? ` Your wallet ${shortAddr(addr)} is connected, so I can also check your interactions with it.` : ""
-      setMessages([{
-        role: "assistant",
-        content: `Hi! I'm TxID Support. I'm looking at contract ${shortAddr(contract)} on ${displayChain}.${walletNote}\n\nAsk me anything about it — is it verified, when was it deployed, has it ever been paused, what does it do, is its token safe? What would you like to know?`,
-      }])
-      setStep("chat")
-      return
-    }
     setMessages([{
       role: "assistant",
-      content: `Hi! I'm TxID Support. I can see your wallet ${shortAddr(addr)} is connected on ${displayChain}.\n\nWhat's going on? Did a transaction fail, are funds missing, or is something else not looking right?`,
+      content: `Hi! I'm ${protocol.name} Support (a live TxID demo). I can see your wallet ${shortAddr(addr)} connected on ${chain.name}.\n\nI can look up your recent ${protocol.name} transactions, explain why a swap failed, or check a token. What would you like to look at?`,
     }])
     setStep("chat")
   }
@@ -295,20 +308,8 @@ export default function CheckPage() {
   function goWithManual() {
     setConnectError("")
     const addr = manualAddress.trim()
-    const contract = contractAddress.trim()
-    const addrOk = /^0x[0-9a-fA-F]{40}$/.test(addr)
-    const contractOk = /^0x[0-9a-fA-F]{40}$/.test(contract)
-    // Either path works: a wallet to diagnose, or a contract to inspect (or both).
-    if (!addr && !contract) {
-      setConnectError("Enter a wallet address to diagnose, or a contract address to inspect.")
-      return
-    }
-    if (addr && !addrOk) {
+    if (!/^0x[0-9a-fA-F]{40}$/.test(addr)) {
       setConnectError("Enter a valid wallet address (0x…)")
-      return
-    }
-    if (contract && !contractOk) {
-      setConnectError("Enter a valid contract address (0x…)")
       return
     }
     enterChat(addr)
@@ -334,7 +335,6 @@ export default function CheckPage() {
     setStep("connect")
     setWallet("")
     setManualAddress("")
-    setContractAddress("")
     setMessages([])
     setConnectError("")
     setLimitReached(false)
@@ -357,94 +357,117 @@ export default function CheckPage() {
         <main className="min-h-screen pt-28 pb-24">
           <div className="max-w-xl mx-auto px-6">
 
-            <div className="text-center mb-12">
+            <div className="text-center mb-10">
               <span className="inline-flex items-center gap-1.5 rounded-full bg-accent/10 border border-accent/20 px-3 py-1 text-xs font-mono text-accent mb-5">
                 <CheckCircle2 className="w-3 h-3" /> Free · No sign-up · No private keys
               </span>
               <h1 className="font-display text-4xl font-bold text-white leading-tight mb-4">
-                Diagnose any transaction or contract
+                Try TxID on a protocol you&apos;ve used
               </h1>
               <p className="text-muted text-base leading-relaxed">
-                Paste a smart contract to inspect it, or connect your wallet to diagnose a transaction. Ask TxID Support anything: is this contract verified, why did my transaction fail, is this token safe.
+                Pick a protocol, connect your wallet, and TxID diagnoses your real transactions with it, exactly as it would embedded in their app.
               </p>
             </div>
 
             <div className="rounded-2xl border border-[#1e1e3a] bg-[#0f0f1a] p-8 space-y-6">
 
-              <button
-                onClick={connectMetaMask}
-                className="w-full flex items-center justify-center gap-3 rounded-xl bg-accent hover:bg-accent/90 active:bg-accent/80 text-white font-semibold py-3.5 transition-colors"
-              >
-                <Wallet className="w-4 h-4" />
-                Connect Wallet
-              </button>
-
-              <div className="flex items-center gap-3">
-                <div className="flex-1 h-px bg-[#1e1e3a]" />
-                <span className="text-xs text-muted font-mono">or enter address</span>
-                <div className="flex-1 h-px bg-[#1e1e3a]" />
+              {/* Protocol picker */}
+              <div>
+                <p className="text-xs font-mono text-muted mb-2.5">1 · Pick a protocol</p>
+                <div className="grid grid-cols-2 gap-3">
+                  {PROTOCOLS.map(p => (
+                    <button
+                      key={p.id}
+                      onClick={() => pickProtocol(p.id)}
+                      className={clsx(
+                        "flex items-center gap-3 rounded-xl border p-3 text-left transition-colors",
+                        p.id === protocolId ? "border-accent bg-accent/5" : "border-[#1e1e3a] hover:border-accent/40"
+                      )}
+                    >
+                      <ProtocolBadge name={p.name} color={p.color} size={36} />
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-white truncate">{p.name}</p>
+                        <p className="text-[11px] text-muted leading-snug">{p.blurb}</p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
               </div>
 
-              <div className="space-y-3">
-                <input
-                  type="text"
-                  placeholder="Your wallet address (0x…)"
-                  value={manualAddress}
-                  onChange={e => { setManualAddress(e.target.value); setConnectError("") }}
-                  onKeyDown={e => e.key === "Enter" && goWithManual()}
-                  className="w-full bg-[#07070d] border border-[#1e1e3a] rounded-xl px-4 py-3 text-white font-mono text-sm placeholder:text-muted focus:outline-none focus:border-accent transition-colors"
-                />
+              {/* Chain (constrained to the protocol) */}
+              {chainOptions.length > 1 && (
+                <div>
+                  <p className="text-xs font-mono text-muted mb-2.5">2 · Which chain did you use it on?</p>
+                  <div className="relative">
+                    <button
+                      onClick={() => setChainOpen(o => !o)}
+                      className="w-full flex items-center justify-between gap-2 bg-[#07070d] border border-[#1e1e3a] rounded-xl px-4 py-3 text-sm text-white hover:border-accent/50 transition-colors"
+                    >
+                      <span className="flex items-center gap-2">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={chain.logo} alt={chain.name} className="w-4 h-4 object-contain rounded-full" />
+                        {chain.name}
+                      </span>
+                      <ChevronDown className={clsx("w-4 h-4 text-muted transition-transform", chainOpen && "rotate-180")} />
+                    </button>
+                    {chainOpen && (
+                      <div className="absolute z-10 mt-1 w-full rounded-xl bg-[#0f0f1a] border border-[#1e1e3a] overflow-hidden shadow-xl">
+                        {chainOptions.map(c => (
+                          <button
+                            key={c.id}
+                            onClick={() => { setChainId(c.id); setChainOpen(false) }}
+                            className={clsx(
+                              "w-full flex items-center gap-2.5 px-4 py-2.5 text-sm hover:bg-accent/10 transition-colors",
+                              c.id === chainId ? "text-accent" : "text-muted"
+                            )}
+                          >
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={c.logo} alt={c.name} className="w-4 h-4 object-contain rounded-full" />
+                            {c.name}
+                            {c.id === chainId && <CheckCircle2 className="w-3 h-3 ml-auto" />}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
 
-                <input
-                  type="text"
-                  placeholder="Smart contract address to inspect (0x…)"
-                  value={contractAddress}
-                  onChange={e => { setContractAddress(e.target.value); setConnectError("") }}
-                  onKeyDown={e => e.key === "Enter" && goWithManual()}
-                  className="w-full bg-[#07070d] border border-[#1e1e3a] rounded-xl px-4 py-3 text-white font-mono text-sm placeholder:text-muted focus:outline-none focus:border-accent transition-colors"
-                />
+              {/* Connect */}
+              <div>
+                <p className="text-xs font-mono text-muted mb-2.5">{chainOptions.length > 1 ? "3" : "2"} · Connect to diagnose your activity</p>
+                <button
+                  onClick={connectMetaMask}
+                  className="w-full flex items-center justify-center gap-3 rounded-xl bg-accent hover:bg-accent/90 active:bg-accent/80 text-white font-semibold py-3.5 transition-colors"
+                >
+                  <Wallet className="w-4 h-4" />
+                  Connect Wallet
+                </button>
 
-                <div className="relative">
-                  <button
-                    onClick={() => setChainOpen(o => !o)}
-                    className="w-full flex items-center justify-between gap-2 bg-[#07070d] border border-[#1e1e3a] rounded-xl px-4 py-3 text-sm text-white hover:border-accent/50 transition-colors"
-                  >
-                    <span className="flex items-center gap-2">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={chain.logo} alt={chain.name} className="w-4 h-4 object-contain rounded-full" />
-                      {chain.name}
-                    </span>
-                    <ChevronDown className={clsx("w-4 h-4 text-muted transition-transform", chainOpen && "rotate-180")} />
-                  </button>
-                  {chainOpen && (
-                    <div className="absolute z-10 mt-1 w-full rounded-xl bg-[#0f0f1a] border border-[#1e1e3a] overflow-hidden shadow-xl">
-                      {CHAINS.map(c => (
-                        <button
-                          key={c.id}
-                          onClick={() => { setChainId(c.id); setChainOpen(false) }}
-                          className={clsx(
-                            "w-full flex items-center gap-2.5 px-4 py-2.5 text-sm hover:bg-accent/10 transition-colors",
-                            c.id === chainId ? "text-accent" : "text-muted"
-                          )}
-                        >
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img src={c.logo} alt={c.name} className="w-4 h-4 object-contain rounded-full" />
-                          {c.name}
-                          {c.id === chainId && <CheckCircle2 className="w-3 h-3 ml-auto" />}
-                        </button>
-                      ))}
-                    </div>
-                  )}
+                <div className="flex items-center gap-3 my-4">
+                  <div className="flex-1 h-px bg-[#1e1e3a]" />
+                  <span className="text-xs text-muted font-mono">or paste an address</span>
+                  <div className="flex-1 h-px bg-[#1e1e3a]" />
                 </div>
 
-                <button
-                  onClick={goWithManual}
-                  disabled={!manualAddress && !contractAddress}
-                  className="w-full flex items-center justify-center gap-2 rounded-xl border border-[#1e1e3a] bg-transparent text-white text-sm font-semibold py-3 hover:border-accent hover:bg-accent/5 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                >
-                  {contractAddress && !manualAddress ? "Inspect contract" : "Analyse address"}
-                  <ArrowRight className="w-4 h-4" />
-                </button>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    placeholder="Wallet address (0x…)"
+                    value={manualAddress}
+                    onChange={e => { setManualAddress(e.target.value); setConnectError("") }}
+                    onKeyDown={e => e.key === "Enter" && goWithManual()}
+                    className="flex-1 bg-[#07070d] border border-[#1e1e3a] rounded-xl px-4 py-3 text-white font-mono text-sm placeholder:text-muted focus:outline-none focus:border-accent transition-colors"
+                  />
+                  <button
+                    onClick={goWithManual}
+                    disabled={!manualAddress}
+                    className="flex items-center justify-center gap-1.5 rounded-xl border border-[#1e1e3a] bg-transparent text-white text-sm font-semibold px-4 hover:border-accent hover:bg-accent/5 disabled:opacity-40 disabled:cursor-not-allowed transition-colors shrink-0"
+                  >
+                    Go
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
 
               {connectError && (
@@ -488,29 +511,26 @@ export default function CheckPage() {
       <Navbar />
       <main className="min-h-screen flex flex-col pt-16">
 
-        {/* Wallet bar */}
+        {/* Context bar */}
         <div className="border-b border-[#1e1e3a] bg-[#0a0a12]">
           <div className="max-w-3xl mx-auto px-6 py-3 flex items-center justify-between">
             <div className="flex items-center gap-2.5">
+              <ProtocolBadge name={protocol.name} color={protocol.color} size={18} />
+              <span className="text-xs font-semibold text-white">{protocol.name}</span>
+              <span className="text-muted/40">·</span>
               <div className="w-2 h-2 rounded-full bg-green-500 shadow-sm shadow-green-500/60" />
               <span className="text-xs font-mono text-muted">{shortAddr(displayAddr)}</span>
               <span className="text-muted/40">·</span>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={chain.logo} alt={chain.name} className="w-3.5 h-3.5 object-contain rounded-full" />
               <span className="text-xs text-muted">{chain.name}</span>
-              {contractAddress && (
-                <>
-                  <span className="text-muted/40">·</span>
-                  <span className="text-xs font-mono text-muted/70">contract {shortAddr(contractAddress)}</span>
-                </>
-              )}
             </div>
             <button
               onClick={reset}
               className="flex items-center gap-1.5 text-xs text-muted hover:text-white transition-colors"
             >
               <RotateCcw className="w-3 h-3" />
-              Change wallet
+              Start over
             </button>
           </div>
         </div>
@@ -518,11 +538,9 @@ export default function CheckPage() {
         {/* Messages */}
         <div className="flex-1 overflow-y-auto">
           <div className="max-w-3xl mx-auto px-6 py-8 space-y-5">
-
             {messages.map((msg, i) => (
               <ChatMessage key={i} msg={msg} />
             ))}
-
             <div ref={messagesEnd} />
           </div>
         </div>
@@ -533,7 +551,7 @@ export default function CheckPage() {
             {limitReached ? (
               <div className="text-center py-2">
                 <p className="text-sm text-white font-medium mb-1">You&apos;ve used today&apos;s 3 free diagnoses.</p>
-                <p className="text-xs text-muted mb-4">Create a free account to keep diagnosing — no credit card required.</p>
+                <p className="text-xs text-muted mb-4">Create a free account to keep diagnosing. No credit card required.</p>
                 <Link
                   href={`${APP_URL}/sign-up`}
                   className="inline-flex items-center gap-2 rounded-xl bg-accent text-white text-sm font-semibold px-5 py-2.5 hover:bg-accent/90 transition-colors"
@@ -551,7 +569,7 @@ export default function CheckPage() {
                     value={input}
                     onChange={e => setInput(e.target.value)}
                     onKeyDown={handleKeyDown}
-                    placeholder="Ask anything…"
+                    placeholder={`Ask about your ${protocol.name} activity…`}
                     disabled={loading}
                     className="flex-1 bg-transparent resize-none text-sm text-white placeholder:text-muted focus:outline-none leading-relaxed max-h-40 disabled:opacity-50"
                     style={{ scrollbarWidth: "none" }}

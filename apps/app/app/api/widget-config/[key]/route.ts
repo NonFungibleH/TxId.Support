@@ -80,7 +80,9 @@ export async function GET(
   // Skip for preview requests (dashboard preview uses a signed token) and for
   // our own public demo key, which powers the /demo + /check pages on the
   // marketing site by design.
-  const isDemoKey = key === process.env.DEMO_WIDGET_KEY
+  // Check both env names so the exemption works regardless of which Vercel has.
+  const isDemoKey = (!!process.env.DEMO_WIDGET_KEY && key === process.env.DEMO_WIDGET_KEY)
+    || (!!process.env.NEXT_PUBLIC_DEMO_WIDGET_KEY && key === process.env.NEXT_PUBLIC_DEMO_WIDGET_KEY)
   if (!preview && !isDemoKey) {
     const originHeader = request.headers.get("origin") ?? request.headers.get("referer")
     const requestHost = originHeader ? extractHostname(originHeader) : null

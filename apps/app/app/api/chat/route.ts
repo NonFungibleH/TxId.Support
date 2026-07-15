@@ -8,6 +8,15 @@ import { rateLimit } from "@/lib/rate-limit"
 import { log } from "@/lib/logger"
 import { CHAT_LIMITS, conversationLimitsFor } from "@/lib/limits"
 import { fetchAbiWithProxy, fetchAbiFromExplorer } from "@txid/blockchain"
+import { demoContractsFor, demoContractDescription, DEMO_PROTOCOLS } from "@/lib/demo-protocols"
+
+// The public demo key. Checks BOTH env names so the exemption works whether
+// Vercel has DEMO_WIDGET_KEY, NEXT_PUBLIC_DEMO_WIDGET_KEY, or both set to it.
+function isDemoKey(key: string): boolean {
+  const a = process.env.DEMO_WIDGET_KEY
+  const b = process.env.NEXT_PUBLIC_DEMO_WIDGET_KEY
+  return (!!a && key === a) || (!!b && key === b)
+}
 
 // Public inspect tool: convert a decimal or hex chain id to our hex form.
 function toHexChain(chainId: string | undefined): string {
@@ -88,9 +97,10 @@ export async function POST(request: Request) {
       previewToken?: string
       turnstileToken?: string
       contractAddress?: string
+      demoProtocol?: string
     }
 
-    const { key, sessionId, messages, walletAddress, chainId, preview, previewToken, turnstileToken, contractAddress } = body
+    const { key, sessionId, messages, walletAddress, chainId, preview, previewToken, turnstileToken, contractAddress, demoProtocol } = body
 
     if (!key || !sessionId || !Array.isArray(messages) || messages.length === 0) {
       return new Response(JSON.stringify({ error: "Invalid request" }), {
@@ -126,8 +136,9 @@ export async function POST(request: Request) {
     // run up LLM/RPC cost. Real project keys never enter this mode, so the
     // normal scope guard is untouched for them.
     const inspectAddress = typeof contractAddress === "string" ? contractAddress.trim() : ""
+    const demoProtocolId = typeof demoProtocol === "string" && DEMO_PROTOCOLS[demoProtocol] ? demoProtocol : ""
     const inspectMode =
-      key === process.env.DEMO_WIDGET_KEY && /^0x[0-9a-fA-F]{40}$/.test(inspectAddress)
+      isDemoKey(key) && (!!demoProtocolId || /^0x[0-9a-fA-F]{40}$/.test(inspectAddress))
     let inspectContracts: ProjectConfigSnapshot["watchedContracts"] | null = null
     if (inspectMode) {
       // Require a bot-check token when Turnstile is configured.
@@ -144,16 +155,36 @@ export async function POST(request: Request) {
           limitReached: true,
         }), { status: 429, headers: { ...CORS_HEADERS, "Content-Type": "application/json" } })
       }
-      const hexChain = toHexChain(chainId)
-      const abi = await fetchAbiWithProxy(inspectAddress, hexChain, fetchAbiFromExplorer).catch(() => null)
-      inspectContracts = [{
-        id: "inspect",
-        name: `Contract ${inspectAddress.slice(0, 6)}…${inspectAddress.slice(-4)}`,
-        address: inspectAddress,
-        chain: hexChain,
-        description: "A smart contract the user pasted into the public diagnostics tool to inspect. Diagnose it with the tools: what it is, whether it's verified, when it was deployed, its events/state, and any token it represents (price, safety).",
-        ...(abi ? { abi, abiSource: "explorer" as const } : {}),
-      }]
+      if (demoProtocolId) {
+        // Curated demo protocol (Uniswap / PancakeSwap): scope the bot to its
+        // routers so it can diagnose the connected wallet's real swaps.
+        const curated = demoContractsFor(demoProtocolId, toHexChain(chainId))
+        const desc = demoContractDescription(demoProtocolId)
+        inspectContracts = await Promise.all(
+          curated.map(async (c, i) => {
+            const abi = await fetchAbiWithProxy(c.address, c.chain, fetchAbiFromExplorer).catch(() => null)
+            return {
+              id: `demo-${i}`,
+              name: c.name,
+              address: c.address,
+              chain: c.chain,
+              description: desc,
+              ...(abi ? { abi, abiSource: "explorer" as const } : {}),
+            }
+          }),
+        )
+      } else {
+        const hexChain = toHexChain(chainId)
+        const abi = await fetchAbiWithProxy(inspectAddress, hexChain, fetchAbiFromExplorer).catch(() => null)
+        inspectContracts = [{
+          id: "inspect",
+          name: `Contract ${inspectAddress.slice(0, 6)}…${inspectAddress.slice(-4)}`,
+          address: inspectAddress,
+          chain: hexChain,
+          description: "A smart contract the user pasted into the public diagnostics tool to inspect. Diagnose it with the tools: what it is, whether it's verified, when it was deployed, its events/state, and any token it represents (price, safety).",
+          ...(abi ? { abi, abiSource: "explorer" as const } : {}),
+        }]
+      }
     }
 
     // Cap message history to prevent context-stuffing / runaway LLM costs
@@ -215,8 +246,7 @@ export async function POST(request: Request) {
     // Exempt OUR own public demo key: it powers the /demo + /check pages on our
     // marketing site (any origin by design) and is protected by the per-IP rate
     // cap + Turnstile, not the per-customer domain allowlist.
-    const isDemoKey = key === process.env.DEMO_WIDGET_KEY
-    if (!isDemoKey && !originAllowed(request, rawConfig.allowedDomains, preview === true)) {
+    if (!isDemoKey(key) && !originAllowed(request, rawConfig.allowedDomains, preview === true)) {
       return new Response(JSON.stringify({ error: "Domain not registered for this key" }), {
         status: 403,
         headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
@@ -233,8 +263,7 @@ export async function POST(request: Request) {
     if (existingConv.data) {
       // Existing session — enforce the per-session message cap (stricter for
       // the public demo key).
-      const isDemoKey = key === process.env.DEMO_WIDGET_KEY
-      const sessionCap = isDemoKey ? CHAT_LIMITS.demoSessionMessages : CHAT_LIMITS.sessionMessages
+      const sessionCap = isDemoKey(key) ? CHAT_LIMITS.demoSessionMessages : CHAT_LIMITS.sessionMessages
       const { count: msgCount } = await supabase
         .from("messages")
         .select("id", { count: "exact", head: true })
@@ -374,9 +403,12 @@ export async function POST(request: Request) {
         ? { address: walletAddress, chainId }
         : null
 
-    // Build system prompt
+    // Build system prompt. In demo-protocol mode the bot presents as the
+    // protocol itself (e.g. "Uniswap Support") for a realistic try-it demo.
+    const effectiveProjectName = demoProtocolId ? DEMO_PROTOCOLS[demoProtocolId].label : typedProject.name
+
     let systemPrompt = buildSystemPrompt({
-      projectName: typedProject.name,
+      projectName: effectiveProjectName,
       config: configSnapshot,
       walletConfig,
       ragContext,
