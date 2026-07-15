@@ -7,6 +7,7 @@ import { Navbar } from "@/components/layout/Navbar"
 import { Footer } from "@/components/layout/Footer"
 import { ArrowRight, Wallet, RotateCcw, Send, AlertCircle, CheckCircle2, ChevronDown, Loader2 } from "lucide-react"
 import { APP_URL } from "@/lib/config"
+import { accentVars, readableText } from "@/lib/chains"
 import { clsx } from "clsx"
 
 // ── Constants ────────────────────────────────────────────────────────────────
@@ -27,8 +28,10 @@ const CHAINS = [
 // so the bot can surface their real past transactions. The server (chat route)
 // resolves the id to the protocol's router contracts + ABIs.
 const PROTOCOLS = [
-  { id: "uniswap",     name: "Uniswap",     color: "#FF007A", chains: ["1", "8453", "42161", "137"], blurb: "The biggest DEX. Swaps on Ethereum, Base, Arbitrum, Polygon." },
-  { id: "pancakeswap", name: "PancakeSwap", color: "#1FC7D4", chains: ["56"],                        blurb: "The biggest DEX on BNB Chain." },
+  { id: "uniswap",     name: "Uniswap",     color: "#FF007A", logo: "/protocols/uniswap.png",     chains: ["1", "8453", "42161", "137"], blurb: "The biggest DEX. Swaps on Ethereum, Base, Arbitrum, Polygon." },
+  { id: "aave",        name: "Aave",        color: "#B6509E", logo: "/protocols/aave.png",        chains: ["1", "8453", "42161", "137"], blurb: "The biggest lending market. Supply and borrow across chains." },
+  { id: "morpho",      name: "Morpho",      color: "#2E5CFF", logo: "/protocols/morpho.png",      chains: ["1", "8453"],                 blurb: "Efficient lending on Ethereum and Base." },
+  { id: "pancakeswap", name: "PancakeSwap", color: "#1FC7D4", logo: "/protocols/pancakeswap.png", chains: ["56"],                        blurb: "The biggest DEX on BNB Chain." },
 ]
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -57,7 +60,21 @@ function AgentAvatar() {
   )
 }
 
-function ProtocolBadge({ name, color, size = 40 }: { name: string; color: string; size?: number }) {
+function ProtocolBadge({ name, color, logo, size = 40 }: { name: string; color: string; logo?: string; size?: number }) {
+  const [failed, setFailed] = useState(false)
+  if (logo && !failed) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={logo}
+        alt={name}
+        width={size}
+        height={size}
+        onError={() => setFailed(true)}
+        style={{ width: size, height: size, borderRadius: size * 0.24, objectFit: "cover", flexShrink: 0 }}
+      />
+    )
+  }
   return (
     <span
       className="inline-flex items-center justify-center font-bold text-white shrink-0"
@@ -145,6 +162,12 @@ export default function CheckPage() {
   const protocol = PROTOCOLS.find(p => p.id === protocolId) ?? PROTOCOLS[0]
   const chainOptions = CHAINS.filter(c => protocol.chains.includes(c.id))
   const chain = chainOptions.find(c => c.id === chainId) ?? chainOptions[0]
+
+  // Theme the whole demo in the selected protocol's brand colour: overriding
+  // --accent retints every accent-based element; ctaText keeps filled buttons
+  // legible on light brand colours (e.g. PancakeSwap teal).
+  const themeStyle = accentVars(protocol.color) as React.CSSProperties
+  const ctaText = readableText(protocol.color)
 
   // Keep the chain valid for the selected protocol.
   function pickProtocol(id: string) {
@@ -354,7 +377,7 @@ export default function CheckPage() {
           onLoad={renderTurnstile}
         />
         <Navbar />
-        <main className="min-h-screen pt-28 pb-24">
+        <main className="min-h-screen pt-28 pb-24" style={themeStyle}>
           <div className="max-w-xl mx-auto px-6">
 
             <div className="text-center mb-10">
@@ -384,7 +407,7 @@ export default function CheckPage() {
                         p.id === protocolId ? "border-accent bg-accent/5" : "border-[#1e1e3a] hover:border-accent/40"
                       )}
                     >
-                      <ProtocolBadge name={p.name} color={p.color} size={36} />
+                      <ProtocolBadge name={p.name} color={p.color} logo={p.logo} size={36} />
                       <div className="min-w-0">
                         <p className="text-sm font-semibold text-white truncate">{p.name}</p>
                         <p className="text-[11px] text-muted leading-snug">{p.blurb}</p>
@@ -438,7 +461,8 @@ export default function CheckPage() {
                 <p className="text-xs font-mono text-muted mb-2.5">{chainOptions.length > 1 ? "3" : "2"} · Connect to diagnose your activity</p>
                 <button
                   onClick={connectMetaMask}
-                  className="w-full flex items-center justify-center gap-3 rounded-xl bg-accent hover:bg-accent/90 active:bg-accent/80 text-white font-semibold py-3.5 transition-colors"
+                  style={{ color: ctaText }}
+                  className="w-full flex items-center justify-center gap-3 rounded-xl bg-accent hover:bg-accent/90 active:bg-accent/80 font-semibold py-3.5 transition-colors"
                 >
                   <Wallet className="w-4 h-4" />
                   Connect Wallet
@@ -509,13 +533,13 @@ export default function CheckPage() {
       <div ref={turnstileContainerRef} className="hidden" />
 
       <Navbar />
-      <main className="min-h-screen flex flex-col pt-16">
+      <main className="min-h-screen flex flex-col pt-16" style={themeStyle}>
 
         {/* Context bar */}
         <div className="border-b border-[#1e1e3a] bg-[#0a0a12]">
           <div className="max-w-3xl mx-auto px-6 py-3 flex items-center justify-between">
             <div className="flex items-center gap-2.5">
-              <ProtocolBadge name={protocol.name} color={protocol.color} size={18} />
+              <ProtocolBadge name={protocol.name} color={protocol.color} logo={protocol.logo} size={18} />
               <span className="text-xs font-semibold text-white">{protocol.name}</span>
               <span className="text-muted/40">·</span>
               <div className="w-2 h-2 rounded-full bg-green-500 shadow-sm shadow-green-500/60" />
@@ -554,7 +578,8 @@ export default function CheckPage() {
                 <p className="text-xs text-muted mb-4">Create a free account to keep diagnosing. No credit card required.</p>
                 <Link
                   href={`${APP_URL}/sign-up`}
-                  className="inline-flex items-center gap-2 rounded-xl bg-accent text-white text-sm font-semibold px-5 py-2.5 hover:bg-accent/90 transition-colors"
+                  style={{ color: ctaText }}
+                  className="inline-flex items-center gap-2 rounded-xl bg-accent text-sm font-semibold px-5 py-2.5 hover:bg-accent/90 transition-colors"
                 >
                   Get started free
                   <ArrowRight className="w-4 h-4" />
@@ -577,7 +602,8 @@ export default function CheckPage() {
                   <button
                     onClick={() => handleSend()}
                     disabled={!input.trim() || loading}
-                    className="rounded-xl bg-accent text-white p-2 hover:bg-accent/90 disabled:opacity-40 disabled:cursor-not-allowed transition-colors shrink-0"
+                    style={{ color: ctaText }}
+                    className="rounded-xl bg-accent p-2 hover:bg-accent/90 disabled:opacity-40 disabled:cursor-not-allowed transition-colors shrink-0"
                   >
                     {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                   </button>
@@ -599,7 +625,8 @@ export default function CheckPage() {
             </div>
             <Link
               href={`${APP_URL}/sign-up`}
-              className="flex items-center gap-2 rounded-full bg-accent hover:bg-accent/90 text-white text-sm font-semibold px-5 py-2.5 transition-colors whitespace-nowrap shrink-0"
+              style={{ color: ctaText }}
+              className="flex items-center gap-2 rounded-full bg-accent hover:bg-accent/90 text-sm font-semibold px-5 py-2.5 transition-colors whitespace-nowrap shrink-0"
             >
               Add to your protocol
               <ArrowRight className="w-4 h-4" />

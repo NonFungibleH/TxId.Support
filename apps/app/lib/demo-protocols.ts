@@ -19,6 +19,10 @@ const UNISWAP_DESC =
   "A Uniswap router contract. User swaps on Uniswap are routed through it, so it's what a user's swap transactions interact with."
 const PANCAKE_DESC =
   "A PancakeSwap router contract. User swaps on PancakeSwap are routed through it, so it's what a user's swap transactions interact with."
+const AAVE_DESC =
+  "The Aave V3 Pool contract. Supply, borrow, repay and withdraw on Aave go through it, so it's what a user's lending transactions interact with."
+const MORPHO_DESC =
+  "The Morpho Blue lending contract. Supply, borrow, repay and withdraw on Morpho go through it, so it's what a user's lending transactions interact with."
 
 export const DEMO_PROTOCOLS: Record<string, DemoProtocol> = {
   uniswap: {
@@ -44,6 +48,24 @@ export const DEMO_PROTOCOLS: Record<string, DemoProtocol> = {
       { name: "PancakeSwap Smart Router", address: "0x13f4EA83D0bd40E75C8222255bc855a974568Dd4", chain: "0x38" },
     ],
   },
+  aave: {
+    id: "aave",
+    label: "Aave",
+    contracts: [
+      { name: "Aave V3 Pool", address: "0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2", chain: "0x1" },
+      { name: "Aave V3 Pool", address: "0xA238Dd80C259a72e81d7e4664a9801593F98d1c5", chain: "0x2105" },
+      { name: "Aave V3 Pool", address: "0x794a61358D6845594F94dc1DB02A252b5b4814aD", chain: "0xa4b1" },
+      { name: "Aave V3 Pool", address: "0x794a61358D6845594F94dc1DB02A252b5b4814aD", chain: "0x89" },
+    ],
+  },
+  morpho: {
+    id: "morpho",
+    label: "Morpho",
+    contracts: [
+      { name: "Morpho Blue", address: "0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb", chain: "0x1" },
+      { name: "Morpho Blue", address: "0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb", chain: "0x2105" },
+    ],
+  },
 }
 
 /** Contracts to scope the demo bot to. Prefers the wallet's chain; falls back to
@@ -59,5 +81,10 @@ export function demoContractsFor(protocolId: string, chainHex?: string): DemoCon
 }
 
 export function demoContractDescription(protocolId: string): string {
-  return protocolId === "pancakeswap" ? PANCAKE_DESC : UNISWAP_DESC
+  switch (protocolId) {
+    case "pancakeswap": return PANCAKE_DESC
+    case "aave": return AAVE_DESC
+    case "morpho": return MORPHO_DESC
+    default: return UNISWAP_DESC
+  }
 }
