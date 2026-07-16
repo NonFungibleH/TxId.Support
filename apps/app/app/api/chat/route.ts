@@ -130,64 +130,15 @@ export async function POST(request: Request) {
       }
     }
 
-    // ── Public "inspect any contract" mode (the /check diagnose tool) ─────────
-    // Only the demo key may point the bot at an arbitrary pasted contract.
-    // Gated by Turnstile + a hard 3-per-IP-per-day cap so it can't be abused or
-    // run up LLM/RPC cost. Real project keys never enter this mode, so the
-    // normal scope guard is untouched for them.
+    // Public "inspect / demo-protocol" scoping (the /check "try it live" tool)
+    // is built AFTER the project is resolved, because whether it's allowed
+    // depends on this being our demo project — recognised by the demo key OR the
+    // "demo" plan, so it works even when the demo key env var isn't mirrored onto
+    // this deployment. Declarations kept here so they stay in scope downstream.
     const inspectAddress = typeof contractAddress === "string" ? contractAddress.trim() : ""
     const demoProtocolId = typeof demoProtocol === "string" && DEMO_PROTOCOLS[demoProtocol] ? demoProtocol : ""
-    const inspectMode =
-      isDemoKey(key) && (!!demoProtocolId || /^0x[0-9a-fA-F]{40}$/.test(inspectAddress))
     let inspectContracts: ProjectConfigSnapshot["watchedContracts"] | null = null
-    if (inspectMode) {
-      // Require a bot-check token when Turnstile is configured.
-      if (process.env.TURNSTILE_SECRET_KEY && !turnstileToken) {
-        return new Response(JSON.stringify({ error: "Please complete the bot check to run a diagnosis." }), {
-          status: 403, headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
-        })
-      }
-      // Hard cap: 3 messages per IP per 24h. Server-enforced (a refresh, a new
-      // session, or switching demo protocol can't reset it) so the public demo
-      // can never run up our LLM/RPC cost.
-      const daily = await rateLimit(`inspect:${ip}`, 3, 86_400_000)
-      if (!daily.allowed) {
-        return new Response(JSON.stringify({
-          error: "That's the end of your free test. Add TxID to your own protocol to give your users this.",
-          limitReached: true,
-        }), { status: 429, headers: { ...CORS_HEADERS, "Content-Type": "application/json" } })
-      }
-      if (demoProtocolId) {
-        // Curated demo protocol (Uniswap / PancakeSwap): scope the bot to its
-        // routers so it can diagnose the connected wallet's real swaps.
-        const curated = demoContractsFor(demoProtocolId, toHexChain(chainId))
-        const desc = demoContractDescription(demoProtocolId)
-        inspectContracts = await Promise.all(
-          curated.map(async (c, i) => {
-            const abi = await fetchAbiWithProxy(c.address, c.chain, fetchAbiFromExplorer).catch(() => null)
-            return {
-              id: `demo-${i}`,
-              name: c.name,
-              address: c.address,
-              chain: c.chain,
-              description: desc,
-              ...(abi ? { abi, abiSource: "explorer" as const } : {}),
-            }
-          }),
-        )
-      } else {
-        const hexChain = toHexChain(chainId)
-        const abi = await fetchAbiWithProxy(inspectAddress, hexChain, fetchAbiFromExplorer).catch(() => null)
-        inspectContracts = [{
-          id: "inspect",
-          name: `Contract ${inspectAddress.slice(0, 6)}…${inspectAddress.slice(-4)}`,
-          address: inspectAddress,
-          chain: hexChain,
-          description: "A smart contract the user pasted into the public diagnostics tool to inspect. Diagnose it with the tools: what it is, whether it's verified, when it was deployed, its events/state, and any token it represents (price, safety).",
-          ...(abi ? { abi, abiSource: "explorer" as const } : {}),
-        }]
-      }
-    }
+    let inspectMode = false
 
     // Cap message history to prevent context-stuffing / runaway LLM costs
     const safeMessages = messages
@@ -243,16 +194,78 @@ export async function POST(request: Request) {
     const rawConfig = typedProject.config as unknown as ProjectConfig
     const plan = (rawConfig.plan ?? "free") as Plan
 
+    // Our own demo project, recognised two ways: the demo key (when its env var
+    // is set on this deployment) OR the "demo" plan on the project row. The plan
+    // path means /check keeps working even if the demo key env var isn't mirrored
+    // from the marketing site onto this API deployment — just set the demo
+    // project's plan to "demo" in /admin.
+    const isDemo = isDemoKey(key) || plan === "demo"
+
     // Domain allowlist — reject before claiming a conversation slot or calling
     // the LLM, so a copied key from a non-registered origin can't drain quota.
-    // Exempt OUR own public demo key: it powers the /demo + /check pages on our
+    // Exempt OUR own demo project: it powers the /demo + /check pages on the
     // marketing site (any origin by design) and is protected by the per-IP rate
     // cap + Turnstile, not the per-customer domain allowlist.
-    if (!isDemoKey(key) && !originAllowed(request, rawConfig.allowedDomains, preview === true)) {
+    if (!isDemo && !originAllowed(request, rawConfig.allowedDomains, preview === true)) {
       return new Response(JSON.stringify({ error: "Domain not registered for this key" }), {
         status: 403,
         headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
       })
+    }
+
+    // ── Public inspect / demo-protocol scoping (the /check "try it live" tool) ─
+    // Only our demo project may point the bot at a curated protocol or a pasted
+    // contract. Gated by Turnstile + a hard 3-per-IP-per-day cap so it can't be
+    // abused or run up LLM/RPC cost. Real project keys never enter this mode, so
+    // the normal scope guard is untouched for them.
+    inspectMode = isDemo && (!!demoProtocolId || /^0x[0-9a-fA-F]{40}$/.test(inspectAddress))
+    if (inspectMode) {
+      // Require a bot-check token when Turnstile is configured.
+      if (process.env.TURNSTILE_SECRET_KEY && !turnstileToken) {
+        return new Response(JSON.stringify({ error: "Please complete the bot check to run a diagnosis." }), {
+          status: 403, headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
+        })
+      }
+      // Hard cap: 3 messages per IP per 24h. Server-enforced (a refresh, a new
+      // session, or switching demo protocol can't reset it) so the public demo
+      // can never run up our LLM/RPC cost.
+      const daily = await rateLimit(`inspect:${ip}`, 3, 86_400_000)
+      if (!daily.allowed) {
+        return new Response(JSON.stringify({
+          error: "That's the end of your free test. Add TxID to your own protocol to give your users this.",
+          limitReached: true,
+        }), { status: 429, headers: { ...CORS_HEADERS, "Content-Type": "application/json" } })
+      }
+      if (demoProtocolId) {
+        // Curated demo protocol (Uniswap / PancakeSwap): scope the bot to its
+        // routers so it can diagnose the connected wallet's real swaps.
+        const curated = demoContractsFor(demoProtocolId, toHexChain(chainId))
+        const desc = demoContractDescription(demoProtocolId)
+        inspectContracts = await Promise.all(
+          curated.map(async (c, i) => {
+            const abi = await fetchAbiWithProxy(c.address, c.chain, fetchAbiFromExplorer).catch(() => null)
+            return {
+              id: `demo-${i}`,
+              name: c.name,
+              address: c.address,
+              chain: c.chain,
+              description: desc,
+              ...(abi ? { abi, abiSource: "explorer" as const } : {}),
+            }
+          }),
+        )
+      } else {
+        const hexChain = toHexChain(chainId)
+        const abi = await fetchAbiWithProxy(inspectAddress, hexChain, fetchAbiFromExplorer).catch(() => null)
+        inspectContracts = [{
+          id: "inspect",
+          name: `Contract ${inspectAddress.slice(0, 6)}…${inspectAddress.slice(-4)}`,
+          address: inspectAddress,
+          chain: hexChain,
+          description: "A smart contract the user pasted into the public diagnostics tool to inspect. Diagnose it with the tools: what it is, whether it's verified, when it was deployed, its events/state, and any token it represents (price, safety).",
+          ...(abi ? { abi, abiSource: "explorer" as const } : {}),
+        }]
+      }
     }
 
     const existingConv = await supabase
@@ -265,7 +278,7 @@ export async function POST(request: Request) {
     if (existingConv.data) {
       // Existing session — enforce the per-session message cap (stricter for
       // the public demo key).
-      const sessionCap = isDemoKey(key) ? CHAT_LIMITS.demoSessionMessages : CHAT_LIMITS.sessionMessages
+      const sessionCap = isDemo ? CHAT_LIMITS.demoSessionMessages : CHAT_LIMITS.sessionMessages
       const { count: msgCount } = await supabase
         .from("messages")
         .select("id", { count: "exact", head: true })

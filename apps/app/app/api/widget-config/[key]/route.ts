@@ -78,12 +78,14 @@ export async function GET(
 
   // ── Domain enforcement ──────────────────────────────────────────────────
   // Skip for preview requests (dashboard preview uses a signed token) and for
-  // our own public demo key, which powers the /demo + /check pages on the
-  // marketing site by design.
-  // Check both env names so the exemption works regardless of which Vercel has.
+  // our own demo project, which powers the /demo + /check pages on the
+  // marketing site by design. Recognised by the demo key (when its env var is
+  // set on this deployment) OR the "demo" plan on the project row, so it works
+  // even when the demo key env var isn't mirrored onto this API deployment.
   const isDemoKey = (!!process.env.DEMO_WIDGET_KEY && key === process.env.DEMO_WIDGET_KEY)
     || (!!process.env.NEXT_PUBLIC_DEMO_WIDGET_KEY && key === process.env.NEXT_PUBLIC_DEMO_WIDGET_KEY)
-  if (!preview && !isDemoKey) {
+  const isDemo = isDemoKey || (config.plan ?? "free") === "demo"
+  if (!preview && !isDemo) {
     const originHeader = request.headers.get("origin") ?? request.headers.get("referer")
     const requestHost = originHeader ? extractHostname(originHeader) : null
 
