@@ -55,3 +55,33 @@ export async function setProjectPlan(projectId: string, plan: Plan): Promise<voi
   if (error) throw new Error(error.message)
   revalidatePath("/admin")
 }
+
+/**
+ * Toggle a project's "public demo" flag. When on, the project is exempt from
+ * the per-customer domain allowlist and the /check "try it live" protocol
+ * scoping is enabled for its key — independent of plan, so our own demo project
+ * can stay on "custom". Admin-guarded; writes projects.config.publicDemo.
+ */
+export async function setProjectPublicDemo(projectId: string, enabled: boolean): Promise<void> {
+  await assertAdmin()
+
+  const supabase = createServiceClient()
+  const { data: project, error: readErr } = await supabase
+    .from("projects")
+    .select("config")
+    .eq("id", projectId)
+    .single()
+
+  if (readErr || !project) throw new Error("Project not found")
+
+  const config = ((project as { config: unknown }).config ?? {}) as ProjectConfig
+  const updated: ProjectConfig = { ...config, publicDemo: enabled }
+
+  const { error } = await supabase
+    .from("projects")
+    .update({ config: updated as unknown as Json })
+    .eq("id", projectId)
+
+  if (error) throw new Error(error.message)
+  revalidatePath("/admin")
+}

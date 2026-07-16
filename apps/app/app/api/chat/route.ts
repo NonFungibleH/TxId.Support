@@ -194,12 +194,13 @@ export async function POST(request: Request) {
     const rawConfig = typedProject.config as unknown as ProjectConfig
     const plan = (rawConfig.plan ?? "free") as Plan
 
-    // Our own demo project, recognised two ways: the demo key (when its env var
-    // is set on this deployment) OR the "demo" plan on the project row. The plan
-    // path means /check keeps working even if the demo key env var isn't mirrored
-    // from the marketing site onto this API deployment — just set the demo
-    // project's plan to "demo" in /admin.
-    const isDemo = isDemoKey(key) || plan === "demo"
+    // Our own demo project, recognised three ways: the demo key (when its env
+    // var is set on this deployment), the "demo" plan, or the publicDemo flag on
+    // the project row. The flag lets our demo project stay on "custom" (needed
+    // for the marketing-site widget + admin) while still powering /check — set it
+    // in /admin. This means /check works without mirroring the demo key env var
+    // from the marketing site onto this API deployment.
+    const isDemo = isDemoKey(key) || plan === "demo" || rawConfig.publicDemo === true
 
     // Domain allowlist — reject before claiming a conversation slot or calling
     // the LLM, so a copied key from a non-registered origin can't drain quota.

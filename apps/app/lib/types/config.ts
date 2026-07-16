@@ -194,6 +194,11 @@ export interface ProjectConfig {
   notificationEmail?: string | null
   webhookUrl?: string | null
   plan?: Plan
+  // Marks OUR own public-demo project (the one the marketing site's demo key
+  // points at). Exempts it from the per-customer domain allowlist and enables
+  // the /check "try it live" protocol scoping, without changing its plan — so
+  // it can stay on "custom". Only ever set on our own project, via /admin.
+  publicDemo?: boolean
   telegramBotToken?: string | null
   telegramBotUsername?: string | null
 }

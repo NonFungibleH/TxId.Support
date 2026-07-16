@@ -6,6 +6,7 @@ import { PLAN_LABELS } from "@/lib/types/config"
 import type { Plan } from "@/lib/types/config"
 import { cn } from "@/lib/utils"
 import { PlanControl } from "@/components/admin/PlanControl"
+import { PublicDemoToggle } from "@/components/admin/PublicDemoToggle"
 
 const ADMIN_EMAILS = (process.env.ADMIN_EMAILS ?? "").toLowerCase().split(",").map(e => e.trim()).filter(Boolean)
 
@@ -109,6 +110,13 @@ export default async function AdminPage() {
     })
   }
 
+  // Per-project publicDemo flag (config JSONB) for the demo toggle column.
+  const { data: configRows } = await supabase.from("projects").select("id, config")
+  const publicDemoByProject = new Map<string, boolean>()
+  for (const r of (configRows ?? []) as { id: string; config: { publicDemo?: boolean } | null }[]) {
+    publicDemoByProject.set(r.id, r.config?.publicDemo === true)
+  }
+
   // Platform-level aggregates
   const totalOrgs = new Set(stats.map(r => r.org_id)).size
   const totalProjects = stats.length
@@ -194,7 +202,7 @@ export default async function AdminPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border bg-muted/30">
-                {["Organisation", "Project", "Plan", "Mode", "Status", "Convs (mo)", "Convs (total)", "Messages", "Docs", "Tokens (mo)", "Est. $ (mo)", "Joined"].map(h => (
+                {["Organisation", "Project", "Plan", "Public demo", "Mode", "Status", "Convs (mo)", "Convs (total)", "Messages", "Docs", "Tokens (mo)", "Est. $ (mo)", "Joined"].map(h => (
                   <th key={h} className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">{h}</th>
                 ))}
               </tr>
@@ -206,6 +214,9 @@ export default async function AdminPage() {
                   <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">{row.project_name}</td>
                   <td className="px-4 py-3">
                     <PlanControl projectId={row.project_id} currentPlan={(row.plan as Plan) ?? "free"} />
+                  </td>
+                  <td className="px-4 py-3">
+                    <PublicDemoToggle projectId={row.project_id} initial={publicDemoByProject.get(row.project_id) ?? false} />
                   </td>
                   <td className="px-4 py-3 text-muted-foreground capitalize">{row.mode ?? "support"}</td>
                   <td className="px-4 py-3">
@@ -235,7 +246,7 @@ export default async function AdminPage() {
               ))}
               {stats.length === 0 && (
                 <tr>
-                  <td colSpan={12} className="px-4 py-10 text-center text-muted-foreground text-sm">
+                  <td colSpan={13} className="px-4 py-10 text-center text-muted-foreground text-sm">
                     No projects found.
                   </td>
                 </tr>
