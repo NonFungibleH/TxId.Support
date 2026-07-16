@@ -1,4 +1,4 @@
-import { ArrowRight, Play } from "lucide-react";
+import { ArrowRight, Play, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { FadeIn } from "@/components/ui/FadeIn";
 import { WidgetMockup } from "./WidgetMockup";
@@ -50,8 +50,12 @@ export function Hero() {
             </FadeIn>
 
             <FadeIn delay={0.32}>
-              <p className="text-xs text-muted mt-4 mb-6">
+              <p className="text-xs text-muted mt-4 mb-2">
                 No credit card required · Free tier includes 150 conversations/mo
+              </p>
+              <p className="text-xs text-muted/70 mb-6 inline-flex items-center gap-1.5">
+                <ShieldCheck className="w-3.5 h-3.5 text-accent/70 shrink-0" />
+                Read-only · No custody · No financial advice
               </p>
               <div className="flex flex-wrap items-center gap-x-2.5 gap-y-2">
                 <span className="text-xs text-muted/50 font-mono shrink-0">Available on</span>

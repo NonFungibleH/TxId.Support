@@ -35,6 +35,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${BASE}/api`,      lastModified: new Date(), changeFrequency: "monthly", priority: 0.8 },
     { url: `${BASE}/chains`,   lastModified: new Date(), changeFrequency: "weekly",  priority: 0.8 },
     { url: `${BASE}/check`,    lastModified: new Date(), changeFrequency: "monthly", priority: 0.7 },
+    { url: `${BASE}/security`, lastModified: new Date(), changeFrequency: "monthly", priority: 0.6 },
     ...chains,
     { url: `${BASE}/blog`,     lastModified: new Date(), changeFrequency: "weekly",  priority: 0.8 },
     { url: `${BASE}/contact`,  lastModified: new Date(), changeFrequency: "yearly",  priority: 0.4 },

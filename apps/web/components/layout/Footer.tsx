@@ -14,6 +14,7 @@ const NAV = [
 const LEGAL = [
   { label: "Contact", href: "/contact" },
   { label: "Telegram", href: "https://t.me/Non_Fungible_Howard", external: true },
+  { label: "Security", href: "/security" },
   { label: "Terms", href: "/terms" },
   { label: "Privacy", href: "/privacy" },
 ];
