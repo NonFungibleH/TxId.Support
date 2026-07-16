@@ -28,10 +28,26 @@ const CHAINS = [
 // so the bot can surface their real past transactions. The server (chat route)
 // resolves the id to the protocol's router contracts + ABIs.
 const PROTOCOLS = [
-  { id: "uniswap",     name: "Uniswap",     color: "#FF007A", logo: "/protocols/uniswap.png",     chains: ["1", "8453", "42161", "137"], blurb: "The biggest DEX. Swaps on Ethereum, Base, Arbitrum, Polygon." },
-  { id: "aave",        name: "Aave",        color: "#B6509E", logo: "/protocols/aave.png",        chains: ["1", "8453", "42161", "137"], blurb: "The biggest lending market. Supply and borrow across chains." },
-  { id: "morpho",      name: "Morpho",      color: "#2E5CFF", logo: "/protocols/morpho.png",      chains: ["1", "8453"],                 blurb: "Efficient lending on Ethereum and Base." },
-  { id: "pancakeswap", name: "PancakeSwap", color: "#1FC7D4", logo: "/protocols/pancakeswap.png", chains: ["56"],                        blurb: "The biggest DEX on BNB Chain." },
+  {
+    id: "uniswap", name: "Uniswap", color: "#FF007A", logo: "/protocols/uniswap.png",
+    chains: ["1", "8453", "42161", "137"], blurb: "The biggest DEX. Swaps on Ethereum, Base, Arbitrum, Polygon.",
+    suggestions: ["What was my last swap?", "Why did my swap fail?", "Is my wallet on any sanctions list?"],
+  },
+  {
+    id: "aave", name: "Aave", color: "#B6509E", logo: "/protocols/aave.png",
+    chains: ["1", "8453", "42161", "137"], blurb: "The biggest lending market. Supply and borrow across chains.",
+    suggestions: ["What have I done on Aave recently?", "Why did my transaction fail?", "Is my wallet on any sanctions list?"],
+  },
+  {
+    id: "morpho", name: "Morpho", color: "#2E5CFF", logo: "/protocols/morpho.png",
+    chains: ["1", "8453"], blurb: "Efficient lending on Ethereum and Base.",
+    suggestions: ["What have I done on Morpho recently?", "Why did my transaction fail?", "Is my wallet on any sanctions list?"],
+  },
+  {
+    id: "pancakeswap", name: "PancakeSwap", color: "#1FC7D4", logo: "/protocols/pancakeswap.png",
+    chains: ["56"], blurb: "The biggest DEX on BNB Chain.",
+    suggestions: ["What was my last swap?", "Why did my swap fail?", "Is my wallet on any sanctions list?"],
+  },
 ]
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -312,7 +328,7 @@ export default function CheckPage() {
   function enterChat(addr: string) {
     setMessages([{
       role: "assistant",
-      content: `Hi! I'm ${protocol.name} Support (a live TxID demo). I can see your wallet ${shortAddr(addr)} connected on ${chain.name}.\n\nI can look up your recent ${protocol.name} transactions, explain why a swap failed, or check a token. What would you like to look at?`,
+      content: `Hi! I'm ${protocol.name} Support (a live TxID demo). I can see your wallet ${shortAddr(addr)} connected on ${chain.name}.\n\nI can look up your recent ${protocol.name} transactions, explain why a transaction failed, or screen an address. Pick a suggestion below, or ask anything.`,
     }])
     setStep("chat")
   }
@@ -594,6 +610,22 @@ export default function CheckPage() {
               </div>
             ) : (
               <>
+                {/* Example questions — shown until the first question is asked.
+                    Each maps to a real tool call, so every chip reliably works. */}
+                {messages.length <= 1 && !loading && (
+                  <div className="flex flex-wrap justify-center gap-2 mb-3">
+                    <span className="w-full text-center text-[11px] font-mono text-muted/50 mb-0.5">Try asking</span>
+                    {protocol.suggestions.map((s) => (
+                      <button
+                        key={s}
+                        onClick={() => handleSend(s)}
+                        className="rounded-full border border-[#1e1e3a] bg-[#0f0f1a] px-3.5 py-1.5 text-xs text-[#94a3b8] hover:text-white hover:border-accent/50 transition-colors"
+                      >
+                        {s}
+                      </button>
+                    ))}
+                  </div>
+                )}
                 <div className="flex items-end gap-3 bg-[#0f0f1a] rounded-2xl border border-[#1e1e3a] focus-within:border-accent/40 transition-colors px-4 py-3">
                   <textarea
                     ref={inputRef}
