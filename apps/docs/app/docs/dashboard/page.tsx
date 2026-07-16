@@ -45,7 +45,7 @@ export default function DashboardPage() {
       <h2>Chains</h2>
       <p>
         Toggle which chains your protocol operates on. The AI will only attempt on-chain lookups
-        on enabled chains. Supported chains: Ethereum, Base, BNB Chain, Polygon, Arbitrum, Optimism.
+        on enabled chains. Supported chains: Ethereum, Base, BNB Chain, Polygon, Arbitrum, Optimism, Avalanche.
       </p>
 
       <h2>Content Blocks</h2>

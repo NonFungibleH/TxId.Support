@@ -9,7 +9,7 @@ TxID Support is a B2B embeddable AI support widget for DeFi protocols. Protocol 
 - `apps/app` — B2B dashboard where protocol teams configure their project (app.txid.support)
 - `apps/docs` — documentation site (docs.txid.support)
 - `packages/react` — published npm package (`@txid/react`) for React embed
-- `packages/widget` — embeddable vanilla JS widget (Phase 3 stub, not yet built)
+- `packages/widget` — embeddable vanilla JS widget (package still a stub, BUT a working script-tag loader ships at `apps/app/public/widget.js`, served as `https://app.txid.support/widget.js` — that's the embed path the docs reference)
 
 ---
 
@@ -89,9 +89,7 @@ Ports: web=3000, app=3001, docs=3002, widget=3003
 
 ### Blockchain (EVM)
 - `MORALIS_API_KEY`
-- `ETHERSCAN_API_KEY`
-- `BASESCAN_API_KEY`
-- `BSCSCAN_API_KEY`
+- `ETHERSCAN_API_KEY` — Etherscan V2 unified key, covers ALL EVM chains (Base, BSC, etc.); the old per-chain BASESCAN/BSCSCAN keys are no longer used
 
 ### Blockchain (Solana)
 - `HELIUS_API_KEY` — Helius RPC + enhanced transaction API (https://dev.helius.xyz)
@@ -108,9 +106,13 @@ Ports: web=3000, app=3001, docs=3002, widget=3003
 - `RESEND_API_KEY` — email notifications (optional)
 - `WEBHOOK_SECRET` — HMAC for outbound webhooks
 - `PREVIEW_HMAC_SECRET` — dashboard preview token signing
-- `NEXT_PUBLIC_DEMO_WIDGET_KEY` — demo project key on marketing site
+- `NEXT_PUBLIC_DEMO_WIDGET_KEY` — demo project key, baked into the apps/web client (/demo + /check)
+- `DEMO_WIDGET_KEY` — same value, server-side on apps/app (demo-key recognition in chat + widget-config routes). NOTE: apps/web and apps/app are SEPARATE Vercel projects with separate env scopes; the robust demo exemption is the `publicDemo` config flag, not these vars
 - `NEXT_PUBLIC_PLATFORM_WIDGET_KEY` — platform's own widget embed
 - `ADMIN_EMAILS` — comma-separated emails with /admin access
+- `TURNSTILE_SECRET_KEY` — Cloudflare Turnstile verification on /api/chat (apps/app)
+- `NEXT_PUBLIC_TURNSTILE_SITE_KEY` — invisible Turnstile widget on /check (apps/web)
+- `NEXT_PUBLIC_APP_URL` / `NEXT_PUBLIC_WEB_URL` / `NEXT_PUBLIC_WIDGET_URL` — cross-app URLs
 
 ---
 
@@ -133,8 +135,15 @@ streamChatWithTools(systemPrompt, messages, walletConfig, watchedContracts, maxT
 
 // tools.ts
 buildWalletTools(watchedContracts): Tool[]
-// Returns Anthropic tool definitions for get_wallet_balance,
-// get_recent_transactions, get_transaction_by_hash.
+// Returns ~24 Anthropic tool definitions. Wallet: get_wallet_balance,
+// get_recent_transactions, get_transaction_by_hash, get_wallet_approvals,
+// diagnose_wallet. Contract: get_contract_info (verification/proxy),
+// get_contract_state/data/functions/events/holdings/deployment/transactions,
+// get_upgrade_history. Token: get_token_info/allowance/price,
+// check_token_safety, get_native_price. Trust: check_address_sanctions
+// (OFAC via Chainalysis on-chain oracle, packages/blockchain/src/sanctions.ts).
+// Utility: resolve_ens_name, estimate_action, get_network_status,
+// create_support_ticket.
 executeTool(name, input, walletConfig, watchedContracts): Promise<unknown>
 // Executes a tool call. Passes knownAbis map to getTransactionByHash
 // so stored ABIs reach the decoder without an extra explorer fetch.
@@ -207,7 +216,7 @@ Chains are configured in `CHAIN_CONFIGS` in `types.ts`. Block explorer API keys 
 
 Source: `packages/solana/src/`
 
-Chain ID string: `"solana"` (not a hex value). Added to `SUPPORTED_CHAINS` in `lib/types/config.ts`.
+Chain ID string: `"solana"` (not a hex value). Added to `SUPPORTED_CHAINS` in `lib/types/config.ts`, but currently PAUSED in the UI: `PAUSED_CHAINS` contains `"solana"` and `SELECTABLE_CHAINS` filters it out of all pickers (config.ts:60-63). The plumbing below remains in place for when it's re-enabled.
 
 ### Key exports
 
@@ -298,11 +307,12 @@ Never read `projects` without verifying org membership first.
 
 ---
 
-## apps/docs
+## Docs (two separate systems — don't conflate)
 
-Next.js docs site. Pages mirror the sidebar sections: getting-started, contracts, branding, conversations, api.
+1. **`apps/docs`** — standalone docs site (docs.txid.support). Hardcoded JSX pages: quickstart, dashboard, embed, contracts, api. Sidebar: `apps/docs/components/Sidebar.tsx`. Key page: `app/docs/contracts/page.tsx` (transaction diagnostics, ABI upload three-states, error glossary).
+2. **`apps/web/lib/docs.ts`** — data-driven help center rendered at txid.support/docs (`apps/web/app/docs/[slug]/page.tsx`). 12 docs: introduction, quick-start, branding, smart-contracts, knowledge-base, chains, content-blocks, preview, embed, conversations, tickets, analytics.
 
-Key updated page: `app/docs/contracts/page.tsx` — documents transaction diagnostics, ABI upload (three states: explorer-verified / uploaded / missing), and error glossary with example entries.
+When a product fact changes (chains, plans, limits), update BOTH systems plus the marketing FAQ (`apps/web/components/sections/FAQ.tsx`).
 
 ---
 
@@ -317,6 +327,7 @@ Key updated page: `app/docs/contracts/page.tsx` — documents transaction diagno
 | `messages` | Individual chat turns |
 | `support_tickets` | Escalated issues, `ref` unique constraint |
 | `webhook_logs` | Outbound webhook event log |
+| `token_usage` | Per-message input/output token counts; aggregated by `admin_token_usage()` SQL function for the /admin cost cockpit (migration `20260706000003_token_usage.sql`) |
 
 ---
 
@@ -364,6 +375,20 @@ Key updated page: `app/docs/contracts/page.tsx` — documents transaction diagno
 - System prompt in `packages/ai/src/prompt.ts` has Solana-specific wallet/tx guidance (signature vs hash, Solscan, Phantom error patterns)
 - Env var: `HELIUS_API_KEY`
 
+### Public /check demo (marketing site)
+- `apps/web/app/check/page.tsx` — "try it live" funnel: pick a curated protocol (Uniswap/Aave/Morpho/PancakeSwap), connect wallet or paste address, chat with the bot scoped to that protocol's real routers. Per-protocol brand theming via `accentVars()`; "Try asking" suggestion chips before the first question.
+- Curated contracts hardcoded + on-chain-verified in `apps/app/lib/demo-protocols.ts`; the chat route expands `demoProtocol` to them (inspect mode in `apps/app/app/api/chat/route.ts`).
+- Demo recognition: `isDemo = isDemoKey(key) || plan === "demo" || config.publicDemo === true`. The **`publicDemo` config flag** (toggle in /admin, `setProjectPublicDemo` in `lib/actions/admin.ts`) is the robust path: it exempts the project from the domain allowlist without env mirroring or a plan change.
+- Abuse protection: invisible Cloudflare Turnstile + hard 3-messages-per-IP-per-24h rate cap (durable only with Upstash) + 5-message session cap.
+
+### Admin console (apps/app /admin)
+- Admin-gated by `ADMIN_EMAILS`. Projects table with per-project plan dropdown + Public demo toggle; token usage / est. cost columns fed by `admin_token_usage()`.
+- `/admin/roadmap` — product roadmap board (data in `lib/roadmap.ts`, localStorage statuses/notes). `/admin/eval` — eval harness (`lib/eval.ts`).
+
+### Security & trust marketing
+- `apps/web/app/security/page.tsx` — /security page for buyer security reviews: Safe-by-design vs Ask-and-verify framing, data handling, subprocessors (keep in sync with /privacy).
+- Framing rule: sanctions screening + contract verification are ON-REQUEST tools (user asks, bot checks live and cites source) — never describe them as proactive interception.
+
 ### Telegram bot integration
 - One bot per protocol: protocol team creates a bot with @BotFather and pastes the token in Dashboard > Telegram
 - `saveTelegramToken` validates via `getMe`, calls `setWebhook` pointing at `/api/telegram/{publishableKey}`, stores token + bot username in config
@@ -378,7 +403,7 @@ Key updated page: `app/docs/contracts/page.tsx` — documents transaction diagno
 
 ## Plans / billing
 
-Plans: `free | starter | pro | enterprise | custom`
+Plans: `free | starter | pro | enterprise | custom | demo`
 
 | Plan | Chains | Conversations/mo |
 |---|---|---|
@@ -387,8 +412,9 @@ Plans: `free | starter | pro | enterprise | custom`
 | pro | 1 | 2500 |
 | enterprise | unlimited | unlimited |
 | custom | unlimited | unlimited |
+| demo | unlimited | unlimited (hand-provisioned early users; set in /admin) |
 
-Plan is stored in `projects.config.plan`. Stripe columns live on `organisations` (migrated in `20260701000001_stripe_admin.sql`).
+Public plans are Free + Custom. Plan is stored in `projects.config.plan`. Stripe columns live on `organisations` (migrated in `20260701000001_stripe_admin.sql`). Rate/usage limits are centralised in `apps/app/lib/limits.ts` (`CHAT_LIMITS`: 20 req/window/IP, 10 messages/session, 5 for the demo key; `PLAN_DAILY_CONV_LIMITS`).
 
 ### Stripe billing flow
 - `lib/stripe.ts` — lazy client, `isStripeConfigured()`, `planFromSubStatus()` (active/trialing/past_due → pro; terminal → free)
