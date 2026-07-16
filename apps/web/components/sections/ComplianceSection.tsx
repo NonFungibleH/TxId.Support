@@ -4,9 +4,9 @@ import { FadeIn } from "@/components/ui/FadeIn";
 const ITEMS = [
   {
     icon: ScanSearch,
-    title: "OFAC sanctions screening",
+    title: "OFAC sanctions screening, on demand",
     description:
-      "Any address, screened in real time against the on-chain Chainalysis sanctions oracle. Users get a clear warning before they interact with a flagged counterparty.",
+      "When a user asks whether an address or counterparty is flagged, the assistant screens it live against the on-chain Chainalysis sanctions oracle (OFAC SDN list) and cites the source.",
   },
   {
     icon: FileCheck2,
