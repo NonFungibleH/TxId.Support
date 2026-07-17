@@ -7,6 +7,7 @@ import {
   Code2,
   Globe2,
   BarChart3,
+  Zap,
 } from "lucide-react";
 import { FadeIn } from "@/components/ui/FadeIn";
 
@@ -22,6 +23,12 @@ const FEATURES = [
     title: "Transaction Diagnostics",
     description:
       "Any failed transaction explained in plain English: cause, consequence, and the exact step to fix it, before they open a ticket.",
+  },
+  {
+    icon: Zap,
+    title: "Actions (Optional)",
+    description:
+      "On paid plans, users can ask the agent to prepare swaps, staking, locks or claims: it builds the transaction, they sign it in their own wallet. Off by default.",
   },
   {
     icon: BookOpen,

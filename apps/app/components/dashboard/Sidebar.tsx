@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation"
 import {
   LayoutDashboard, Paintbrush, FileCode2, BookOpen,
   LayoutList, Code2, BarChart3, Globe, MessageSquare, Eye, Ticket, MessagesSquare,
-  Sun, Moon, Zap, Send,
+  Sun, Moon, Zap, Send, Wallet,
 } from "lucide-react"
 import { useTheme } from "next-themes"
 import { cn } from "@/lib/utils"
@@ -27,6 +27,7 @@ const SUPPORT_GROUPS: NavGroup[] = [
       { href: "/dashboard/branding",  label: "Branding",         icon: Paintbrush },
       { href: "/dashboard/content",   label: "Content",          icon: LayoutList },
       { href: "/dashboard/telegram",  label: "Telegram",         icon: Send },
+      { href: "/dashboard/actions",   label: "Actions",          icon: Wallet },
     ],
   },
   {

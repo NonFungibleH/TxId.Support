@@ -4,6 +4,8 @@ import { useState, useEffect, useRef, useCallback } from "react"
 import { useSearchParams } from "next/navigation"
 import { nanoid } from "nanoid"
 import DOMPurify from "dompurify"
+import { ActionCard } from "./ActionCard"
+import type { WalletActionPayload } from "./ActionCard"
 import {
   SendIcon,
   MessageCircleIcon,
@@ -102,6 +104,8 @@ interface WidgetConfig {
   contentBlocks?: ContentBlockData[]
   /** Paid/hand-provisioned plans hide the "Powered by TxID Support" badge. */
   hidePoweredBy?: boolean
+  /** Actions: AI-prepared, user-signed transactions (opt-in, paid plans). */
+  actions?: { enabled: boolean }
 }
 
 // Returns perceived luminance 0–1; > 0.5 = light background
@@ -176,6 +180,8 @@ interface Message {
   toolCall?: string | null
   /** One-tap "switch network" prompt when the wallet is on the wrong chain */
   switchAction?: { chainId: string; chainName: string }
+  /** "Review in wallet" card for an AI-prepared, user-signed transaction */
+  walletAction?: WalletActionPayload
   /** Client-only line (e.g. a switch confirmation) — never persisted, not ratable */
   local?: boolean
   /** User's 👍/👎 on this assistant answer: 1 up, -1 down, 0/undefined none */
@@ -767,6 +773,7 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
           chainId: chainId ?? undefined,
           preview: isPreview || undefined,
           previewToken: isPreview ? previewToken : undefined,
+          walletMode: walletAddress ? (walletSetup === "connected" ? "connected" : "manual") : undefined,
         }),
       })
 
@@ -808,6 +815,7 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
               escalate?: { summary: string; reason: string }
               suggestions?: { items: string[] }
               switch_chain?: { chainId: string; chainName: string }
+              wallet_action?: WalletActionPayload
             }
             if (parsed.error) {
               setMessages((prev) =>
@@ -838,6 +846,12 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
             }
             if (parsed.suggestions?.items?.length) {
               setSuggestions(parsed.suggestions.items)
+            }
+            if (parsed.wallet_action) {
+              const wa = parsed.wallet_action
+              setMessages((prev) =>
+                prev.map((m) => (m.id === assistantId ? { ...m, walletAction: wa } : m)),
+              )
             }
             if (parsed.switch_chain) {
               // Wallet is on the wrong network — attach a one-tap switch button
@@ -876,7 +890,58 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
     } finally {
       setIsStreaming(false)
     }
-  }, [input, isStreaming, config, messages, apiKey, walletAddress, chainId, isPreview, previewToken])
+  }, [input, isStreaming, config, messages, apiKey, walletAddress, chainId, isPreview, previewToken, walletSetup])
+
+  const sendActionResult = useCallback(async (actionId: string, txHash: string, status: "confirmed" | "failed", gasUsed?: string, blockNumber?: string) => {
+    if (!config) return
+    const assistantId = nanoid()
+    setMessages((prev) => [...prev, { id: assistantId, role: "assistant", content: "", streaming: true }])
+    try {
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          key: apiKey,
+          sessionId: sessionId.current,
+          messages: messages.filter((m) => !m.local).map((m) => ({ role: m.role, content: m.content })),
+          walletAddress: walletAddress ?? undefined,
+          chainId: chainId ?? undefined,
+          walletMode: "connected",
+          actionResult: { actionId, txHash, status, ...(gasUsed ? { gasUsed } : {}), ...(blockNumber ? { blockNumber } : {}) },
+        }),
+      })
+      if (!res.ok || !res.body) throw new Error("follow-up failed")
+      const reader = res.body.getReader()
+      const decoder = new TextDecoder()
+      let accumulated = ""
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        for (const line of decoder.decode(value).split("\n")) {
+          if (!line.startsWith("data:")) continue
+          const payload = line.slice(5).trim()
+          if (payload === "[DONE]") break
+          try {
+            const parsed = JSON.parse(payload) as { text?: string; tool_call?: string }
+            if (parsed.tool_call) setMessages((prev) => prev.map((m) => (m.id === assistantId ? { ...m, toolCall: parsed.tool_call } : m)))
+            if (parsed.text) {
+              accumulated += parsed.text
+              setMessages((prev) => prev.map((m) => (m.id === assistantId ? { ...m, content: accumulated, toolCall: null } : m)))
+            }
+          } catch { /* partial chunk */ }
+        }
+      }
+      setMessages((prev) => prev.map((m) => (m.id === assistantId ? { ...m, streaming: false } : m)))
+    } catch {
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === assistantId
+            ? { ...m, content: status === "confirmed" ? "Transaction confirmed on-chain." : "The transaction failed — paste the hash and I can diagnose it.", streaming: false, local: true }
+            : m,
+        ),
+      )
+    }
+  }, [config, apiKey, messages, walletAddress, chainId])
 
   // ── External prompt listener (for preview page clickable prompts) ─────────
   const sendMessageRef = useRef(sendMessage)
@@ -1405,6 +1470,24 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
                           >
                             {switching ? "Switching…" : `Switch to ${m.switchAction.chainName} →`}
                           </button>
+                        )}
+                      {m.walletAction &&
+                        config?.actions?.enabled &&
+                        walletSetup === "connected" &&
+                        walletAddress &&
+                        chainId !== "solana" &&
+                        typeof window !== "undefined" &&
+                        "ethereum" in window && (
+                          <ActionCard
+                            action={m.walletAction}
+                            apiKey={apiKey}
+                            sessionId={sessionId.current}
+                            expectedAddress={walletAddress}
+                            chainId={chainId}
+                            primaryColor={b.primaryColor}
+                            textColor={b.textColor}
+                            onResult={(id, hash, st, gasUsed, blockNumber) => void sendActionResult(id, hash, st, gasUsed, blockNumber)}
+                          />
                         )}
                       {m.role === "assistant" && !m.local && !!m.content && !m.streaming && (
                         <div className="mt-1.5 flex items-center gap-2.5">

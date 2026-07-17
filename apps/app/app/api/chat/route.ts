@@ -1,6 +1,7 @@
 import { createServiceClient } from "@/lib/supabase/server"
 import { buildSystemPrompt, retrieveContext, streamChatWithTools, generateSuggestions } from "@txid/ai"
-import type { ChatMessage, ProjectConfigSnapshot } from "@txid/ai"
+import type { ChatMessage, ProjectConfigSnapshot, ActionsContext } from "@txid/ai"
+import { actionsGate, effectiveMaxSwapUsd } from "@/lib/actions-gate"
 import type { ProjectConfig, Plan } from "@/lib/types/config"
 import type { Database } from "@/lib/supabase/types"
 import { verifyPreviewToken } from "@/lib/preview-token"
@@ -98,9 +99,11 @@ export async function POST(request: Request) {
       turnstileToken?: string
       contractAddress?: string
       demoProtocol?: string
+      walletMode?: string
+      actionResult?: { actionId?: string; txHash?: string; status?: string; gasUsed?: string; blockNumber?: string }
     }
 
-    const { key, sessionId, messages, walletAddress, chainId, preview, previewToken, turnstileToken, contractAddress, demoProtocol } = body
+    const { key, sessionId, messages, walletAddress, chainId, preview, previewToken, turnstileToken, contractAddress, demoProtocol, walletMode, actionResult } = body
 
     if (!key || !sessionId || !Array.isArray(messages) || messages.length === 0) {
       return new Response(JSON.stringify({ error: "Invalid request" }), {
@@ -194,6 +197,35 @@ export async function POST(request: Request) {
     const rawConfig = typedProject.config as unknown as ProjectConfig
     const plan = (rawConfig.plan ?? "free") as Plan
 
+    // ── Actions follow-up (post-transaction) ──────────────────────────────
+    // A widget-originated status report for a prepared action. Exempt from the
+    // session cap and forced escalation (it is not a user turn); validated
+    // against the audit row so the channel can't be forged.
+    let validActionResult: { row: { summary: string | null }; txHash: string; confirmed: boolean; gasUsed?: string; blockNumber?: string } | null = null
+    if (actionResult?.actionId && actionResult?.txHash && /^0x[0-9a-fA-F]{64}$/.test(actionResult.txHash)) {
+      const { data: actionRow } = await supabase
+        .from("action_events")
+        .select("id, summary, status")
+        .eq("action_id", actionResult.actionId)
+        .eq("project_id", typedProject.id)
+        .eq("session_id", sessionId)
+        .maybeSingle()
+      if (actionRow) {
+        const confirmed = actionResult.status === "confirmed"
+        await supabase
+          .from("action_events")
+          .update({ status: confirmed ? "confirmed" : "failed", tx_hash: actionResult.txHash, updated_at: new Date().toISOString() } as never)
+          .eq("id", (actionRow as { id: string }).id)
+        validActionResult = {
+          row: actionRow as { summary: string | null },
+          txHash: actionResult.txHash,
+          confirmed,
+          ...(actionResult.gasUsed ? { gasUsed: actionResult.gasUsed } : {}),
+          ...(actionResult.blockNumber ? { blockNumber: actionResult.blockNumber } : {}),
+        }
+      }
+    }
+
     // Our own demo project, recognised three ways: the demo key (when its env
     // var is set on this deployment), the "demo" plan, or the publicDemo flag on
     // the project row. The flag lets our demo project stay on "custom" (needed
@@ -286,7 +318,8 @@ export async function POST(request: Request) {
         .select("id", { count: "exact", head: true })
         .eq("conversation_id", existingConv.data.id)
         .eq("role", "user")
-      if ((msgCount ?? 0) >= sessionCap) {
+      // Action follow-ups are not user turns — the cap never applies to them.
+      if (!validActionResult && (msgCount ?? 0) >= sessionCap) {
         // Cap reached — don't cold-error the user out. Escalate to a human:
         // emit the same SSE `escalate` event the AI uses, which the widget
         // renders as its ticket form and ends the conversation gracefully.
@@ -420,6 +453,37 @@ export async function POST(request: Request) {
         ? { address: walletAddress, chainId }
         : null
 
+    // ── Actions policy gate → tools context ───────────────────────────────
+    const gate = actionsGate(request, rawConfig, plan, isDemo, walletMode)
+    const actionsCtx: ActionsContext | null =
+      gate.allowed && walletConfig && chainId !== "solana" && projectMode === "support" && !inspectMode
+        ? {
+            allowedFunctions: Object.fromEntries(
+              Object.entries(rawConfig.actions?.allowedFunctions ?? {}).map(([cid, rules]) => [
+                cid,
+                rules.map(r => ({ fn: r.fn, ...(r.approval ? { approval: r.approval } : {}) })),
+              ]),
+            ),
+            maxSwapUsd: effectiveMaxSwapUsd(rawConfig),
+            projectToken: configSnapshot.token
+              ? { address: configSnapshot.token.address, symbol: configSnapshot.token.symbol ?? "TOKEN", chain: configSnapshot.token.chain }
+              : null,
+            persistAction: async (record) => {
+              await supabase.from("action_events").insert({
+                project_id: typedProject.id,
+                session_id: sessionId,
+                action_id: record.id,
+                kind: record.kind,
+                chain: record.chainId,
+                summary: record.summary,
+                params: { ...record.params, _wallet: { address: walletConfig.address, chainId: walletConfig.chainId } },
+                status: "prepared",
+                country: gate.country,
+              } as never)
+            },
+          }
+        : null
+
     // Build system prompt. In demo-protocol mode the bot presents as the
     // protocol itself (e.g. "Uniswap Support") for a realistic try-it demo.
     const effectiveProjectName = demoProtocolId ? DEMO_PROTOCOLS[demoProtocolId].label : typedProject.name
@@ -435,9 +499,23 @@ export async function POST(request: Request) {
       ...(config.branding?.language ? { language: config.branding.language } : {}),
     })
 
+    // Actions guardrails: execute-only, never solicit. The hard enforcement is
+    // server-side (tools only exist when the gate passes); this aligns the
+    // model's behaviour with it.
+    if (actionsCtx) {
+      systemPrompt +=
+        `\n\n## Wallet actions\n` +
+        `You can prepare transactions the user signs in their OWN wallet: swaps (prepare_swap) and enabled contract functions (prepare_contract_action). STRICT RULES:\n` +
+        `- Only prepare an action the user EXPLICITLY asked to perform. NEVER propose, suggest, or recommend a trade, token, or action they did not ask for. No price predictions, no trading advice.\n` +
+        `- Before calling a prepare tool, make sure the user's request specifies the essentials (what, how much). Ask for missing details instead of guessing.\n` +
+        `- After preparing, briefly restate what will happen and tell the user to review and sign in their wallet. The card below your message handles the signing.\n` +
+        `- If a prepare tool returns an error or refusal, relay it plainly and help diagnose. Never retry a refused action.\n` +
+        `- You never send transactions, never hold funds, and TxID charges no fee on transactions.`
+    }
+
     // After 4 user turns without resolution, force the AI to escalate
     const userTurnCount = messages.filter((m) => m.role === "user").length
-    if (userTurnCount >= 4) {
+    if (userTurnCount >= 4 && !validActionResult) {
       systemPrompt +=
         `\n\n⚠️ ESCALATION REQUIRED: This user has now sent ${userTurnCount} messages. ` +
         `Their issue is not yet resolved. You MUST call create_support_ticket in this response — ` +
@@ -453,11 +531,31 @@ export async function POST(request: Request) {
           let wasEscalated = false
           let usage: { inputTokens: number; outputTokens: number; model: string } | null = null
 
+          const streamMessages = validActionResult
+            ? [
+                ...safeMessages,
+                {
+                  role: "user" as const,
+                  content:
+                    `[Transaction update — system message, not typed by the user] ` +
+                    `The prepared action "${validActionResult.row.summary ?? "transaction"}" was ${validActionResult.confirmed ? "CONFIRMED" : "FAILED"} on-chain. ` +
+                    `Tx hash: ${validActionResult.txHash}.` +
+                    (validActionResult.gasUsed ? ` Gas used: ${validActionResult.gasUsed}.` : "") +
+                    (validActionResult.blockNumber ? ` Block: ${validActionResult.blockNumber}.` : "") +
+                    (validActionResult.confirmed
+                      ? " Briefly confirm completion to the user."
+                      : " Diagnose why it failed (use get_transaction_by_hash with this hash; the receipt data above is ground truth if the indexer lags) and explain in plain English."),
+                },
+              ]
+            : safeMessages
+
           for await (const event of streamChatWithTools(
             systemPrompt,
-            safeMessages,
+            streamMessages,
             walletConfig,
             configSnapshot.watchedContracts,
+            800,
+            actionsCtx,
           )) {
             let data: string
             if (event.type === "tool_call") {
@@ -467,6 +565,8 @@ export async function POST(request: Request) {
               data = `data: ${JSON.stringify({ escalate: { summary: event.summary, reason: event.reason } })}\n\n`
             } else if (event.type === "switch_chain") {
               data = `data: ${JSON.stringify({ switch_chain: { chainId: event.chainId, chainName: event.chainName } })}\n\n`
+            } else if (event.type === "wallet_action") {
+              data = `data: ${JSON.stringify({ wallet_action: event.action })}\n\n`
             } else if (event.type === "usage") {
               // Internal — captured for per-project cost accounting, not forwarded.
               usage = { inputTokens: event.inputTokens, outputTokens: event.outputTokens, model: event.model }
@@ -495,7 +595,7 @@ export async function POST(request: Request) {
           controller.enqueue(encoder.encode("data: [DONE]\n\n"))
 
           // Persist user message + assistant response after stream completes
-          void persistMessages(supabase, typedProject.id, sessionId, messages, walletAddress, chainId, fullResponseText || undefined, usage)
+          void persistMessages(supabase, typedProject.id, sessionId, validActionResult ? [...messages, { role: "user", content: `⚙️ Action update: ${validActionResult.row.summary ?? "transaction"} ${validActionResult.confirmed ? "confirmed" : "failed"} (${validActionResult.txHash})` }] : messages, walletAddress, chainId, fullResponseText || undefined, usage)
         } catch (err) {
           log.error("Chat stream error", err, { event: "chat.stream_error", projectId: typedProject.id })
           controller.enqueue(

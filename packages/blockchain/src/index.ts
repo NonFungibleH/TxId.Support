@@ -39,3 +39,18 @@ export { resolveEnsName, namehash } from "./ens"
 export type { EnsResolution } from "./ens"
 export { estimateAction } from "./estimate"
 export type { ActionEstimate } from "./estimate"
+export {
+  NATIVE_TOKEN,
+  MAJOR_TOKENS,
+  toRawAmount,
+  fromRawAmount,
+  getTokenDecimals,
+  getAllowance,
+  buildApproveTx,
+  preflightTx,
+  kyberQuote,
+  kyberBuild,
+  usdValueOf,
+  encodeContractAction,
+} from "./actions"
+export type { SwapQuote, BuiltSwap, PreflightResult, EncodedAction } from "./actions"

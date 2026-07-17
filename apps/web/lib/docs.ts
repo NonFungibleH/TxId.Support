@@ -380,6 +380,29 @@ export const DOCS: Doc[] = [
   },
 
   {
+    slug: "actions",
+    title: "Actions",
+    description: "Let users execute swaps, staking and claims from the chat, signed in their own wallet",
+    category: "features",
+    order: 9,
+    content: [
+      { type: "p", text: "Actions is an optional, paid-plan feature that lets your support agent go from explaining to doing: a user asks for something (\"swap 10 USDC for your token\", \"lock 100 tokens for 3 months\", \"claim my rewards\"), the agent prepares the transaction, and the user reviews and signs it in their own wallet. TxID never holds funds, never sends transactions, and takes no fee." },
+      { type: "h2", text: "How it works" },
+      { type: "ul", items: [
+        "The agent only acts on explicit user requests. It never suggests or recommends trades.",
+        "Swaps route through the KyberSwap aggregator between your token and major tokens (native, wrapped native, USDC, USDT, DAI).",
+        "Contract actions (lock, stake, claim, and so on) call write functions on your watched contracts, but only the functions you enable.",
+        "Every transaction is simulated before the user sees it. If it would revert, the agent explains why instead.",
+        "Token approvals are exact-amount, never unlimited. If an action fails on-chain, the agent diagnoses it automatically.",
+      ]},
+      { type: "h2", text: "Enabling Actions" },
+      { type: "p", text: "Go to Dashboard, then Actions. Flip the master switch, set your per-swap USD limit (0 disables swaps), and enable the specific contract functions users may execute. If a function pulls tokens from the user, annotate which token and which argument carries the amount so the agent can handle the approval step." },
+      { type: "callout", variant: "info", title: "Safety rails", text: "Off by default. Wallets are screened against the OFAC sanctions list before any action, the feature is geo-restricted in sanctioned regions, and end users see a one-time acknowledgement before their first action." },
+      { type: "h2", text: "What users see" },
+      { type: "p", text: "A card under the agent's reply summarising the transaction, with a Review in wallet button. Their wallet (MetaMask or compatible) shows the standard confirmation. After it confirms or fails, the agent reports back in the chat." },
+    ],
+  },
+  {
     slug: "analytics",
     title: "Analytics",
     description: "Track conversation volume and engagement across your widget",

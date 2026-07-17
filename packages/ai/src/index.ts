@@ -17,3 +17,5 @@ export type {
   RagResult,
   RagChunk,
 } from "./types"
+export { buildPrepareContractActionTool, buildPrepareSwapTool, executeActionTool, prepareSwap, prepareContractAction } from "./actions"
+export type { ActionsContext, ActionPayload, ActionsFunctionRule, SwapParams, ContractActionParams } from "./actions"

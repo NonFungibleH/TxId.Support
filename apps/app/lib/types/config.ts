@@ -179,6 +179,29 @@ export interface AuditEntry {
   date?: string | null  // e.g. "2024-01" — optional
 }
 
+// "Actions": wallet-executed transactions prepared by the AI, signed by the
+// user. Off by default; per-function allowlist; paid plans only (demo and
+// publicDemo projects are always excluded, enforced server-side).
+export interface ActionsFunctionRule {
+  fn: string
+  // Set when the function pulls an ERC-20 (e.g. lock(amount)): which token to
+  // approve and which argument index carries the human amount. No ABI can
+  // reveal this, so the protocol annotates it when enabling the function.
+  approval?: { token: string; amountArg: number }
+}
+
+export interface ActionsConfig {
+  enabled: boolean
+  /** contractId → enabled write functions (static args, non-payable only). */
+  allowedFunctions: Record<string, ActionsFunctionRule[]>
+  /** Per-swap USD ceiling. 0 = swaps disabled (contract actions only). */
+  maxSwapUsd: number
+  enabledAt?: string
+}
+
+export const ACTIONS_MAX_SWAP_USD_DEFAULT = 2000
+export const ACTIONS_MAX_SWAP_USD_CEILING = 25000
+
 export interface ProjectConfig {
   branding: BrandingConfig
   token: TokenConfig | null
@@ -199,6 +222,7 @@ export interface ProjectConfig {
   // the /check "try it live" protocol scoping, without changing its plan — so
   // it can stay on "custom". Only ever set on our own project, via /admin.
   publicDemo?: boolean
+  actions?: ActionsConfig
   telegramBotToken?: string | null
   telegramBotUsername?: string | null
 }

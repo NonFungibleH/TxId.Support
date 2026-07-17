@@ -48,6 +48,15 @@ export default function DashboardPage() {
         on enabled chains. Supported chains: Ethereum, Base, BNB Chain, Polygon, Arbitrum, Optimism, Avalanche.
       </p>
 
+      <h2>Actions (paid plans)</h2>
+      <p>
+        Optional feature: users can ask the agent to execute swaps, staking, locks or claims.
+        The agent prepares the transaction and the user signs it in their own wallet; TxID never
+        holds funds and takes no fee. Off by default. Enable it under Dashboard → Actions, set a
+        per-swap USD limit, and allowlist the specific contract functions users may execute.
+        The agent only acts on explicit user requests and never recommends trades.
+      </p>
+
       <h2>Content Blocks</h2>
       <p>
         Add rich content blocks that appear in the widget&apos;s Info tab. Drag to reorder. Block types:

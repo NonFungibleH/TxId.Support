@@ -154,6 +154,26 @@ export default function SecurityPage() {
             />
           </div>
 
+          {/* Actions (optional) */}
+          <div className="mt-16">
+            <FadeIn>
+              <div className="mb-4">
+                <h2 className="font-display text-xl font-semibold text-white">Actions (optional)</h2>
+                <p className="text-sm text-muted mt-1 max-w-2xl">
+                  On paid plans, a protocol can opt in to Actions: users ask the assistant to
+                  perform something (a swap, a stake, a claim), it prepares the transaction, and
+                  the user reviews and signs it in their own wallet. Off by default. When enabled:
+                  the assistant only carries out what a user explicitly requests and never
+                  recommends trades; every transaction is signed by the user; approvals are
+                  exact-amount only; wallets are screened against the OFAC sanctions list; the
+                  feature is geo-restricted in sanctioned regions; and TxID takes no fee on any
+                  transaction. For projects that don&apos;t enable Actions, the assistant remains
+                  fully read-only.
+                </p>
+              </div>
+            </FadeIn>
+          </div>
+
           {/* Data handling */}
           <div className="mt-16">
             <FadeIn>

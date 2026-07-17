@@ -389,6 +389,18 @@ When a product fact changes (chains, plans, limits), update BOTH systems plus th
 - `apps/web/app/security/page.tsx` — /security page for buyer security reviews: Safe-by-design vs Ask-and-verify framing, data handling, subprocessors (keep in sync with /privacy).
 - Framing rule: sanctions screening + contract verification are ON-REQUEST tools (user asks, bot checks live and cites source) — never describe them as proactive interception.
 
+### Actions (AI-prepared, user-signed transactions)
+- Design doc: `docs/superpowers/specs/2026-07-17-actions-wallet-execution-design.md` (approved after 2-round spec review). Off by default; paid plans only (`demo`/`publicDemo` always excluded); TxID takes NO fee.
+- Two sources, one path: swaps via KyberSwap aggregator (`packages/blockchain/src/actions.ts` — quote/build/allowance/preflight, majors map, `NATIVE_TOKEN` sentinel) + allowlisted contract write functions (static-args, non-payable, encoded from stored ABI).
+- AI layer: `packages/ai/src/actions.ts` — `prepare_swap`/`prepare_contract_action` tools exist ONLY when the chat route passes an `ActionsContext` (policy gate passed). Per-invocation OFAC screen (fail-closed). `clientAction` payload stripped from model-facing tool results (`stripClientAction`), emitted as `wallet_action` StreamEvent/SSE.
+- Policy gate: `apps/app/lib/actions-gate.ts` — toggle + paid plan + geo (fail-closed on missing header; `ACTIONS_GEO_DEV_BYPASS=1` for local) + `walletMode === "connected"`.
+- Lifecycle: prepared actions persisted to `action_events` (migration `20260717000001`); approval-gated actions defer the main tx to `POST /api/actions/rebuild` (full re-gate + fresh quote, one 2s retry for RPC lag; sole writer of `expired`). Ack modal → `POST /api/actions/ack` (kind='ack').
+- Follow-up contract: widget sends `actionResult {actionId, txHash, status, gasUsed, blockNumber}` to /api/chat — verified against the audit row, EXEMPT from session caps + forced escalation, receipt data injected as ground truth (beats Moralis lag), persisted with an "⚙️ Action update:" marker.
+- Widget: `apps/app/app/widget/ActionCard.tsx` — connected-wallet-only, `eth_accounts` match check, approve→rebuild→sign stepper, 60s quote TTL, receipt polling (provider → public RPC fallback), origin note (iframe = wallet popup shows app.txid.support). `walletMode` field added to chat requests.
+- Dashboard: `/dashboard/actions` (`ActionsForm`) — master toggle, per-swap USD cap (default $2k, ceiling $25k, 0 = swaps off), per-contract function allowlist with approval annotation (token + amountArg) and admin-name warnings.
+- Prompt guardrail appended in chat route when actions enabled: execute-only, never recommend/solicit (SEC Covered-UI posture). Marketing: FeatureGrid card, /security "Actions (optional)" section, pricing Custom line, help-center `actions` doc, docs-site dashboard section.
+- GA prerequisite (business): KyberSwap written consent for third-party apps (ToS §8.3(b)(v)).
+
 ### Telegram bot integration
 - One bot per protocol: protocol team creates a bot with @BotFather and pastes the token in Dashboard > Telegram
 - `saveTelegramToken` validates via `getMe`, calls `setWebhook` pointing at `/api/telegram/{publishableKey}`, stores token + bot username in config

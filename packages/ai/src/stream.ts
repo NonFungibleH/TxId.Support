@@ -3,6 +3,8 @@ import OpenAI from "openai"
 import type { ChatMessage, WatchedContractSnapshot } from "./types"
 import { buildWalletTools, buildTxLookupTool, buildContractTxsTool, buildContractEventsTool, buildContractDeploymentTool, buildContractHoldingsTool, buildContractStateTool, buildContractDataTool, buildContractInfoTool, buildContractFunctionsTool, buildUpgradeHistoryTool, buildTokenTools, buildNetworkTool, buildWalletDiagnosisTool, buildNativePriceTool, buildSanctionsTool, buildTokenSafetyTool, buildEnsTool, buildEstimateActionTool, buildEscalationTool, executeTool } from "./tools"
 import type { WalletConfig } from "./tools"
+import { buildPrepareContractActionTool, buildPrepareSwapTool, executeActionTool } from "./actions"
+import type { ActionsContext, ActionPayload } from "./actions"
 
 // ── Model selection ──────────────────────────────────────────────────────────
 // Prefer Claude Haiku (tool use, better reasoning) when ANTHROPIC_API_KEY is
@@ -42,6 +44,10 @@ export type StreamEvent =
   // (summed across all tool-loop rounds). The API returns these for free in
   // each response; the caller persists them for per-project usage accounting.
   | { type: "usage"; inputTokens: number; outputTokens: number; model: string }
+  // Emitted when a prepare_* action tool built an unsigned transaction — the
+  // widget renders a "Review in wallet" card. The user signs in their own
+  // wallet; nothing executes server-side.
+  | { type: "wallet_action"; action: ActionPayload }
 
 /**
  * Extract client-side action events from executed tool results. Currently the
@@ -51,11 +57,27 @@ export type StreamEvent =
 function clientActionsFrom(executed: Array<{ name: string; result: unknown }>): StreamEvent[] {
   const events: StreamEvent[] = []
   for (const { name, result } of executed) {
-    if (name !== "diagnose_wallet" || !result || typeof result !== "object") continue
-    const s = (result as { switchTo?: { chainId?: string; chainName?: string } }).switchTo
-    if (s?.chainId && s?.chainName) events.push({ type: "switch_chain", chainId: s.chainId, chainName: s.chainName })
+    if (!result || typeof result !== "object") continue
+    if (name === "diagnose_wallet") {
+      const s = (result as { switchTo?: { chainId?: string; chainName?: string } }).switchTo
+      if (s?.chainId && s?.chainName) events.push({ type: "switch_chain", chainId: s.chainId, chainName: s.chainName })
+    }
+    if (name === "prepare_swap" || name === "prepare_contract_action") {
+      const a = (result as { clientAction?: ActionPayload }).clientAction
+      if (a?.id) events.push({ type: "wallet_action", action: a })
+    }
   }
   return events
+}
+
+// The clientAction payload (raw calldata) is for the widget, not the model —
+// strip it from tool_result content so it doesn't burn context tokens.
+function stripClientAction(result: unknown): unknown {
+  if (result && typeof result === "object" && "clientAction" in result) {
+    const { clientAction: _omit, ...rest } = result as Record<string, unknown>
+    return rest
+  }
+  return result
 }
 
 // Hard ceiling on any single tool execution, so one hung RPC/API call can't
@@ -68,9 +90,14 @@ async function executeToolWithTimeout(
   input: Record<string, unknown>,
   wallet: WalletConfig | null,
   watchedContracts: WatchedContractSnapshot[],
+  actions: ActionsContext | null,
 ): Promise<unknown> {
+  const run =
+    (name === "prepare_swap" || name === "prepare_contract_action") && wallet && actions
+      ? executeActionTool(name, input, wallet, watchedContracts, actions)
+      : executeTool(name, input, wallet, watchedContracts)
   return Promise.race([
-    executeTool(name, input, wallet, watchedContracts),
+    run,
     new Promise((_, reject) =>
       setTimeout(() => reject(new Error(`${name} timed out — the data source is slow or unreachable right now`)), TOOL_TIMEOUT_MS),
     ),
@@ -99,6 +126,7 @@ export async function* streamChatWithTools(
   walletConfig: WalletConfig | null,
   watchedContracts: WatchedContractSnapshot[] = [],
   maxTokens = 800,
+  actions: ActionsContext | null = null,
 ): AsyncGenerator<StreamEvent> {
   const anthropic = getAnthropicClient()
 
@@ -130,6 +158,10 @@ export async function* streamChatWithTools(
       buildTokenSafetyTool(),
       buildEnsTool(),
       ...(walletConfig ? [buildEstimateActionTool(watchedContracts)].filter((t): t is NonNullable<typeof t> => t !== null) : []),
+      ...(walletConfig && actions
+        ? [buildPrepareContractActionTool(actions, watchedContracts), buildPrepareSwapTool(actions)]
+            .filter((t): t is NonNullable<typeof t> => t !== null)
+        : []),
       buildEscalationTool(),
     ]
     const groqTools: OpenAI.ChatCompletionTool[] = anthropicTools.map((t) => ({
@@ -194,7 +226,7 @@ export async function* streamChatWithTools(
             fnCalls.map(async (tc) => {
               try {
                 const input = JSON.parse(tc.function.arguments || "{}") as Record<string, unknown>
-                const result = await executeToolWithTimeout(tc.function.name, input, walletConfig, watchedContracts)
+                const result = await executeToolWithTimeout(tc.function.name, input, walletConfig, watchedContracts, actions)
                 return { name: tc.function.name, id: tc.id, result: result as unknown, error: null as unknown }
               } catch (err) {
                 return { name: tc.function.name, id: tc.id, result: null as unknown, error: err }
@@ -208,7 +240,7 @@ export async function* streamChatWithTools(
           const toolResults = executed.map(({ id, result, error }) =>
             error
               ? { role: "tool" as const, tool_call_id: id, content: `Error: ${error instanceof Error ? error.message : "Tool failed"}` }
-              : { role: "tool" as const, tool_call_id: id, content: JSON.stringify(result, null, 2) },
+              : { role: "tool" as const, tool_call_id: id, content: JSON.stringify(stripClientAction(result), null, 2) },
           )
           groqMessages.push(...toolResults)
           continue
@@ -285,6 +317,10 @@ export async function* streamChatWithTools(
     buildTokenSafetyTool(),
     buildEnsTool(),
     ...(walletConfig ? [buildEstimateActionTool(watchedContracts)].filter((t): t is NonNullable<typeof t> => t !== null) : []),
+    ...(walletConfig && actions
+      ? [buildPrepareContractActionTool(actions, watchedContracts), buildPrepareSwapTool(actions)]
+          .filter((t): t is NonNullable<typeof t> => t !== null)
+      : []),
     buildEscalationTool(),
   ]
 
@@ -365,6 +401,7 @@ export async function* streamChatWithTools(
             block.input as Record<string, unknown>,
             walletConfig,
             watchedContracts,
+            actions,
           )
           return { name: block.name, id: block.id, result: result as unknown, error: null as unknown }
         } catch (err) {
@@ -387,7 +424,7 @@ export async function* streamChatWithTools(
         : {
             type: "tool_result" as const,
             tool_use_id: id,
-            content: JSON.stringify(result, null, 2),
+            content: JSON.stringify(stripClientAction(result), null, 2),
           },
     )
 

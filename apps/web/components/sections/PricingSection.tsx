@@ -62,6 +62,7 @@ const PLANS = [
       { label: "Wallet & transaction lookups", soon: false },
       { label: "Higher conversation volume", soon: false },
       { label: "Multiple blockchains", soon: false },
+      { label: "Actions: user-signed swaps, staking & claims (optional)", soon: false },
       { label: "Full custom branding", soon: false },
       { label: "Escalation webhooks + integrations", soon: false },
       { label: "Priority support", soon: false },
