@@ -28,7 +28,7 @@ export function Hero() {
 
             <FadeIn delay={0.16}>
               <p className="text-lg text-muted leading-relaxed mb-8 max-w-lg">
-                AI that knows your protocol inside out, docs and on-chain activity alike. Answers questions and resolves issues automatically, so your team can focus on building.
+                Support bot that knows your protocol inside out: docs and on-chain activity. Answers questions and resolves issues automatically, so your team can focus on building.
               </p>
             </FadeIn>
 
