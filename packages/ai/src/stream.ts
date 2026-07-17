@@ -526,3 +526,34 @@ export async function completeChat(
   }
   return result
 }
+
+/**
+ * Like completeChat but also returns token usage, so callers (e.g. the Telegram
+ * webhook) can record it for the admin cost cockpit. usage is null on the Groq
+ * fallback path (no per-turn accounting there).
+ */
+export async function completeChatWithUsage(
+  systemPrompt: string,
+  messages: ChatMessage[],
+  maxTokens = 2048,
+): Promise<{ text: string; usage: { inputTokens: number; outputTokens: number; model: string } | null }> {
+  const anthropic = getAnthropicClient()
+  if (anthropic) {
+    const MODEL = "claude-haiku-4-5-20251001"
+    const stream = anthropic.messages.stream({
+      model: MODEL,
+      max_tokens: maxTokens,
+      system: systemPrompt,
+      messages: messages.map((m) => ({ role: m.role, content: m.content })),
+    })
+    let text = ""
+    for await (const event of stream) {
+      if (event.type === "content_block_delta" && event.delta.type === "text_delta") text += event.delta.text
+    }
+    const fm = await stream.finalMessage()
+    return { text, usage: { inputTokens: fm.usage.input_tokens, outputTokens: fm.usage.output_tokens, model: MODEL } }
+  }
+  let text = ""
+  for await (const chunk of streamChat(systemPrompt, messages, maxTokens)) text += chunk
+  return { text, usage: null }
+}

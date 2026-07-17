@@ -1,6 +1,6 @@
 import crypto from "crypto"
 import { createServiceClient } from "@/lib/supabase/server"
-import { buildSystemPrompt, completeChat } from "@txid/ai"
+import { buildSystemPrompt, completeChatWithUsage } from "@txid/ai"
 import type { ChatMessage, ProjectConfigSnapshot } from "@txid/ai"
 import type { ProjectConfig, Plan } from "@/lib/types/config"
 import { PLAN_CONV_LIMITS } from "@/lib/types/config"
@@ -319,8 +319,11 @@ export async function POST(
   })
 
   let reply: string
+  let usage: { inputTokens: number; outputTokens: number; model: string } | null = null
   try {
-    reply = await completeChat(systemPrompt, messages, 800)
+    const res = await completeChatWithUsage(systemPrompt, messages, 800)
+    reply = res.text
+    usage = res.usage
   } catch (err) {
     log.error("Telegram AI completion failed", err, {
       event: "telegram.webhook.ai_error",
@@ -333,7 +336,7 @@ export async function POST(
   await sendTelegramMessage(botToken, message.chat.id, reply, message.message_id)
 
   // Persist to Supabase
-  void persistTelegramMessages(supabase, project.id, sessionId, userText, reply)
+  void persistTelegramMessages(supabase, project.id, sessionId, userText, reply, usage)
 
   return new Response("OK", { status: 200 })
 }
@@ -344,6 +347,7 @@ async function persistTelegramMessages(
   sessionId: string,
   userText: string,
   assistantReply: string,
+  usage?: { inputTokens: number; outputTokens: number; model: string } | null,
 ) {
   try {
     const { data: conv } = await supabase
@@ -361,6 +365,19 @@ async function persistTelegramMessages(
       { conversation_id: conv.id, role: "user" as const, content: userText },
       { conversation_id: conv.id, role: "assistant" as const, content: assistantReply },
     ])
+
+    // Record token usage so Telegram AI cost shows in the admin cockpit too
+    // (previously widget-only). Denormalised project_id, same as the chat route.
+    if (usage && (usage.inputTokens > 0 || usage.outputTokens > 0)) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabase as any).from("token_usage").insert({
+        project_id: projectId,
+        conversation_id: conv.id,
+        model: usage.model,
+        input_tokens: usage.inputTokens,
+        output_tokens: usage.outputTokens,
+      })
+    }
   } catch {
     // Non-fatal
   }

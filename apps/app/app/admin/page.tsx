@@ -258,11 +258,15 @@ export default async function AdminPage() {
 
       {/* Cost note */}
       <section className="rounded-xl border border-dashed border-border p-5">
-        <h2 className="text-sm font-semibold mb-2">AI cost tracking</h2>
+        <h2 className="text-sm font-semibold mb-2">About these cost estimates</h2>
         <p className="text-sm text-muted-foreground">
-          Token usage is not yet stored in the database. Add a <code className="font-mono text-xs bg-muted px-1 py-0.5 rounded">tokens_used</code> column
-          to the <code className="font-mono text-xs bg-muted px-1 py-0.5 rounded">messages</code> table and populate it from the AI API response to
-          enable cost tracking. Message count ({fmt(totalMessages)}) is the current proxy for AI usage.
+          Token counts are live from the <code className="font-mono text-xs bg-muted px-1 py-0.5 rounded">token_usage</code> table
+          (one row per AI turn, widget and Telegram). Costs apply Claude Haiku 4.5 pricing
+          (${USD_PER_MTOK_INPUT.toFixed(2)}/M input, ${USD_PER_MTOK_OUTPUT.toFixed(2)}/M output) to <em>all</em> turns; Groq-fallback
+          turns are cheaper or free, so the figures are an upper bound. Turns before token tracking
+          was deployed aren&apos;t counted. If every project reads $0, the{" "}
+          <code className="font-mono text-xs bg-muted px-1 py-0.5 rounded">20260706000003_token_usage</code> migration
+          likely hasn&apos;t been applied to this database yet.
         </p>
       </section>
     </div>
