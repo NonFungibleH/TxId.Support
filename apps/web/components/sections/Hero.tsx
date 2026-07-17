@@ -6,7 +6,7 @@ import { APP_URL } from "@/lib/config";
 
 export function Hero() {
   return (
-    <section className="relative min-h-screen flex items-center pt-24 pb-20 overflow-hidden">
+    <section className="relative flex items-center pt-28 pb-12 lg:pb-16 overflow-hidden">
       <div
         className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[500px] rounded-full pointer-events-none"
         style={{

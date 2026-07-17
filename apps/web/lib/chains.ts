@@ -80,7 +80,7 @@ export const CHAINS: ChainInfo[] = [
       "Fee-on-transfer tokens, honeypots and slippage reverts make BNB support noisy. TxID screens the token and decodes the transaction so your team does not have to.",
     failures: [
       { title: "Token tax and fee-on-transfer", detail: "Flags fee-on-transfer tokens that quietly fail swaps at low slippage." },
-      { title: "Honeypot and unsafe-token screening", detail: "Screens a token against on-chain safety signals before a user buys." },
+      { title: "Honeypot and unsafe-token checks", detail: "When a user asks if a token is safe, it screens the contract for honeypot patterns and unsafe tax and reports what it finds." },
       { title: "PancakeSwap slippage reverts", detail: "Explains INSUFFICIENT_OUTPUT_AMOUNT and the slippage fix in one message." },
       { title: "Gas price set too low", detail: "Spots a gas price under the current going rate and tells the user what to bump it to." },
     ],
