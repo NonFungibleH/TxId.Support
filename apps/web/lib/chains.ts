@@ -232,6 +232,7 @@ export const CHAINS: ChainInfo[] = [
     status: "coming-soon",
     color: "#2DD8A5",
     logo: "/chains/Aptos.png",
+    logoWhiteBg: true,
     explorerName: "Aptos Explorer",
     tagline: "Move-native support is on the roadmap.",
     intro:
