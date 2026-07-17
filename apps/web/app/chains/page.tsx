@@ -23,7 +23,7 @@ function ChainCard({ chain }: { chain: ChainInfo }) {
       style={{ ["--hover" as string]: hexToRgba(chain.color, 0.4) }}
     >
       <div className="flex items-center gap-3 mb-3">
-        <ChainLogo src={chain.logo} name={chain.name} color={chain.color} size={36} />
+        <ChainLogo src={chain.logo} name={chain.name} color={chain.color} size={36} whiteBg={chain.logoWhiteBg} />
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             <h3 className="font-display font-semibold text-white truncate">{chain.name}</h3>

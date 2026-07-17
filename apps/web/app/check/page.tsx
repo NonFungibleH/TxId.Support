@@ -79,21 +79,22 @@ function AgentAvatar() {
 function ProtocolBadge({ name, color, logo, size = 40 }: { name: string; color: string; logo?: string; size?: number }) {
   const [failed, setFailed] = useState(false)
   const radius = size * 0.26
-  // Uniform surround: every protocol mark sits on the same white rounded tile.
-  // The source logos have mismatched shapes (transparent mark, circles, rounded
-  // square), so a shared tile + contained logo is what makes them consistent.
+  // Uniform surround: every protocol mark is clipped full-bleed into the same
+  // rounded tile. The source logos are app icons with mismatched shapes and
+  // baked-in backgrounds, so filling the tile (no inset) is what makes them
+  // read as one consistent set.
   if (logo && !failed) {
     return (
       <span
-        className="inline-flex items-center justify-center shrink-0 overflow-hidden bg-white ring-1 ring-black/5"
-        style={{ width: size, height: size, borderRadius: radius, padding: size * 0.14 }}
+        className="inline-flex items-center justify-center shrink-0 overflow-hidden bg-white ring-1 ring-white/10"
+        style={{ width: size, height: size, borderRadius: radius }}
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={logo}
           alt={name}
           onError={() => setFailed(true)}
-          style={{ width: "100%", height: "100%", objectFit: "contain" }}
+          style={{ width: "100%", height: "100%", objectFit: "cover" }}
         />
       </span>
     )

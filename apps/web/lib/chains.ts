@@ -17,6 +17,8 @@ export interface ChainInfo {
   color: string
   /** Logo path under /public. Missing files fall back to a monogram. */
   logo: string
+  /** Marks that need a white disc behind them to read on dark (matches the homepage hero treatment). */
+  logoWhiteBg?: boolean
   /** One-line hero subtitle. */
   tagline: string
   /** 1 to 2 sentence intro paragraph. */
@@ -55,6 +57,7 @@ export const CHAINS: ChainInfo[] = [
     status: "live",
     color: "#0052FF",
     logo: "/chains/Base.png",
+    logoWhiteBg: true,
     explorerName: "BaseScan",
     tagline: "AI support that speaks Base.",
     intro:
@@ -93,6 +96,7 @@ export const CHAINS: ChainInfo[] = [
     status: "live",
     color: "#8247E5",
     logo: "/chains/Polygon.png",
+    logoWhiteBg: true,
     explorerName: "PolygonScan",
     tagline: "AI support that knows Polygon's gas floor.",
     intro:

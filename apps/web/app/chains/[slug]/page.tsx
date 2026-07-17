@@ -95,7 +95,7 @@ export default function ChainPage({ params }: { params: { slug: string } }) {
             <FadeIn>
               {/* Dual-brand lockup */}
               <div className="flex items-center justify-center gap-3 mb-6">
-                <ChainLogo src={chain.logo} name={chain.name} color={chain.color} size={44} />
+                <ChainLogo src={chain.logo} name={chain.name} color={chain.color} size={44} whiteBg={chain.logoWhiteBg} />
                 <span className="text-muted text-xl font-light">×</span>
                 <span className="font-display text-xl font-bold text-white">TxID</span>
               </div>

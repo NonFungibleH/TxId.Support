@@ -8,14 +8,18 @@ interface ChainLogoProps {
   color: string;
   size?: number;
   className?: string;
+  /** Render the mark on a white disc (for logos that vanish on dark). */
+  whiteBg?: boolean;
 }
 
 /**
- * Chain logo with a graceful fallback: if the image is missing (e.g. the
- * official Stellar/TON/Aptos logos haven't been dropped in yet), we render a
- * monogram badge in the chain's colour instead of a broken image.
+ * Chain logo normalised to a uniform circular badge. The source PNGs are all
+ * different shapes (yellow tile, transparent diamond, flat square), so every
+ * mark is clipped to the same circle; `whiteBg` adds a white disc + inset for
+ * marks that need it (matches the homepage hero treatment). Falls back to a
+ * monogram disc in the chain's colour if the image is missing.
  */
-export function ChainLogo({ src, name, color, size = 40, className }: ChainLogoProps) {
+export function ChainLogo({ src, name, color, size = 40, className, whiteBg }: ChainLogoProps) {
   const [failed, setFailed] = useState(false);
   const ref = useRef<HTMLImageElement>(null);
 
@@ -34,7 +38,7 @@ export function ChainLogo({ src, name, color, size = 40, className }: ChainLogoP
         style={{
           width: size,
           height: size,
-          borderRadius: size * 0.28,
+          borderRadius: "50%",
           background: color,
           color: "#fff",
           display: "inline-flex",
@@ -53,16 +57,30 @@ export function ChainLogo({ src, name, color, size = 40, className }: ChainLogoP
   }
 
   return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      ref={ref}
-      src={src}
-      alt={`${name} logo`}
-      width={size}
-      height={size}
-      onError={() => setFailed(true)}
+    <span
       className={className}
-      style={{ width: size, height: size, objectFit: "contain", flexShrink: 0 }}
-    />
+      style={{
+        width: size,
+        height: size,
+        borderRadius: "50%",
+        overflow: "hidden",
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        flexShrink: 0,
+        ...(whiteBg ? { background: "#fff", padding: size * 0.12 } : {}),
+      }}
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        ref={ref}
+        src={src}
+        alt={`${name} logo`}
+        width={size}
+        height={size}
+        onError={() => setFailed(true)}
+        style={{ width: "100%", height: "100%", objectFit: "contain" }}
+      />
+    </span>
   );
 }
