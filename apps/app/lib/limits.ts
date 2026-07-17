@@ -28,8 +28,9 @@ export const CHAT_LIMITS = {
   /** User turns allowed per session. On the 10th the bot escalates to a human
    *  ticket and the conversation ends (see /api/chat cap handoff). */
   sessionMessages: 10,
-  /** Stricter session cap for the public demo key. */
-  demoSessionMessages: 5,
+  /** Stricter session cap for the public demo key. Matches the
+   *  inspect:${ip} daily rate limit in /api/chat — both must move together. */
+  demoSessionMessages: 8,
 } as const
 
 /** Ticket creation endpoint (`/api/tickets`). */

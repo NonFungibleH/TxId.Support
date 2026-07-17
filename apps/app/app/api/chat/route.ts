@@ -227,10 +227,11 @@ export async function POST(request: Request) {
           status: 403, headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
         })
       }
-      // Hard cap: 3 messages per IP per 24h. Server-enforced (a refresh, a new
+      // Hard cap: 8 messages per IP per 24h. Server-enforced (a refresh, a new
       // session, or switching demo protocol can't reset it) so the public demo
-      // can never run up our LLM/RPC cost.
-      const daily = await rateLimit(`inspect:${ip}`, 3, 86_400_000)
+      // can never run up our LLM/RPC cost. Matches CHAT_LIMITS.demoSessionMessages
+      // below — both must move together or the tighter one silently wins.
+      const daily = await rateLimit(`inspect:${ip}`, 8, 86_400_000)
       if (!daily.allowed) {
         return new Response(JSON.stringify({
           error: "That's the end of your free test. Add TxID to your own protocol to give your users this.",
