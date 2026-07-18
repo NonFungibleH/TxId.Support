@@ -6,6 +6,7 @@ import { chunkText, embedBatch } from "@txid/ai"
 import { revalidatePath } from "next/cache"
 import type { Json } from "@/lib/supabase/types"
 import { isPrivateUrl } from "@/lib/security"
+import { crawlAndIngestCore } from "@/lib/ingest-core"
 
 /**
  * Ingest plain text into the project's knowledge base.
@@ -194,136 +195,9 @@ export async function crawlAndIngest(
   const { data: org } = await supabase.from("organisations").select("id").eq("id", project.org_id).eq("clerk_org_id", orgKey).single()
   if (!org) return { ok: false, error: "Forbidden" }
 
-  const origin = parsed.origin
-  const MAX_PAGES = 60
-
-  // Fetch a page: .md files fetched directly, everything else via Jina renderer
-  const fetchPage = async (url: string, withLinks = false): Promise<string | null> => {
-    try {
-      if (url.endsWith(".md") || url.endsWith(".txt")) {
-        const res = await fetch(url, { signal: AbortSignal.timeout(15_000) })
-        if (!res.ok) return null
-        return await res.text()
-      }
-      const headers: Record<string, string> = { "Accept": "text/plain", "X-No-Cache": "true" }
-      if (withLinks) headers["X-With-Links-Summary"] = "true"
-      const res = await fetch(`https://r.jina.ai/${url}`, { headers, signal: AbortSignal.timeout(20_000) })
-      if (!res.ok) return null
-      return await res.text()
-    } catch { return null }
-  }
-
-  const discovered = new Set<string>()
-
-  // ── Step 1: check for llms.txt (Gitbook and modern doc sites list all pages here) ──
-  let usedLlmsTxt = false
-  try {
-    const llmsRes = await fetch(`${origin}/llms.txt`, { signal: AbortSignal.timeout(8_000) })
-    if (llmsRes.ok) {
-      const llmsText = await llmsRes.text()
-      // Extract .md page URLs — these are fetchable markdown versions of each page
-      for (const match of llmsText.matchAll(/\((https?:\/\/[^)]+\.md)\)/g)) {
-        const url = match[1].trim()
-        try {
-          const u = new URL(url)
-          if (u.origin === origin && !url.includes("?")) discovered.add(url)
-        } catch { /* skip */ }
-      }
-      if (discovered.size > 0) usedLlmsTxt = true
-    }
-  } catch { /* ignore */ }
-
-  // ── Step 2: sitemap fallback (for non-Gitbook sites) ──────────────────────
-  if (!usedLlmsTxt) {
-    const sitemapCandidates = [`${origin}/sitemap.xml`, `${origin}/sitemap_index.xml`, `${origin}/sitemap-0.xml`]
-    for (const candidate of sitemapCandidates) {
-      if (discovered.size > 0) break
-      try {
-        const r = await fetch(candidate, { signal: AbortSignal.timeout(8_000) })
-        if (r.ok) {
-          const xml = await r.text()
-          if (xml.includes("<loc>")) {
-            const locs = [...xml.matchAll(/<loc>\s*(https?:\/\/[^<\s]+)\s*<\/loc>/g)]
-            for (const loc of locs) {
-              try { const u = new URL(loc[1].trim()); if (u.origin === origin) discovered.add(loc[1].trim()) } catch { /* skip */ }
-            }
-          }
-        }
-      } catch { /* try next */ }
-    }
-  }
-
-  // ── Step 3: Jina root page as final fallback (returns full nav link list) ──
-  if (discovered.size < 3) {
-    const rootText = await fetchPage(rootUrl, true)
-    if (!rootText || rootText.trim().length < 50) {
-      return { ok: false, error: "Could not fetch root page" }
-    }
-    discovered.add(rootUrl.replace(/\/$/, ""))
-    // Extract all absolute markdown links from Jina's Links/Buttons section
-    for (const match of rootText.matchAll(/\(((https?:\/\/[^)\s"]+))\)/g)) {
-      try { const u = new URL(match[1].trim()); if (u.origin === origin) { u.hash=""; u.search=""; discovered.add(u.toString().replace(/\/$/, "")) } } catch { /* skip */ }
-    }
-  }
-
-  discovered.add(rootUrl.replace(/\/$/, ""))
-  const urls = [...discovered].slice(0, MAX_PAGES)
-  console.log(`[crawl] discovered ${urls.length} URLs for ${rootUrl}`)
-
-  // ── Fetch all pages sequentially ──────────────────────────────────────────
-  const pageTexts: { url: string; text: string }[] = []
-  for (const url of urls) {
-    const text = await fetchPage(url)
-    if (text && text.trim().length > 50) {
-      pageTexts.push({ url, text: text.trim() })
-    }
-  }
-  if (pageTexts.length === 0) return { ok: false, error: "No content found on any discovered pages" }
-
-  // Remove any existing docs from these sources
-  await supabase.from("documents").delete().eq("project_id", projectId).in("source_url", pageTexts.map(p => p.url))
-
-  // ── Chunk all pages together ───────────────────────────────────────────────
-  type ChunkRow = { url: string; content: string; chunkIndex: number; totalChunks: number }
-  const allChunks: ChunkRow[] = []
-  for (const { url, text } of pageTexts) {
-    const chunks = chunkText(text)
-    chunks.forEach((c, i) => allChunks.push({ url, content: c, chunkIndex: i, totalChunks: chunks.length }))
-  }
-
-  // ── Embed all chunks in batches of 64 (minimises Voyage API calls) ────────
-  // With 28 pages ≈ 84 chunks → 2 Voyage calls total (vs 28 previously).
-  const EMBED_BATCH = 64
-  const rows: Array<{ project_id: string; content: string; embedding: number[]; source_url: string; metadata: Json }> = []
-
-  for (let i = 0; i < allChunks.length; i += EMBED_BATCH) {
-    const batch = allChunks.slice(i, i + EMBED_BATCH)
-    try {
-      const embeddings = await embedBatch(batch.map(c => c.content))
-      batch.forEach((c, j) => rows.push({
-        project_id: projectId,
-        content: c.content,
-        embedding: embeddings[j],
-        source_url: c.url,
-        metadata: { chunkIndex: c.chunkIndex, totalChunks: c.totalChunks } as Json,
-      }))
-    } catch (err) {
-      console.error(`[crawl] embed batch ${i}–${i + batch.length} failed:`, err)
-      return { ok: false, error: err instanceof Error ? err.message : "Embedding failed" }
-    }
-  }
-
-  // ── Bulk insert ────────────────────────────────────────────────────────────
-  const { error: insertError } = await supabase.from("documents").insert(rows)
-  if (insertError) return { ok: false, error: insertError.message }
-
-  revalidatePath("/dashboard")
-  return {
-    ok: true,
-    pagesIndexed: pageTexts.length,
-    chunksInserted: rows.length,
-    discovered: urls.length,
-  }
+  const result = await crawlAndIngestCore(supabase, projectId, rootUrl)
+  if (result.ok) revalidatePath("/dashboard")
+  return result
 }
 
 /**

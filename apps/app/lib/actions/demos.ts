@@ -6,6 +6,7 @@ import { DEFAULT_CONFIG } from "@/lib/types/config"
 import type { ProjectConfig, ChainId } from "@/lib/types/config"
 import type { Json } from "@/lib/supabase/types"
 import { fetchAbiFromExplorer, fetchAbiWithProxy } from "@txid/blockchain"
+import { crawlAndIngestCore, type CrawlResult } from "@/lib/ingest-core"
 import { revalidatePath } from "next/cache"
 
 // Admin-only "demo creator": pre-configured demo widgets for sales calls. Each
@@ -48,6 +49,7 @@ export interface DemoSummary {
   branding: ProjectConfig["branding"]
   chains: ChainId[]
   contractCount: number
+  docsUrl: string | null
 }
 
 export async function listDemos(): Promise<DemoSummary[]> {
@@ -66,6 +68,7 @@ export async function listDemos(): Promise<DemoSummary[]> {
     branding: p.config?.branding ?? DEFAULT_CONFIG.branding,
     chains: p.config?.chains ?? ["0x1"],
     contractCount: (p.config?.watchedContracts ?? []).length,
+    docsUrl: p.config?.docsUrl ?? null,
   }))
 }
 
@@ -83,7 +86,7 @@ export async function createDemo(name: string): Promise<DemoSummary> {
   if (error || !data) throw new Error(`Create demo failed: ${error?.message}`)
   const p = data as unknown as { id: string; name: string; publishable_key: string; config: ProjectConfig }
   revalidatePath("/admin/demos")
-  return { id: p.id, name: p.name, key: p.publishable_key, branding: p.config.branding, chains: p.config.chains ?? ["0x1"], contractCount: 0 }
+  return { id: p.id, name: p.name, key: p.publishable_key, branding: p.config.branding, chains: p.config.chains ?? ["0x1"], contractCount: 0, docsUrl: null }
 }
 
 export async function renameDemo(id: string, name: string): Promise<void> {
@@ -144,5 +147,42 @@ export async function removeDemoContract(id: string, contractId: string): Promis
   const config = await assertDemoProject(supabase, orgId, id)
   const watchedContracts = (config.watchedContracts ?? []).filter(c => c.id !== contractId)
   await supabase.from("projects").update({ config: { ...config, watchedContracts } as unknown as Json } as never).eq("id", id)
+  revalidatePath("/admin/demos")
+}
+
+/** Crawl + index the prospect's docs into this demo's knowledge base (RAG),
+ *  so the demo bot answers questions from their real documentation. */
+export async function addDemoDocs(id: string, url: string): Promise<CrawlResult> {
+  await assertAdmin()
+  const supabase = createServiceClient()
+  const orgId = await demosOrgId(supabase)
+  const config = await assertDemoProject(supabase, orgId, id)
+  const result = await crawlAndIngestCore(supabase, id, url)
+  if (result.ok) {
+    await supabase.from("projects").update({ config: { ...config, docsUrl: url, publicDemo: true } as unknown as Json } as never).eq("id", id)
+    revalidatePath("/admin/demos")
+  }
+  return result
+}
+
+/** Indexed-doc stats for a demo (pages + chunks), for the dashboard. */
+export async function demoDocsInfo(id: string): Promise<{ docsUrl: string | null; chunks: number; pages: number }> {
+  await assertAdmin()
+  const supabase = createServiceClient()
+  const orgId = await demosOrgId(supabase)
+  const config = await assertDemoProject(supabase, orgId, id)
+  const { data } = await supabase.from("documents").select("source_url").eq("project_id", id)
+  const rows = (data ?? []) as { source_url: string | null }[]
+  return { docsUrl: config.docsUrl ?? null, chunks: rows.length, pages: new Set(rows.map(r => r.source_url)).size }
+}
+
+/** Clear a demo's indexed docs. */
+export async function clearDemoDocs(id: string): Promise<void> {
+  await assertAdmin()
+  const supabase = createServiceClient()
+  const orgId = await demosOrgId(supabase)
+  const config = await assertDemoProject(supabase, orgId, id)
+  await supabase.from("documents").delete().eq("project_id", id)
+  await supabase.from("projects").update({ config: { ...config, docsUrl: null } as unknown as Json } as never).eq("id", id)
   revalidatePath("/admin/demos")
 }

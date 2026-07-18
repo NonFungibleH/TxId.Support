@@ -6,7 +6,7 @@ import { Plus, Trash2, Copy, ExternalLink, Loader2 } from "lucide-react"
 import { SELECTABLE_CHAINS } from "@/lib/types/config"
 import type { ChainId } from "@/lib/types/config"
 import {
-  createDemo, renameDemo, deleteDemo, updateDemoConfig, addDemoContract,
+  createDemo, renameDemo, deleteDemo, updateDemoConfig, addDemoContract, addDemoDocs, clearDemoDocs,
   type DemoSummary,
 } from "@/lib/actions/demos"
 
@@ -154,8 +154,49 @@ export function DemosManager({ initial }: { initial: DemoSummary[] }) {
 
           {/* Contracts */}
           <DemoContracts demo={selected} onChange={c => patchLocal(selected.id, { contractCount: c })} />
+
+          {/* Docs / knowledge */}
+          <DemoDocs demo={selected} onChange={url => patchLocal(selected.id, { docsUrl: url })} />
         </div>
       )}
+    </div>
+  )
+}
+
+function DemoDocs({ demo, onChange }: { demo: DemoSummary; onChange: (url: string | null) => void }) {
+  const [url, setUrl] = useState("")
+  const [pending, start] = useTransition()
+  const [status, setStatus] = useState<string | null>(null)
+
+  function index() {
+    setStatus(null)
+    start(async () => {
+      const res = await addDemoDocs(demo.id, url.trim())
+      if (res.ok) { onChange(url.trim()); setUrl(""); setStatus(`Indexed ${res.pagesIndexed ?? 0} pages (${res.chunksInserted ?? 0} chunks).`) }
+      else { setStatus(null); toast.error(res.error ?? "Couldn't index docs") }
+    })
+  }
+
+  return (
+    <div className="rounded-xl border border-border bg-card p-4 space-y-3">
+      <div>
+        <p className="text-sm font-semibold">Docs & knowledge</p>
+        <p className="text-xs text-muted-foreground mt-0.5">Paste the prospect&apos;s docs/gitbook URL. The bot indexes it so the demo answers questions from their real documentation.</p>
+      </div>
+      {demo.docsUrl && (
+        <div className="flex items-center justify-between gap-2 rounded-lg border border-border px-3 py-2 text-xs">
+          <span className="truncate text-muted-foreground">Indexed: <span className="text-foreground">{demo.docsUrl}</span></span>
+          <button onClick={() => start(async () => { await clearDemoDocs(demo.id); onChange(null); setStatus(null) })} className="shrink-0 text-muted-foreground hover:text-red-500">Clear</button>
+        </div>
+      )}
+      <div className="flex flex-wrap items-center gap-2">
+        <input placeholder="https://docs.theirprotocol.com" value={url} onChange={e => setUrl(e.target.value)} className="min-w-0 flex-1 rounded-lg border border-input bg-transparent px-3 py-2 text-sm outline-none focus:border-ring" />
+        <button onClick={index} disabled={pending || !url.trim()} className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-50">
+          {pending ? <><Loader2 className="size-4 animate-spin" /> Indexing…</> : "Index docs"}
+        </button>
+      </div>
+      {status && <p className="text-xs text-green-500">{status}</p>}
+      {pending && <p className="text-xs text-muted-foreground">Crawling and embedding — this can take up to a minute for a large docs site.</p>}
     </div>
   )
 }
