@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { currentUser } from "@clerk/nextjs/server"
+import { currentUser, clerkClient } from "@clerk/nextjs/server"
 import { notFound } from "next/navigation"
 import { createServiceClient } from "@/lib/supabase/server"
 import { PLAN_LABELS } from "@/lib/types/config"
@@ -110,6 +110,30 @@ export default async function AdminPage() {
     })
   }
 
+  // Owner login per org, resolved from Clerk (the org:admin member, falling back
+  // to the first member). Keyed by clerk_org_id, fetched once per unique org.
+  // The sentinel "Demos" org has no real Clerk org, so its lookup fails and we
+  // label it "internal" rather than surfacing an error.
+  const uniqueClerkOrgIds = [...new Set(stats.map(r => r.clerk_org_id).filter(Boolean))]
+  const ownerByClerkOrg = new Map<string, string>()
+  const clerk = await clerkClient()
+  await Promise.all(
+    uniqueClerkOrgIds.map(async (orgId) => {
+      if (!orgId.startsWith("org_")) {
+        ownerByClerkOrg.set(orgId, "internal")
+        return
+      }
+      try {
+        const { data: members } = await clerk.organizations.getOrganizationMembershipList({ organizationId: orgId, limit: 100 })
+        const owner = members.find(m => m.role === "org:admin") ?? members[0]
+        const email = owner?.publicUserData?.identifier
+        if (email) ownerByClerkOrg.set(orgId, email)
+      } catch {
+        // Org not found in Clerk (e.g. deleted or sentinel) — leave unset.
+      }
+    }),
+  )
+
   // Per-project publicDemo flag (config JSONB) for the demo toggle column.
   const { data: configRows } = await supabase.from("projects").select("id, config")
   const publicDemoByProject = new Map<string, boolean>()
@@ -205,7 +229,7 @@ export default async function AdminPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border bg-muted/30">
-                {["Organisation", "Project", "Plan", "Public demo", "Mode", "Status", "Convs (mo)", "Convs (total)", "Messages", "Docs", "Tokens (mo)", "Est. $ (mo)", "Joined"].map(h => (
+                {["Organisation", "Owner", "Project", "Plan", "Public demo", "Mode", "Status", "Convs (mo)", "Convs (total)", "Messages", "Docs", "Tokens (mo)", "Est. $ (mo)", "Joined"].map(h => (
                   <th key={h} className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">{h}</th>
                 ))}
               </tr>
@@ -214,6 +238,14 @@ export default async function AdminPage() {
               {stats.map((row) => (
                 <tr key={row.project_id} className="hover:bg-muted/20 transition-colors">
                   <td className="px-4 py-3 font-medium whitespace-nowrap">{row.org_name}</td>
+                  <td className="px-4 py-3 whitespace-nowrap">
+                    {(() => {
+                      const owner = ownerByClerkOrg.get(row.clerk_org_id)
+                      if (!owner) return <span className="text-muted-foreground/50">—</span>
+                      if (owner === "internal") return <span className="text-xs text-muted-foreground italic">internal</span>
+                      return <span className="text-xs text-muted-foreground font-mono">{owner}</span>
+                    })()}
+                  </td>
                   <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">{row.project_name}</td>
                   <td className="px-4 py-3">
                     <PlanControl projectId={row.project_id} currentPlan={(row.plan as Plan) ?? "free"} />
@@ -249,7 +281,7 @@ export default async function AdminPage() {
               ))}
               {stats.length === 0 && (
                 <tr>
-                  <td colSpan={13} className="px-4 py-10 text-center text-muted-foreground text-sm">
+                  <td colSpan={14} className="px-4 py-10 text-center text-muted-foreground text-sm">
                     No projects found.
                   </td>
                 </tr>
