@@ -2,11 +2,11 @@
 
 import { useEffect, useRef, useState, useTransition } from "react"
 import { toast } from "sonner"
-import { Plus, Trash2, Copy, ExternalLink, Loader2, X, CheckCircle2 } from "lucide-react"
+import { Plus, Trash2, Copy, ExternalLink, Loader2, X, CheckCircle2, AlertTriangle } from "lucide-react"
 import { SELECTABLE_CHAINS } from "@/lib/types/config"
-import type { ChainId } from "@/lib/types/config"
+import type { ChainId, ActionsFunctionRule } from "@/lib/types/config"
 import {
-  createDemo, renameDemo, deleteDemo, updateDemoConfig, addDemoContract, removeDemoContract, addDemoDocs, clearDemoDocs, setDemoActions,
+  createDemo, renameDemo, deleteDemo, updateDemoConfig, addDemoContract, removeDemoContract, addDemoDocs, clearDemoDocs, setDemoActions, setDemoContractFunctions,
   type DemoSummary, type DemoContract,
 } from "@/lib/actions/demos"
 
@@ -342,13 +342,36 @@ function DemoActionsToggle({ demo, onChange }: { demo: DemoSummary; onChange: (v
     }
   }
 
+  // Per-contract function allowlist (contractId → rules). Server re-validates,
+  // so this is just the editing surface. Optimistic with revert on failure.
+  const [allowed, setAllowed] = useState<Record<string, ActionsFunctionRule[]>>(demo.allowedFunctions)
+
+  async function persistFns(contractId: string, rules: ActionsFunctionRule[]) {
+    const prev = allowed
+    setAllowed({ ...allowed, [contractId]: rules })
+    try {
+      await setDemoContractFunctions(demo.id, contractId, rules)
+    } catch {
+      setAllowed(prev)
+      toast.error("Couldn't save that function — try again.")
+    }
+  }
+  function toggleFn(contractId: string, fnName: string, enabled: boolean) {
+    const rules = allowed[contractId] ?? []
+    void persistFns(contractId, enabled ? [...rules, { fn: fnName }] : rules.filter(r => r.fn !== fnName))
+  }
+  function setApproval(contractId: string, fnName: string, approval: ActionsFunctionRule["approval"]) {
+    const rules = (allowed[contractId] ?? []).map(r => (r.fn === fnName ? { fn: fnName, ...(approval ? { approval } : {}) } : r))
+    void persistFns(contractId, rules)
+  }
+
   return (
-    <div className="rounded-xl border border-border bg-card p-4">
+    <div className="rounded-xl border border-border bg-card p-4 space-y-4">
       <div className="flex items-center justify-between gap-4">
         <div>
           <p className="text-sm font-semibold">Show the execute flow (Actions)</p>
           <p className="text-xs text-muted-foreground mt-0.5 max-w-md">
-            Lets the demo prepare real swaps the prospect signs in their own wallet. Off by default. Capped at $500/swap for safety — these are real transactions on their own funds. Every safety rail still applies.
+            Lets the demo prepare real transactions the prospect signs in their own wallet: swaps, plus any contract functions you allow below. Off by default. Capped at $500/swap. Real funds, their own wallet, every safety rail applies.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -373,6 +396,91 @@ function DemoActionsToggle({ demo, onChange }: { demo: DemoSummary; onChange: (v
           </div>
         </div>
       </div>
+
+      {on && (
+        <div className="space-y-3 border-t border-border pt-3">
+          <div>
+            <p className="text-xs font-semibold">Executable contract functions</p>
+            <p className="text-[11px] text-muted-foreground mt-0.5">
+              Turn on the write functions the bot may prepare (e.g. <code>withdraw</code>, <code>lockToken</code>). Off by default. If a function pulls tokens from the user (a lock/stake), set the token it pulls and which argument is the amount so the approval step is handled.
+            </p>
+          </div>
+          {demo.contracts.length === 0 && (
+            <p className="text-[11px] text-muted-foreground">Add a contract with a verified ABI above first.</p>
+          )}
+          {demo.contracts.map(c => {
+            const fns = c.writeFunctions
+            const rules = allowed[c.id] ?? []
+            if (fns.length === 0) {
+              return (
+                <div key={c.id} className="rounded-lg border border-border p-2.5">
+                  <p className="text-xs font-medium">{c.name}</p>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">
+                    {c.hasAbi ? "No eligible write functions (only simple-argument, non-payable functions are supported)." : "No ABI found — the contract must be verified to list its functions."}
+                  </p>
+                </div>
+              )
+            }
+            return (
+              <div key={c.id} className="rounded-lg border border-border p-2.5">
+                <p className="text-xs font-medium mb-1.5">{c.name}</p>
+                <div className="space-y-1.5">
+                  {fns.map(fn => {
+                    const rule = rules.find(r => r.fn === fn.name)
+                    return (
+                      <div key={fn.name} className="flex flex-wrap items-center gap-2 text-xs">
+                        <input
+                          type="checkbox"
+                          checked={!!rule}
+                          disabled={saving}
+                          onChange={e => toggleFn(c.id, fn.name, e.target.checked)}
+                          className="size-3.5 shrink-0 accent-indigo-500"
+                        />
+                        <code className="text-[11px]">{fn.name}({fn.inputs.join(", ")})</code>
+                        {fn.adminish && (
+                          <span className="inline-flex items-center gap-1 text-[11px] text-amber-500">
+                            <AlertTriangle className="size-3" /> admin-like
+                          </span>
+                        )}
+                        {rule && fn.inputs.length > 0 && (
+                          <span className="flex flex-wrap items-center gap-1.5 text-[11px] text-muted-foreground">
+                            · pulls token
+                            <input
+                              placeholder="0x… (blank = none)"
+                              defaultValue={rule.approval?.token ?? ""}
+                              onBlur={e => {
+                                const t = e.target.value.trim()
+                                if (!t) { setApproval(c.id, fn.name, undefined); return }
+                                if (!/^0x[0-9a-fA-F]{40}$/.test(t)) { toast.error("Enter a valid token address"); return }
+                                setApproval(c.id, fn.name, { token: t, amountArg: rule.approval?.amountArg ?? 0 })
+                              }}
+                              className="h-6 w-40 rounded border border-input bg-transparent px-2 text-[11px] outline-none focus:border-ring"
+                            />
+                            amt arg #
+                            <input
+                              type="number"
+                              min={0}
+                              max={fn.inputs.length - 1}
+                              defaultValue={rule.approval?.amountArg ?? 0}
+                              disabled={!rule.approval}
+                              onBlur={e => {
+                                if (!rule.approval) return
+                                const idx = Math.max(0, Math.min(fn.inputs.length - 1, Number(e.target.value) || 0))
+                                setApproval(c.id, fn.name, { token: rule.approval.token, amountArg: idx })
+                              }}
+                              className="h-6 w-12 rounded border border-input bg-transparent px-1 text-[11px] outline-none focus:border-ring disabled:opacity-50"
+                            />
+                          </span>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
     </div>
   )
 }

@@ -3,8 +3,9 @@
 import { createServiceClient } from "@/lib/supabase/server"
 import { assertAdmin } from "@/lib/admin-auth"
 import { DEFAULT_CONFIG } from "@/lib/types/config"
-import type { ProjectConfig, ChainId } from "@/lib/types/config"
+import type { ProjectConfig, ChainId, ActionsFunctionRule } from "@/lib/types/config"
 import type { Json } from "@/lib/supabase/types"
+import { writeFunctionsOf, type WriteFunction } from "@/lib/action-functions"
 import { fetchAbiFromExplorer, fetchAbiWithProxy } from "@txid/blockchain"
 import { crawlAndIngestCore, type CrawlResult } from "@/lib/ingest-core"
 import { revalidatePath } from "next/cache"
@@ -41,6 +42,9 @@ export interface DemoContract {
   address: string
   chain: ChainId
   hasAbi: boolean
+  // Eligible write functions (computed server-side from the ABI) so the demo
+  // creator can offer a function allowlist without shipping raw ABIs to the client.
+  writeFunctions: WriteFunction[]
 }
 
 export interface DemoSummary {
@@ -53,6 +57,8 @@ export interface DemoSummary {
   contracts: DemoContract[]
   docsUrl: string | null
   actionsEnabled: boolean
+  // Per-contract allowlisted functions (contractId → rules), for the Actions UI.
+  allowedFunctions: Record<string, ActionsFunctionRule[]>
 }
 
 function toDemoContracts(config: ProjectConfig): DemoContract[] {
@@ -62,6 +68,7 @@ function toDemoContracts(config: ProjectConfig): DemoContract[] {
     address: c.address,
     chain: c.chain as ChainId,
     hasAbi: !!c.abi,
+    writeFunctions: writeFunctionsOf(c.abi ?? null),
   }))
 }
 
@@ -84,6 +91,7 @@ export async function listDemos(): Promise<DemoSummary[]> {
     contracts: toDemoContracts(p.config ?? {} as ProjectConfig),
     docsUrl: p.config?.docsUrl ?? null,
     actionsEnabled: p.config?.actions?.enabled === true,
+    allowedFunctions: p.config?.actions?.allowedFunctions ?? {},
   }))
 }
 
@@ -101,7 +109,7 @@ export async function createDemo(name: string): Promise<DemoSummary> {
   if (error || !data) throw new Error(`Create demo failed: ${error?.message}`)
   const p = data as unknown as { id: string; name: string; publishable_key: string; config: ProjectConfig }
   revalidatePath("/admin/demos")
-  return { id: p.id, name: p.name, key: p.publishable_key, branding: p.config.branding, chains: p.config.chains ?? ["0x1"], contractCount: 0, contracts: [], docsUrl: null, actionsEnabled: false }
+  return { id: p.id, name: p.name, key: p.publishable_key, branding: p.config.branding, chains: p.config.chains ?? ["0x1"], contractCount: 0, contracts: [], docsUrl: null, actionsEnabled: false, allowedFunctions: {} }
 }
 
 export async function renameDemo(id: string, name: string): Promise<void> {
@@ -157,7 +165,7 @@ export async function addDemoContract(id: string, address: string, chain: ChainI
   const chains = Array.from(new Set([...(config.chains ?? []), chain])) as ChainId[]
   await supabase.from("projects").update({ config: { ...config, watchedContracts, chains, publicDemo: true } as unknown as Json } as never).eq("id", id)
   revalidatePath("/admin/demos")
-  return { ok: true, contract: { id: contract.id, name: contract.name, address: contract.address, chain, hasAbi: !!abi } }
+  return { ok: true, contract: { id: contract.id, name: contract.name, address: contract.address, chain, hasAbi: !!abi, writeFunctions: writeFunctionsOf(abi) } }
 }
 
 export async function removeDemoContract(id: string, contractId: string): Promise<void> {
@@ -217,6 +225,41 @@ export async function setDemoActions(id: string, enabled: boolean): Promise<void
   const orgId = await demosOrgId(supabase)
   const config = await assertDemoProject(supabase, orgId, id)
   const actions = { enabled, allowedFunctions: config.actions?.allowedFunctions ?? {}, maxSwapUsd: enabled ? 500 : 0 }
+  await supabase.from("projects").update({ config: { ...config, actions, publicDemo: true } as unknown as Json } as never).eq("id", id)
+  revalidatePath("/admin/demos")
+}
+
+// Set which write functions of ONE watched contract the demo bot may prepare
+// (e.g. withdraw, lockToken). Server is the authority: only functions that are
+// genuinely eligible write functions of that contract's ABI are accepted, and
+// the approval annotation is re-validated — a compromised client can't allowlist
+// arbitrary calls. Preserves the master enable + swap cap.
+export async function setDemoContractFunctions(id: string, contractId: string, rules: ActionsFunctionRule[]): Promise<void> {
+  await assertAdmin()
+  const supabase = createServiceClient()
+  const orgId = await demosOrgId(supabase)
+  const config = await assertDemoProject(supabase, orgId, id)
+  const contract = (config.watchedContracts ?? []).find(c => c.id === contractId)
+  if (!contract) throw new Error("Contract not on this demo")
+
+  const eligible = new Map(writeFunctionsOf(contract.abi ?? null).map(f => [f.name, f]))
+  const cleaned = new Map<string, ActionsFunctionRule>()
+  for (const r of rules ?? []) {
+    const fn = eligible.get(r.fn)
+    if (!fn) continue // drop anything not an eligible write function of this ABI
+    if (r.approval && /^0x[0-9a-fA-F]{40}$/.test(r.approval.token)) {
+      const amountArg = Math.max(0, Math.min(Math.max(0, fn.inputs.length - 1), Number(r.approval.amountArg) || 0))
+      cleaned.set(r.fn, { fn: r.fn, approval: { token: r.approval.token, amountArg } })
+    } else {
+      cleaned.set(r.fn, { fn: r.fn })
+    }
+  }
+
+  const actions = {
+    enabled: config.actions?.enabled ?? false,
+    maxSwapUsd: config.actions?.maxSwapUsd ?? 500,
+    allowedFunctions: { ...(config.actions?.allowedFunctions ?? {}), [contractId]: [...cleaned.values()] },
+  }
   await supabase.from("projects").update({ config: { ...config, actions, publicDemo: true } as unknown as Json } as never).eq("id", id)
   revalidatePath("/admin/demos")
 }

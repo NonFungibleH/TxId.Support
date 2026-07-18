@@ -7,34 +7,10 @@ import { Input } from "@/components/ui/input"
 import { updateConfig } from "@/lib/actions/project"
 import type { ActionsConfig, ActionsFunctionRule } from "@/lib/types/config"
 import { ACTIONS_MAX_SWAP_USD_DEFAULT, ACTIONS_MAX_SWAP_USD_CEILING } from "@/lib/types/config"
+import { writeFunctionsOf } from "@/lib/action-functions"
 import { AlertTriangle, ShieldCheck } from "lucide-react"
 
 interface ContractLite { id: string; name: string; chain: string; abi: string | null }
-
-// Static-arg, non-payable write functions only (same rules the server
-// enforces at prepare time). Admin-looking names get a warning flag.
-const STATIC_ARG = /^(u?int\d*|address|bool|bytes\d+)$/
-const ADMIN_HINT = /owner|admin|upgrade|mint|pause|withdrawa?ll|setfee|transferownership|renounce/i
-
-function writeFunctionsOf(abiJson: string | null): { name: string; inputs: string[]; adminish: boolean }[] {
-  if (!abiJson) return []
-  try {
-    const abi = JSON.parse(abiJson) as { type?: string; name?: string; stateMutability?: string; constant?: boolean; inputs?: { type: string }[] }[]
-    return abi
-      .filter(f =>
-        f.type === "function" &&
-        !!f.name &&
-        f.stateMutability !== "view" &&
-        f.stateMutability !== "pure" &&
-        f.stateMutability !== "payable" &&
-        f.constant !== true &&
-        (f.inputs ?? []).every(i => STATIC_ARG.test(i.type)),
-      )
-      .map(f => ({ name: f.name as string, inputs: (f.inputs ?? []).map(i => i.type), adminish: ADMIN_HINT.test(f.name as string) }))
-  } catch {
-    return []
-  }
-}
 
 const EMPTY: ActionsConfig = { enabled: false, allowedFunctions: {}, maxSwapUsd: ACTIONS_MAX_SWAP_USD_DEFAULT }
 
