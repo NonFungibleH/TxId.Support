@@ -9,7 +9,6 @@ import {
   createDemo, renameDemo, deleteDemo, updateDemoConfig, addDemoContract, removeDemoContract, addDemoDocs, clearDemoDocs, setDemoActions,
   type DemoSummary, type DemoContract,
 } from "@/lib/actions/demos"
-import { Switch } from "@/components/ui/switch"
 
 // Resolve a publicly-reachable host for artifacts a PROSPECT will open on their
 // own machine (the bookmarklet's widget.js, the preview, the share link). It
@@ -354,7 +353,24 @@ function DemoActionsToggle({ demo, onChange }: { demo: DemoSummary; onChange: (v
         </div>
         <div className="flex items-center gap-2">
           {saving && <Loader2 className="size-3.5 animate-spin text-muted-foreground" />}
-          <Switch checked={on} disabled={saving} onCheckedChange={toggle} />
+          <div className="inline-flex shrink-0 rounded-lg border border-border p-0.5">
+            {([["Off", false], ["On", true]] as const).map(([label, val]) => (
+              <button
+                key={label}
+                type="button"
+                onClick={() => { if (!saving && on !== val) void toggle(val) }}
+                disabled={saving}
+                className={
+                  "rounded-md px-3 py-1 text-xs font-semibold transition-colors disabled:opacity-60 " +
+                  (on === val
+                    ? (val ? "bg-primary text-primary-foreground" : "bg-muted text-foreground")
+                    : "text-muted-foreground hover:text-foreground")
+                }
+              >
+                {label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
     </div>
