@@ -403,6 +403,30 @@ export const DOCS: Doc[] = [
     ],
   },
   {
+    slug: "integrations",
+    title: "Integrations",
+    description: "Send escalated tickets to Slack, Discord, Telegram, Linear, GitHub or Jira",
+    category: "data",
+    order: 4,
+    content: [
+      { type: "p", text: "When the agent escalates a conversation to a ticket, TxID can push it straight to where your team works. Configure integrations under Dashboard, then Integrations. Each is off until you enable it, and a Send test button confirms setup." },
+      { type: "h2", text: "Notifications" },
+      { type: "ul", items: [
+        "Slack: paste an Incoming Webhook URL; each ticket posts to that channel.",
+        "Discord: paste a channel Webhook URL.",
+        "Telegram: connect a bot on the Telegram page, add it to your team channel, and paste the channel chat ID.",
+      ]},
+      { type: "h2", text: "Tracked issues" },
+      { type: "ul", items: [
+        "Linear: personal API key + team ID; a Linear issue is created and linked on the ticket.",
+        "GitHub: a token with issues scope + owner/repo; opens a GitHub issue.",
+        "Jira: site domain, account email, API token and project key; creates a Jira task.",
+      ]},
+      { type: "callout", variant: "info", title: "Your keys stay private", text: "Integration credentials are stored server-side and never sent back to your browser or exposed to the widget. Once saved, secret fields show as configured; leave them blank to keep the stored value." },
+      { type: "p", text: "Both widget-raised and dashboard-raised tickets fan out to every enabled integration. Created issue links appear on each ticket in the Tickets page." },
+    ],
+  },
+  {
     slug: "analytics",
     title: "Analytics",
     description: "Track conversation volume and engagement across your widget",

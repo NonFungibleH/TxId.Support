@@ -16,6 +16,7 @@ export interface Ticket {
   conversation: unknown
   status: "open" | "in_progress" | "resolved"
   notes: string | null
+  external_refs?: Record<string, string> | null
   created_at: string
   updated_at: string
 }

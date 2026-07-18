@@ -3,6 +3,8 @@ import { auth } from "@clerk/nextjs/server"
 import { createServiceClient } from "@/lib/supabase/server"
 import { getProject } from "@/lib/actions/project"
 import type { Database } from "@/lib/supabase/types"
+import type { ProjectConfig } from "@/lib/types/config"
+import { dispatchEscalation } from "@/lib/integrations/escalation"
 
 type ProjectRow = Database["public"]["Tables"]["projects"]["Row"]
 
@@ -53,10 +55,28 @@ export async function POST(
       conversation: safeConversation.length ? safeConversation : null,
       status: "open",
     })
-    .select("ref")
+    .select("id, ref")
     .single()
 
   if (error) return Response.json({ error: "Failed to create ticket" }, { status: 500 })
+
+  // Dashboard-raised tickets fan out to integrations too (not just widget ones).
+  const config = typedProject.config as unknown as ProjectConfig
+  void dispatchEscalation(
+    supabase,
+    typedProject.id,
+    ticket.id,
+    {
+      ref: ticket.ref,
+      projectName: (typedProject as unknown as { name: string }).name,
+      summary,
+      reason: conv.wallet_address ? `Wallet: ${conv.wallet_address}` : null,
+      wallet: conv.wallet_address,
+      conversation: safeConversation,
+    },
+    config.integrations,
+    config.telegramBotToken ?? undefined,
+  )
 
   return Response.json({ ref: ticket.ref })
 }

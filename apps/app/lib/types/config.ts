@@ -202,6 +202,20 @@ export interface ActionsConfig {
 export const ACTIONS_MAX_SWAP_USD_DEFAULT = 2000
 export const ACTIONS_MAX_SWAP_USD_CEILING = 25000
 
+// Escalation integrations. Secrets — NEVER add to the widget-config publicConfig
+// object, and never pass raw to a client component (derive {configured} booleans
+// server-side, like telegramBotToken).
+export interface Integrations {
+  slack?:    { webhookUrl: string; enabled: boolean }
+  discord?:  { webhookUrl: string; enabled: boolean }
+  telegram?: { chatId: string; enabled: boolean }        // reuses the project's connected bot token
+  linear?:   { apiKey: string; teamId: string; enabled: boolean }
+  github?:   { token: string; repo: string; enabled: boolean }  // repo = "owner/name"
+  jira?:     { domain: string; email: string; apiToken: string; projectKey: string; enabled: boolean }
+}
+
+export type IntegrationTarget = "slack" | "discord" | "telegram" | "linear" | "github" | "jira"
+
 export interface ProjectConfig {
   branding: BrandingConfig
   token: TokenConfig | null
@@ -223,6 +237,7 @@ export interface ProjectConfig {
   // it can stay on "custom". Only ever set on our own project, via /admin.
   publicDemo?: boolean
   actions?: ActionsConfig
+  integrations?: Integrations
   telegramBotToken?: string | null
   telegramBotUsername?: string | null
 }

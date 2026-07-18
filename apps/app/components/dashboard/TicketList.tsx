@@ -87,6 +87,22 @@ function TicketRow({ ticket }: { ticket: Ticket }) {
             )}
           </div>
           <p className="text-sm font-medium truncate mt-0.5">{ticket.summary}</p>
+          {ticket.external_refs && Object.keys(ticket.external_refs).length > 0 && (
+            <div className="flex items-center gap-2 mt-1">
+              {Object.entries(ticket.external_refs).map(([target, url]) => (
+                <a
+                  key={target}
+                  href={url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 rounded border border-border px-1.5 py-0.5 text-[11px] capitalize text-muted-foreground hover:text-foreground transition-colors"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {target} ↗
+                </a>
+              ))}
+            </div>
+          )}
           <div className="flex items-center gap-3 mt-0.5">
             {ticket.user_name && (
               <span className="text-xs text-muted-foreground">{ticket.user_name}</span>

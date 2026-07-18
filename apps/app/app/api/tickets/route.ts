@@ -4,6 +4,7 @@ import type { ProjectConfig } from "@/lib/types/config"
 import type { Database } from "@/lib/supabase/types"
 import { rateLimit } from "@/lib/rate-limit"
 import { TICKET_LIMITS } from "@/lib/limits"
+import { dispatchEscalation } from "@/lib/integrations/escalation"
 
 type ProjectRow = Database["public"]["Tables"]["projects"]["Row"]
 
@@ -95,6 +96,7 @@ export async function POST(request: Request) {
 
     // Retry up to 3 times on ref collision (unique constraint added in migration 20260627000002)
     let ref = ""
+    let ticketDbId: string | null = null
     let insertError = null
     for (let attempt = 0; attempt < 3; attempt++) {
       ref = makeRef()
@@ -108,8 +110,9 @@ export async function POST(request: Request) {
         reason: reason || null,
         conversation: safeConversation.length ? JSON.stringify(safeConversation) : null,
         status: "open",
-      })
+      }).select("id").single()
       insertError = result.error
+      ticketDbId = result.data?.id ?? null
       if (!insertError) break
       if (insertError.code !== "23505") break // only retry on unique violation
     }
@@ -200,6 +203,24 @@ export async function POST(request: Request) {
         }),
       }).catch(() => { /* non-fatal */ })
     }
+
+    // Fan out to the team's integrations (Slack/Discord/Telegram/Linear/GitHub/Jira).
+    void dispatchEscalation(
+      supabase,
+      typedProject.id,
+      ticketDbId,
+      {
+        ref,
+        projectName: typedProject.name,
+        summary: safeSummary,
+        reason: reason || null,
+        userName: name || null,
+        userEmail: email || null,
+        conversation: safeConversation,
+      },
+      config.integrations,
+      config.telegramBotToken ?? undefined,
+    )
 
     return new Response(JSON.stringify({ ref }), {
       headers: { ...CORS_HEADERS, "Content-Type": "application/json" },

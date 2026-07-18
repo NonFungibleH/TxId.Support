@@ -8,6 +8,8 @@ import {
   Globe2,
   BarChart3,
   Zap,
+  Sparkles,
+  Plug,
 } from "lucide-react";
 import { FadeIn } from "@/components/ui/FadeIn";
 
@@ -65,6 +67,18 @@ const FEATURES = [
     title: "Analytics Dashboard",
     description:
       "See how many users you're helping: conversations over time, satisfaction ratings, and what they're asking about.",
+  },
+  {
+    icon: Sparkles,
+    title: "Conversation Insights",
+    description:
+      "Every chat gets an AI one-line summary and category, so your team can scan and triage instead of reading transcripts.",
+  },
+  {
+    icon: Plug,
+    title: "Team Integrations",
+    description:
+      "Send escalations where your team works: Slack, Discord, Telegram, and tracked issues in Linear, GitHub, or Jira.",
   },
 ];
 
