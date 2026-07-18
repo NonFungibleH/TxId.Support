@@ -47,6 +47,8 @@ const TOOL_LABELS: Record<string, string> = {
   check_token_safety: "Screening token safety…",
   resolve_ens_name: "Resolving ENS name…",
   estimate_action: "Simulating the action…",
+  prepare_swap: "Preparing your swap…",
+  prepare_contract_action: "Preparing your transaction…",
 }
 
 // ─── Types ──────────────────────────────────────────────────────────────────
