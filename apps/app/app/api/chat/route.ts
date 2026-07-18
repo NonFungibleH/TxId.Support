@@ -596,7 +596,10 @@ export async function POST(request: Request) {
           controller.enqueue(encoder.encode("data: [DONE]\n\n"))
 
           // Persist user message + assistant response after stream completes
-          void persistMessages(supabase, typedProject.id, sessionId, validActionResult ? [...messages, { role: "user", content: `⚙️ Action update: ${validActionResult.row.summary ?? "transaction"} ${validActionResult.confirmed ? "confirmed" : "failed"} (${validActionResult.txHash})` }] : messages, walletAddress, chainId, fullResponseText || undefined, usage)
+          // The action-update marker is a system-generated status note, not a
+          // user turn — persist it as an assistant-side row so it never counts
+          // against the per-session user-message cap on subsequent requests.
+          void persistMessages(supabase, typedProject.id, sessionId, validActionResult ? [...messages, { role: "assistant" as const, content: `⚙️ Action update: ${validActionResult.row.summary ?? "transaction"} ${validActionResult.confirmed ? "confirmed" : "failed"} (${validActionResult.txHash})` }] : messages, walletAddress, chainId, fullResponseText || undefined, usage)
         } catch (err) {
           log.error("Chat stream error", err, { event: "chat.stream_error", projectId: typedProject.id })
           controller.enqueue(
@@ -649,9 +652,12 @@ async function persistMessages(
 
     const toInsert: { conversation_id: string; role: "user" | "assistant"; content: string }[] = []
 
+    // Persist the turn-opening message: a real user turn on the normal path, or
+    // an assistant-side action-update marker on the post-transaction follow-up.
+    // (Prior history is already stored from earlier turns — only the latest.)
     const latest = messages[messages.length - 1]
-    if (latest?.role === "user") {
-      toInsert.push({ conversation_id: conv.id, role: "user", content: latest.content })
+    if (latest?.role === "user" || latest?.role === "assistant") {
+      toInsert.push({ conversation_id: conv.id, role: latest.role, content: latest.content })
     }
     if (assistantResponse) {
       toInsert.push({ conversation_id: conv.id, role: "assistant", content: assistantResponse })

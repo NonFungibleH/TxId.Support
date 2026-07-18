@@ -206,7 +206,14 @@ export function ActionCard({
       }
       setPhase("rebuilding")
       const fresh = await rebuild()
-      if (!fresh?.tx) return
+      if (!fresh?.tx) {
+        // Approval mined but the node's allowance view still lagged past the
+        // rebuild retry, so no spendable tx came back. Surface an error+retry
+        // instead of spinning on "Rebuilding…" forever.
+        setErrorMsg("Your approval went through, but we couldn't finalise the transaction just yet. Ask me again and I'll prepare it fresh — no second approval needed.")
+        setPhase("error")
+        return
+      }
       setAction(fresh)
       setExpired(false)
       setPhase("signing")

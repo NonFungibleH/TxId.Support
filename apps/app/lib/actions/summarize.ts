@@ -41,6 +41,59 @@ function coerce(raw: string): { summary: string; category: ConvCategory; sentime
 }
 
 /**
+ * Summarise exactly one conversation by id and persist the result. Shared by the
+ * batch path and the single re-summary button so both hit the same conversation
+ * they intend to. `supabase` is a service client; `projectId` is only used to
+ * attribute the token_usage row. Returns null when there's nothing worth
+ * summarising or the model call fails.
+ */
+async function summarizeOne(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
+  projectId: string,
+  conversationId: string,
+): Promise<ConvSummary | null> {
+  const { data: msgs } = await supabase
+    .from("messages")
+    .select("role, content")
+    .eq("conversation_id", conversationId)
+    .order("created_at", { ascending: true })
+    .limit(40)
+  const messages = (msgs ?? []) as { role: string; content: string }[]
+  if (messages.length < 2) {
+    // Nothing worth summarising yet — stamp it so we don't re-check every load.
+    await supabase.from("conversations").update({ summarized_at: new Date().toISOString() }).eq("id", conversationId)
+    return null
+  }
+  const transcript = messages
+    .map(m => `${m.role === "user" ? "User" : "Assistant"}: ${m.content.slice(0, 600)}`)
+    .join("\n")
+  let out: { summary: string; category: ConvCategory; sentiment: Sentiment }
+  let usage: { inputTokens: number; outputTokens: number; model: string } | null = null
+  try {
+    const res = await completeChatWithUsage(SYSTEM, [{ role: "user", content: transcript }], 200)
+    out = coerce(res.text)
+    usage = res.usage
+  } catch {
+    return null
+  }
+  await supabase
+    .from("conversations")
+    .update({ summary: out.summary, category: out.category, sentiment: out.sentiment, summarized_at: new Date().toISOString() })
+    .eq("id", conversationId)
+  if (usage && (usage.inputTokens > 0 || usage.outputTokens > 0)) {
+    await supabase.from("token_usage").insert({
+      project_id: projectId,
+      conversation_id: conversationId,
+      model: usage.model,
+      input_tokens: usage.inputTokens,
+      output_tokens: usage.outputTokens,
+    })
+  }
+  return { id: conversationId, ...out }
+}
+
+/**
  * Summarise up to `limit` of the project's stale conversations (never
  * summarised, or messaged since the last summary). Returns the fresh summaries
  * for the client to merge. Safe to call on every Conversations page mount.
@@ -66,49 +119,7 @@ export async function summarizeStaleConversations(limit = 8): Promise<ConvSummar
   if (rows.length === 0) return []
 
   const results = await Promise.all(
-    rows.map(async (row): Promise<ConvSummary | null> => {
-      const { data: msgs } = await supabase
-        .from("messages")
-        .select("role, content")
-        .eq("conversation_id", row.id)
-        .order("created_at", { ascending: true })
-        .limit(40)
-      const messages = (msgs ?? []) as { role: string; content: string }[]
-      if (messages.length < 2) {
-        // Nothing worth summarising yet — stamp it so we don't re-check every load.
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        await (supabase as any).from("conversations").update({ summarized_at: new Date().toISOString() }).eq("id", row.id)
-        return null
-      }
-      const transcript = messages
-        .map(m => `${m.role === "user" ? "User" : "Assistant"}: ${m.content.slice(0, 600)}`)
-        .join("\n")
-      let out: { summary: string; category: ConvCategory; sentiment: Sentiment }
-      let usage: { inputTokens: number; outputTokens: number; model: string } | null = null
-      try {
-        const res = await completeChatWithUsage(SYSTEM, [{ role: "user", content: transcript }], 200)
-        out = coerce(res.text)
-        usage = res.usage
-      } catch {
-        return null
-      }
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (supabase as any)
-        .from("conversations")
-        .update({ summary: out.summary, category: out.category, sentiment: out.sentiment, summarized_at: new Date().toISOString() })
-        .eq("id", row.id)
-      if (usage && (usage.inputTokens > 0 || usage.outputTokens > 0)) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        await (supabase as any).from("token_usage").insert({
-          project_id: projectId,
-          conversation_id: row.id,
-          model: usage.model,
-          input_tokens: usage.inputTokens,
-          output_tokens: usage.outputTokens,
-        })
-      }
-      return { id: row.id, ...out }
-    }),
+    rows.map(row => summarizeOne(supabase, projectId, row.id)),
   )
 
   return results.filter((r): r is ConvSummary => r !== null)
@@ -130,9 +141,7 @@ export async function resummarizeConversation(conversationId: string): Promise<C
     .maybeSingle()
   if (!conv) return null
 
-  // Clearing summarized_at makes it stale; reuse the batch path (limit 1 hits it first).
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  await (supabase as any).from("conversations").update({ summarized_at: null }).eq("id", conversationId)
-  const [only] = await summarizeStaleConversations(1)
-  return only && only.id === conversationId ? only : null
+  // Summarise this exact conversation — don't route through the ordered batch,
+  // which would pick whichever stale row is most-recently-messaged, not this one.
+  return summarizeOne(supabase, projectId, conversationId)
 }

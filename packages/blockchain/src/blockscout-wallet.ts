@@ -46,7 +46,7 @@ async function rpcObj<T>(chainId: string, method: string, params: unknown[]): Pr
   return (await rpc(chainId, method, params)) as T | null
 }
 
-function fmtNative(rawWei: bigint, symbol: string): string {
+function fmtNative(rawWei: bigint): string {
   return (Number(rawWei) / 1e18).toLocaleString("en-US", { maximumFractionDigits: 6 })
 }
 
@@ -54,9 +54,11 @@ function fmtUnits(raw: bigint, decimals: number): string {
   const divisor = 10n ** BigInt(decimals)
   const whole = raw / divisor
   const frac = raw % divisor
-  return frac === 0n
-    ? whole.toLocaleString("en-US")
-    : `${whole.toLocaleString("en-US")}.${frac.toString().padStart(decimals, "0").slice(0, 4).replace(/0+$/, "")}`
+  if (frac === 0n) return whole.toLocaleString("en-US")
+  // Show up to 4 significant fractional digits; if everything rounds away past
+  // the 4th place, drop the decimal point entirely rather than emit "1234.".
+  const fracDigits = frac.toString().padStart(decimals, "0").slice(0, 4).replace(/0+$/, "")
+  return fracDigits ? `${whole.toLocaleString("en-US")}.${fracDigits}` : whole.toLocaleString("en-US")
 }
 
 // ── Balances (native via RPC, tokens via Blockscout) ─────────────────────────
@@ -65,7 +67,7 @@ export async function bsNativeBalance(address: string, chainId: string): Promise
   const symbol = CHAIN_CONFIGS[chainId]?.nativeCurrency ?? "ETH"
   const hex = await rpc(chainId, "eth_getBalance", [address, "latest"])
   const raw = hex ? BigInt(hex) : 0n
-  return { balance: raw.toString(), balanceFormatted: fmtNative(raw, symbol), symbol }
+  return { balance: raw.toString(), balanceFormatted: fmtNative(raw), symbol }
 }
 
 export async function bsTokenBalances(address: string, chainId: string): Promise<TokenBalance[]> {
