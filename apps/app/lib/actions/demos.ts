@@ -1,7 +1,7 @@
 "use server"
 
-import { currentUser } from "@clerk/nextjs/server"
 import { createServiceClient } from "@/lib/supabase/server"
+import { assertAdmin } from "@/lib/admin-auth"
 import { DEFAULT_CONFIG } from "@/lib/types/config"
 import type { ProjectConfig, ChainId } from "@/lib/types/config"
 import type { Json } from "@/lib/supabase/types"
@@ -15,14 +15,7 @@ import { revalidatePath } from "next/cache"
 // customer's org so it never touches their dashboard or the normal per-user
 // project flow. All actions are admin-gated + scoped to the Demos org.
 
-const ADMIN_EMAILS = (process.env.ADMIN_EMAILS ?? "").toLowerCase().split(",").map(e => e.trim()).filter(Boolean)
 const DEMOS_ORG_KEY = "internal-txid-demos"
-
-async function assertAdmin(): Promise<void> {
-  const user = await currentUser()
-  const email = user?.emailAddresses?.find(e => e.id === user.primaryEmailAddressId)?.emailAddress?.toLowerCase()
-  if (!email || (ADMIN_EMAILS.length > 0 && !ADMIN_EMAILS.includes(email))) throw new Error("Forbidden")
-}
 
 async function demosOrgId(supabase: ReturnType<typeof createServiceClient>): Promise<string> {
   const { data, error } = await supabase

@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation"
 import { MobileShell } from "@/components/dashboard/MobileShell"
 import { getProject } from "@/lib/actions/project"
+import { isCurrentUserAdmin } from "@/lib/admin-auth"
 import type { ProjectConfig } from "@/lib/types/config"
 
 export default async function DashboardLayout({
@@ -15,12 +16,13 @@ export default async function DashboardLayout({
   const typedProject = project as unknown as { mode?: string; config?: ProjectConfig }
   const mode = typedProject.mode ?? "support"
   const plan = (typedProject.config as ProjectConfig | undefined)?.plan ?? "free"
+  const isAdmin = await isCurrentUserAdmin()
 
   const webUrl = process.env.NEXT_PUBLIC_WEB_URL ?? "https://txid.support"
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
-      <MobileShell orgName={org.name} mode={mode} plan={plan} />
+      <MobileShell orgName={org.name} mode={mode} plan={plan} isAdmin={isAdmin} />
       <main className="mt-14 flex-1 p-4 md:ml-60 md:p-6">
         <div className="mx-auto max-w-4xl">{children}</div>
       </main>

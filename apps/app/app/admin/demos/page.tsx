@@ -1,15 +1,11 @@
-import { currentUser } from "@clerk/nextjs/server"
 import { notFound } from "next/navigation"
 import Link from "next/link"
+import { isCurrentUserAdmin } from "@/lib/admin-auth"
 import { listDemos } from "@/lib/actions/demos"
 import { DemosManager } from "@/components/admin/DemosManager"
 
-const ADMIN_EMAILS = (process.env.ADMIN_EMAILS ?? "").toLowerCase().split(",").map(e => e.trim()).filter(Boolean)
-
 export default async function DemosPage() {
-  const user = await currentUser()
-  const email = user?.emailAddresses?.find(e => e.id === user.primaryEmailAddressId)?.emailAddress?.toLowerCase()
-  if (!email || (ADMIN_EMAILS.length > 0 && !ADMIN_EMAILS.includes(email))) return notFound()
+  if (!(await isCurrentUserAdmin())) return notFound()
 
   const demos = await listDemos()
 

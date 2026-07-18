@@ -1,28 +1,10 @@
 "use server"
 
-import { currentUser } from "@clerk/nextjs/server"
 import { createServiceClient } from "@/lib/supabase/server"
+import { assertAdmin } from "@/lib/admin-auth"
 import type { ProjectConfig, Plan } from "@/lib/types/config"
 import type { Json } from "@/lib/supabase/types"
 import { revalidatePath } from "next/cache"
-
-const ADMIN_EMAILS = (process.env.ADMIN_EMAILS ?? "")
-  .toLowerCase()
-  .split(",")
-  .map((e) => e.trim())
-  .filter(Boolean)
-
-// Mirrors the guard in app/admin/page.tsx: an authenticated user whose primary
-// email is in ADMIN_EMAILS (or any authed user if ADMIN_EMAILS is unset).
-async function assertAdmin(): Promise<void> {
-  const user = await currentUser()
-  const email = user?.emailAddresses
-    ?.find((e) => e.id === user.primaryEmailAddressId)
-    ?.emailAddress?.toLowerCase()
-  if (!email || (ADMIN_EMAILS.length > 0 && !ADMIN_EMAILS.includes(email))) {
-    throw new Error("Forbidden")
-  }
-}
 
 const VALID_PLANS: Plan[] = ["free", "starter", "pro", "enterprise", "custom", "demo"]
 

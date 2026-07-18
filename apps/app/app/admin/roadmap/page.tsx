@@ -1,16 +1,12 @@
 import Link from "next/link"
-import { currentUser } from "@clerk/nextjs/server"
 import { notFound } from "next/navigation"
 import { ArrowLeft } from "lucide-react"
+import { isCurrentUserAdmin } from "@/lib/admin-auth"
 import { RoadmapBoard } from "@/components/admin/RoadmapBoard"
-
-const ADMIN_EMAILS = (process.env.ADMIN_EMAILS ?? "").toLowerCase().split(",").map((e) => e.trim()).filter(Boolean)
 
 export default async function RoadmapPage() {
   // Auth guard — only configured admin emails (mirrors /admin).
-  const user = await currentUser()
-  const primaryEmail = user?.emailAddresses?.find((e) => e.id === user.primaryEmailAddressId)?.emailAddress?.toLowerCase()
-  if (!primaryEmail || (ADMIN_EMAILS.length > 0 && !ADMIN_EMAILS.includes(primaryEmail))) {
+  if (!(await isCurrentUserAdmin())) {
     return notFound()
   }
 

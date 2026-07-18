@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation"
 import {
   LayoutDashboard, Paintbrush, FileCode2, BookOpen,
   LayoutList, Code2, BarChart3, Globe, MessageSquare, Eye, Ticket, MessagesSquare,
-  Sun, Moon, Zap, Send, Wallet, Plug,
+  Sun, Moon, Zap, Send, Wallet, Plug, ShieldCheck,
 } from "lucide-react"
 import { useTheme } from "next-themes"
 import { cn } from "@/lib/utils"
@@ -88,11 +88,12 @@ const PLAN_BADGE: Record<string, { label: string; cls: string }> = {
 interface SidebarProps {
   mode?: string
   plan?: string
+  isAdmin?: boolean
   isOpen?: boolean
   onClose?: () => void
 }
 
-export function Sidebar({ mode = "support", plan = "free", isOpen = false, onClose }: SidebarProps) {
+export function Sidebar({ mode = "support", plan = "free", isAdmin = false, isOpen = false, onClose }: SidebarProps) {
   const pathname = usePathname()
   const { resolvedTheme, setTheme } = useTheme()
   const GROUPS = mode === "token" ? TOKEN_GROUPS : SUPPORT_GROUPS
@@ -171,6 +172,22 @@ export function Sidebar({ mode = "support", plan = "free", isOpen = false, onClo
             )}
           </div>
         </div>
+
+        {isAdmin && (
+          <Link
+            href="/admin"
+            onClick={onClose}
+            className={cn(
+              "flex items-center gap-2 rounded-md px-2.5 py-1.5 text-xs transition-colors w-full",
+              (pathname ?? "").startsWith("/admin")
+                ? "bg-primary/10 text-primary font-semibold"
+                : "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
+            )}
+          >
+            <ShieldCheck className="size-3.5 shrink-0" />
+            Admin console
+          </Link>
+        )}
 
         <button
           type="button"

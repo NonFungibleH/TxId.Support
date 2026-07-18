@@ -1,14 +1,13 @@
 import Link from "next/link"
-import { currentUser, clerkClient } from "@clerk/nextjs/server"
+import { clerkClient } from "@clerk/nextjs/server"
 import { notFound } from "next/navigation"
+import { currentUserEmail, isAdminEmail } from "@/lib/admin-auth"
 import { createServiceClient } from "@/lib/supabase/server"
 import { PLAN_LABELS } from "@/lib/types/config"
 import type { Plan } from "@/lib/types/config"
 import { cn } from "@/lib/utils"
 import { PlanControl } from "@/components/admin/PlanControl"
 import { PublicDemoToggle } from "@/components/admin/PublicDemoToggle"
-
-const ADMIN_EMAILS = (process.env.ADMIN_EMAILS ?? "").toLowerCase().split(",").map(e => e.trim()).filter(Boolean)
 
 // Approximate Claude Haiku 4.5 pricing, in USD per million tokens. Adjust to
 // match current Anthropic pricing — this drives the estimated-cost columns.
@@ -72,11 +71,9 @@ type StatRow = {
 }
 
 export default async function AdminPage() {
-  // Auth guard — only allow configured admin emails
-  const user = await currentUser()
-  const primaryEmail = user?.emailAddresses?.find(e => e.id === user.primaryEmailAddressId)?.emailAddress?.toLowerCase()
-
-  if (!primaryEmail || (ADMIN_EMAILS.length > 0 && !ADMIN_EMAILS.includes(primaryEmail))) {
+  // Auth guard — only allow configured admin emails (fail-closed).
+  const primaryEmail = await currentUserEmail()
+  if (!isAdminEmail(primaryEmail)) {
     return notFound()
   }
 
