@@ -185,21 +185,7 @@ export function DemosManager({ initial }: { initial: DemoSummary[] }) {
           <DemoDocs demo={selected} onChange={url => patchLocal(selected.id, { docsUrl: url })} />
 
           {/* Actions (execute) — demo the swap flow */}
-          <div className="rounded-xl border border-border bg-card p-4">
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <p className="text-sm font-semibold">Show the execute flow (Actions)</p>
-                <p className="text-xs text-muted-foreground mt-0.5 max-w-md">
-                  Lets the demo prepare real swaps the prospect signs in their own wallet. Off by default. Capped at $25/swap for safety — these are real transactions on their own funds. Every safety rail still applies.
-                </p>
-              </div>
-              <Switch
-                checked={selected.actionsEnabled}
-                disabled={pending}
-                onCheckedChange={v => { patchLocal(selected.id, { actionsEnabled: v }); start(async () => { await setDemoActions(selected.id, v) }) }}
-              />
-            </div>
-          </div>
+          <DemoActionsToggle key={selected.id} demo={selected} onChange={v => patchLocal(selected.id, { actionsEnabled: v })} />
         </div>
       )}
     </div>
@@ -328,6 +314,48 @@ function DemoContracts({ demo, onChange }: { demo: DemoSummary; onChange: (count
         <button onClick={add} disabled={pending || !addr} className="rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-50">
           {pending && !removingId ? <Loader2 className="size-4 animate-spin" /> : "Add"}
         </button>
+      </div>
+    </div>
+  )
+}
+
+function DemoActionsToggle({ demo, onChange }: { demo: DemoSummary; onChange: (v: boolean) => void }) {
+  // Dedicated saving state (not the shared page transition, which any other
+  // in-flight action could hold and freeze this toggle). Optimistic with a
+  // revert + toast on failure, so a failed save can't leave the switch looking
+  // on while the server stayed off.
+  const [on, setOn] = useState(demo.actionsEnabled)
+  const [saving, setSaving] = useState(false)
+
+  async function toggle(v: boolean) {
+    setOn(v)
+    onChange(v)
+    setSaving(true)
+    try {
+      await setDemoActions(demo.id, v)
+      toast.success(v ? "Actions enabled — $500/swap cap, wallet still signs" : "Actions disabled")
+    } catch {
+      setOn(!v)
+      onChange(!v)
+      toast.error("Couldn't update Actions — try again.")
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className="rounded-xl border border-border bg-card p-4">
+      <div className="flex items-center justify-between gap-4">
+        <div>
+          <p className="text-sm font-semibold">Show the execute flow (Actions)</p>
+          <p className="text-xs text-muted-foreground mt-0.5 max-w-md">
+            Lets the demo prepare real swaps the prospect signs in their own wallet. Off by default. Capped at $500/swap for safety — these are real transactions on their own funds. Every safety rail still applies.
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          {saving && <Loader2 className="size-3.5 animate-spin text-muted-foreground" />}
+          <Switch checked={on} disabled={saving} onCheckedChange={toggle} />
+        </div>
       </div>
     </div>
   )

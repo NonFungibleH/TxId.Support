@@ -216,7 +216,7 @@ export async function setDemoActions(id: string, enabled: boolean): Promise<void
   const supabase = createServiceClient()
   const orgId = await demosOrgId(supabase)
   const config = await assertDemoProject(supabase, orgId, id)
-  const actions = { enabled, allowedFunctions: config.actions?.allowedFunctions ?? {}, maxSwapUsd: enabled ? 25 : 0 }
+  const actions = { enabled, allowedFunctions: config.actions?.allowedFunctions ?? {}, maxSwapUsd: enabled ? 500 : 0 }
   await supabase.from("projects").update({ config: { ...config, actions, publicDemo: true } as unknown as Json } as never).eq("id", id)
   revalidatePath("/admin/demos")
 }
