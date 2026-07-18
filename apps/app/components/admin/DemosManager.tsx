@@ -31,11 +31,18 @@ const WEB_URL = publicHost(process.env.NEXT_PUBLIC_WEB_URL, "https://txid.suppor
 const WIDGET_ORIGIN = publicHost(process.env.NEXT_PUBLIC_WIDGET_URL || process.env.NEXT_PUBLIC_APP_URL, "https://app.txid.support")
 
 function buildBookmarklet(origin: string, key: string): string {
+  // After injecting, verify the widget actually mounted. CSP-hardened dapps
+  // (e.g. Uniswap) block the third-party script/iframe silently, so without
+  // this the bookmarklet would just "do nothing". Alert the user to fall back
+  // to the share link instead of leaving them confused.
   return (
     "javascript:(function(){if(document.getElementById('txid-widget-root'))return;" +
     "var s=document.createElement('script');s.id='txid-widget-script';" +
     `s.src='${origin}/widget.js';s.setAttribute('data-key','${key}');` +
-    "document.body.appendChild(s);})();void%200"
+    "document.body.appendChild(s);" +
+    "setTimeout(function(){if(!document.getElementById('txid-widget-root')){" +
+    "alert('This site blocks embedded widgets via its security policy (Content-Security-Policy) \\u2014 common on hardened dapps like Uniswap. Use the TxID share link to demo instead.')" +
+    "}},2500);})();void%200"
   )
 }
 
@@ -140,6 +147,9 @@ export function DemosManager({ initial }: { initial: DemoSummary[] }) {
               <BookmarkletLink href={buildBookmarklet(WIDGET_ORIGIN, selected.key)} label={selected.name} />
               <span className="text-xs text-muted-foreground">← drag to your bookmarks bar, then click it on any site to inject this widget.</span>
             </div>
+            <p className="text-xs text-amber-500/90">
+              Heads up: CSP-hardened dapps (Uniswap, Aave, etc.) block third-party widgets, so the bookmarklet won&apos;t inject there. Use the <strong>share link</strong> or <strong>Preview</strong> below to demo those.
+            </p>
             <div className="flex flex-wrap items-center gap-2 text-sm">
               <span className="text-muted-foreground">Share link:</span>
               <code className="rounded bg-muted px-2 py-0.5 text-xs">{`${WEB_URL}/d/${selected.key}`}</code>
