@@ -2,12 +2,12 @@
 
 import { useEffect, useRef, useState, useTransition } from "react"
 import { toast } from "sonner"
-import { Plus, Trash2, Copy, ExternalLink, Loader2 } from "lucide-react"
+import { Plus, Trash2, Copy, ExternalLink, Loader2, X, CheckCircle2 } from "lucide-react"
 import { SELECTABLE_CHAINS } from "@/lib/types/config"
 import type { ChainId } from "@/lib/types/config"
 import {
-  createDemo, renameDemo, deleteDemo, updateDemoConfig, addDemoContract, addDemoDocs, clearDemoDocs, setDemoActions,
-  type DemoSummary,
+  createDemo, renameDemo, deleteDemo, updateDemoConfig, addDemoContract, removeDemoContract, addDemoDocs, clearDemoDocs, setDemoActions,
+  type DemoSummary, type DemoContract,
 } from "@/lib/actions/demos"
 import { Switch } from "@/components/ui/switch"
 
@@ -154,7 +154,7 @@ export function DemosManager({ initial }: { initial: DemoSummary[] }) {
           </div>
 
           {/* Contracts */}
-          <DemoContracts demo={selected} onChange={c => patchLocal(selected.id, { contractCount: c })} />
+          <DemoContracts key={selected.id} demo={selected} onChange={c => patchLocal(selected.id, { contractCount: c })} />
 
           {/* Docs / knowledge */}
           <DemoDocs demo={selected} onChange={url => patchLocal(selected.id, { docsUrl: url })} />
@@ -219,18 +219,46 @@ function DemoDocs({ demo, onChange }: { demo: DemoSummary; onChange: (url: strin
   )
 }
 
+function chainName(id: ChainId): string {
+  return DEMO_CONTRACT_CHAINS.find(c => c.id === id)?.name ?? id
+}
+
 function DemoContracts({ demo, onChange }: { demo: DemoSummary; onChange: (count: number) => void }) {
   const [addr, setAddr] = useState("")
   const [name, setName] = useState("")
   const [chain, setChain] = useState<ChainId>(demo.chains[0] ?? "0x1")
-  const [count, setCount] = useState(demo.contractCount)
+  const [contracts, setContracts] = useState<DemoContract[]>(demo.contracts)
   const [pending, start] = useTransition()
+  const [removingId, setRemovingId] = useState<string | null>(null)
 
   function add() {
     start(async () => {
       const res = await addDemoContract(demo.id, addr, chain, name)
-      if (res.ok) { setAddr(""); setName(""); const c = count + 1; setCount(c); onChange(c); toast.success("Contract added (ABI fetched if verified)") }
-      else toast.error(res.error ?? "Couldn't add contract")
+      if (res.ok && res.contract) {
+        const next = [...contracts, res.contract]
+        setContracts(next)
+        onChange(next.length)
+        setAddr(""); setName("")
+        toast.success(res.contract.hasAbi ? "Contract added — ABI fetched from explorer" : "Contract added — no verified ABI found (diagnosis still works)")
+      } else {
+        toast.error(res.error ?? "Couldn't add contract")
+      }
+    })
+  }
+
+  function remove(c: DemoContract) {
+    setRemovingId(c.id)
+    start(async () => {
+      try {
+        await removeDemoContract(demo.id, c.id)
+        const next = contracts.filter(x => x.id !== c.id)
+        setContracts(next)
+        onChange(next.length)
+      } catch {
+        toast.error("Couldn't remove contract")
+      } finally {
+        setRemovingId(null)
+      }
     })
   }
 
@@ -238,8 +266,34 @@ function DemoContracts({ demo, onChange }: { demo: DemoSummary; onChange: (count
     <div className="rounded-xl border border-border bg-card p-4 space-y-3">
       <div>
         <p className="text-sm font-semibold">Watched contracts</p>
-        <p className="text-xs text-muted-foreground mt-0.5">The prospect&apos;s real contracts, so the bot diagnoses their actual on-chain activity. {count} added.</p>
+        <p className="text-xs text-muted-foreground mt-0.5">The prospect&apos;s real contracts, so the bot diagnoses their actual on-chain activity. {contracts.length} added.</p>
       </div>
+
+      {contracts.length > 0 && (
+        <ul className="space-y-1.5">
+          {contracts.map(c => (
+            <li key={c.id} className="flex items-center gap-2 rounded-lg border border-border px-3 py-2">
+              <span className="shrink-0 rounded-md bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">{chainName(c.chain)}</span>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium">{c.name}</p>
+                <p className="truncate font-mono text-[11px] text-muted-foreground">{c.address}</p>
+              </div>
+              {c.hasAbi
+                ? <span className="inline-flex shrink-0 items-center gap-1 text-[11px] font-medium text-green-500"><CheckCircle2 className="size-3" /> ABI</span>
+                : <span className="shrink-0 text-[11px] text-muted-foreground">no ABI</span>}
+              <button
+                onClick={() => remove(c)}
+                disabled={pending}
+                aria-label={`Remove ${c.name}`}
+                className="shrink-0 rounded-md p-1 text-muted-foreground hover:bg-accent/50 hover:text-red-500 disabled:opacity-50"
+              >
+                {removingId === c.id ? <Loader2 className="size-3.5 animate-spin" /> : <X className="size-3.5" />}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+
       <div className="flex flex-wrap items-center gap-2">
         <input placeholder="0x… contract address" value={addr} onChange={e => setAddr(e.target.value)} className="min-w-0 flex-1 rounded-lg border border-input bg-transparent px-3 py-2 text-sm outline-none focus:border-ring" />
         <select value={chain} onChange={e => setChain(e.target.value as ChainId)} className="rounded-lg border border-input bg-transparent px-2 py-2 text-sm">
@@ -247,7 +301,7 @@ function DemoContracts({ demo, onChange }: { demo: DemoSummary; onChange: (count
         </select>
         <input placeholder="Label (optional)" value={name} onChange={e => setName(e.target.value)} className="w-32 rounded-lg border border-input bg-transparent px-3 py-2 text-sm outline-none focus:border-ring" />
         <button onClick={add} disabled={pending || !addr} className="rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-50">
-          {pending ? <Loader2 className="size-4 animate-spin" /> : "Add"}
+          {pending && !removingId ? <Loader2 className="size-4 animate-spin" /> : "Add"}
         </button>
       </div>
     </div>

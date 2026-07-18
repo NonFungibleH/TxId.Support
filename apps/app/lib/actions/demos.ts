@@ -35,6 +35,14 @@ async function assertDemoProject(supabase: ReturnType<typeof createServiceClient
   return (row.config ?? {}) as ProjectConfig
 }
 
+export interface DemoContract {
+  id: string
+  name: string
+  address: string
+  chain: ChainId
+  hasAbi: boolean
+}
+
 export interface DemoSummary {
   id: string
   name: string
@@ -42,8 +50,19 @@ export interface DemoSummary {
   branding: ProjectConfig["branding"]
   chains: ChainId[]
   contractCount: number
+  contracts: DemoContract[]
   docsUrl: string | null
   actionsEnabled: boolean
+}
+
+function toDemoContracts(config: ProjectConfig): DemoContract[] {
+  return (config.watchedContracts ?? []).map(c => ({
+    id: c.id,
+    name: c.name,
+    address: c.address,
+    chain: c.chain as ChainId,
+    hasAbi: !!c.abi,
+  }))
 }
 
 export async function listDemos(): Promise<DemoSummary[]> {
@@ -62,6 +81,7 @@ export async function listDemos(): Promise<DemoSummary[]> {
     branding: p.config?.branding ?? DEFAULT_CONFIG.branding,
     chains: p.config?.chains ?? ["0x1"],
     contractCount: (p.config?.watchedContracts ?? []).length,
+    contracts: toDemoContracts(p.config ?? {} as ProjectConfig),
     docsUrl: p.config?.docsUrl ?? null,
     actionsEnabled: p.config?.actions?.enabled === true,
   }))
@@ -81,7 +101,7 @@ export async function createDemo(name: string): Promise<DemoSummary> {
   if (error || !data) throw new Error(`Create demo failed: ${error?.message}`)
   const p = data as unknown as { id: string; name: string; publishable_key: string; config: ProjectConfig }
   revalidatePath("/admin/demos")
-  return { id: p.id, name: p.name, key: p.publishable_key, branding: p.config.branding, chains: p.config.chains ?? ["0x1"], contractCount: 0, docsUrl: null, actionsEnabled: false }
+  return { id: p.id, name: p.name, key: p.publishable_key, branding: p.config.branding, chains: p.config.chains ?? ["0x1"], contractCount: 0, contracts: [], docsUrl: null, actionsEnabled: false }
 }
 
 export async function renameDemo(id: string, name: string): Promise<void> {
@@ -113,17 +133,22 @@ export async function updateDemoConfig(id: string, patch: Partial<ProjectConfig>
   revalidatePath("/admin/demos")
 }
 
-export async function addDemoContract(id: string, address: string, chain: ChainId, contractName: string): Promise<{ ok: boolean; error?: string }> {
+export async function addDemoContract(id: string, address: string, chain: ChainId, contractName: string): Promise<{ ok: boolean; error?: string; contract?: DemoContract }> {
   await assertAdmin()
   if (!/^0x[0-9a-fA-F]{40}$/.test(address.trim())) return { ok: false, error: "Enter a valid contract address" }
   const supabase = createServiceClient()
   const orgId = await demosOrgId(supabase)
   const config = await assertDemoProject(supabase, orgId, id)
-  const abi = await fetchAbiWithProxy(address.trim(), chain, fetchAbiFromExplorer).catch(() => null)
+  const cleanAddr = address.trim()
+  // Guard against dupes — same address on the same chain shouldn't stack.
+  if ((config.watchedContracts ?? []).some(c => c.address.toLowerCase() === cleanAddr.toLowerCase() && c.chain === chain)) {
+    return { ok: false, error: "That contract is already added on this chain" }
+  }
+  const abi = await fetchAbiWithProxy(cleanAddr, chain, fetchAbiFromExplorer).catch(() => null)
   const contract = {
     id: crypto.randomUUID(),
-    name: contractName.trim() || `Contract ${address.slice(0, 6)}`,
-    address: address.trim(),
+    name: contractName.trim() || `Contract ${cleanAddr.slice(0, 6)}`,
+    address: cleanAddr,
     chain,
     description: "",
     ...(abi ? { abi, abiSource: "explorer" as const } : {}),
@@ -132,7 +157,7 @@ export async function addDemoContract(id: string, address: string, chain: ChainI
   const chains = Array.from(new Set([...(config.chains ?? []), chain])) as ChainId[]
   await supabase.from("projects").update({ config: { ...config, watchedContracts, chains, publicDemo: true } as unknown as Json } as never).eq("id", id)
   revalidatePath("/admin/demos")
-  return { ok: true }
+  return { ok: true, contract: { id: contract.id, name: contract.name, address: contract.address, chain, hasAbi: !!abi } }
 }
 
 export async function removeDemoContract(id: string, contractId: string): Promise<void> {
