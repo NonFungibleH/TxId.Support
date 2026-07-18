@@ -12,6 +12,12 @@ import {
 import { Switch } from "@/components/ui/switch"
 
 const WEB_URL = process.env.NEXT_PUBLIC_WEB_URL ?? "https://txid.support"
+// Canonical, publicly-reachable host that serves widget.js. Must NOT be
+// window.location.origin: the admin often runs on a Vercel preview domain whose
+// /widget.js 302-redirects behind deployment protection, so a bookmarklet built
+// from it injects a non-executable redirect and silently does nothing on the
+// prospect's site.
+const WIDGET_ORIGIN = process.env.NEXT_PUBLIC_WIDGET_URL || process.env.NEXT_PUBLIC_APP_URL || "https://app.txid.support"
 
 function buildBookmarklet(origin: string, key: string): string {
   return (
@@ -46,8 +52,6 @@ export function DemosManager({ initial }: { initial: DemoSummary[] }) {
   const [demos, setDemos] = useState<DemoSummary[]>(initial)
   const [selectedId, setSelectedId] = useState<string | null>(initial[0]?.id ?? null)
   const [pending, start] = useTransition()
-  const [origin, setOrigin] = useState("https://app.txid.support")
-  useEffect(() => { setOrigin(window.location.origin) }, [])
 
   const selected = demos.find(d => d.id === selectedId) ?? null
 
@@ -122,14 +126,14 @@ export function DemosManager({ initial }: { initial: DemoSummary[] }) {
           <div className="rounded-xl border border-border bg-card p-4 space-y-3">
             <p className="text-sm font-semibold">Launch this demo</p>
             <div className="flex flex-wrap items-center gap-3">
-              <BookmarkletLink href={buildBookmarklet(origin, selected.key)} label={selected.name} />
+              <BookmarkletLink href={buildBookmarklet(WIDGET_ORIGIN, selected.key)} label={selected.name} />
               <span className="text-xs text-muted-foreground">← drag to your bookmarks bar, then click it on any site to inject this widget.</span>
             </div>
             <div className="flex flex-wrap items-center gap-2 text-sm">
               <span className="text-muted-foreground">Share link:</span>
               <code className="rounded bg-muted px-2 py-0.5 text-xs">{`${WEB_URL}/d/${selected.key}`}</code>
               <button onClick={() => copy(`${WEB_URL}/d/${selected.key}`, "Share link")} className="text-muted-foreground hover:text-foreground"><Copy className="size-3.5" /></button>
-              <a href={`${origin}/widget?key=${selected.key}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-primary hover:underline">
+              <a href={`${WIDGET_ORIGIN}/widget?key=${selected.key}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-primary hover:underline">
                 Preview <ExternalLink className="size-3" />
               </a>
             </div>
