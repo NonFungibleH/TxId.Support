@@ -44,7 +44,23 @@ export async function retrieveContext(
     return { context: "", chunks: [] }
   }
 
-  const context = rows.map((r) => r.content).join("\n\n---\n\n")
+  // Hard char budget for the assembled context (~6k tokens). Pathological
+  // ingestion — e.g. crawling a JS-heavy SPA — can store enormous chunks, and
+  // joining a handful of them blew the model's 200k context window (observed:
+  // 298k-token prompts → hard 400 on every message). Accumulate up to the
+  // budget, truncating the chunk that crosses it, so RAG can never overflow.
+  const MAX_CONTEXT_CHARS = 24_000
+  const SEP = "\n\n---\n\n"
+  const parts: string[] = []
+  let used = 0
+  for (const r of rows) {
+    if (used >= MAX_CONTEXT_CHARS) break
+    const remaining = MAX_CONTEXT_CHARS - used
+    const piece = r.content.length > remaining ? r.content.slice(0, remaining) : r.content
+    parts.push(piece)
+    used += piece.length + SEP.length
+  }
+  const context = parts.join(SEP)
 
   return {
     context,

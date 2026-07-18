@@ -39,5 +39,23 @@ export function chunkText(
     chunks.push(current.join("\n\n"))
   }
 
-  return chunks.filter((c) => c.trim().length > 60)
+  // Hard character ceiling per chunk. The word-based logic above assumes prose
+  // with paragraph breaks; a JS-heavy SPA or minified page can arrive as one
+  // huge whitespace-sparse blob that slips through as a single enormous chunk
+  // (observed: an ingest that produced a 298k-token RAG context). Split any
+  // oversized chunk by characters so no chunk — and therefore no assembled
+  // context — can blow the model's window.
+  const MAX_CHUNK_CHARS = 4_000
+  const bounded: string[] = []
+  for (const c of chunks) {
+    if (c.length <= MAX_CHUNK_CHARS) {
+      bounded.push(c)
+    } else {
+      for (let i = 0; i < c.length; i += MAX_CHUNK_CHARS) {
+        bounded.push(c.slice(i, i + MAX_CHUNK_CHARS))
+      }
+    }
+  }
+
+  return bounded.filter((c) => c.trim().length > 60)
 }
