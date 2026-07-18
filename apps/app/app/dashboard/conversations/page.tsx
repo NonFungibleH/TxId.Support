@@ -120,6 +120,22 @@ export default async function ConversationsPage({
 
   // Batch-fetch all messages + existing tickets for the returned conversations
   const convIds = conversations.map((c: { id: string }) => c.id)
+
+  // Cached AI summaries — best-effort + isolated, so the page still renders if
+  // the 20260718 migration hasn't been applied (the columns simply don't exist
+  // yet and this query errors → we fall back to no summaries).
+  const summaryById = new Map<string, { summary: string | null; category: string | null; sentiment: string | null }>()
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: sums } = await (supabase as any)
+      .from("conversations")
+      .select("id, summary, category, sentiment")
+      .in("id", convIds)
+    for (const s of (sums ?? []) as { id: string; summary: string | null; category: string | null; sentiment: string | null }[]) {
+      summaryById.set(s.id, { summary: s.summary, category: s.category, sentiment: s.sentiment })
+    }
+  } catch { /* migration not applied yet — summaries are optional */ }
+
   const [{ data: messages }, { data: tickets }] = await Promise.all([
     supabase
       .from("messages")
@@ -148,9 +164,9 @@ export default async function ConversationsPage({
       wallet_address: c.wallet_address,
       chain_id: c.chain_id,
       created_at: c.created_at,
-      summary: c.summary ?? null,
-      category: c.category ?? null,
-      sentiment: c.sentiment ?? null,
+      summary: summaryById.get(c.id)?.summary ?? null,
+      category: summaryById.get(c.id)?.category ?? null,
+      sentiment: summaryById.get(c.id)?.sentiment ?? null,
       messages: (msgByConv.get(c.id) ?? []).map((m) => ({
         role: m.role,
         content: m.content,
