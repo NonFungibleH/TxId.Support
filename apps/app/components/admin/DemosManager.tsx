@@ -11,13 +11,24 @@ import {
 } from "@/lib/actions/demos"
 import { Switch } from "@/components/ui/switch"
 
-const WEB_URL = process.env.NEXT_PUBLIC_WEB_URL ?? "https://txid.support"
-// Canonical, publicly-reachable host that serves widget.js. Must NOT be
-// window.location.origin: the admin often runs on a Vercel preview domain whose
-// /widget.js 302-redirects behind deployment protection, so a bookmarklet built
-// from it injects a non-executable redirect and silently does nothing on the
-// prospect's site.
-const WIDGET_ORIGIN = process.env.NEXT_PUBLIC_WIDGET_URL || process.env.NEXT_PUBLIC_APP_URL || "https://app.txid.support"
+// Resolve a publicly-reachable host for artifacts a PROSPECT will open on their
+// own machine (the bookmarklet's widget.js, the preview, the share link). It
+// must never be a *.vercel.app deployment domain: those sit behind Vercel
+// Deployment Protection and 302-redirect to a login, so an injected widget.js
+// never executes ("clicking the bookmark does nothing") and a shared /d/ link
+// bounces the prospect to a Vercel auth page. Fall back to the stable custom
+// domain whenever the env var is missing or points at a *.vercel.app host.
+function publicHost(url: string | undefined, fallback: string): string {
+  if (!url) return fallback
+  try {
+    if (/\.vercel\.app$/i.test(new URL(url).hostname)) return fallback
+    return url.replace(/\/$/, "")
+  } catch {
+    return fallback
+  }
+}
+const WEB_URL = publicHost(process.env.NEXT_PUBLIC_WEB_URL, "https://txid.support")
+const WIDGET_ORIGIN = publicHost(process.env.NEXT_PUBLIC_WIDGET_URL || process.env.NEXT_PUBLIC_APP_URL, "https://app.txid.support")
 
 function buildBookmarklet(origin: string, key: string): string {
   return (
