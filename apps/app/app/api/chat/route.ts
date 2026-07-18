@@ -602,8 +602,11 @@ export async function POST(request: Request) {
           void persistMessages(supabase, typedProject.id, sessionId, validActionResult ? [...messages, { role: "assistant" as const, content: `⚙️ Action update: ${validActionResult.row.summary ?? "transaction"} ${validActionResult.confirmed ? "confirmed" : "failed"} (${validActionResult.txHash})` }] : messages, walletAddress, chainId, fullResponseText || undefined, usage)
         } catch (err) {
           log.error("Chat stream error", err, { event: "chat.stream_error", projectId: typedProject.id })
+          // For our own demo/publicDemo projects, surface the real reason to make
+          // the demo creator debuggable. Never leak internals to real customers.
+          const detail = isDemo ? `: ${(err instanceof Error ? err.message : String(err)).slice(0, 300)}` : ""
           controller.enqueue(
-            encoder.encode(`data: ${JSON.stringify({ error: "Stream error" })}\n\n`),
+            encoder.encode(`data: ${JSON.stringify({ error: `Stream error${detail}` })}\n\n`),
           )
         } finally {
           controller.close()
