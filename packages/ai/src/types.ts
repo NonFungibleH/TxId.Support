@@ -65,4 +65,5 @@ export interface StreamChatParams {
   tokenModeAsk?: string | null
   persona?: string | null
   language?: string | null
+  customTone?: string | null
 }

@@ -496,6 +496,7 @@ export async function POST(request: Request) {
       mode: projectMode as "support" | "token",
       tokenModeAsk: config.tokenModeAsk ?? undefined,
       persona: config.branding?.persona ?? "concise",
+      customTone: config.branding?.customTone ?? undefined,
       ...(config.branding?.language ? { language: config.branding.language } : {}),
     })
 

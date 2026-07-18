@@ -116,6 +116,7 @@ export interface BrandingConfig {
   position: "bottom-right" | "bottom-left" | "inline"
   theme: "dark" | "light"
   persona: Persona
+  customTone?: string | null
   agentName?: string | null
   agentIconUrl?: string | null
   websiteUrl?: string | null

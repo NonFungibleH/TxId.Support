@@ -285,6 +285,24 @@ export function BrandingForm({ projectId, initial, onBrandingChange }: BrandingF
           </div>
         </div>
 
+        {/* Custom tone of voice */}
+        <div className="space-y-2">
+          <div>
+            <h3 className="text-sm font-medium">Custom tone of voice</h3>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Optional. Describe how your bot should talk, in your own words, to keep it on-brand: the personality, warmth, words or phrases to use or avoid, spelling (e.g. British), emoji or none. This layers on top of the tone above. It only shapes wording, never the facts.
+            </p>
+          </div>
+          <textarea
+            placeholder="e.g. Warm and a little playful, British spelling, never corporate. Say 'gm' but no other slang. Never use exclamation marks. Refer to the token as $XYZ."
+            value={branding.customTone ?? ""}
+            onChange={e => update("customTone", e.target.value || null)}
+            rows={3}
+            maxLength={800}
+            className="w-full resize-y rounded-lg border border-input bg-transparent px-3 py-2 text-sm outline-none focus:border-ring"
+          />
+        </div>
+
         {/* Agent name + avatar */}
         <div className="space-y-2">
           <div>

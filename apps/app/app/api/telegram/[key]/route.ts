@@ -315,6 +315,7 @@ export async function POST(
     ragContext: "",
     mode: "support",
     persona: config.branding?.persona ?? "concise",
+    customTone: config.branding?.customTone ?? undefined,
     ...(config.branding?.language ? { language: config.branding.language } : {}),
   })
 
