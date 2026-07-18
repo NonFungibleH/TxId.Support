@@ -3,6 +3,7 @@ import type { ProjectConfig, Plan } from "@/lib/types/config"
 import { isPaidPlan } from "@/lib/types/config"
 import type { Database } from "@/lib/supabase/types"
 import { verifyPreviewToken } from "@/lib/preview-token"
+import { isActionDemo } from "@/lib/actions-gate"
 
 type ProjectRow = Database["public"]["Tables"]["projects"]["Row"]
 
@@ -129,13 +130,15 @@ export async function GET(
       : null,
     community: config.community ?? null,
     // Actions availability only — the function allowlist and caps stay
-    // server-side. Plan predicate mirrors the chat route's actionsGate.
+    // server-side. Mirrors the chat route's actionsGate: normal projects need a
+    // paid, non-demo plan; admin action-demos are the deliberate exception.
     actions: {
       enabled:
         config.actions?.enabled === true &&
-        isPaidPlan((config.plan ?? "free") as Plan) &&
-        (config.plan ?? "free") !== "demo" &&
-        config.publicDemo !== true,
+        (isActionDemo(config) ||
+          (isPaidPlan((config.plan ?? "free") as Plan) &&
+            (config.plan ?? "free") !== "demo" &&
+            config.publicDemo !== true)),
     },
     tokenModeAsk: config.tokenModeAsk ?? null,
     welcomeMessage: config.branding?.welcomeMessage ?? null,

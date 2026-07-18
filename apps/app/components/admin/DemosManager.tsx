@@ -6,9 +6,10 @@ import { Plus, Trash2, Copy, ExternalLink, Loader2 } from "lucide-react"
 import { SELECTABLE_CHAINS } from "@/lib/types/config"
 import type { ChainId } from "@/lib/types/config"
 import {
-  createDemo, renameDemo, deleteDemo, updateDemoConfig, addDemoContract, addDemoDocs, clearDemoDocs,
+  createDemo, renameDemo, deleteDemo, updateDemoConfig, addDemoContract, addDemoDocs, clearDemoDocs, setDemoActions,
   type DemoSummary,
 } from "@/lib/actions/demos"
+import { Switch } from "@/components/ui/switch"
 
 const WEB_URL = process.env.NEXT_PUBLIC_WEB_URL ?? "https://txid.support"
 
@@ -157,6 +158,23 @@ export function DemosManager({ initial }: { initial: DemoSummary[] }) {
 
           {/* Docs / knowledge */}
           <DemoDocs demo={selected} onChange={url => patchLocal(selected.id, { docsUrl: url })} />
+
+          {/* Actions (execute) — demo the swap flow */}
+          <div className="rounded-xl border border-border bg-card p-4">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <p className="text-sm font-semibold">Show the execute flow (Actions)</p>
+                <p className="text-xs text-muted-foreground mt-0.5 max-w-md">
+                  Lets the demo prepare real swaps the prospect signs in their own wallet. Off by default. Capped at $25/swap for safety — these are real transactions on their own funds. Every safety rail still applies.
+                </p>
+              </div>
+              <Switch
+                checked={selected.actionsEnabled}
+                disabled={pending}
+                onCheckedChange={v => { patchLocal(selected.id, { actionsEnabled: v }); start(async () => { await setDemoActions(selected.id, v) }) }}
+              />
+            </div>
+          </div>
         </div>
       )}
     </div>

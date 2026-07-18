@@ -17,6 +17,17 @@ export interface ActionsGateResult {
   country: string | null
 }
 
+/**
+ * An admin-created demo (Demo Creator) that has Actions explicitly turned on, so
+ * it can showcase the execute flow. It bypasses the paid-plan + publicDemo
+ * exclusions BUT keeps every safety rail (wallet-connected, geo, per-invocation
+ * OFAC screening, caps). Only ever true when the admin flips the toggle: the
+ * public /check demo and the marketing widget never set config.actions.enabled.
+ */
+export function isActionDemo(config: ProjectConfig): boolean {
+  return config.publicDemo === true && config.actions?.enabled === true
+}
+
 export function actionsGate(
   request: Request,
   config: ProjectConfig,
@@ -28,8 +39,13 @@ export function actionsGate(
   const region = request.headers.get("x-vercel-ip-country-region")
 
   if (!config.actions?.enabled) return { allowed: false, country }
-  if (!isPaidPlan(plan) || plan === "demo") return { allowed: false, country }
-  if (config.publicDemo === true || isDemoSession) return { allowed: false, country }
+  const actionDemo = isActionDemo(config)
+  // Normal projects: paid plan + not a demo/publicDemo. Action-demos skip these
+  // two gates only (the admin opted in); all rails below still apply.
+  if (!actionDemo) {
+    if (!isPaidPlan(plan) || plan === "demo") return { allowed: false, country }
+    if (config.publicDemo === true || isDemoSession) return { allowed: false, country }
+  }
   if (walletMode !== "connected") return { allowed: false, country }
 
   if (!country) {

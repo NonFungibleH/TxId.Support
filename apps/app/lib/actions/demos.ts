@@ -50,6 +50,7 @@ export interface DemoSummary {
   chains: ChainId[]
   contractCount: number
   docsUrl: string | null
+  actionsEnabled: boolean
 }
 
 export async function listDemos(): Promise<DemoSummary[]> {
@@ -69,6 +70,7 @@ export async function listDemos(): Promise<DemoSummary[]> {
     chains: p.config?.chains ?? ["0x1"],
     contractCount: (p.config?.watchedContracts ?? []).length,
     docsUrl: p.config?.docsUrl ?? null,
+    actionsEnabled: p.config?.actions?.enabled === true,
   }))
 }
 
@@ -86,7 +88,7 @@ export async function createDemo(name: string): Promise<DemoSummary> {
   if (error || !data) throw new Error(`Create demo failed: ${error?.message}`)
   const p = data as unknown as { id: string; name: string; publishable_key: string; config: ProjectConfig }
   revalidatePath("/admin/demos")
-  return { id: p.id, name: p.name, key: p.publishable_key, branding: p.config.branding, chains: p.config.chains ?? ["0x1"], contractCount: 0, docsUrl: null }
+  return { id: p.id, name: p.name, key: p.publishable_key, branding: p.config.branding, chains: p.config.chains ?? ["0x1"], contractCount: 0, docsUrl: null, actionsEnabled: false }
 }
 
 export async function renameDemo(id: string, name: string): Promise<void> {
@@ -184,5 +186,19 @@ export async function clearDemoDocs(id: string): Promise<void> {
   const config = await assertDemoProject(supabase, orgId, id)
   await supabase.from("documents").delete().eq("project_id", id)
   await supabase.from("projects").update({ config: { ...config, docsUrl: null } as unknown as Json } as never).eq("id", id)
+  revalidatePath("/admin/demos")
+}
+
+// Toggle the execute (Actions) flow for a demo, so you can show swaps live on a
+// call. Sets a low per-swap cap for safety (real funds, prospect's own wallet).
+// The chat gate + widget-config treat a publicDemo with actions.enabled as an
+// admin action-demo (bypasses the paid-plan gate, keeps every safety rail).
+export async function setDemoActions(id: string, enabled: boolean): Promise<void> {
+  await assertAdmin()
+  const supabase = createServiceClient()
+  const orgId = await demosOrgId(supabase)
+  const config = await assertDemoProject(supabase, orgId, id)
+  const actions = { enabled, allowedFunctions: config.actions?.allowedFunctions ?? {}, maxSwapUsd: enabled ? 25 : 0 }
+  await supabase.from("projects").update({ config: { ...config, actions, publicDemo: true } as unknown as Json } as never).eq("id", id)
   revalidatePath("/admin/demos")
 }
