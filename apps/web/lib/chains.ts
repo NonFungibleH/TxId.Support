@@ -166,6 +166,26 @@ export const CHAINS: ChainInfo[] = [
     ],
   },
 
+  {
+    slug: "etherlink",
+    name: "Etherlink",
+    ticker: "XTZ",
+    family: "evm",
+    status: "live",
+    color: "#38FF9C",
+    logo: "/chains/Etherlink.png",
+    explorerName: "Etherlink Explorer",
+    tagline: "AI support for Etherlink, the Tezos EVM Layer 2.",
+    intro:
+      "TxID reads Etherlink activity straight from its explorer and RPC, so users get their real transaction history, why a transfer failed, and the decoded revert on any contract, without leaving your app.",
+    failures: [
+      { title: "Failed transfers and swaps", detail: "Reads the transaction from Etherlink's node, decodes the revert, and gives the exact fix." },
+      { title: "XTZ gas issues", detail: "Explains out-of-gas and underpriced transactions with the right value to set." },
+      { title: "Reverted contract calls", detail: "Decodes the real revert reason on any Etherlink contract via eth_call replay, verified or not." },
+      { title: "Wrong-network confusion", detail: "Confirms whether the user is on Etherlink mainnet and diagnoses accordingly." },
+    ],
+  },
+
   // ── Non-EVM (coming soon) ──────────────────────────────────────────────────
   {
     slug: "solana",

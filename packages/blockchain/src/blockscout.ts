@@ -21,6 +21,7 @@ const BLOCKSCOUT_BASES: Record<string, string> = {
   "0x89": "https://polygon.blockscout.com",
   "0xa4b1": "https://arbitrum.blockscout.com",
   "0xa86a": "https://api.routescan.io/v2/network/mainnet/evm/43114/etherscan",
+  "0xa729": "https://explorer.etherlink.com",
 }
 
 export interface ExplorerResponse {

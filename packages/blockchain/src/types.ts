@@ -57,8 +57,13 @@ export interface ChainConfig {
   name: string
   nativeCurrency: string
   explorer: string
-  moralisChain: string   // Moralis chain identifier
+  /** Moralis chain identifier. Omitted for chains Moralis doesn't index (e.g.
+   *  Etherlink) — those route the wallet tools through blockscoutApi + RPC. */
+  moralisChain?: string
   rpcUrl: string
+  /** Blockscout v2 REST API base (e.g. https://explorer.etherlink.com/api).
+   *  Set for non-Moralis chains; the wallet adapter falls back to it. */
+  blockscoutApi?: string
 }
 
 export const CHAIN_CONFIGS: Record<string, ChainConfig> = {
@@ -121,5 +126,15 @@ export const CHAIN_CONFIGS: Record<string, ChainConfig> = {
     explorer: "https://snowtrace.io",
     moralisChain: "avalanche",
     rpcUrl: "https://api.avax.network/ext/bc/C/rpc",
+  },
+  "0xa729": {
+    id: "0xa729",
+    name: "Etherlink",
+    nativeCurrency: "XTZ",
+    explorer: "https://explorer.etherlink.com",
+    rpcUrl: "https://node.mainnet.etherlink.com",
+    blockscoutApi: "https://explorer.etherlink.com/api",
+    // No moralisChain — Moralis doesn't index Etherlink; wallet tools use
+    // Blockscout (recent txs, balances) + RPC (single tx, revert decode).
   },
 }

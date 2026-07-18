@@ -2,6 +2,15 @@ import { CHAIN_CONFIGS } from "./types"
 import type { TokenBalance, NativeBalance, Transaction, DecodedRevert } from "./types"
 import { decodeTxRevert } from "./decoder"
 import { functionSelector } from "./keccak"
+import {
+  usesBlockscoutWallet,
+  bsNativeBalance,
+  bsTokenBalances,
+  bsRecentTransactions,
+  bsContractTransactions,
+  bsTransactionByHash,
+  bsWalletApprovals,
+} from "./blockscout-wallet"
 
 /** Decode the called function name from a transaction's input selector using the ABI. */
 function decodeMethodName(input: string, abiJson: string): string | undefined {
@@ -52,6 +61,7 @@ export async function getWalletApprovals(
   chainId: string,
   limit = 25,
 ): Promise<WalletApproval[]> {
+  if (usesBlockscoutWallet(chainId)) return bsWalletApprovals()
   try {
     const chain = moralisChain(chainId)
     const res = await fetch(
@@ -93,6 +103,7 @@ export async function getNativeBalance(
   address: string,
   chainId: string,
 ): Promise<NativeBalance> {
+  if (usesBlockscoutWallet(chainId)) return bsNativeBalance(address, chainId)
   const chain = moralisChain(chainId)
   const res = await fetch(
     `${MORALIS_BASE}/${address}/balance?chain=${chain}`,
@@ -113,6 +124,7 @@ export async function getTokenBalances(
   address: string,
   chainId: string,
 ): Promise<TokenBalance[]> {
+  if (usesBlockscoutWallet(chainId)) return bsTokenBalances(address, chainId)
   const chain = moralisChain(chainId)
   const res = await fetch(
     `${MORALIS_BASE}/${address}/erc20?chain=${chain}`,
@@ -160,6 +172,7 @@ export async function getTransactionByHash(
   chainId: string,
   knownAbis: Record<string, string> = {},
 ): Promise<Transaction | null> {
+  if (usesBlockscoutWallet(chainId)) return bsTransactionByHash(hash, chainId, knownAbis)
   const chain = moralisChain(chainId)
   const res = await fetch(
     `${MORALIS_BASE}/transaction/${hash}?chain=${chain}`,
@@ -237,6 +250,7 @@ export async function getContractTransactions(
   chainId: string,
   limit = 10,
 ): Promise<Transaction[]> {
+  if (usesBlockscoutWallet(chainId)) return bsContractTransactions(contractAddress, chainId, limit)
   const chain = moralisChain(chainId)
   // Fetch more than we need — Moralis returns both incoming and outgoing; we filter to incoming
   const res = await fetch(
@@ -304,6 +318,7 @@ export async function getRecentTransactions(
   chainId: string,
   limit = 10,
 ): Promise<Transaction[]> {
+  if (usesBlockscoutWallet(chainId)) return bsRecentTransactions(address, chainId, limit)
   const chain = moralisChain(chainId)
   const res = await fetch(
     `${MORALIS_BASE}/${address}?chain=${chain}&limit=${limit}`,
