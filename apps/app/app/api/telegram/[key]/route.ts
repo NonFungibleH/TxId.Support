@@ -365,6 +365,9 @@ async function persistTelegramMessages(
       { conversation_id: conv.id, role: "user" as const, content: userText },
       { conversation_id: conv.id, role: "assistant" as const, content: assistantReply },
     ])
+    // Stamp last_message_at so the conversation is flagged for (re-)summary.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (supabase as any).from("conversations").update({ last_message_at: new Date().toISOString() }).eq("id", conv.id)
 
     // Record token usage so Telegram AI cost shows in the admin cockpit too
     // (previously widget-only). Denormalised project_id, same as the chat route.

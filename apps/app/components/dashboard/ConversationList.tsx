@@ -5,6 +5,24 @@ import { useRouter } from "next/navigation"
 import { ChevronDown, ChevronUp, ThumbsUp, ThumbsDown, Wallet, Download, Globe, MessageSquare, Bot, Ticket, Loader2, CheckCircle2 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import type { ConversationWithMessages } from "@/app/dashboard/conversations/page"
+import { summarizeStaleConversations, type ConvSummary } from "@/lib/actions/summarize"
+
+// AI category tags for the scannable list. Colours picked for at-a-glance triage.
+const CATEGORY_STYLE: Record<string, string> = {
+  "failed-tx":       "bg-red-500/10 text-red-400 border-red-500/20",
+  "bug-report":      "bg-orange-500/10 text-orange-400 border-orange-500/20",
+  "how-to":          "bg-sky-500/10 text-sky-400 border-sky-500/20",
+  "feature-request": "bg-violet-500/10 text-violet-400 border-violet-500/20",
+  "account":         "bg-teal-500/10 text-teal-400 border-teal-500/20",
+  "other":           "bg-muted text-muted-foreground border-border",
+}
+const CATEGORY_LABEL: Record<string, string> = {
+  "failed-tx": "Failed tx", "bug-report": "Bug", "how-to": "How-to",
+  "feature-request": "Feature req", "account": "Account", "other": "Other",
+}
+const SENTIMENT_DOT: Record<string, string> = {
+  positive: "bg-green-500", neutral: "bg-muted-foreground/40", negative: "bg-red-500",
+}
 
 const CHAIN_NAMES: Record<string, string> = {
   "1":     "Ethereum",   "0x1":      "Ethereum",
@@ -69,30 +87,31 @@ export function ConversationList({
 }) {
   const router = useRouter()
   const [expanded, setExpanded] = useState<string | null>(null)
-  const [summaries, setSummaries] = useState<Record<string, string>>({})
-  const [summaryLoading, setSummaryLoading] = useState<Record<string, boolean>>({})
   const [ticketStatus, setTicketStatus] = useState<Record<string, TicketStatus>>(() =>
     Object.fromEntries(Object.keys(existingTickets).map(id => [id, "done"]))
   )
   const [ticketRefs, setTicketRefs] = useState<Record<string, string>>(() =>
     Object.fromEntries(Object.entries(existingTickets).map(([id, t]) => [id, t.ref]))
   )
-  const fetchedSummaries = useRef<Set<string>>(new Set())
 
+  // Persisted list-level summaries (one-line + category + sentiment), merged
+  // over the server-rendered rows as stale ones get summarised on mount. This
+  // replaces the old on-expand /api/conversations/[id]/summary fetch — one
+  // cached, categorised, cost-tracked summary system instead of two.
+  const [tags, setTags] = useState<Record<string, ConvSummary>>({})
+  const [catFilter, setCatFilter] = useState<string>("all")
+  const staleTriggered = useRef(false)
   useEffect(() => {
-    if (!expanded) return
-    if (fetchedSummaries.current.has(expanded)) return
-    fetchedSummaries.current.add(expanded)
-
-    setSummaryLoading(prev => ({ ...prev, [expanded]: true }))
-    fetch(`/api/conversations/${expanded}/summary`)
-      .then(r => r.json())
-      .then(data => {
-        setSummaries(prev => ({ ...prev, [expanded]: data.summary ?? "" }))
-        setSummaryLoading(prev => ({ ...prev, [expanded]: false }))
+    if (staleTriggered.current) return
+    staleTriggered.current = true
+    const hasStale = conversations.some(c => !c.summary)
+    if (!hasStale) return
+    void summarizeStaleConversations(8)
+      .then(fresh => {
+        if (fresh.length) setTags(prev => ({ ...prev, ...Object.fromEntries(fresh.map(f => [f.id, f])) }))
       })
-      .catch(() => setSummaryLoading(prev => ({ ...prev, [expanded]: false })))
-  }, [expanded])
+      .catch(() => { /* non-fatal — rows fall back to first message */ })
+  }, [conversations])
 
   async function raiseTicket(convId: string) {
     setTicketStatus(prev => ({ ...prev, [convId]: "loading" }))
@@ -110,9 +129,32 @@ export function ConversationList({
     }
   }
 
+  const effectiveCat = (c: ConversationWithMessages) => tags[c.id]?.category ?? c.category ?? null
+  const presentCats = Array.from(new Set(conversations.map(effectiveCat).filter(Boolean))) as string[]
+  const visible = catFilter === "all" ? conversations : conversations.filter(c => effectiveCat(c) === catFilter)
+
   return (
     <div className="space-y-4">
-      <div className="flex justify-end">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        {presentCats.length > 0 ? (
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <button
+              onClick={() => setCatFilter("all")}
+              className={`rounded-full border px-2.5 py-1 text-xs font-medium transition-colors ${catFilter === "all" ? "border-primary/40 bg-primary/10 text-primary" : "border-border text-muted-foreground hover:text-foreground"}`}
+            >
+              All
+            </button>
+            {presentCats.map(cat => (
+              <button
+                key={cat}
+                onClick={() => setCatFilter(cat)}
+                className={`rounded-full border px-2.5 py-1 text-xs font-medium transition-colors ${catFilter === cat ? "border-primary/40 bg-primary/10 text-primary" : "border-border text-muted-foreground hover:text-foreground"}`}
+              >
+                {CATEGORY_LABEL[cat] ?? cat}
+              </button>
+            ))}
+          </div>
+        ) : <span />}
         <a
           href="/api/conversations/export"
           download="conversations.csv"
@@ -123,7 +165,7 @@ export function ConversationList({
         </a>
       </div>
       <div className="space-y-2">
-      {conversations.map((conv) => {
+      {visible.map((conv) => {
         const isOpen = expanded === conv.id
         const msgCount = conv.messages.length
         const userMsgCount = conv.messages.filter(m => m.role === "user").length
@@ -137,8 +179,11 @@ export function ConversationList({
 
         const tStatus = ticketStatus[conv.id] ?? "idle"
         const tRef = ticketRefs[conv.id]
-        const summary = summaries[conv.id]
-        const loadingSummary = summaryLoading[conv.id]
+
+        // Persisted list-level tag: freshly summarised (state) or server-rendered.
+        const tag: ConvSummary | null =
+          tags[conv.id] ??
+          (conv.category ? { id: conv.id, summary: conv.summary ?? "", category: conv.category, sentiment: conv.sentiment ?? "neutral" } : null)
 
         return (
           <div
@@ -151,6 +196,11 @@ export function ConversationList({
             >
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-0.5 flex-wrap">
+                  {tag && (
+                    <Badge className={`text-[10px] px-1.5 py-0.5 leading-none shrink-0 ${CATEGORY_STYLE[tag.category] ?? CATEGORY_STYLE.other}`}>
+                      {CATEGORY_LABEL[tag.category] ?? "Other"}
+                    </Badge>
+                  )}
                   <SessionBadge
                     walletAddress={conv.wallet_address}
                     onClick={conv.wallet_address ? (e) => {
@@ -184,9 +234,17 @@ export function ConversationList({
                     </Badge>
                   )}
                 </div>
-                <p className="text-sm truncate text-muted-foreground">{preview || "No messages"}</p>
+                <p className="text-sm truncate text-muted-foreground">
+                  {tag?.summary || preview || "No messages"}
+                </p>
               </div>
               <div className="flex items-center gap-3 shrink-0">
+                {tag && (
+                  <span
+                    className={`size-2 rounded-full ${SENTIMENT_DOT[tag.sentiment] ?? SENTIMENT_DOT.neutral}`}
+                    title={`Sentiment: ${tag.sentiment}`}
+                  />
+                )}
                 <span className="text-xs text-muted-foreground">{msgCount} msg{msgCount !== 1 ? "s" : ""}</span>
                 <span suppressHydrationWarning className="text-xs text-muted-foreground">{timeAgo(conv.created_at)}</span>
                 {isOpen ? <ChevronUp className="size-4 text-muted-foreground" /> : <ChevronDown className="size-4 text-muted-foreground" />}
@@ -228,19 +286,14 @@ export function ConversationList({
                   </div>
                 </div>
 
-                {/* AI summary */}
-                <div className="px-4 pt-3 pb-2">
-                  {loadingSummary ? (
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <Loader2 className="size-3 animate-spin" />
-                      Generating summary…
-                    </div>
-                  ) : summary ? (
+                {/* AI summary (cached, categorised) */}
+                {tag?.summary && (
+                  <div className="px-4 pt-3 pb-2">
                     <div className="rounded-md bg-primary/5 border border-primary/10 px-3 py-2 text-xs text-foreground/80 italic">
-                      {summary}
+                      {tag.summary}
                     </div>
-                  ) : null}
-                </div>
+                  </div>
+                )}
 
                 {/* Transcript */}
                 <div className="px-4 pb-3 pt-1 space-y-2.5">

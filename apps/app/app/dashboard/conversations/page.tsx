@@ -13,6 +13,9 @@ export interface ConversationWithMessages {
   wallet_address: string | null
   chain_id: string | null
   created_at: string
+  summary?: string | null
+  category?: string | null
+  sentiment?: string | null
   messages: Array<{ role: string; content: string; feedback: number; created_at: string }>
 }
 
@@ -140,7 +143,14 @@ export default async function ConversationsPage({
   // Build data array, filtering out 0-message ghost sessions
   const data: ConversationWithMessages[] = conversations
     .map((c: ConversationWithMessages) => ({
-      ...c,
+      id: c.id,
+      session_id: c.session_id,
+      wallet_address: c.wallet_address,
+      chain_id: c.chain_id,
+      created_at: c.created_at,
+      summary: c.summary ?? null,
+      category: c.category ?? null,
+      sentiment: c.sentiment ?? null,
       messages: (msgByConv.get(c.id) ?? []).map((m) => ({
         role: m.role,
         content: m.content,

@@ -657,6 +657,9 @@ async function persistMessages(
     }
     if (toInsert.length > 0) {
       await supabase.from("messages").insert(toInsert)
+      // Stamp last_message_at so the conversation is flagged for (re-)summary.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabase as any).from("conversations").update({ last_message_at: new Date().toISOString() }).eq("id", conv.id)
     }
 
     // Record token usage for the admin cost cockpit (denormalised project_id).
