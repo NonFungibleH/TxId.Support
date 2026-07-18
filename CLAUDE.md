@@ -387,6 +387,12 @@ When a product fact changes (chains, plans, limits), update BOTH systems plus th
 - Admin-gated by `ADMIN_EMAILS`. Projects table with per-project plan dropdown + Public demo toggle; token usage / est. cost columns fed by `admin_token_usage()`.
 - `/admin/roadmap` — product roadmap board (data in `lib/roadmap.ts`, localStorage statuses/notes). `/admin/eval` — eval harness (`lib/eval.ts`).
 
+### Demo creator (admin-only, sales tool)
+- `/admin/demos` (`DemosManager`) — pre-build a themed demo widget per prospect. Actions in `lib/actions/demos.ts` (admin-gated via ADMIN_EMAILS): create/list/rename/delete/updateDemoConfig/addDemoContract. Demos are real `projects` rows under a sentinel **"Demos" org** (`clerk_org_id = "internal-txid-demos"`), `is_active: true` + `publicDemo: true` (works on any origin, no domain check), kept out of any customer org. `assertDemoProject` scopes every mutation to that org so admin actions can't touch real projects.
+- Multi-project is possible because the "one project per org" rule is only a soft convention in `getProject()` (reads the first row); the schema already allows N projects per org.
+- **Launch = a bookmarklet** per demo (inject `app.txid.support/widget.js?data-key=<key>` onto any page) — drag to toolbar, click on a prospect's live site during a call. React strips `javascript:` hrefs, so the anchor's href is set imperatively via a ref (see `BookmarkletLink` / `DemoBookmarklet`).
+- **Public share page** `txid.support/d/[key]` (`apps/web/app/d/[key]`, noindex) — the prospect drags the same bookmarklet from there to try the demo on their own site, no account (publicDemo makes it work). v1 covers branding + watched contracts; docs-RAG is a fast-follow (would need admin-scoped wrappers around `crawlAndIngest`).
+
 ### Security & trust marketing
 - `apps/web/app/security/page.tsx` — /security page for buyer security reviews: Safe-by-design vs Ask-and-verify framing, data handling, subprocessors (keep in sync with /privacy).
 - Framing rule: sanctions screening + contract verification are ON-REQUEST tools (user asks, bot checks live and cites source) — never describe them as proactive interception.

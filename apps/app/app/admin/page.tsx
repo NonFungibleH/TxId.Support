@@ -150,6 +150,9 @@ export default async function AdminPage() {
           <Link href="/admin/eval" className="rounded-lg border border-border px-3 py-1.5 text-sm font-medium hover:border-border/80 transition-colors text-muted-foreground hover:text-foreground">
             Eval →
           </Link>
+          <Link href="/admin/demos" className="rounded-lg border border-border px-3 py-1.5 text-sm font-medium hover:border-emerald-500/40 hover:text-emerald-400 transition-colors">
+            Demo creator →
+          </Link>
         </div>
       </div>
 
