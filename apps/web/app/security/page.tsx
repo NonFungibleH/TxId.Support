@@ -77,15 +77,6 @@ const DATA = [
   },
 ];
 
-const SUBPROCESSORS = [
-  { name: "Anthropic", use: "AI inference (Claude)" },
-  { name: "Voyage AI", use: "Document embeddings" },
-  { name: "Supabase", use: "Database and storage" },
-  { name: "Clerk", use: "Authentication" },
-  { name: "Moralis", use: "On-chain data" },
-  { name: "Vercel", use: "Hosting" },
-];
-
 function Card({ icon: Icon, title, description }: { icon: typeof Ban; title: string; description: string }) {
   return (
     <div className="bg-[var(--bg-surface)] border border-[var(--border)] rounded-xl p-5 hover:border-[var(--border-accent)] transition-colors group h-full">
@@ -200,28 +191,21 @@ export default function SecurityPage() {
             </div>
           </div>
 
-          {/* Subprocessors */}
+          {/* No integration required */}
           <div className="mt-16">
             <FadeIn>
-              <div className="mb-4">
-                <h2 className="font-display text-xl font-semibold text-white">Subprocessors</h2>
-                <p className="text-sm text-muted mt-1 max-w-2xl">
-                  The vendors that process data on our behalf. The full list and data
-                  rights live in the{" "}
-                  <Link href="/privacy" className="text-accent hover:underline">privacy policy</Link>.
+              <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-surface)] p-6 sm:p-8">
+                <h2 className="font-display text-xl font-semibold text-white mb-2">Nothing to integrate</h2>
+                <p className="text-sm text-muted leading-relaxed max-w-3xl">
+                  TxID reads your users&apos; activity the same way a block explorer does: through public
+                  RPC endpoints and explorer APIs. It does <span className="text-white">not</span> integrate
+                  with your smart contracts, is never granted any permission or access to them, and deploys
+                  nothing on-chain. There is no contract to connect and no access to approve. Adding TxID
+                  changes nothing about your contracts or their permissions, because it only ever
+                  <span className="text-white"> reads public data anyone can already see</span>.
                 </p>
               </div>
             </FadeIn>
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {SUBPROCESSORS.map((s, i) => (
-                <FadeIn key={s.name} delay={(i % 3) * 0.05}>
-                  <div className="flex items-center justify-between bg-[var(--bg-surface)] border border-[var(--border)] rounded-lg px-4 py-3">
-                    <span className="font-display font-semibold text-white text-sm">{s.name}</span>
-                    <span className="text-xs text-muted">{s.use}</span>
-                  </div>
-                </FadeIn>
-              ))}
-            </div>
           </div>
 
           {/* Closing CTA */}
