@@ -107,26 +107,33 @@ export default async function AdminPage() {
     })
   }
 
-  // Owner login per org, resolved from Clerk (the org:admin member, falling back
-  // to the first member). Keyed by clerk_org_id, fetched once per unique org.
-  // The sentinel "Demos" org has no real Clerk org, so its lookup fails and we
-  // label it "internal" rather than surfacing an error.
+  // Owner login per org, resolved from Clerk and keyed by clerk_org_id. That key
+  // is `orgId ?? userId` (see getProject), so it's either a real Clerk org
+  // ("org_…" → the org:admin member's email), a personal-account user id
+  // ("user_…" → that user's primary email), or the "Demos" sentinel ("internal").
+  // Fetched once per unique key.
   const uniqueClerkOrgIds = [...new Set(stats.map(r => r.clerk_org_id).filter(Boolean))]
   const ownerByClerkOrg = new Map<string, string>()
   const clerk = await clerkClient()
   await Promise.all(
     uniqueClerkOrgIds.map(async (orgId) => {
-      if (!orgId.startsWith("org_")) {
-        ownerByClerkOrg.set(orgId, "internal")
-        return
-      }
       try {
-        const { data: members } = await clerk.organizations.getOrganizationMembershipList({ organizationId: orgId, limit: 100 })
-        const owner = members.find(m => m.role === "org:admin") ?? members[0]
-        const email = owner?.publicUserData?.identifier
-        if (email) ownerByClerkOrg.set(orgId, email)
+        if (orgId.startsWith("org_")) {
+          const { data: members } = await clerk.organizations.getOrganizationMembershipList({ organizationId: orgId, limit: 100 })
+          const owner = members.find(m => m.role === "org:admin") ?? members[0]
+          const email = owner?.publicUserData?.identifier
+          if (email) ownerByClerkOrg.set(orgId, email)
+        } else if (orgId.startsWith("user_")) {
+          const u = await clerk.users.getUser(orgId)
+          const email = u.emailAddresses.find(e => e.id === u.primaryEmailAddressId)?.emailAddress
+            ?? u.emailAddresses[0]?.emailAddress
+          if (email) ownerByClerkOrg.set(orgId, email)
+        } else {
+          // The Demos sentinel ("internal-txid-demos") and anything else.
+          ownerByClerkOrg.set(orgId, "internal")
+        }
       } catch {
-        // Org not found in Clerk (e.g. deleted or sentinel) — leave unset.
+        // Deleted user/org or lookup failure — leave unset (renders as a dash).
       }
     }),
   )
