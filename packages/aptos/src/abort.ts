@@ -1,5 +1,5 @@
 import type { DecodedAbort } from "./types"
-import { normalizeAptosAddress } from "./index"
+import { normalizeAptosAddress } from "./address"
 
 const CATEGORY_NAMES: Record<number, string> = {
   1: "invalid argument",
@@ -27,6 +27,11 @@ const FRAMEWORK_ERRORS: Record<string, Record<number, { name: string; reason: st
     0x10006: { name: "EINSUFFICIENT_BALANCE", reason: "The wallet has insufficient balance to complete the transfer or operation. Check the amount plus gas costs against the available balance." },
     0x5000a: { name: "EFROZEN", reason: "The coin store for this wallet is frozen, so deposits and withdrawals of this coin are blocked." },
   },
+  "0x1::fungible_asset": {
+    0x10003: { name: "ESTORE_IS_FROZEN", reason: "The fungible asset store is frozen, so transfers of this asset are blocked for this wallet." },
+    0x10004: { name: "EINSUFFICIENT_BALANCE", reason: "The wallet has insufficient balance of this fungible asset to complete the withdrawal or transfer." },
+    0x50003: { name: "ESTORE_IS_FROZEN", reason: "The fungible asset store is frozen, so transfers of this asset are blocked for this wallet." },
+  },
   "0x1::account": {
     0x80001: { name: "EACCOUNT_ALREADY_EXISTS", reason: "An account already exists at this address, so it cannot be created again." },
     0x60002: { name: "EACCOUNT_DOES_NOT_EXIST", reason: "No account exists at this address. It may need to be created or funded first." },
@@ -36,11 +41,6 @@ const FRAMEWORK_ERRORS: Record<string, Record<number, { name: string; reason: st
   "0x1::aptos_account": {
     0x60001: { name: "EACCOUNT_NOT_FOUND", reason: "The target account does not exist on chain. Sending APT to it first will create it." },
     0x50003: { name: "EACCOUNT_DOES_NOT_ACCEPT_DIRECT_COIN_TRANSFERS", reason: "The recipient has opted out of receiving coins they have not registered for, so this direct transfer was blocked." },
-  },
-  "0x1::fungible_asset": {
-    0x10003: { name: "ESTORE_IS_FROZEN", reason: "The fungible asset store is frozen, so deposits and withdrawals are blocked for this asset." },
-    0x10004: { name: "EINSUFFICIENT_BALANCE", reason: "The wallet has insufficient balance of this fungible asset to complete the withdrawal or transfer." },
-    0x50003: { name: "ESTORE_IS_FROZEN", reason: "The token store is frozen, so transfers of this asset are blocked for this wallet." },
   },
   "0x1::object": {
     0x80001: { name: "EOBJECT_EXISTS", reason: "An object already exists at this address, so it cannot be created again." },
@@ -78,12 +78,12 @@ const NORMALIZED_FRAMEWORK: Record<string, Record<number, { name: string; reason
 )
 
 const MOVE_ABORT_RE = /^Move abort in (0x[0-9a-fA-F]+::[A-Za-z_][A-Za-z0-9_]*):\s*(.+)$/
-const NAMED_CODE_RE = /^([A-Za-z_][A-Za-z0-9_]*)\((0x[0-9a-fA-F]+|\d+)\)$/
+const NAMED_CODE_RE = /^([A-Za-z_][A-Za-z0-9_]*)\((0x[0-9a-fA-F]+|\d+)\)(?::\s*.*)?$/
 
 export function decodeAbort(vmStatus: string, errmap?: AbortErrmap): DecodedAbort {
-  const raw = vmStatus
+  const raw = typeof vmStatus === "string" ? vmStatus : String(vmStatus ?? "")
 
-  if (/out[ _]?of[ _]?gas/i.test(vmStatus)) {
+  if (/out[ _]?of[ _]?gas/i.test(raw)) {
     return {
       cause: "out_of_gas",
       module: null,
@@ -95,7 +95,7 @@ export function decodeAbort(vmStatus: string, errmap?: AbortErrmap): DecodedAbor
     }
   }
 
-  const abortMatch = vmStatus.match(MOVE_ABORT_RE)
+  const abortMatch = raw.match(MOVE_ABORT_RE)
   if (abortMatch) {
     const module = abortMatch[1] ?? ""
     const codePart = (abortMatch[2] ?? "").trim()
@@ -109,10 +109,12 @@ export function decodeAbort(vmStatus: string, errmap?: AbortErrmap): DecodedAbor
     }
 
     let big: bigint | null = null
-    try {
-      big = BigInt(codeStr)
-    } catch {
-      big = null
+    if (codeStr !== "") {
+      try {
+        big = BigInt(codeStr)
+      } catch {
+        big = null
+      }
     }
 
     if (big === null) {
@@ -170,8 +172,8 @@ export function decodeAbort(vmStatus: string, errmap?: AbortErrmap): DecodedAbor
     return { cause: "move_abort", module, code, category, errorName, reason, raw }
   }
 
-  if (/^execution fail/i.test(vmStatus)) {
-    const execModule = vmStatus.match(/in (0x[0-9a-fA-F]+::[A-Za-z_][A-Za-z0-9_]*)/)
+  if (/^execution fail/i.test(raw)) {
+    const execModule = raw.match(/in (0x[0-9a-fA-F]+::[A-Za-z_][A-Za-z0-9_]*)/)
     const module = execModule?.[1] ?? null
     return {
       cause: "execution_failure",
