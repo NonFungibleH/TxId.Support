@@ -87,7 +87,13 @@ function findWatched(
   if (!contractAddress) {
     return watchedContracts.length === 1 ? { target: watchedContracts[0]! } : {}
   }
-  const matches = watchedContracts.filter(c => c.address.toLowerCase() === contractAddress.toLowerCase())
+  // Aptos addresses have many equivalent spellings ("0x1" vs zero-padded) —
+  // normalize both sides when both are Aptos-shaped (EVM 0x40hex normalizes
+  // identically on both sides, so this is a no-op for EVM).
+  const sameAddress = (a: string, b: string): boolean =>
+    a.toLowerCase() === b.toLowerCase() ||
+    (isAptosAddress(a) && isAptosAddress(b) && normalizeAptosAddress(a) === normalizeAptosAddress(b))
+  const matches = watchedContracts.filter(c => sameAddress(c.address, contractAddress))
   if (matches.length === 0) return {}
   if (matches.length === 1) return { target: matches[0]! }
   if (chainId) {
@@ -100,17 +106,26 @@ function findWatched(
 /**
  * Aptos view functions are addressed as addr::module::fn. The caller supplies
  * "module::fn" (or the full id) and the watched account fills in the address.
+ * A fully-qualified name must point at the WATCHED account — otherwise this
+ * tool would read state on arbitrary modules through a scoped tool.
  * Returns null when the name can't be qualified — the tool explains the format.
  */
 function aptosFunctionId(contractAddress: string, functionName: string): string | null {
   const parts = functionName.split("::").filter(Boolean)
-  if (parts.length === 3) return functionName
+  if (parts.length === 3) {
+    const addr = parts[0]!
+    if (!isAptosAddress(addr) || normalizeAptosAddress(addr) !== normalizeAptosAddress(contractAddress)) return null
+    return functionName
+  }
   if (parts.length === 2) return `${normalizeAptosAddress(contractAddress)}::${functionName}`
   return null
 }
 
 const APTOS_FN_FORMAT_NOTE =
-  "On Aptos, functions live inside named modules — call again with function_name as 'module::function' (e.g. 'pool::get_fee'). Use get_contract_functions to list this account's modules and their view functions."
+  "On Aptos, functions live inside named modules — call again with function_name as 'module::function' (e.g. 'pool::get_fee'). Only functions on this protocol's own module account can be read, and type arguments are not supported here. Use get_contract_functions to list this account's modules and their view functions."
+
+const aptosFullnodeFailed = (what: string) =>
+  `Could not reach the Aptos fullnode to ${what} right now — a failed lookup, not a statement about the account. Try again shortly.`
 
 /**
  * Build balance + history tools — only offered when a wallet is connected.
@@ -292,6 +307,9 @@ export async function executeTool(
         isSolanaChain(providedChain ?? "") ||
         isSolanaChain(wallet?.chainId ?? "") ||
         watchedContracts.some(c => isSolanaChain(c.chain))
+      // NOTE: all-numeric input is also valid base58 — if Solana is ever
+      // un-paused alongside Aptos, the Aptos version short-circuit below must
+      // move above this return.
       if (!looksEvm && solanaInPlay) {
         return getSolanaTransactionBySignature(hash)
       }
@@ -581,7 +599,13 @@ export async function executeTool(
         // A module-publishing account holds fungible assets like any account —
         // same lookup as a wallet balance (Solana precedent above).
         const holdings = await getAptosWalletBalance(target.address)
-        return holdings ? { contract: target.name, ...holdings } : { contract: target.name, error: APTOS_LOOKUP_FAILED }
+        return holdings
+          ? {
+              contract: target.name,
+              ...holdings,
+              note: "On Aptos, protocol funds often sit in separate resource accounts, not the module-publishing account: a low balance here does not mean the protocol holds no funds.",
+            }
+          : { contract: target.name, error: APTOS_LOOKUP_FAILED }
       }
       const [native, tokens] = await Promise.all([
         getNativeBalance(target.address, target.chain),
@@ -667,7 +691,7 @@ export async function executeTool(
       }
       if (isAptosChain(target.chain)) {
         const modules = await getAptosModuleAbi(target.address)
-        if (!modules) return { contract: target.name, error: "Could not reach the Aptos fullnode to inspect this account's modules right now — a failed lookup, not a statement about the account. Try again shortly." }
+        if (!modules) return { contract: target.name, error: aptosFullnodeFailed("inspect this account's modules") }
         return {
           contract: target.name,
           address: target.address,
@@ -700,7 +724,7 @@ export async function executeTool(
         // Full module list for the account — per-module scoping arrives with
         // moduleName threading in a later task.
         const modules = await getAptosModuleAbi(target.address)
-        if (!modules) return { contract: target.name, error: "Could not reach the Aptos fullnode to read this account's modules right now — a failed lookup, not a statement about the account. Try again shortly." }
+        if (!modules) return { contract: target.name, error: aptosFullnodeFailed("read this account's modules") }
         const signature = (f: { name: string; params: string[] }) => `${f.name}(${f.params.join(", ")})`
         return {
           contract: target.name,
@@ -779,7 +803,7 @@ export async function executeTool(
 
     case "get_native_price": {
       const chainId = typeof input.chain_id === "string" ? input.chain_id : (wallet?.chainId ?? watchedContracts[0]?.chain ?? "0x1")
-      if (isSolanaChain(chainId)) return { chainId, note: "Native price here is EVM-only." }
+      if (isSolanaChain(chainId)) return { chainId, note: "Native price is not available for Solana here." }
       // "aptos" is handled by getNativeTokenPrice (APT priced by coin type on DexScreener)
       const price = await getNativeTokenPrice(chainId)
       return price ?? { chainId, note: "Could not fetch the native token price for this chain." }
@@ -787,7 +811,7 @@ export async function executeTool(
 
     case "get_network_status": {
       const chainId = typeof input.chain_id === "string" ? input.chain_id : (wallet?.chainId ?? watchedContracts[0]?.chain ?? "0x1")
-      if (isSolanaChain(chainId)) return { chainId, note: "Network status here is EVM-only." }
+      if (isSolanaChain(chainId)) return { chainId, note: "Network status is not available for Solana here." }
       if (isAptosChain(chainId)) {
         const aptosStatus = await getAptosNetworkStatus()
         return {
@@ -815,8 +839,15 @@ export async function executeTool(
       if (aptos) {
         const diag = await diagnoseAptosWallet(wallet.address)
         // Null fields mean the underlying lookup FAILED — unverified, never "zero"/"none".
+        // 0x1::coin::balance returns "0" (not null) for never-created accounts, so a
+        // non-null aptBalance proves the fullnode was reachable and exists=false is real.
         const cautions: string[] = []
-        if (!diag.exists) cautions.push("exists=false: no account resource on Aptos mainnet — this address has most likely never sent a transaction (a common cause of 'nothing works': wrong address or wrong network in the wallet).")
+        if (!diag.exists && diag.aptBalance !== null) {
+          cautions.push("exists=false: no account resource on Aptos mainnet — this address has most likely never sent a transaction (a common cause of 'nothing works': wrong address or wrong network in the wallet).")
+        }
+        if (!diag.exists && diag.aptBalance === null) {
+          cautions.push("exists=false but the fullnode may have been unreachable, so the existence check itself may have failed — account existence is UNVERIFIED. Do not tell the user the account does not exist.")
+        }
         if (diag.aptBalance === null) cautions.push("aptBalance is null because the balance lookup failed — the balance is UNVERIFIED, do not describe it as zero or empty.")
         if (diag.recentFailureCount === null) cautions.push("recentFailureCount is null because the recent-transaction lookup failed — whether recent transactions failed is UNVERIFIED, do not state a count.")
         return {
@@ -833,7 +864,7 @@ export async function executeTool(
       // turns this into a "Switch to X" button in the widget.
       let switchTo: { chainId: string; chainName: string } | undefined
       const target = protocolChains[0]
-      if (!onProtocolChain && protocolChains.length === 1 && target && !isSolanaChain(target) && !isAptosChain(target)) {
+      if (!onProtocolChain && protocolChains.length === 1 && target && !isNonEvm(target)) {
         const cfg = CHAIN_CONFIGS[target]
         if (cfg) switchTo = { chainId: target, chainName: cfg.name }
       }

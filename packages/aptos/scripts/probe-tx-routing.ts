@@ -77,7 +77,12 @@ async function main() {
   }
 
   {
-    // watched-contract-only context (no wallet) must also put Aptos in play
+    // watched-contract-only context (no wallet) must also put Aptos in play.
+    // Watching 0x1 makes the scope guard vacuous BY DESIGN of this test:
+    // every user tx emits 0x1 framework events (FeeStatement, coin/FA events),
+    // so any tx is "in scope" for 0x1 — which is exactly what lets us assert
+    // the tx is actually RETURNED (not out_of_scope) regardless of which tx
+    // was discovered. The negative case below covers the guard rejecting.
     const watched = [
       { id: "p1", name: "Aptos Framework", address: "0x1", chain: "aptos", description: "" },
     ]
@@ -86,12 +91,55 @@ async function main() {
       { hash: found.hash },
       null,
       watched,
-    )) as { chainId?: string; status?: string }
+    )) as { chainId?: string; status?: string; success?: boolean }
     report(
       "aptos watched contract (no wallet) puts Aptos in the fan-out",
-      result.chainId === "aptos",
-      `chainId=${result.chainId} status=${result.status ?? "found"}`,
+      result.chainId === "aptos" && result.status === undefined && result.success === true,
+      `chainId=${result.chainId} status=${result.status ?? "found"} success=${result.success}`,
     )
+  }
+
+  {
+    // Negative scope case: watch a real module account the discovered tx does
+    // NOT involve — the guard must reject with out_of_scope. Two real protocol
+    // accounts (PancakeSwap-Aptos router, ThalaSwap); pick one the tx doesn't
+    // touch so the test can't flake on whichever tx was discovered.
+    const candidates = [
+      "0xc7efb4076dbe143cbcd98cfaaa929ecfc8f299203dfff63b95ccb6bfe19850fa",
+      "0x48271d39d0b05bd6efca2278f22277d6fcc375504f9839fd73f74ace240861af",
+    ]
+    const direct = await getAptosTransactionByHash(found.hash)
+    const involved = (addr: string): boolean => {
+      if (!direct) return false
+      const norm = (id: string) => {
+        const sep = id.indexOf("::")
+        return sep === -1 ? null : id.slice(0, sep).toLowerCase()
+      }
+      const target = addr.toLowerCase()
+      return (
+        (direct.functionId ? norm(direct.functionId) === target : false) ||
+        direct.events.some(e => norm(e.type) === target)
+      )
+    }
+    const uninvolved = candidates.find(a => !involved(a))
+    if (!uninvolved) {
+      console.log("SKIP  out_of_scope negative case — discovered tx involves both candidate modules")
+    } else {
+      const watched = [
+        { id: "p2", name: "Unrelated Protocol", address: uninvolved, chain: "aptos", description: "" },
+      ]
+      const result = (await executeTool(
+        "get_transaction_by_hash",
+        { hash: found.hash },
+        null,
+        watched,
+      )) as { chainId?: string; status?: string }
+      report(
+        "tx not touching the watched module is rejected out_of_scope",
+        result.chainId === "aptos" && result.status === "out_of_scope",
+        `chainId=${result.chainId} status=${result.status ?? "found"} watched=${uninvolved.slice(0, 12)}…`,
+      )
+    }
   }
 
   const failedHash = process.argv[2]
