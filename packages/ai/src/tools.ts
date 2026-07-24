@@ -296,32 +296,98 @@ export async function executeTool(
         return getSolanaTransactionBySignature(hash)
       }
 
+      // Aptos tx hashes are 0x+64hex — format-IDENTICAL to EVM hashes, so
+      // format alone can't route them. When the session involves Aptos, query
+      // the Aptos fullnode in parallel with the EVM candidates and use
+      // whichever chain actually has the tx. An all-numeric input is an Aptos
+      // transaction VERSION and can only be Aptos.
+      const aptosInPlay =
+        isAptosChain(providedChain ?? "") ||
+        isAptosChain(wallet?.chainId ?? "") ||
+        watchedContracts.some(c => isAptosChain(c.chain))
+      const looksAptosVersion = /^\d+$/.test(hash)
+      if (aptosInPlay && looksAptosVersion) {
+        const versionTx = await getAptosTransactionByHash(hash)
+        return versionTx
+          ? { chainId: "aptos", ...versionTx }
+          : {
+              hash,
+              chainId: "aptos",
+              status: "not_found",
+              note: "No Aptos user transaction exists at this version — or the fullnode could not be reached. Do not claim the transaction failed or was dropped; say it could not be found by this version number.",
+            }
+      }
+      const checkAptos = aptosInPlay && looksEvm
+
       // Never assume the chain: search every relevant EVM chain for the hash and
       // use whichever one actually has it. Candidates in priority order:
       // the chain the user named, the connected wallet's chain, then the chains
       // this protocol's contracts live on.
       const candidates: string[] = []
       const pushEvm = (c?: string) => {
-        if (c && !isSolanaChain(c) && !candidates.includes(c)) candidates.push(c)
+        if (c && !isNonEvm(c) && !candidates.includes(c)) candidates.push(c)
       }
       pushEvm(providedChain)
       pushEvm(wallet?.chainId ?? undefined)
       for (const c of watchedContracts) pushEvm(c.chain)
-      if (candidates.length === 0) pushEvm("0x1")
+      if (candidates.length === 0 && !checkAptos) pushEvm("0x1")
 
       const knownAbis: Record<string, string> = {}
       for (const c of watchedContracts) {
         if (c.abi) knownAbis[c.address.toLowerCase()] = c.abi
       }
 
-      // Look on all candidate chains at once; take the highest-priority hit.
-      const results = await Promise.all(
-        candidates.map(async chainId => ({
-          chainId,
-          tx: await getTransactionByHash(hash, chainId, knownAbis).catch(() => null),
-        })),
-      )
+      // Look on all candidate chains at once (Aptos joins the same fan-out —
+      // it tolerates misses like every other candidate); take the
+      // highest-priority hit.
+      const [results, aptosTx] = await Promise.all([
+        Promise.all(
+          candidates.map(async chainId => ({
+            chainId,
+            tx: await getTransactionByHash(hash, chainId, knownAbis).catch(() => null),
+          })),
+        ),
+        checkAptos ? getAptosTransactionByHash(hash).catch(() => null) : Promise.resolve(null),
+      ])
+      const checkedChains = checkAptos ? [...candidates, "aptos"] : candidates
       const hit = results.find(r => r.tx)
+      if (hit?.tx && aptosTx) {
+        // Both an EVM chain and Aptos claim this hash (astronomically unlikely):
+        // prefer the connected wallet's chain and say which chain was used.
+        if (wallet && isAptosChain(wallet.chainId)) {
+          return {
+            chainId: "aptos",
+            ...aptosTx,
+            chainNote: `A transaction with this hash also exists on EVM chain ${hit.chainId}; the Aptos one is shown because the connected wallet is on Aptos.`,
+          }
+        }
+      }
+      if (!hit?.tx && aptosTx) {
+        // Aptos scope guard, mirroring the EVM one below: only diagnose txs
+        // that touch this protocol's own Aptos modules (entry function or
+        // emitted events), when any are watched.
+        const aptosOwned = watchedContracts
+          .filter(c => isAptosChain(c.chain))
+          .map(c => normalizeAptosAddress(c.address))
+        if (aptosOwned.length > 0) {
+          const addrOf = (id: string) => {
+            const sep = id.indexOf("::")
+            return sep === -1 ? null : normalizeAptosAddress(id.slice(0, sep))
+          }
+          const touches =
+            (aptosTx.functionId ? aptosOwned.includes(addrOf(aptosTx.functionId) ?? "") : false) ||
+            aptosTx.events.some(e => aptosOwned.includes(addrOf(e.type) ?? ""))
+          if (!touches) {
+            return {
+              hash,
+              chainId: "aptos",
+              status: "out_of_scope",
+              note: "This transaction does not involve any of this protocol's own modules, so it is outside what you can diagnose. Do NOT analyse it — decline in one sentence and offer to help with this protocol's own transactions.",
+            }
+          }
+        }
+        return { chainId: "aptos", ...aptosTx }
+      }
       if (hit?.tx) {
         const tx = hit.tx
         // Enrich the mined tx with decoded args, EVERY event (decoded against all
@@ -354,7 +420,10 @@ export async function executeTool(
             }
           }
         }
-        return enrichment ? { ...tx, ...enrichment } : tx
+        const chainNote = aptosTx
+          ? { chainNote: `A transaction with this hash also exists on Aptos; the ${hit.chainId} one is shown because the connected wallet/protocol context prefers it. Say which chain was used.` }
+          : {}
+        return enrichment ? { ...tx, ...enrichment, ...chainNote } : { ...tx, ...chainNote }
       }
 
       // Not mined on any candidate chain — diagnose pending/dropped on EVERY
@@ -372,13 +441,13 @@ export async function executeTool(
         pendingResults.find(r => r.diag && r.diag.cause !== "dropped") ??
         pendingResults.find(r => r.diag)
       if (best?.diag) {
-        return { hash, chainId: best.chainId, status: "not_mined", pendingDiagnosis: best.diag, checkedChains: candidates }
+        return { hash, chainId: best.chainId, status: "not_mined", pendingDiagnosis: best.diag, checkedChains }
       }
       return {
         hash,
         status: "not_found",
-        checkedChains: candidates,
-        note: `This transaction was not found on any of the chains checked (${candidates.join(", ")}). Do not claim it is on, or dropped from, a specific chain — state which chains were checked.`,
+        checkedChains,
+        note: `This transaction was not found on any of the chains checked (${checkedChains.join(", ")}). Do not claim it is on, or dropped from, a specific chain — state which chains were checked.`,
       }
     }
 
