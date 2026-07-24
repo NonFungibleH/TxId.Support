@@ -40,6 +40,7 @@ const FRAMEWORK_ERRORS: Record<string, Record<number, { name: string; reason: st
   "0x1::fungible_asset": {
     0x10003: { name: "ESTORE_IS_FROZEN", reason: "The fungible asset store is frozen, so deposits and withdrawals are blocked for this asset." },
     0x10004: { name: "EINSUFFICIENT_BALANCE", reason: "The wallet has insufficient balance of this fungible asset to complete the withdrawal or transfer." },
+    0x50003: { name: "ESTORE_IS_FROZEN", reason: "The token store is frozen, so transfers of this asset are blocked for this wallet." },
   },
   "0x1::object": {
     0x80001: { name: "EOBJECT_EXISTS", reason: "An object already exists at this address, so it cannot be created again." },
@@ -52,13 +53,15 @@ const FRAMEWORK_ERRORS: Record<string, Record<number, { name: string; reason: st
     0x10002: { name: "EINVALID_TIMESTAMP", reason: "The provided timestamp is invalid; it must be ahead of the current on-chain time." },
   },
   "0x3::token": {
-    0x60002: { name: "ECOLLECTIONS_NOT_PUBLISHED", reason: "The creator account has no token collections published, so the requested collection cannot be found." },
-    0x60003: { name: "ECOLLECTION_NOT_PUBLISHED", reason: "The requested collection does not exist under the creator account. Check the collection name and creator address." },
-    0x10006: { name: "EINSUFFICIENT_BALANCE", reason: "The wallet does not hold enough of this token to complete the transfer or burn." },
+    0x60001: { name: "ECOLLECTIONS_NOT_PUBLISHED", reason: "The creator account has no token collections published, so the requested collection cannot be found." },
+    0x60002: { name: "ECOLLECTION_NOT_PUBLISHED", reason: "The requested collection does not exist under the creator account. Check the collection name and creator address." },
+    0x60005: { name: "EINSUFFICIENT_BALANCE", reason: "The wallet does not hold enough of this token to complete the transfer or burn." },
+    0x10005: { name: "EINSUFFICIENT_BALANCE", reason: "The wallet does not hold enough of this token to complete the transfer or burn." },
+    0x10006: { name: "EINVALID_TOKEN_MERGE", reason: "The two tokens cannot be merged because they are not the same token type." },
   },
   "0x4::token": {
     0x60001: { name: "ETOKEN_DOES_NOT_EXIST", reason: "The referenced token does not exist. It may have been burned or the address may be wrong." },
-    0x50002: { name: "ENOT_CREATOR", reason: "The signing wallet is not the creator of this token, so it cannot perform this creator-only operation." },
+    0x40002: { name: "ENOT_CREATOR", reason: "The signing wallet is not the creator of this token, so it cannot perform this creator-only operation." },
   },
 }
 
