@@ -123,7 +123,8 @@ interface RawUserTransaction {
 }
 
 function microsToIso(micros: string): string {
-  return new Date(Math.floor(Number(micros) / 1000)).toISOString()
+  const ms = Math.floor(Number(micros) / 1000)
+  return Number.isFinite(ms) ? new Date(ms).toISOString() : ""
 }
 
 export async function getAptosTransactionByHash(
@@ -186,6 +187,7 @@ export async function getAptosNetworkStatus(): Promise<AptosNetworkStatus> {
 }
 
 export function formatUnits(raw: string, decimals: number): string {
+  if (!/^\d+$/.test(raw) || decimals < 0) return raw
   const big = BigInt(raw)
   const base = 10n ** BigInt(decimals)
   const whole = big / base
@@ -193,9 +195,3 @@ export function formatUnits(raw: string, decimals: number): string {
   return frac ? `${whole}.${frac}` : whole.toString()
 }
 
-export interface AptosWalletDiagnosis {
-  exists: boolean
-  sequenceNumber: string | null
-  aptBalance: string | null
-  recentFailureCount: number
-}

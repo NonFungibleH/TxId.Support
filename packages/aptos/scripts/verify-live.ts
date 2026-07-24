@@ -187,6 +187,10 @@ async function main(): Promise<void> {
     let balanceDetail = "no candidate sender had a parseable APT balance"
     for (const sender of candidates) {
       const balance = await getAptosWalletBalance(sender)
+      if (!balance) {
+        await pause(300)
+        continue
+      }
       const parsed = parseFloat(balance.aptBalance)
       if (Number.isFinite(parsed) && parsed > 0) {
         balanceOk = true
@@ -205,7 +209,7 @@ async function main(): Promise<void> {
     let historyOk = false
     let historyDetail = "no candidate sender returned history with functionId"
     for (const sender of candidates.slice(0, 3)) {
-      const history = await getAptosRecentTransactions(sender, undefined, 10)
+      const history = (await getAptosRecentTransactions(sender, undefined, 10)) ?? []
       const withFunction = history.find(tx => tx.functionId !== null)
       if (history.length >= 1 && withFunction) {
         historyOk = true

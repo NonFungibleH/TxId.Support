@@ -1,4 +1,4 @@
-export type { AptosBalance, AptosTransaction, DecodedAbort, AptosModuleFunction, AptosModuleAbi } from "./types"
+export type { AptosBalance, AptosTransaction, DecodedAbort, AptosModuleFunction, AptosModuleAbi, AptosWalletDiagnosis } from "./types"
 export { decodeAbort } from "./abort"
 export type { AbortErrmap } from "./abort"
 export { isAptosAddress, normalizeAptosAddress } from "./address"
@@ -11,7 +11,7 @@ export {
   getAptosNetworkStatus,
   formatUnits,
 } from "./fullnode"
-export type { AptosLedgerInfo, AptosNetworkStatus, AptosWalletDiagnosis } from "./fullnode"
+export type { AptosLedgerInfo, AptosNetworkStatus } from "./fullnode"
 export {
   aptosGraphql,
   getAptosWalletBalance,

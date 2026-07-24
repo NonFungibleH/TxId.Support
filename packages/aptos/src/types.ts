@@ -38,6 +38,13 @@ export interface AptosModuleFunction {
   genericTypeParams: number
 }
 
+export interface AptosWalletDiagnosis {
+  exists: boolean
+  sequenceNumber: string | null
+  aptBalance: string | null
+  recentFailureCount: number | null
+}
+
 export interface AptosModuleAbi {
   address: string
   moduleName: string

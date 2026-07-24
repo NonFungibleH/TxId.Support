@@ -8,8 +8,7 @@ import {
   sleep,
   viewFunction,
 } from "./fullnode"
-import type { AptosWalletDiagnosis } from "./fullnode"
-import type { AptosBalance, AptosTransaction } from "./types"
+import type { AptosBalance, AptosTransaction, AptosWalletDiagnosis } from "./types"
 
 const INDEXER_URL = "https://api.mainnet.aptoslabs.com/v1/graphql"
 
@@ -75,18 +74,17 @@ function isAptRow(row: BalanceRow): boolean {
   return row.metadata?.symbol === "APT" && row.asset_type === "0xa"
 }
 
-export async function getAptosWalletBalance(address: string): Promise<AptosBalance> {
+export async function getAptosWalletBalance(address: string): Promise<AptosBalance | null> {
   const owner = normalizeAptosAddress(address)
-  const zeroed: AptosBalance = { address: owner, aptBalance: "0", aptRaw: "0", tokens: [] }
   const data = await aptosGraphql<{ current_fungible_asset_balances: BalanceRow[] }>(BALANCES_QUERY, { owner })
-  if (!data) return zeroed
+  if (!data) return null
 
   const rows = data.current_fungible_asset_balances
   const aptRow = rows.find(isAptRow) ?? null
   const aptRaw = aptRow ? rawAmount(aptRow.amount) : "0"
 
   const tokens = rows
-    .filter(row => row !== aptRow && row.metadata !== null)
+    .filter(row => !isAptRow(row) && row.metadata !== null)
     .map(row => {
       const metadata = row.metadata as NonNullable<BalanceRow["metadata"]>
       return {
@@ -111,9 +109,10 @@ const HISTORY_QUERY = `query AccountTransactions($addr: String!) {
   }
 }`
 
-async function hydrateVersions(versions: string[]): Promise<AptosTransaction[]> {
+async function hydrateVersions(versions: string[], stopAt?: number): Promise<AptosTransaction[]> {
   const results: AptosTransaction[] = []
   for (let i = 0; i < versions.length; i += 3) {
+    if (stopAt !== undefined && results.length >= stopAt) break
     if (i > 0) await sleep(300)
     const chunk = versions.slice(i, i + 3)
     const txs = await Promise.all(chunk.map(v => getAptosTransactionByHash(v)))
@@ -135,16 +134,16 @@ export async function getAptosRecentTransactions(
   address: string,
   moduleAddress?: string,
   limit = 10
-): Promise<AptosTransaction[]> {
+): Promise<AptosTransaction[] | null> {
   const addr = normalizeAptosAddress(address)
   const data = await aptosGraphql<{ account_transactions: { transaction_version: number | string }[] }>(
     HISTORY_QUERY,
     { addr }
   )
-  if (!data) return []
+  if (!data) return null
 
   const versions = data.account_transactions.map(row => String(row.transaction_version))
-  let txs = await hydrateVersions(versions)
+  let txs = await hydrateVersions(versions, moduleAddress ? undefined : limit)
   if (moduleAddress) {
     const target = normalizeAptosAddress(moduleAddress)
     txs = txs.filter(tx => functionIdMatchesModule(tx.functionId, target))
@@ -164,6 +163,6 @@ export async function diagnoseAptosWallet(address: string): Promise<AptosWalletD
     exists: account !== null,
     sequenceNumber: account?.sequenceNumber ?? null,
     aptBalance: typeof octas === "string" ? formatUnits(octas, 8) : null,
-    recentFailureCount: recent.filter(tx => !tx.success).length,
+    recentFailureCount: recent ? recent.filter(tx => !tx.success).length : null,
   }
 }
