@@ -104,7 +104,7 @@ describe("decodeAbort", () => {
     expect(d.cause).toBe("move_abort")
     expect(d.module).toBe("0x1::coin")
     expect(d.code).toBe(0x10006)
-    expect(d.category).toBe("invalid argument")   // 0x10006 >> 16 === 1
+    expect(d.category).toBe("invalid argument")   // category bits of 0x10006 are 1 (extract via BigInt, not >>)
     expect(d.errorName).toBe("EINSUFFICIENT_BALANCE") // framework table hit
     expect(d.reason).toMatch(/insufficient balance/i)
   })
@@ -194,7 +194,7 @@ query Balances($owner: String!) {
 - Modify: `apps/app/lib/types/config.ts:41-58` (SUPPORTED_CHAINS + **add `"aptos"` to PAUSED_CHAINS temporarily**)
 - Modify: `packages/ai/src/prompt.ts` (CHAIN_NAMES), `apps/app/components/dashboard/ConversationList.tsx` (CHAIN_NAMES)
 - Modify: `apps/app/app/dashboard/analytics/page.tsx:23-49` (CHAIN_NAMES + CHAIN_LOGOS: add `aptos` AND backfill the missing `solana` entries)
-- Create: `apps/app/public/chains/Aptos.png` (copy from `apps/web/public/chains/Aptos.png`) + a Solana logo there too (the analytics CHAIN_LOGOS paths are root-relative and served from `apps/app/public/chains/`, which has its own partial logo set — do NOT assume they load from the web origin)
+- Create: `apps/app/public/chains/Aptos.png` (copy from `apps/web/public/chains/Aptos.png`) + the Solana logo too — note the web repo's file is `Solana.svg`, not .png; copy with the right extension and reference it accordingly (the analytics CHAIN_LOGOS paths are root-relative and served from `apps/app/public/chains/`, which has its own partial logo set — do NOT assume they load from the web origin)
 - Modify: `apps/app/package.json` + `packages/ai/package.json` (add `"@txid/aptos": "workspace:*"`)
 
 - [ ] **Step 1:** Add `{ id: "aptos", name: "Aptos", explorer: "explorer.aptoslabs.com" }` to SUPPORTED_CHAINS **and add `"aptos"` to `PAUSED_CHAINS` (config.ts:58)**. This is deliberate sequencing safety (Solana precedent): SELECTABLE_CHAINS feeds the contract dialogs immediately, but the chat route, widget, and dashboard paths don't exist until phase 3 — an unpaused half-wired chain would let users create Aptos contracts whose tools fall through to EVM paths. Task 13 removes the pause. Then grep each CHAIN_NAMES/CHAIN_LOGOS map listed above and add entries (`/chains/Aptos.png`), copying the logo files per the Files list.
@@ -211,6 +211,7 @@ query Balances($owner: String!) {
 
 **Files:**
 - Modify: `packages/ai/src/tools.ts` (all audited sites: :196, :212, :225, :238-316, :341+ contract toolset, :535, :546, :561, :566, :573, :588, :610, :637, :646)
+- Modify: `packages/aptos/src/indexer.ts` (small `getAptosAssetMetadata(assetType)` helper for the :535 branch)
 
 Per-site dispositions (from spec §3 table / §4):
 
@@ -286,7 +287,7 @@ Per-site dispositions (from spec §3 table / §4):
 - [ ] **Step 1:** Detect: `const isAptosProject = config.chains.includes("aptos")`. Connect flow: branch before the EVM path — `const petra = (window as any).aptos ?? (window as any).martian; if (isAptosProject && petra) { const acct = await petra.connect(); address = acct.address; chainId = "aptos" }` with try/catch parity to the Phantom branch (silent no-op is NOT acceptable: on missing provider fall through to manual-input mode). Button label "Connect Petra" when `isAptosProject && !hasEvmWallet`.
 - [ ] **Step 2:** Manual paste (:611): validation becomes chain-aware — accept 40-hex always (EVM), accept 1-64-hex when `isAptosProject`. Chain assignment (:615): input >40 hex → `"aptos"`; exactly 40 hex → first chain that is neither `"solana"` nor `"aptos"`, else `"aptos"` when Aptos-only project; keep `?? "0x1"` fallback.
 - [ ] **Step 3:** ActionCard render guard: add `m.walletAction && walletSession?.chainId !== "aptos"` (mirror however Solana is excluded — read the guard first).
-- [ ] **Step 4:** Typecheck + lint. Manual verification (needs deploy or local env): open widget on an Aptos demo, paste a mainnet Aptos address, ask "what's my balance" → real APT balance. Commit `feat(widget): Petra connect + Aptos address paste with chain disambiguation`.
+- [ ] **Step 4:** Typecheck + lint. Manual verification (needs deploy or local env): NOTE — `"aptos"` is still in PAUSED_CHAINS at this point, so no picker can create an Aptos demo; set the test project's chains server-side via `updateDemoConfig(id, { chains: ["aptos"] })` (the pause only filters pickers, not stored config), or defer this check to Task 13 Step 5. Then: open widget on that demo, paste a mainnet Aptos address, ask "what's my balance" → real APT balance. Commit `feat(widget): Petra connect + Aptos address paste with chain disambiguation`.
 
 ### Task 13: Dashboard contracts + demo creator
 
