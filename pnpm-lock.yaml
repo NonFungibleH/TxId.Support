@@ -53,6 +53,9 @@ importers:
       '@txid/ai':
         specifier: workspace:*
         version: link:../../packages/ai
+      '@txid/aptos':
+        specifier: workspace:*
+        version: link:../../packages/aptos
       '@txid/blockchain':
         specifier: workspace:*
         version: link:../../packages/blockchain
@@ -239,6 +242,9 @@ importers:
       '@supabase/supabase-js':
         specifier: ^2.100.0
         version: 2.100.0
+      '@txid/aptos':
+        specifier: workspace:*
+        version: link:../aptos
       '@txid/blockchain':
         specifier: workspace:*
         version: link:../blockchain

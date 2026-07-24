@@ -49,13 +49,19 @@ export const SUPPORTED_CHAINS = [
   { id: "0xa86a",   name: "Avalanche",         explorer: "snowtrace.io" },
   { id: "0xa729",   name: "Etherlink",         explorer: "explorer.etherlink.com" },
   { id: "solana",   name: "Solana",            explorer: "solscan.io" },
+  { id: "aptos",    name: "Aptos",             explorer: "explorer.aptoslabs.com" },
 ] as const
 
 export type ChainId = (typeof SUPPORTED_CHAINS)[number]["id"]
 
 // Chains kept in the integration but temporarily hidden from pickers
 // (existing configs keep working; new selections are EVM-only for now).
-const PAUSED_CHAINS = new Set<string>(["solana"])
+const PAUSED_CHAINS = new Set<string>([
+  "solana",
+  // aptos: paused until the Phase-3 surfaces land (chat route address
+  // validation, widget connect, dashboard flows) — Task 13 unpauses.
+  "aptos",
+])
 
 /** Chains offered in chain pickers — SUPPORTED_CHAINS minus paused ones. */
 export const SELECTABLE_CHAINS = SUPPORTED_CHAINS.filter(c => !PAUSED_CHAINS.has(c.id))

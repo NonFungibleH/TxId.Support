@@ -37,6 +37,8 @@ const CHAIN_NAMES: Record<string, string> = {
   "43114": "Avalanche",
   "250": "Fantom",
   "11155111": "Sepolia",
+  "solana": "Solana",
+  "aptos": "Aptos",
 }
 
 const CHAIN_LOGOS: Record<string, string> = {
@@ -46,6 +48,8 @@ const CHAIN_LOGOS: Record<string, string> = {
   "137": "/chains/Polygon.png",
   "10": "/chains/Optimism.png",
   "56": "/chains/BNB.png",
+  "solana": "/chains/Solana.svg",
+  "aptos": "/chains/Aptos.png",
 }
 
 function formatDay(date: Date, totalDays: number): string {

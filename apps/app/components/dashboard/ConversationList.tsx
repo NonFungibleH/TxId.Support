@@ -34,6 +34,7 @@ const CHAIN_NAMES: Record<string, string> = {
   "43114": "Avalanche",  "0xa86a":   "Avalanche",
   "42793": "Etherlink",  "0xa729":   "Etherlink",
   "250":   "Fantom",
+  "aptos": "Aptos",
   "0xaa36a7": "Sepolia (Testnet)",
 }
 

@@ -14,6 +14,7 @@ const CHAIN_NAMES: Record<string, string> = {
   "0x13881":  "Mumbai (testnet)",
   "0x14a34":  "Base Sepolia (testnet)",
   "solana":   "Solana",
+  "aptos":    "Aptos",
   // decimal string variants
   "1":        "Ethereum Mainnet",
   "56":       "BNB Chain",
