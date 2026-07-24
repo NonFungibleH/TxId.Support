@@ -13,6 +13,10 @@ export interface ChainInfo {
   ticker: string
   family: "evm" | "non-evm"
   status: "live" | "coming-soon"
+  /** Hidden chains keep their page content for later but are excluded from
+   *  listings, static params, and the sitemap, and their pages 404. Used to
+   *  park non-Aptos non-EVM chains during the Aptos partnership push. */
+  hidden?: boolean
   /** Brand accent hex, themes the whole page. */
   color: string
   /** Logo path under /public. Missing files fall back to a monogram. */
@@ -193,6 +197,7 @@ export const CHAINS: ChainInfo[] = [
     ticker: "SOL",
     family: "non-evm",
     status: "coming-soon",
+    hidden: true,
     color: "#9945FF",
     logo: "/chains/Solana.svg",
     explorerName: "Solscan",
@@ -212,6 +217,7 @@ export const CHAINS: ChainInfo[] = [
     ticker: "XLM",
     family: "non-evm",
     status: "coming-soon",
+    hidden: true,
     color: "#3E1BDB",
     logo: "/chains/Stellar.png",
     explorerName: "Stellar Expert",
@@ -231,6 +237,7 @@ export const CHAINS: ChainInfo[] = [
     ticker: "TON",
     family: "non-evm",
     status: "coming-soon",
+    hidden: true,
     color: "#0098EA",
     logo: "/chains/TON.png",
     explorerName: "Tonviewer",
@@ -265,6 +272,9 @@ export const CHAINS: ChainInfo[] = [
     ],
   },
 ]
+
+/** Chains shown publicly: listings, static params, sitemap. */
+export const VISIBLE_CHAINS: ChainInfo[] = CHAINS.filter((c) => !c.hidden)
 
 export function getChain(slug: string): ChainInfo | undefined {
   return CHAINS.find((c) => c.slug === slug)

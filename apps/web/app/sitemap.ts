@@ -1,12 +1,12 @@
 import type { MetadataRoute } from "next"
 import { POSTS } from "@/lib/posts"
 import { DOCS } from "@/lib/docs"
-import { CHAINS } from "@/lib/chains"
+import { VISIBLE_CHAINS } from "@/lib/chains"
 
 const BASE = "https://txid.support"
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const chains: MetadataRoute.Sitemap = CHAINS.map((c) => ({
+  const chains: MetadataRoute.Sitemap = VISIBLE_CHAINS.map((c) => ({
     url: `${BASE}/chains/${c.slug}`,
     lastModified: new Date(),
     changeFrequency: "monthly",

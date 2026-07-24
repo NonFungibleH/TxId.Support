@@ -4,7 +4,7 @@ import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { FadeIn } from "@/components/ui/FadeIn";
 import { ChainLogo } from "@/components/chains/ChainLogo";
-import { CHAINS, hexToRgba, type ChainInfo } from "@/lib/chains";
+import { VISIBLE_CHAINS, hexToRgba, type ChainInfo } from "@/lib/chains";
 import { ArrowRight } from "lucide-react";
 
 export const metadata: Metadata = {
@@ -50,8 +50,8 @@ function ChainCard({ chain }: { chain: ChainInfo }) {
 }
 
 export default function ChainsPage() {
-  const evm = CHAINS.filter((c) => c.family === "evm");
-  const nonEvm = CHAINS.filter((c) => c.family === "non-evm");
+  const evm = VISIBLE_CHAINS.filter((c) => c.family === "evm");
+  const nonEvm = VISIBLE_CHAINS.filter((c) => c.family === "non-evm");
 
   return (
     <>

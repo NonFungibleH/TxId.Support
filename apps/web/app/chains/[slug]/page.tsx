@@ -7,16 +7,16 @@ import { Button } from "@/components/ui/Button";
 import { ChainLogo } from "@/components/chains/ChainLogo";
 import { ChainDemo } from "@/components/chains/ChainDemo";
 import { APP_URL } from "@/lib/config";
-import { CHAINS, getChain, getChainDemo, accentVars, readableText, hexToRgba } from "@/lib/chains";
+import { VISIBLE_CHAINS, getChain, getChainDemo, accentVars, readableText, hexToRgba } from "@/lib/chains";
 import { ArrowRight, Check, SearchCheck, MessagesSquare, Wallet } from "lucide-react";
 
 export function generateStaticParams() {
-  return CHAINS.map((c) => ({ slug: c.slug }));
+  return VISIBLE_CHAINS.map((c) => ({ slug: c.slug }));
 }
 
 export function generateMetadata({ params }: { params: { slug: string } }): Metadata {
   const chain = getChain(params.slug);
-  if (!chain) return {};
+  if (!chain || chain.hidden) return {};
   const title = `AI Transaction Support for ${chain.name} | TxID Support`;
   const description = `${chain.intro} Diagnoses failed ${chain.name} transactions and gives users the fix, embedded in your product.`;
   return {
@@ -47,7 +47,7 @@ const VALUE_PROPS = [
 
 export default function ChainPage({ params }: { params: { slug: string } }) {
   const chain = getChain(params.slug);
-  if (!chain) notFound();
+  if (!chain || chain.hidden) notFound();
 
   const isLive = chain.status === "live";
   const ctaText = readableText(chain.color);
