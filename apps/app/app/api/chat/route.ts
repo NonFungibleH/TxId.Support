@@ -149,10 +149,20 @@ export async function POST(request: Request) {
       .map(m => ({ ...m, content: typeof m.content === "string" ? m.content.slice(0, CHAT_LIMITS.maxMessageChars) : m.content }))
 
     // F2: validate wallet address format before it touches any downstream URL
-    // Accepts EVM (0x + 40 hex) or Solana (base58, 32-44 chars)
+    // Accepts EVM (0x + 40 hex), Solana (base58, 32-44 chars), or Aptos
+    // (0x + 1-64 hex, only when the request says chainId "aptos"). This runs
+    // before the project row loads, so it's format-only by design:
+    // chain-membership is enforced implicitly downstream because tools only
+    // run against the project's configured chains.
     const EVM_ADDR = /^0x[0-9a-fA-F]{40}$/
     const SOL_ADDR = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/
-    if (walletAddress && !EVM_ADDR.test(walletAddress) && !SOL_ADDR.test(walletAddress)) {
+    const APTOS_ADDR = /^0x[0-9a-fA-F]{1,64}$/
+    const validWalletFormat =
+      !walletAddress ||
+      EVM_ADDR.test(walletAddress) ||
+      SOL_ADDR.test(walletAddress) ||
+      (chainId === "aptos" && APTOS_ADDR.test(walletAddress))
+    if (!validWalletFormat) {
       return new Response(JSON.stringify({ error: "Invalid wallet address" }), {
         status: 400,
         headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
@@ -456,7 +466,7 @@ export async function POST(request: Request) {
     // ── Actions policy gate → tools context ───────────────────────────────
     const gate = actionsGate(request, rawConfig, plan, isDemo, walletMode)
     const actionsCtx: ActionsContext | null =
-      gate.allowed && walletConfig && chainId !== "solana" && projectMode === "support" && !inspectMode
+      gate.allowed && walletConfig && chainId !== "solana" && chainId !== "aptos" && projectMode === "support" && !inspectMode
         ? {
             allowedFunctions: Object.fromEntries(
               Object.entries(rawConfig.actions?.allowedFunctions ?? {}).map(([cid, rules]) => [
