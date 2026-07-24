@@ -245,8 +245,10 @@ Per-site dispositions (from spec §3 table / §4):
 ### Task 9: Curated failed-tx set + errmap for demo protocols
 
 **Files:**
-- Create: `packages/aptos/src/errmap.ts` (protocol errmaps: Thala, Aries, Amnis, PancakeSwap-Aptos)
+- Create: `packages/aptos/src/errmap.ts` (protocol errmaps: **Decibel (top priority — demo centerpiece, user decision 2026-07-24)**, Thala, Aries, Amnis, PancakeSwap-Aptos)
 - Create: `packages/aptos/scripts/tune-diagnosis.ts`
+
+> **Decibel** — Aptos Labs' own fully on-chain perpetuals exchange, mainnet package `0x50ead22afd6ffd9769e3b3d6e0e64a2a350d68e8b102c4e72e33d0b8cfdfdb06` (orderbook at same address; modules incl. perp_engine, perp_positions, liquidation, collateral_balance_sheet, dex_accounts_entry). The Task 17 demo build features Decibel first (branding + contracts + docs crawl); curated set targets ≥5 Decibel failed txs; perp-trader vocabulary (margin, leverage, mark price, liquidation) in reasons.
 
 - [ ] **Step 1:** From explorer.aptoslabs.com, collect ~20 REAL failed mainnet txs across the four protocols (mix: slippage aborts, insufficient balance, not-registered, expired, raw-constant aborts). Record hash + expected story in `tune-diagnosis.ts`.
 - [ ] **Step 2:** For each protocol module that appears, attempt constant harvesting: fetch package source via `0x1::code::PackageRegistry` resource on the module address; where non-empty, grep `const E\w+: u64 = \d+` → seed `errmap.ts`; where empty, hand-write entries for the codes seen in the curated set (reason strings from protocol docs/source on GitHub).
