@@ -348,6 +348,7 @@ export function buildSystemPrompt(params: StreamChatParams): string {
 
     if (walletConfig) {
       const isSolana = walletConfig.chainId === "solana"
+      const isAptos = walletConfig.chainId === "aptos"
       // Wrong-network detection: is the wallet on one of the protocol's chains?
       const protocolChains = [...new Set((config.watchedContracts ?? []).map(c => c.chain))]
       const onProtocolChain = protocolChains.length === 0 || protocolChains.includes(walletConfig.chainId)
@@ -381,6 +382,30 @@ export function buildSystemPrompt(params: StreamChatParams): string {
             `- If \`description\` is present in the transaction data, use it as a plain-English starting point.\n\n` +
             `**If a transaction cannot be found at all:**\n` +
             `Likely causes: (1) the signature is incorrect; (2) the transaction was dropped by the network before confirmation — safe to retry; (3) wrong network (devnet vs mainnet).`
+          : isAptos
+          ? `- Never ask the user for a transaction hash or any technical data: look it up yourself\n` +
+            `- Find the relevant transaction yourself (most recent failed or relevant one). Never ask the user to identify it.\n` +
+            `- If the protocol's module address is known (Smart Contracts section), pass it as contract_address to filter results\n` +
+            `- Do not tell the user to go check the Aptos Explorer themselves: you are the block explorer. When you cite a transaction you may include its Aptos Explorer link: https://explorer.aptoslabs.com/txn/{hash or version} (account pages: https://explorer.aptoslabs.com/account/{address})\n\n` +
+            `**Aptos basics (use this vocabulary):**\n` +
+            `- Every Aptos transaction has both a HASH (0x plus 64 hex characters, the same shape as an EVM hash) and a VERSION (a plain number). Either one identifies the transaction: accept whichever the user gives you.\n` +
+            `- Petra is the main Aptos wallet (Martian is also common): they are the Aptos equivalents of MetaMask. Wallet addresses are 0x plus up to 64 hex characters.\n` +
+            `- Aptos has MODULES (Move code published at an account address), not "smart contracts". Functions are written as address::module::function, and that is how you should name them.\n` +
+            `- There is no source "verification" and no proxy concept on Aptos: every module's ABI is always readable on-chain. If a user asks whether a contract is verified, explain this as a strength: the module's interface is public by design, nothing needs verifying.\n\n` +
+            `**Interpreting failed Aptos transactions: the decodedAbort field:**\n` +
+            `Failed transactions may include a \`decodedAbort\` object. Use it as follows:\n` +
+            `- \`cause: "move_abort"\` with \`errorName\` present → FIRST check the Error Glossary in the Smart Contracts section above: if the error name matches a glossary entry, use that explanation verbatim. Otherwise use \`errorName\` and \`reason\` confidently: translate them into what it means for what the user was doing, and give a concrete next step.\n` +
+            `- \`cause: "move_abort"\` with \`category\` but no \`errorName\` → frame the failure by its category, honestly: for example "the module rejected this as an invalid argument". Then offer the most likely causes for the action the user was attempting, clearly marked as likely rather than certain.\n` +
+            `- \`cause: "move_abort"\` with ONLY \`module\` and \`code\` → the module does not publish a description for this code. Say so plainly, give the module and code verbatim (e.g. "abort code 65542 in 0x…::router"), and suggest the common causes for that action type (slippage on a swap, insufficient balance on a transfer, an expired deadline). NEVER present a guess as certain.\n` +
+            `- \`cause: "out_of_gas"\` → the transaction hit its max gas UNITS limit. This is NOT an APT balance problem: tell the user to raise the max gas amount in their wallet's advanced settings and retry.\n` +
+            `- \`cause: "execution_failure"\` or \`"unknown"\` → state what is known from the transaction, avoid speculation, and suggest the user share the transaction's Aptos Explorer link so the team can look deeper.\n\n` +
+            `**Submission-level failures (rejected before execution, these never reach vm_status):**\n` +
+            `- \`SEQUENCE_NUMBER_TOO_OLD\` → a transaction with the same sequence number was already committed: usually a stuck or replaced transaction. The fix is simply to resubmit.\n` +
+            `- \`INSUFFICIENT_BALANCE_FOR_TRANSACTION_FEE\` → the wallet cannot cover gas. Tell the user to add more APT and retry.\n\n` +
+            `**Approvals, safety and screening:**\n` +
+            `- Token approvals and allowances do NOT exist on Aptos. If a user asks what they have approved or how to revoke an approval, explain that Move's resource model means no contract can spend their tokens without a transaction they sign: there is nothing to revoke, and that is a safety property of the chain.\n` +
+            `- Sanctions screening and token-safety scoring are EVM-only tools. If asked, say so honestly, and point the user at the token's Aptos Explorer metadata (creator, holders, supply) as the best available signal.\n\n` +
+            `**Coin registration:** older Aptos wallets must register a coin type before they can receive it (an \`ECOIN_STORE_NOT_PUBLISHED\` abort means the recipient has not). Modern FA-standard tokens need no registration. If a transfer fails this way, the recipient should register the coin in their wallet, or the sender should confirm which standard the token uses.`
           : `- Never ask the user for a transaction hash or any technical data — look it up yourself\n` +
             `- Find the relevant transaction yourself (most recent failed or relevant one). Never ask the user to identify it.\n` +
             `- If the protocol's contract address is known (Smart Contracts section), pass it as contract_address to filter results\n` +
@@ -423,6 +448,7 @@ export function buildSystemPrompt(params: StreamChatParams): string {
       )
     } else {
       const isSolanaProject = (config.watchedContracts ?? []).some(c => c.chain === "solana")
+      const isAptosProject = (config.watchedContracts ?? []).some(c => c.chain === "aptos")
       // No wallet connected
       parts.push(
         `## User's Wallet\n` +
@@ -433,6 +459,10 @@ export function buildSystemPrompt(params: StreamChatParams): string {
           ? `1. If the protocol's program address is known (see Smart Contracts above), call get_contract_transactions immediately to find recent failed transactions. Then call get_transaction_by_hash on any failed tx you find.\n` +
             `2. If the user has already provided a transaction signature or a Solscan link in the conversation, extract the signature and call get_transaction_by_hash with chain_id "solana".\n` +
             `3. Only if neither approach works, ask: "Can you share the link to your transaction? You can find it in your Phantom wallet under Activity." Do not say "transaction signature".\n\n`
+          : isAptosProject
+          ? `1. If the protocol's module address is known (see Smart Contracts above), call get_contract_transactions immediately to find recent failed transactions. Then call get_transaction_by_hash on any failed tx you find for a full diagnosis.\n` +
+            `2. If the user has already provided a transaction hash, a version number, or an explorer.aptoslabs.com link in the conversation, extract it and call get_transaction_by_hash with chain_id "aptos". Aptos transactions are identified by either a hash (0x plus 64 hex characters) or a version (a plain number): both work.\n` +
+            `3. Only if neither approach works, ask: "Can you share the link to your transaction? You can find it in your Petra wallet under Activity." Do not say "transaction hash".\n\n`
           : `1. If the protocol's contract address is known (see Smart Contracts above), call get_contract_transactions immediately to find recent failed transactions on that contract. Then call get_transaction_by_hash on any failed tx you find for a full diagnosis. You can identify the user's transaction by timing and the "from" address if they mention it.\n` +
             `2. If the user has already provided a transaction hash or a BSCScan/Etherscan link in the conversation, extract the hash and call get_transaction_by_hash directly with the appropriate chain_id.\n` +
             `3. Only if neither approach works, ask: "Can you share the link to your transaction? You can find it in your wallet under Activity or History." Do not say "transaction hash".\n\n`
