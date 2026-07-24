@@ -9,10 +9,15 @@ export {
   getAptosTransactionByHash,
   viewFunction,
   getAptosNetworkStatus,
-  diagnoseAptosWallet,
   formatUnits,
 } from "./fullnode"
 export type { AptosLedgerInfo, AptosNetworkStatus, AptosWalletDiagnosis } from "./fullnode"
+export {
+  aptosGraphql,
+  getAptosWalletBalance,
+  getAptosRecentTransactions,
+  diagnoseAptosWallet,
+} from "./indexer"
 
 export function isAptosChain(chainId: string): boolean {
   return chainId === "aptos"

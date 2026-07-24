@@ -9,13 +9,29 @@ export function aptosAuthHeaders(): Record<string, string> {
   return process.env.APTOS_API_KEY ? { Authorization: `Bearer ${process.env.APTOS_API_KEY}` } : {}
 }
 
-export async function aptosGet<T>(path: string): Promise<T | null> {
+export function sleep(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms))
+}
+
+// single polite retry on 429; long Retry-After means the quota window is exhausted, so bail instead of blocking callers
+export async function aptosFetch(url: string, init: RequestInit): Promise<Response | null> {
   try {
-    const res = await fetch(`${FULLNODE_BASE}${path}`, {
-      headers: { ...aptosAuthHeaders() },
-      signal: AbortSignal.timeout(10_000),
-    })
-    if (!res.ok) return null
+    const res = await fetch(url, { ...init, signal: AbortSignal.timeout(10_000) })
+    if (res.status !== 429) return res
+    const retryAfter = Number(res.headers.get("retry-after"))
+    const waitMs = Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter * 1000 : 2000
+    if (waitMs > 10_000) return res
+    await sleep(waitMs)
+    return await fetch(url, { ...init, signal: AbortSignal.timeout(10_000) })
+  } catch {
+    return null
+  }
+}
+
+export async function aptosGet<T>(path: string): Promise<T | null> {
+  const res = await aptosFetch(`${FULLNODE_BASE}${path}`, { headers: { ...aptosAuthHeaders() } })
+  if (!res || !res.ok) return null
+  try {
     return (await res.json()) as T
   } catch {
     return null
@@ -139,14 +155,13 @@ export async function getAptosTransactionByHash(
 }
 
 export async function viewFunction(fn: string, typeArgs: string[], args: unknown[]): Promise<unknown[] | null> {
+  const res = await aptosFetch(`${FULLNODE_BASE}/view`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...aptosAuthHeaders() },
+    body: JSON.stringify({ function: fn, type_arguments: typeArgs, arguments: args }),
+  })
+  if (!res || !res.ok) return null
   try {
-    const res = await fetch(`${FULLNODE_BASE}/view`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", ...aptosAuthHeaders() },
-      body: JSON.stringify({ function: fn, type_arguments: typeArgs, arguments: args }),
-      signal: AbortSignal.timeout(10_000),
-    })
-    if (!res.ok) return null
     return (await res.json()) as unknown[]
   } catch {
     return null
@@ -183,19 +198,4 @@ export interface AptosWalletDiagnosis {
   sequenceNumber: string | null
   aptBalance: string | null
   recentFailureCount: number
-}
-
-export async function diagnoseAptosWallet(address: string): Promise<AptosWalletDiagnosis> {
-  const addr = normalizeAptosAddress(address)
-  const [account, balanceResult] = await Promise.all([
-    getAccount(addr),
-    viewFunction("0x1::coin::balance", ["0x1::aptos_coin::AptosCoin"], [addr]),
-  ])
-  const octas = balanceResult?.[0]
-  return {
-    exists: account !== null,
-    sequenceNumber: account?.sequenceNumber ?? null,
-    aptBalance: typeof octas === "string" ? formatUnits(octas, 8) : null,
-    recentFailureCount: 0,
-  }
 }

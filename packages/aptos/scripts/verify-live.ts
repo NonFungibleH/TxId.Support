@@ -1,13 +1,13 @@
 import { decodeAbort } from "../src/abort"
 import {
   aptosGet,
-  diagnoseAptosWallet,
   getAccount,
   getAptosModuleAbi,
   getAptosNetworkStatus,
   getAptosTransactionByHash,
   getLedgerInfo,
 } from "../src/fullnode"
+import { diagnoseAptosWallet, getAptosRecentTransactions, getAptosWalletBalance } from "../src/indexer"
 
 let failed = false
 
@@ -19,6 +19,26 @@ function report(name: string, ok: boolean, detail: string): void {
 
 function skip(name: string, detail: string): void {
   console.log(`SKIP  ${name} — ${detail}`)
+}
+
+function pause(ms = 400): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms))
+}
+
+async function indexerRateLimited(): Promise<boolean> {
+  try {
+    const res = await fetch("https://api.mainnet.aptoslabs.com/v1/graphql", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ query: "query { ledger_infos(limit: 1) { chain_id } }" }),
+      signal: AbortSignal.timeout(10_000),
+    })
+    if (res.status === 429) return true
+    const json = (await res.json()) as { errors?: unknown[] }
+    return !!json.errors && JSON.stringify(json.errors).includes('"429"')
+  } catch {
+    return false
+  }
 }
 
 interface RawTx {
@@ -45,6 +65,7 @@ async function main(): Promise<void> {
     )
   }
 
+  await pause()
   {
     const abi = await getAptosModuleAbi("0x1", "coin")
     const transfer = abi?.functions.find(f => f.name === "transfer")
@@ -59,9 +80,15 @@ async function main(): Promise<void> {
     )
   }
 
-  let sampleSender: string | null = null
+  await pause()
+  const sampleSenders: string[] = []
   {
     const recent = await aptosGet<RawTx[]>("/transactions?limit=20")
+    for (const t of recent ?? []) {
+      if (t.type === "user_transaction" && t.success === true && t.sender && !sampleSenders.includes(t.sender)) {
+        sampleSenders.push(t.sender)
+      }
+    }
     const userTx = (recent ?? []).find(t => t.type === "user_transaction" && t.success === true && t.hash)
     if (!userTx?.hash) {
       report("tx by hash (success)", false, "no recent user_transaction found to test with")
@@ -76,7 +103,6 @@ async function main(): Promise<void> {
         byVersion !== null &&
         byVersion.hash === byHash.hash &&
         byHash.decodedAbort === undefined
-      if (byHash) sampleSender = byHash.sender
       report(
         "tx by hash (success)",
         ok,
@@ -87,11 +113,13 @@ async function main(): Promise<void> {
     }
   }
 
+  await pause()
   {
     let found: RawTx | null = null
     const latest = ledger ? Number(ledger.ledgerVersion) : null
     if (latest) {
-      for (let page = 1; page <= 10 && !found; page++) {
+      for (let page = 1; page <= 3 && !found; page++) {
+        if (page > 1) await pause(300)
         const start = latest - page * 100
         const batch = await aptosGet<RawTx[]>(`/transactions?limit=100&start=${start}`)
         found =
@@ -121,6 +149,7 @@ async function main(): Promise<void> {
     }
   }
 
+  await pause()
   {
     const framework = await getAccount("0x1")
     const missing = await getAccount("0x" + "f".repeat(62) + "fe")
@@ -131,6 +160,7 @@ async function main(): Promise<void> {
     )
   }
 
+  await pause()
   {
     const status = await getAptosNetworkStatus()
     report(
@@ -140,6 +170,7 @@ async function main(): Promise<void> {
     )
   }
 
+  await pause()
   {
     const diag = await diagnoseAptosWallet("0x1")
     report(
@@ -149,7 +180,46 @@ async function main(): Promise<void> {
     )
   }
 
-  void sampleSender
+  await pause()
+  {
+    const candidates = sampleSenders.slice(0, 5)
+    let balanceOk = false
+    let balanceDetail = "no candidate sender had a parseable APT balance"
+    for (const sender of candidates) {
+      const balance = await getAptosWalletBalance(sender)
+      const parsed = parseFloat(balance.aptBalance)
+      if (Number.isFinite(parsed) && parsed > 0) {
+        balanceOk = true
+        balanceDetail = `sender=${sender.slice(0, 12)}… apt=${balance.aptBalance} tokens=${balance.tokens.length}`
+        break
+      }
+      await pause(300)
+    }
+    if (!balanceOk && (await indexerRateLimited())) {
+      skip("indexer getAptosWalletBalance", "indexer rate-limited")
+    } else {
+      report("indexer getAptosWalletBalance", candidates.length > 0 && balanceOk, balanceDetail)
+    }
+
+    await pause()
+    let historyOk = false
+    let historyDetail = "no candidate sender returned history with functionId"
+    for (const sender of candidates.slice(0, 3)) {
+      const history = await getAptosRecentTransactions(sender, undefined, 10)
+      const withFunction = history.find(tx => tx.functionId !== null)
+      if (history.length >= 1 && withFunction) {
+        historyOk = true
+        historyDetail = `sender=${sender.slice(0, 12)}… txs=${history.length} functionId=${withFunction.functionId}`
+        break
+      }
+      await pause(300)
+    }
+    if (!historyOk && (await indexerRateLimited())) {
+      skip("indexer getAptosRecentTransactions", "indexer rate-limited")
+    } else {
+      report("indexer getAptosRecentTransactions", candidates.length > 0 && historyOk, historyDetail)
+    }
+  }
 
   if (failed) {
     console.log("\nRESULT: FAIL")
