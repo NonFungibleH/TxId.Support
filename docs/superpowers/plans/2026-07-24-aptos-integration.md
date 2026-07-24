@@ -19,7 +19,7 @@
 **Files:**
 - Create: `packages/aptos/package.json`, `packages/aptos/tsconfig.json`, `packages/aptos/src/index.ts`, `packages/aptos/src/types.ts`
 
-- [ ] **Step 1:** Copy `packages/solana/package.json` → `packages/aptos/package.json`; change name to `@txid/aptos`; add `"vitest": "^2"` to devDependencies and `"test": "vitest run"` script. Copy `packages/solana/tsconfig.json` verbatim.
+- [ ] **Step 1:** Copy `packages/solana/package.json` → `packages/aptos/package.json`; change name to `@txid/aptos`; add `"vitest": "^2"` AND `"tsx": "^4"` to devDependencies (tsx is NOT available anywhere in the workspace today — the live-probe scripts need it) and a `"test": "vitest run"` script. Copy `packages/solana/tsconfig.json` verbatim (note: its `include: ["src"]` means `scripts/` is not typechecked — the probe scripts are validated by running them).
 - [ ] **Step 2:** Create `src/types.ts`:
 
 ```ts
@@ -132,11 +132,17 @@ describe("decodeAbort", () => {
     expect(d.errorName).toBe("E_SLIPPAGE")
     expect(d.reason).toMatch(/slippage/)
   })
+  it("never invents a category for large raw u64 codes", () => {
+    const d = decodeAbort("Move abort in 0xabc::vault: 18446744073709551615")
+    expect(d.category).toBeNull()
+    expect(d.code).toBeNull() // exceeds MAX_SAFE_INTEGER — kept only in raw/reason
+    expect(d.reason).toMatch(/18446744073709551615/)
+  })
 })
 ```
 
 - [ ] **Step 2:** `pnpm --filter @txid/aptos exec vitest run` → all FAIL (module missing).
-- [ ] **Step 3:** Implement `abort.ts`: `CATEGORY_NAMES` map (1 invalid argument … 0xD unavailable, per `std::error`), `FRAMEWORK_ERRORS` table (≥15 entries: `0x1::coin` 0x10006 EINSUFFICIENT_BALANCE / 0x60005 ECOIN_STORE_NOT_PUBLISHED "wallet has not registered this coin", `0x1::account` sequence/exists errors, `0x1::aptos_account`, `0x1::object`, `0x1::fungible_asset` insufficient balance/frozen, `0x1::timestamp`, `0x3::token`, `0x4::token` common codes — source each from aptos-framework `error.move` conventions and module sources), regex parse of the three vm_status shapes, category extraction `code > 0xFFFF ? CATEGORY_NAMES[code >> 16] ?? null : null`, optional `errmap` param `Record<string, Record<number, { name: string; reason: string }>>` taking precedence, and reason-building that is explicit-but-honest for bare codes (`"The transaction was rejected by 0xabc::stable_pool with error code 7. The module doesn't publish a description for this code; common causes for this kind of action are …"` — keep phrasing generic here; protocol-specific phrasing lives in the errmap).
+- [ ] **Step 3:** Implement `abort.ts`: `CATEGORY_NAMES` map (1 invalid argument … 0xD unavailable, per `std::error`), `FRAMEWORK_ERRORS` table (≥15 entries: `0x1::coin` 0x10006 EINSUFFICIENT_BALANCE / 0x60005 ECOIN_STORE_NOT_PUBLISHED "wallet has not registered this coin", `0x1::account` sequence/exists errors, `0x1::aptos_account`, `0x1::object`, `0x1::fungible_asset` insufficient balance/frozen, `0x1::timestamp`, `0x3::token`, `0x4::token` common codes — source each from aptos-framework `error.move` conventions and module sources), regex parse of the three vm_status shapes, category extraction via **BigInt** (never `>>`, which truncates at 32 bits and would INVENT a false category for large raw u64 constants — the exact invented-certainty the spec forbids): parse the code as BigInt; if it exceeds `Number.MAX_SAFE_INTEGER`, set `code: null`, `category: null`, and quote the raw code in `reason`; else `category = big > 0xFFFFn && (big >> 16n) <= 0xDn ? CATEGORY_NAMES[Number(big >> 16n)] ?? null : null`, optional `errmap` param `Record<string, Record<number, { name: string; reason: string }>>` taking precedence, and reason-building that is explicit-but-honest for bare codes (`"The transaction was rejected by 0xabc::stable_pool with error code 7. The module doesn't publish a description for this code; common causes for this kind of action are …"` — keep phrasing generic here; protocol-specific phrasing lives in the errmap).
 - [ ] **Step 4:** `vitest run` → PASS. `tsc --noEmit` → clean.
 - [ ] **Step 5:** Commit `feat(aptos): Move abort decoder (categories, framework table, errmap)`.
 
@@ -177,7 +183,7 @@ query Balances($owner: String!) {
 ```
 
   Map to `AptosBalance`; APT = the row whose `asset_type` is `0x1::aptos_coin::AptosCoin` (or the FA-form APT metadata symbol "APT" at `0xa`); format 8 decimals; remaining rows → `tokens`. Normalise `address` before querying (indexer stores padded form).
-  - `getAptosRecentTransactions(address, moduleAddress?, limit = 10)`: `account_transactions(where: {account_address: {_eq: $addr}}, order_by: {transaction_version: desc}, limit: 25) { transaction_version }` → hydrate each via `getAptosTransactionByVersion` (concurrency 5) → if `moduleAddress`, filter `functionId?.startsWith(normalizeAptosAddress(moduleAddress))` → slice(0, limit).
+  - `getAptosRecentTransactions(address, moduleAddress?, limit = 10)`: `account_transactions(where: {account_address: {_eq: $addr}}, order_by: {transaction_version: desc}, limit: 25) { transaction_version }` → hydrate each via `getAptosTransactionByHash(String(transaction_version))` (numeric input routes to `/by_version` — no separate helper exists) (concurrency 5) → if `moduleAddress`, filter `functionId?.startsWith(normalizeAptosAddress(moduleAddress))` → slice(0, limit).
 - [ ] **Step 2:** Wire `diagnoseAptosWallet` to count `success === false` among the last 10.
 - [ ] **Step 3:** Extend verify-live.ts: pick a busy public mainnet address from the explorer (e.g. a CEX hot wallet or foundation address — verify while implementing, comment what it is); assert balance has APT + ≥1 token, history returns txs with `functionId` populated; a legacy-CoinStore-era wallet also returns APT (FA/CoinStore unification check). Run → PASS.
 - [ ] **Step 4:** Commit `feat(aptos): indexer client (FA balances, account history) + wallet diagnosis`.
@@ -185,12 +191,13 @@ query Balances($owner: String!) {
 ### Task 5: Chain registry + name/logo maps (app-wide identity)
 
 **Files:**
-- Modify: `apps/app/lib/types/config.ts:41-58` (SUPPORTED_CHAINS + keep out of PAUSED_CHAINS)
+- Modify: `apps/app/lib/types/config.ts:41-58` (SUPPORTED_CHAINS + **add `"aptos"` to PAUSED_CHAINS temporarily**)
 - Modify: `packages/ai/src/prompt.ts` (CHAIN_NAMES), `apps/app/components/dashboard/ConversationList.tsx` (CHAIN_NAMES)
 - Modify: `apps/app/app/dashboard/analytics/page.tsx:23-49` (CHAIN_NAMES + CHAIN_LOGOS: add `aptos` AND backfill the missing `solana` entries)
+- Create: `apps/app/public/chains/Aptos.png` (copy from `apps/web/public/chains/Aptos.png`) + a Solana logo there too (the analytics CHAIN_LOGOS paths are root-relative and served from `apps/app/public/chains/`, which has its own partial logo set — do NOT assume they load from the web origin)
 - Modify: `apps/app/package.json` + `packages/ai/package.json` (add `"@txid/aptos": "workspace:*"`)
 
-- [ ] **Step 1:** Add `{ id: "aptos", name: "Aptos", explorer: "explorer.aptoslabs.com" }` to SUPPORTED_CHAINS; grep each CHAIN_NAMES/CHAIN_LOGOS map listed above and add entries (logo path `/chains/Aptos.png` — file already exists in `apps/web/public/chains/`; for apps/app analytics the logos load from the web origin — follow whatever pattern the existing entries use, verify by reading the file first).
+- [ ] **Step 1:** Add `{ id: "aptos", name: "Aptos", explorer: "explorer.aptoslabs.com" }` to SUPPORTED_CHAINS **and add `"aptos"` to `PAUSED_CHAINS` (config.ts:58)**. This is deliberate sequencing safety (Solana precedent): SELECTABLE_CHAINS feeds the contract dialogs immediately, but the chat route, widget, and dashboard paths don't exist until phase 3 — an unpaused half-wired chain would let users create Aptos contracts whose tools fall through to EVM paths. Task 13 removes the pause. Then grep each CHAIN_NAMES/CHAIN_LOGOS map listed above and add entries (`/chains/Aptos.png`), copying the logo files per the Files list.
 - [ ] **Step 2:** `pnpm install`; typecheck sweep: `for p in @txid/aptos @txid/ai @txid/blockchain @txid/app @txid/web; do pnpm --filter $p exec tsc --noEmit || exit 1; done` → clean.
 - [ ] **Step 3:** Commit `feat(aptos): chain registry + name/logo maps (incl. solana analytics backfill)`. Push (end of phase 1).
 
@@ -209,8 +216,8 @@ Per-site dispositions (from spec §3 table / §4):
 
 - [ ] **Step 1:** Add at top: `import { isAptosChain, ... } from "@txid/aptos"` and a local `const isNonEvm = (id: string) => isSolanaChain(id) || isAptosChain(id)`.
 - [ ] **Step 2:** Wallet tools — `get_wallet_balance` (:196) and `get_recent_transactions` (:212) gain `if (isAptosChain(wallet.chainId)) return getAptosWalletBalance(...)` / `getAptosRecentTransactions(wallet.address, contractFilter, limit)` branches mirroring the Solana lines directly above them. `get_wallet_approvals` (:225): Aptos → `{ address, count: 0, approvals: [], note: "Aptos has no standing token approvals — coins can only move when the owner signs. Nothing to revoke." }`.
-- [ ] **Step 3:** `diagnose_wallet` (:573) → `diagnoseAptosWallet`. `get_network_status` (:566) → `getAptosNetworkStatus`. Switch-chain guard (:588): Aptos → return a note that network switching does not apply. `get_token_allowance` (:546) → note (no allowance concept). `check_token_safety` (:610) → note ("EVM-only safety source; on Aptos check the asset's metadata + holders on the explorer") — same honest-note pattern the Solana branch uses. `estimate_action` (:637): Aptos → note (simulation needs a connected wallet; stretch task 14). Sanctions executor (:646): if the screened/connected address is Aptos-format-only (>40 hex) or wallet chain is `"aptos"` → `{ available: false, note: "Sanctions screening uses an EVM on-chain oracle and is not available for Aptos addresses." }`.
-- [ ] **Step 4:** `get_native_price` (:561): read `packages/blockchain/src/token.ts:215` first; extend `getNativeTokenPrice` with an `"aptos"` entry using the existing DexScreener provider (APT/stable pair on an Aptos DEX — find the pair id via DexScreener while implementing; if DexScreener's Aptos coverage proves unreliable in the live probe, fall back to CoinGecko `simple/price?ids=aptos` and note the new dependency in the commit message).
+- [ ] **Step 3:** `diagnose_wallet` (:573) → `diagnoseAptosWallet`. `get_network_status` (:566) → `getAptosNetworkStatus`. The `switchTo` computation at :588 is INSIDE diagnose_wallet's EVM path (it decides whether to offer the one-tap network-switch button) — do NOT add a note-returning early-return; just add Aptos to its exclusion (`!isSolanaChain(target) && !isAptosChain(target)`) so an EVM-connected wallet is never offered a switch to Aptos (no EIP-3326 there). `get_token_info` (:535) → Aptos branch mirroring the Solana line: FA metadata via a small indexer query (`fungible_asset_metadata` by `asset_type` — name, symbol, decimals, supply if available), honest note on lookup failure. `get_token_allowance` (:546) → note (no allowance concept on Aptos). `check_token_safety` (:610) → note ("EVM-only safety source; on Aptos check the asset's metadata + holders on the explorer") — same honest-note pattern the Solana branch uses. `estimate_action` (:637): Aptos → note (simulation needs a connected wallet; stretch task 14). Sanctions executor (:646): if the screened/connected address is Aptos-format-only (>40 hex) or wallet chain is `"aptos"` → `{ available: false, note: "Sanctions screening uses an EVM on-chain oracle and is not available for Aptos addresses." }`. While here, glance at `get_token_price` (:551): it has NO non-EVM guard today (pre-existing gap shared with Solana) — confirm an Aptos asset id fails gracefully (DexScreener may even answer); don't restructure, just verify no crash.
+- [ ] **Step 4:** `get_native_price` (:561): read `packages/blockchain/src/token.ts:215` first. Mechanics (do not look for a "pair id"): `getNativeTokenPrice` maps chainId → an entry in the `NATIVE_WRAPPED`-style map `{ symbol, wrapped-token address }` and calls `getTokenPrice` against DexScreener's *tokens* endpoint filtered by `DEXSCREENER_CHAIN[chainId]`. Add `DEXSCREENER_CHAIN["aptos"] = "aptos"` and a native entry whose token id is APT (`0x1::aptos_coin::AptosCoin`, or the FA form `0xa` — probe both against `https://api.dexscreener.com/latest/dex/tokens/{id}` live and use whichever returns pairs). If neither returns reliable pairs, fall back to CoinGecko `simple/price?ids=aptos` and note the NEW third-party dependency (free tier ~5-30 req/min) in the commit message.
 - [ ] **Step 5:** Contract toolset (:341+): every builder that takes `watchedContracts` — for a contract with `chain === "aptos"`: `get_contract_functions` → `getAptosModuleAbi` (needs `moduleName` from the snapshot — see Task 10; until then use the address's full module list); `get_contract_state`/`get_contract_data` → `viewFunction` (function name must be fully qualified `addr::module::fn` — build from contract + moduleName + user-supplied fn); `get_contract_info` → module existence + fn counts (no proxy/verification concepts — say so); `get_contract_transactions` → `getAptosRecentTransactions(contract.address, contract.address, limit)`; holdings/events/deployment/upgrade-history → honest per-tool notes (events partially: recent txs' events for the module).
 - [ ] **Step 6:** Typecheck `@txid/ai`. Commit `feat(ai): Aptos branches at every non-EVM dispatch site`.
 
@@ -220,7 +227,7 @@ Per-site dispositions (from spec §3 table / §4):
 - Modify: `packages/ai/src/tools.ts:238-316` (get_transaction_by_hash executor)
 
 - [ ] **Step 1:** In the candidate collector: `pushEvm` must skip `"aptos"` exactly as it skips Solana (:252-253 area).
-- [ ] **Step 2:** Compute `aptosInPlay = isAptosChain(wallet?.chainId ?? "") || watchedContracts.some(c => isAptosChain(c.chain))`. When true AND input matches `/^0x[0-9a-fA-F]{64}$/` or `/^\d+$/`: add `getAptosTransactionByHash(hash, errmapFor(watchedContracts))` to the same `Promise.all` fan-out as the EVM candidates (the fan-out already tolerates nulls). All-numeric input short-circuits to Aptos only.
+- [ ] **Step 2:** Compute `aptosInPlay = isAptosChain(wallet?.chainId ?? "") || watchedContracts.some(c => isAptosChain(c.chain))`. When true AND input matches `/^0x[0-9a-fA-F]{64}$/` or `/^\d+$/`: add `getAptosTransactionByHash(hash)` to the same `Promise.all` fan-out as the EVM candidates (the fan-out already tolerates nulls). All-numeric input short-circuits to Aptos only. NOTE: pass **no errmap in this task** — `errmapFor()` does not exist yet; Task 9 Step 4 introduces it and upgrades this call site (the framework table inside decodeAbort still applies without it).
 - [ ] **Step 3:** Result selection: prefer whichever candidate found a tx (existing behaviour); if both an EVM chain and Aptos claim the hash (astronomically unlikely), prefer the connected wallet's chain and say which chain was used in the result.
 - [ ] **Step 4:** Extend verify-live.ts (or a small `packages/ai` probe script) — feed the known failed Aptos hash through `executeTool("get_transaction_by_hash", ...)` with an Aptos wallet config; assert the decoded abort surfaces. Run live → PASS.
 - [ ] **Step 5:** Commit `feat(ai): route EVM-format Aptos tx hashes via parallel fullnode query`.
@@ -287,6 +294,7 @@ Per-site dispositions (from spec §3 table / §4):
 - Modify: `apps/app/lib/actions/contracts.ts:17-20` (zod), `apps/app/components/settings/AddContractDialog.tsx:44-58,97-163`, `apps/app/components/settings/AbiManager.tsx`, `refreshContractAbi` in contracts.ts
 - Modify: `apps/app/lib/actions/demos.ts:146` (+ chain select source in `DemosManager.tsx` DEMO_CONTRACT_CHAINS)
 
+- [ ] **Step 0:** Remove `"aptos"` from `PAUSED_CHAINS` (config.ts:58) — it was added in Task 5 purely as sequencing safety; from this commit Aptos is user-selectable, and the chat route (Task 11) + widget (Task 12) already handle it.
 - [ ] **Step 1:** contracts.ts zod: address schema becomes a chain-discriminated refine — EVM regex for hex chains, `/^0x[0-9a-fA-F]{1,64}$/` for `"aptos"`. Add optional `moduleName` field (required for `"aptos"`? NO — optional; absent means all modules at the address).
 - [ ] **Step 2:** AddContractDialog: chain picker already includes Aptos via SELECTABLE_CHAINS (Task 5); branch the validity regex (:45) and the auto-peek (:44-58): for Aptos call a new server action `peekAptosModules(address)` (thin wrapper over `getAptosModuleAbi`) listing modules + entry/view function names; add an optional "Module name" input shown only for Aptos.
 - [ ] **Step 3:** AbiManager + `refreshContractAbi`: follow the Solana/IDL relabel precedent — `chain === "aptos"` → label "Move module ABI (on-chain)", check button fetches via `getAptosModuleAbi` and stores `JSON.stringify` of it in the existing `abi` field with `abiSource: "explorer"` (reuse field; the AI contract tools for Aptos read the on-chain ABI live anyway — stored copy is informational).
@@ -314,6 +322,7 @@ Skip unless weeks 1-3 are ahead of schedule. ANS: resolver in `names.ts` via `ht
 ### Task 16: QA sweep
 
 - [ ] Typecheck all 6 packages; `next build` both apps; eslint changed files.
+- [ ] Annotate the eight EVM-only regex sites per spec §7 with a one-line "EVM-only by design (Aptos unsupported here)" comment: `route.ts:254`, `demos.ts:250`, `DemosManager.tsx:454`, `ActionsForm.tsx:174`, `check/page.tsx:358`, `sanctions.ts:47`, `events.ts:249`, `packages/ai/src/actions.ts:83` (re-locate by content — lines will have drifted).
 - [ ] Dispatch an adversarial review agent over the full Aptos diff (session pattern: findings → verify → fix confirmed bugs).
 - [ ] Regression: EVM demo (Uniswap) + an EVM tx hash + /check flow all behave unchanged.
 
