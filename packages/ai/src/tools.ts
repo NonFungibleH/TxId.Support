@@ -45,7 +45,27 @@ import {
   getSolanaTransactionBySignature,
   isSolanaChain,
 } from "@txid/solana"
+import {
+  isAptosChain,
+  isAptosAddress,
+  normalizeAptosAddress,
+  getAptosWalletBalance,
+  getAptosRecentTransactions,
+  getAptosTransactionByHash,
+  getAptosAssetMetadata,
+  getAptosModuleAbi,
+  viewFunction,
+  getAptosNetworkStatus,
+  diagnoseAptosWallet,
+} from "@txid/aptos"
 import type { WatchedContractSnapshot } from "./types"
+
+const isNonEvm = (chainId: string): boolean => isSolanaChain(chainId) || isAptosChain(chainId)
+
+// The Aptos clients return null when the fetch itself failed — that is NOT an
+// empty wallet / empty history, and the model must never present it as one.
+const APTOS_LOOKUP_FAILED =
+  "Could not reach the Aptos indexer to check this right now — this is a failed lookup, NOT a statement about the wallet's contents or history. Try again shortly."
 
 export interface WalletConfig {
   address: string
@@ -76,6 +96,21 @@ function findWatched(
   }
   return { ambiguousChains: matches.map(c => c.chain) }
 }
+
+/**
+ * Aptos view functions are addressed as addr::module::fn. The caller supplies
+ * "module::fn" (or the full id) and the watched account fills in the address.
+ * Returns null when the name can't be qualified — the tool explains the format.
+ */
+function aptosFunctionId(contractAddress: string, functionName: string): string | null {
+  const parts = functionName.split("::").filter(Boolean)
+  if (parts.length === 3) return functionName
+  if (parts.length === 2) return `${normalizeAptosAddress(contractAddress)}::${functionName}`
+  return null
+}
+
+const APTOS_FN_FORMAT_NOTE =
+  "On Aptos, functions live inside named modules — call again with function_name as 'module::function' (e.g. 'pool::get_fee'). Use get_contract_functions to list this account's modules and their view functions."
 
 /**
  * Build balance + history tools — only offered when a wallet is connected.
@@ -188,12 +223,17 @@ export async function executeTool(
   watchedContracts: WatchedContractSnapshot[] = [],
 ): Promise<unknown> {
   const solana = wallet ? isSolanaChain(wallet.chainId) : false
+  const aptos = wallet ? isAptosChain(wallet.chainId) : false
 
   switch (name) {
     case "get_wallet_balance": {
       if (!wallet) throw new Error("Wallet not connected")
       if (solana) {
         return getSolanaWalletBalance(wallet.address)
+      }
+      if (aptos) {
+        const balance = await getAptosWalletBalance(wallet.address)
+        return balance ?? { error: APTOS_LOOKUP_FAILED }
       }
       const [native, tokens] = await Promise.all([
         getNativeBalance(wallet.address, wallet.chainId),
@@ -211,6 +251,10 @@ export async function executeTool(
       if (solana) {
         return getSolanaRecentTransactions(wallet.address, programOrContract, limit)
       }
+      if (aptos) {
+        const aptosTxs = await getAptosRecentTransactions(wallet.address, programOrContract, limit)
+        return aptosTxs ?? { error: APTOS_LOOKUP_FAILED }
+      }
 
       let txs = await getRecentTransactions(wallet.address, wallet.chainId, limit)
       if (programOrContract) {
@@ -222,6 +266,14 @@ export async function executeTool(
     case "get_wallet_approvals": {
       if (!wallet) throw new Error("Wallet not connected")
       if (solana) return { approvals: [], note: "Approval listing is EVM-only." }
+      if (aptos) {
+        return {
+          address: wallet.address,
+          count: 0,
+          approvals: [],
+          note: "Aptos has no standing token approvals — coins and fungible assets can only move when the owner signs. Nothing to revoke.",
+        }
+      }
       const approvals = await getWalletApprovals(wallet.address, wallet.chainId)
       return { address: wallet.address, count: approvals.length, approvals }
     }
@@ -352,6 +404,12 @@ export async function executeTool(
         // For Solana, treat contract_address as a program address and fetch recent txs
         return getSolanaRecentTransactions(contractAddress, contractAddress, limit)
       }
+      if (isAptosChain(chainId)) {
+        // On Aptos the "contract" is a module-publishing account; fetch its
+        // recent transactions filtered to calls into its own modules.
+        const aptosTxs = await getAptosRecentTransactions(contractAddress, contractAddress, limit)
+        return aptosTxs ?? { contract: contractAddress, error: APTOS_LOOKUP_FAILED }
+      }
       return getContractTransactions(contractAddress, chainId, limit)
     }
 
@@ -370,6 +428,25 @@ export async function executeTool(
       if (!target) throw new Error("Specify which contract (contract_address) to read events from")
       if (isSolanaChain(target.chain)) {
         return { events: [], note: "Event history lookups are only available on EVM chains." }
+      }
+      if (isAptosChain(target.chain)) {
+        // No topic-indexed log scan on Aptos here — the honest cheap substitute
+        // is the events emitted by the module's own recent transactions.
+        const aptosTxs = await getAptosRecentTransactions(target.address, target.address, 10)
+        if (!aptosTxs) return { contract: target.name, event: eventName, events: [], checked: false, error: APTOS_LOOKUP_FAILED }
+        const recentEvents = aptosTxs.flatMap(tx =>
+          tx.events
+            .filter(e => e.type.endsWith(`::${eventName}`) || e.type.includes(`::${eventName}<`))
+            .map(e => ({ transactionHash: tx.hash, timestamp: tx.timestamp, type: e.type, data: e.data })),
+        )
+        return {
+          contract: target.name,
+          event: eventName,
+          count: recentEvents.length,
+          events: recentEvents,
+          checked: false,
+          note: "Aptos: this only scans the events emitted by this module's RECENT transactions — it is not a full history. An empty result does NOT mean the event never fired; say the recent transactions don't show it and offer explorer.aptoslabs.com for the full history.",
+        }
       }
       const events = await getContractEvents(target.address, target.chain, eventName, target.abi ?? undefined)
       if (events.length === 0 && !canCheckEvent(eventName, target.abi ?? undefined)) {
@@ -405,6 +482,12 @@ export async function executeTool(
       if (isSolanaChain(target.chain)) {
         return { note: "Deployment lookup is only available on EVM chains." }
       }
+      if (isAptosChain(target.chain)) {
+        return {
+          contract: target.name,
+          note: "Deployment lookup is not available for Aptos here — Aptos modules are published to an account rather than deployed as contracts. The account's first transaction on explorer.aptoslabs.com shows when it was created.",
+        }
+      }
       const deployment = await getContractDeployment(target.address, target.chain)
       return deployment
         ? { contract: target.name, ...deployment }
@@ -424,6 +507,12 @@ export async function executeTool(
       if (!target) throw new Error("Specify which contract (contract_address) to check holdings for")
       if (isSolanaChain(target.chain)) {
         return getSolanaWalletBalance(target.address)
+      }
+      if (isAptosChain(target.chain)) {
+        // A module-publishing account holds fungible assets like any account —
+        // same lookup as a wallet balance (Solana precedent above).
+        const holdings = await getAptosWalletBalance(target.address)
+        return holdings ? { contract: target.name, ...holdings } : { contract: target.name, error: APTOS_LOOKUP_FAILED }
       }
       const [native, tokens] = await Promise.all([
         getNativeBalance(target.address, target.chain),
@@ -448,6 +537,14 @@ export async function executeTool(
       if (isSolanaChain(target.chain)) {
         return { note: "Reading contract state is only available on EVM chains." }
       }
+      if (isAptosChain(target.chain)) {
+        const fnId = aptosFunctionId(target.address, functionName)
+        if (!fnId) return { contract: target.name, function: functionName, note: APTOS_FN_FORMAT_NOTE }
+        const result = await viewFunction(fnId, [], [])
+        return result
+          ? { contract: target.name, function: fnId, result }
+          : { contract: target.name, function: fnId, note: "The view call failed — the function may not exist, may require arguments or type arguments, or the Aptos fullnode did not respond." }
+      }
       const state = await getContractState(target.address, target.chain, functionName, target.abi ?? undefined)
       return state
         ? { contract: target.name, ...state }
@@ -471,6 +568,14 @@ export async function executeTool(
       if (isSolanaChain(target.chain)) {
         return { note: "Reading contract data is only available on EVM chains." }
       }
+      if (isAptosChain(target.chain)) {
+        const fnId = aptosFunctionId(target.address, functionName)
+        if (!fnId) return { contract: target.name, function: functionName, note: APTOS_FN_FORMAT_NOTE }
+        const result = await viewFunction(fnId, [], args)
+        return result
+          ? { contract: target.name, function: fnId, args, result }
+          : { contract: target.name, function: fnId, args, note: "The view call failed — check the argument count/types (addresses as 0x…, numbers as strings); functions needing type arguments are not supported here, or the Aptos fullnode did not respond." }
+      }
       const data = await getContractData(target.address, target.chain, functionName, args, target.abi ?? undefined)
       return data
         ? { contract: target.name, ...data }
@@ -491,6 +596,22 @@ export async function executeTool(
       if (isSolanaChain(target.chain)) {
         return { note: "Verification/proxy info is only available on EVM chains." }
       }
+      if (isAptosChain(target.chain)) {
+        const modules = await getAptosModuleAbi(target.address)
+        if (!modules) return { contract: target.name, error: "Could not reach the Aptos fullnode to inspect this account's modules right now — a failed lookup, not a statement about the account. Try again shortly." }
+        return {
+          contract: target.name,
+          address: target.address,
+          moduleCount: modules.length,
+          modules: modules.map(m => ({
+            name: m.moduleName,
+            functionCount: m.functions.length,
+            entryFunctions: m.functions.filter(f => f.isEntry).length,
+            viewFunctions: m.functions.filter(f => f.isView).length,
+          })),
+          note: "Aptos modules always publish their full ABI on-chain, so there is no Etherscan-style 'verified/unverified' distinction, and no proxy/implementation concept — module code can only change under the package's declared upgrade policy.",
+        }
+      }
       const info = await getContractInfo(target.address, target.chain)
       return info ? { contract: target.name, ...info } : { contract: target.name, note: "Verification info could not be retrieved." }
     }
@@ -506,6 +627,21 @@ export async function executeTool(
         }
       }
       if (!target) throw new Error("Specify which contract (contract_address)")
+      if (isAptosChain(target.chain)) {
+        // Full module list for the account — per-module scoping arrives with
+        // moduleName threading in a later task.
+        const modules = await getAptosModuleAbi(target.address)
+        if (!modules) return { contract: target.name, error: "Could not reach the Aptos fullnode to read this account's modules right now — a failed lookup, not a statement about the account. Try again shortly." }
+        const signature = (f: { name: string; params: string[] }) => `${f.name}(${f.params.join(", ")})`
+        return {
+          contract: target.name,
+          modules: modules.map(m => ({
+            module: m.moduleName,
+            viewFunctions: m.functions.filter(f => f.isView).map(signature),
+            entryFunctions: m.functions.filter(f => f.isEntry).map(signature),
+          })),
+        }
+      }
       const fns = contractFunctions(target.abi ?? undefined)
       return { contract: target.name, readFunctions: fns.read, writeFunctions: fns.write }
     }
@@ -524,6 +660,13 @@ export async function executeTool(
       if (isSolanaChain(target.chain)) {
         return { upgrades: [], note: "Upgrade history is only available on EVM chains." }
       }
+      if (isAptosChain(target.chain)) {
+        return {
+          contract: target.name,
+          upgrades: [],
+          note: "Upgrade-history tracking here is EVM-only (proxy Upgraded events). Aptos modules are upgraded in place under the package's declared upgrade policy — the account's page on explorer.aptoslabs.com shows package publish/upgrade transactions.",
+        }
+      }
       const upgrades = await getUpgradeHistory(target.address, target.chain)
       return { contract: target.name, count: upgrades.length, upgrades }
     }
@@ -533,6 +676,12 @@ export async function executeTool(
       if (!token) throw new Error("token_address is required")
       const chainId = typeof input.chain_id === "string" ? input.chain_id : (wallet?.chainId ?? watchedContracts[0]?.chain ?? "0x1")
       if (isSolanaChain(chainId)) return { note: "Token reads here are EVM-only." }
+      if (isAptosChain(chainId)) {
+        const rows = await getAptosAssetMetadata(token)
+        if (rows === null) return { token, error: "Could not reach the Aptos indexer to look up this asset right now — a failed lookup, not a statement about the asset. Try again shortly." }
+        const meta = rows[0]
+        return meta ?? { token, note: "The Aptos indexer has no fungible-asset metadata for this asset type. Check the exact asset type (e.g. 0x1::aptos_coin::AptosCoin, or a metadata object address) on explorer.aptoslabs.com." }
+      }
       const info = await getTokenInfo(token, chainId)
       return info ?? { token, note: "Could not read token details (not an ERC-20, or the read failed)." }
     }
@@ -544,6 +693,9 @@ export async function executeTool(
       if (!token || !owner || !spender) throw new Error("token_address, owner and spender are required")
       const chainId = typeof input.chain_id === "string" ? input.chain_id : (wallet?.chainId ?? watchedContracts[0]?.chain ?? "0x1")
       if (isSolanaChain(chainId)) return { note: "Allowance reads here are EVM-only." }
+      if (isAptosChain(chainId)) {
+        return { note: "Aptos has no token-allowance concept — coins and fungible assets move only when the owner signs, so no approval is ever needed and there is nothing to check." }
+      }
       const allowance = await getTokenAllowance(token, owner, spender, chainId)
       return allowance ?? { token, owner, spender, note: "Could not read the allowance." }
     }
@@ -559,6 +711,7 @@ export async function executeTool(
     case "get_native_price": {
       const chainId = typeof input.chain_id === "string" ? input.chain_id : (wallet?.chainId ?? watchedContracts[0]?.chain ?? "0x1")
       if (isSolanaChain(chainId)) return { chainId, note: "Native price here is EVM-only." }
+      // "aptos" is handled by getNativeTokenPrice (APT priced by coin type on DexScreener)
       const price = await getNativeTokenPrice(chainId)
       return price ?? { chainId, note: "Could not fetch the native token price for this chain." }
     }
@@ -566,6 +719,16 @@ export async function executeTool(
     case "get_network_status": {
       const chainId = typeof input.chain_id === "string" ? input.chain_id : (wallet?.chainId ?? watchedContracts[0]?.chain ?? "0x1")
       if (isSolanaChain(chainId)) return { chainId, note: "Network status here is EVM-only." }
+      if (isAptosChain(chainId)) {
+        const aptosStatus = await getAptosNetworkStatus()
+        return {
+          chainId,
+          ...aptosStatus,
+          ...(aptosStatus.up
+            ? {}
+            : { note: "The Aptos fullnode did not respond or is lagging — the network (or this fullnode) may be having issues." }),
+        }
+      }
       const status = await getNetworkStatus(chainId)
       return status ?? { chainId, responsive: false, note: "The network RPC did not respond — the chain may be having issues." }
     }
@@ -580,12 +743,28 @@ export async function executeTool(
         new Set(watchedContracts.map(c => c.chain).filter((c): c is string => !!c)),
       )
       const onProtocolChain = protocolChains.length === 0 || protocolChains.includes(chainId)
+      if (aptos) {
+        const diag = await diagnoseAptosWallet(wallet.address)
+        // Null fields mean the underlying lookup FAILED — unverified, never "zero"/"none".
+        const cautions: string[] = []
+        if (!diag.exists) cautions.push("exists=false: no account resource on Aptos mainnet — this address has most likely never sent a transaction (a common cause of 'nothing works': wrong address or wrong network in the wallet).")
+        if (diag.aptBalance === null) cautions.push("aptBalance is null because the balance lookup failed — the balance is UNVERIFIED, do not describe it as zero or empty.")
+        if (diag.recentFailureCount === null) cautions.push("recentFailureCount is null because the recent-transaction lookup failed — whether recent transactions failed is UNVERIFIED, do not state a count.")
+        return {
+          walletAddress: wallet.address,
+          chainId,
+          onProtocolChain,
+          protocolChains,
+          ...diag,
+          ...(cautions.length > 0 ? { notes: cautions } : {}),
+        }
+      }
       // If the wallet is on the wrong network AND the protocol lives on exactly
       // one known EVM chain, surface a one-tap switch target. The stream layer
       // turns this into a "Switch to X" button in the widget.
       let switchTo: { chainId: string; chainName: string } | undefined
       const target = protocolChains[0]
-      if (!onProtocolChain && protocolChains.length === 1 && target && !isSolanaChain(target)) {
+      if (!onProtocolChain && protocolChains.length === 1 && target && !isSolanaChain(target) && !isAptosChain(target)) {
         const cfg = CHAIN_CONFIGS[target]
         if (cfg) switchTo = { chainId: target, chainName: cfg.name }
       }
@@ -608,6 +787,9 @@ export async function executeTool(
       if (!token) throw new Error("token_address is required")
       const chainId = typeof input.chain_id === "string" ? input.chain_id : (wallet?.chainId ?? watchedContracts[0]?.chain ?? "0x1")
       if (isSolanaChain(chainId)) return { token, note: "Token safety screening is EVM-only." }
+      if (isAptosChain(chainId)) {
+        return { token, note: "Token safety screening uses an EVM-only source and is not available for Aptos assets. Suggest checking the asset's metadata (get_token_info) and its holders/activity on explorer.aptoslabs.com instead — do not claim the asset is safe or unsafe." }
+      }
       const safety = await getTokenSafety(token, chainId)
       return safety ?? { token, note: "Could not screen this token — the chain may be unsupported or the safety API unavailable." }
     }
@@ -637,6 +819,9 @@ export async function executeTool(
       if (isSolanaChain(target.chain)) {
         return { note: "Action estimates are only available on EVM chains." }
       }
+      if (isAptosChain(target.chain)) {
+        return { note: "Pre-flight estimates are not available on Aptos here — Aptos transaction simulation needs the sender's public key, which only a connected Petra/Martian session provides. Gas on Aptos is usually well under $0.01; a failed tx's decodedAbort (via get_transaction_by_hash) explains why it failed." }
+      }
       const estimate = await estimateAction(target.address, target.chain, functionName, args, wallet.address, target.abi ?? undefined)
       return estimate
         ? { contractName: target.name, ...estimate }
@@ -647,6 +832,14 @@ export async function executeTool(
       const address = typeof input.address === "string" ? input.address
         : (typeof input.address === "undefined" ? wallet?.address : undefined)
       if (!address) throw new Error("address is required")
+      // Aptos addresses share the 0x-hex shape with EVM but the oracle is
+      // EVM-only. Guard on: not-EVM-length hex (Aptos allows 1–64 hex chars),
+      // or an Aptos-connected wallet being screened.
+      const isEvmFormat = /^0x[0-9a-fA-F]{40}$/.test(address)
+      const screeningConnectedAptosWallet = aptos && typeof input.address === "undefined"
+      if ((!isEvmFormat && isAptosAddress(address)) || screeningConnectedAptosWallet) {
+        return { address, available: false, note: "Sanctions screening uses an EVM on-chain oracle and is not available for Aptos addresses." }
+      }
       const result = await checkSanctioned(address)
       return result ?? { address, note: "Could not screen this address against the sanctions oracle." }
     }
@@ -821,10 +1014,14 @@ export function buildContractHoldingsTool(
 export function buildContractStateTool(
   watchedContracts: WatchedContractSnapshot[] = [],
 ): Anthropic.Tool | null {
-  const withAbi = watchedContracts.filter(c => c.abi)
+  // Aptos module ABIs live on-chain, so Aptos contracts qualify without a stored ABI.
+  const withAbi = watchedContracts.filter(c => c.abi || isAptosChain(c.chain))
   if (withAbi.length === 0) return null
   const lines = withAbi
     .map(c => {
+      if (isAptosChain(c.chain)) {
+        return `${c.name} at ${c.address} (chain aptos) — Move modules: pass function_name as 'module::function'; list views with get_contract_functions first`
+      }
       const getters = viewGetterNames(c.abi).slice(0, 40)
       return `${c.name} at ${c.address} (chain ${c.chain}) — getters: ${getters.join(", ") || "none"}`
     })
@@ -867,9 +1064,15 @@ export function buildContractDataTool(
 ): Anthropic.Tool | null {
   const withArgFns = watchedContracts
     .map(c => ({ c, fns: viewFunctionsWithArgs(c.abi) }))
-    .filter(x => x.fns.length > 0)
+    .filter(x => x.fns.length > 0 || isAptosChain(x.c.chain))
   if (withArgFns.length === 0) return null
-  const lines = withArgFns.map(({ c, fns }) => `${c.name} at ${c.address} (chain ${c.chain}) — functions: ${fns.slice(0, 30).join("; ")}`).join(" | ")
+  const lines = withArgFns
+    .map(({ c, fns }) =>
+      isAptosChain(c.chain)
+        ? `${c.name} at ${c.address} (chain aptos) — Move modules: pass function_name as 'module::function'; list views with get_contract_functions first`
+        : `${c.name} at ${c.address} (chain ${c.chain}) — functions: ${fns.slice(0, 30).join("; ")}`,
+    )
+    .join(" | ")
   return {
     name: "get_contract_data",
     description:
@@ -918,7 +1121,8 @@ export function buildContractInfoTool(
 export function buildContractFunctionsTool(
   watchedContracts: WatchedContractSnapshot[] = [],
 ): Anthropic.Tool | null {
-  const withAbi = watchedContracts.filter(c => c.abi)
+  // Aptos module ABIs live on-chain, so Aptos contracts qualify without a stored ABI.
+  const withAbi = watchedContracts.filter(c => c.abi || isAptosChain(c.chain))
   if (withAbi.length === 0) return null
   const list = withAbi.map(c => `${c.name} at ${c.address}`).join(", ")
   return {

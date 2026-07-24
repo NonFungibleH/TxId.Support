@@ -16,8 +16,10 @@ export {
   aptosGraphql,
   getAptosWalletBalance,
   getAptosRecentTransactions,
+  getAptosAssetMetadata,
   diagnoseAptosWallet,
 } from "./indexer"
+export type { AptosAssetMetadata } from "./indexer"
 
 export function isAptosChain(chainId: string): boolean {
   return chainId === "aptos"

@@ -151,6 +151,48 @@ export async function getAptosRecentTransactions(
   return txs.slice(0, limit)
 }
 
+const METADATA_QUERY = `query AssetMetadata($assetType: String!) {
+  fungible_asset_metadata(where: { asset_type: { _eq: $assetType } }, limit: 1) {
+    asset_type
+    name
+    symbol
+    decimals
+    supply_v2
+  }
+}`
+
+export interface AptosAssetMetadata {
+  assetType: string
+  name: string
+  symbol: string
+  decimals: number
+  supply?: string
+}
+
+// null = the indexer could not be reached (fetch failed); [] = the indexer
+// answered and knows no such asset — callers must keep the two distinct.
+export async function getAptosAssetMetadata(assetType: string): Promise<AptosAssetMetadata[] | null> {
+  const data = await aptosGraphql<{
+    fungible_asset_metadata: {
+      asset_type: string
+      name: string
+      symbol: string
+      decimals: number
+      supply_v2: number | string | null
+    }[]
+  }>(METADATA_QUERY, { assetType })
+  if (!data) return null
+  return data.fungible_asset_metadata.map(row => ({
+    assetType: row.asset_type,
+    name: row.name,
+    symbol: row.symbol,
+    decimals: row.decimals,
+    ...(row.supply_v2 !== null && row.supply_v2 !== undefined
+      ? { supply: formatUnits(rawAmount(row.supply_v2), row.decimals) }
+      : {}),
+  }))
+}
+
 export async function diagnoseAptosWallet(address: string): Promise<AptosWalletDiagnosis> {
   const addr = normalizeAptosAddress(address)
   const [account, balanceResult, recent] = await Promise.all([

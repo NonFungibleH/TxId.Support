@@ -150,6 +150,7 @@ export interface TokenPrice {
 const DEXSCREENER_CHAIN: Record<string, string> = {
   "0x1": "ethereum", "0x2105": "base", "0x38": "bsc", "0x89": "polygon",
   "0xa4b1": "arbitrum", "0xa": "optimism", "0xa86a": "avalanche",
+  "aptos": "aptos",
 }
 
 /**
@@ -206,6 +207,10 @@ const NATIVE_WRAPPED: Record<string, { symbol: string; wrapped: string }> = {
   "0x38":   { symbol: "BNB",   wrapped: "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c" },
   "0x89":   { symbol: "POL",   wrapped: "0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270" },
   "0xa86a": { symbol: "AVAX",  wrapped: "0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7" },
+  // Aptos: not a wrapped ERC-20 — DexScreener prices APT by its coin type
+  // directly (the FA-form id "0xa" also matches a same-address Movement-chain
+  // token, so the unambiguous coin type is used).
+  "aptos":  { symbol: "APT",   wrapped: "0x1::aptos_coin::AptosCoin" },
 }
 
 /**
