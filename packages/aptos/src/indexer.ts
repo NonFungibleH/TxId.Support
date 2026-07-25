@@ -1,3 +1,4 @@
+import type { AbortErrmap } from "./abort"
 import { normalizeAptosAddress } from "./address"
 import {
   aptosAuthHeaders,
@@ -109,13 +110,13 @@ const HISTORY_QUERY = `query AccountTransactions($addr: String!) {
   }
 }`
 
-async function hydrateVersions(versions: string[], stopAt?: number): Promise<AptosTransaction[]> {
+async function hydrateVersions(versions: string[], stopAt?: number, errmap?: AbortErrmap): Promise<AptosTransaction[]> {
   const results: AptosTransaction[] = []
   for (let i = 0; i < versions.length; i += 3) {
     if (stopAt !== undefined && results.length >= stopAt) break
     if (i > 0) await sleep(300)
     const chunk = versions.slice(i, i + 3)
-    const txs = await Promise.all(chunk.map(v => getAptosTransactionByHash(v)))
+    const txs = await Promise.all(chunk.map(v => getAptosTransactionByHash(v, errmap)))
     for (const tx of txs) {
       if (tx) results.push(tx)
     }
@@ -133,7 +134,8 @@ function functionIdMatchesModule(functionId: string | null, normalizedModuleAddr
 export async function getAptosRecentTransactions(
   address: string,
   moduleAddress?: string,
-  limit = 10
+  limit = 10,
+  errmap?: AbortErrmap
 ): Promise<AptosTransaction[] | null> {
   const addr = normalizeAptosAddress(address)
   const data = await aptosGraphql<{ account_transactions: { transaction_version: number | string }[] }>(
@@ -143,7 +145,9 @@ export async function getAptosRecentTransactions(
   if (!data) return null
 
   const versions = data.account_transactions.map(row => String(row.transaction_version))
-  let txs = await hydrateVersions(versions, moduleAddress ? undefined : limit)
+  // Thread the protocol errmap so failed txs in the history decode to the
+  // protocol's own error explanations, not a generic category reason.
+  let txs = await hydrateVersions(versions, moduleAddress ? undefined : limit, errmap)
   if (moduleAddress) {
     const target = normalizeAptosAddress(moduleAddress)
     txs = txs.filter(tx => functionIdMatchesModule(tx.functionId, target))

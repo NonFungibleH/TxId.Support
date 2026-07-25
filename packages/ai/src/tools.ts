@@ -285,7 +285,7 @@ export async function executeTool(
         return getSolanaRecentTransactions(wallet.address, programOrContract, limit)
       }
       if (aptos) {
-        const aptosTxs = await getAptosRecentTransactions(wallet.address, programOrContract, limit)
+        const aptosTxs = await getAptosRecentTransactions(wallet.address, programOrContract, limit, errmapFor(watchedContracts))
         return aptosTxs ?? { error: APTOS_LOOKUP_FAILED }
       }
 
@@ -514,7 +514,7 @@ export async function executeTool(
       if (isAptosChain(chainId)) {
         // On Aptos the "contract" is a module-publishing account; fetch its
         // recent transactions filtered to calls into its own modules.
-        const aptosTxs = await getAptosRecentTransactions(contractAddress, contractAddress, limit)
+        const aptosTxs = await getAptosRecentTransactions(contractAddress, contractAddress, limit, errmapFor(watchedContracts))
         return aptosTxs ?? { contract: contractAddress, error: APTOS_LOOKUP_FAILED }
       }
       return getContractTransactions(contractAddress, chainId, limit)
@@ -539,7 +539,7 @@ export async function executeTool(
       if (isAptosChain(target.chain)) {
         // No topic-indexed log scan on Aptos here — the honest cheap substitute
         // is the events emitted by the module's own recent transactions.
-        const aptosTxs = await getAptosRecentTransactions(target.address, target.address, 10)
+        const aptosTxs = await getAptosRecentTransactions(target.address, target.address, 10, errmapFor(watchedContracts))
         if (!aptosTxs) return { contract: target.name, event: eventName, events: [], checked: false, error: APTOS_LOOKUP_FAILED }
         const recentEvents = aptosTxs.flatMap(tx =>
           tx.events
