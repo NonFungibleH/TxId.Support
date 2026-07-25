@@ -58,9 +58,6 @@ export type ChainId = (typeof SUPPORTED_CHAINS)[number]["id"]
 // (existing configs keep working; new selections are EVM-only for now).
 const PAUSED_CHAINS = new Set<string>([
   "solana",
-  // aptos: paused until the Phase-3 surfaces land (chat route address
-  // validation, widget connect, dashboard flows) — Task 13 unpauses.
-  "aptos",
 ])
 
 /** Chains offered in chain pickers — SUPPORTED_CHAINS minus paused ones. */

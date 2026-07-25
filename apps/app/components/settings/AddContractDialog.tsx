@@ -15,10 +15,16 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { addContract, peekContractFunctions } from "@/lib/actions/contracts"
+import { addContract, peekContractFunctions, peekAptosModules, type AptosModulePeek } from "@/lib/actions/contracts"
 import { SUPPORTED_CHAINS, SELECTABLE_CHAINS } from "@/lib/types/config"
 import { Plus, AlertTriangle, Loader2 } from "lucide-react"
 import Link from "next/link"
+
+const EVM_ADDRESS_RE = /^0x[0-9a-fA-F]{40}$/
+const APTOS_ADDRESS_RE = /^0x[0-9a-fA-F]{1,64}$/
+// Sentinel for the module Select: empty string means "all modules" but the
+// Select needs a non-empty value to render a selection.
+const ALL_MODULES = "__all__"
 
 interface AddContractDialogProps {
   projectId: string
@@ -35,23 +41,41 @@ export function AddContractDialog({ projectId, activeChains, chainLimit }: AddCo
   const [description, setDescription] = useState("")
   const [detectedFns, setDetectedFns] = useState<string[] | null>(null)
   const [detectingFns, setDetectingFns] = useState(false)
+  const [aptosModules, setAptosModules] = useState<AptosModulePeek[] | null>(null)
+  const [aptosPeekError, setAptosPeekError] = useState<string | null>(null)
+  const [moduleName, setModuleName] = useState("")
   const peekTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
 
+  const isAptos = chain === "aptos"
+  const addressRe = isAptos ? APTOS_ADDRESS_RE : EVM_ADDRESS_RE
   const isNewChain = !activeChains.includes(chain)
   const atChainLimit = chainLimit !== -1 && isNewChain && activeChains.length >= chainLimit
 
-  // Fetch function names from the block explorer whenever address + chain look valid
+  // Fetch function names (EVM: block explorer) or the module list (Aptos:
+  // fullnode) whenever address + chain look valid
   useEffect(() => {
-    const isValidAddress = /^0x[0-9a-fA-F]{40}$/.test(address.trim())
-    if (!isValidAddress) { setDetectedFns(null); return }
+    const aptos = chain === "aptos"
+    setDetectedFns(null); setAptosModules(null); setAptosPeekError(null); setModuleName("")
+    const isValidAddress = (aptos ? APTOS_ADDRESS_RE : EVM_ADDRESS_RE).test(address.trim())
+    if (!isValidAddress) return
 
     if (peekTimeout.current) clearTimeout(peekTimeout.current)
     peekTimeout.current = setTimeout(() => {
       setDetectingFns(true)
-      peekContractFunctions(address.trim(), chain)
-        .then(fns => setDetectedFns(fns))
-        .catch(() => setDetectedFns(null))
-        .finally(() => setDetectingFns(false))
+      if (aptos) {
+        peekAptosModules(address.trim())
+          .then(res => {
+            if ("modules" in res) setAptosModules(res.modules)
+            else setAptosPeekError(res.error)
+          })
+          .catch(() => setAptosModules(null))
+          .finally(() => setDetectingFns(false))
+      } else {
+        peekContractFunctions(address.trim(), chain)
+          .then(fns => setDetectedFns(fns))
+          .catch(() => setDetectedFns(null))
+          .finally(() => setDetectingFns(false))
+      }
     }, 600)
 
     return () => { if (peekTimeout.current) clearTimeout(peekTimeout.current) }
@@ -60,12 +84,16 @@ export function AddContractDialog({ projectId, activeChains, chainLimit }: AddCo
   function reset() {
     setName(""); setAddress(""); setChain("0x1"); setDescription("")
     setDetectedFns(null); setDetectingFns(false)
+    setAptosModules(null); setAptosPeekError(null); setModuleName("")
   }
 
   function submit() {
     startTransition(async () => {
       try {
-        await addContract(projectId, { name, address, chain, description })
+        await addContract(projectId, {
+          name, address, chain, description,
+          ...(isAptos && moduleName ? { moduleName } : {}),
+        })
         toast.success("Contract added")
         reset()
         setOpen(false)
@@ -116,6 +144,29 @@ export function AddContractDialog({ projectId, activeChains, chainLimit }: AddCo
             </Select>
           </div>
 
+          {isAptos && aptosModules && aptosModules.length > 0 && (
+            <div className="grid gap-2">
+              <Label htmlFor="contract-module">Module (optional)</Label>
+              <Select
+                value={moduleName || ALL_MODULES}
+                onValueChange={v => setModuleName(v === ALL_MODULES || !v ? "" : v)}
+              >
+                <SelectTrigger id="contract-module">
+                  <SelectValue>
+                    {moduleName || "All modules"}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={ALL_MODULES}>All modules</SelectItem>
+                  {aptosModules.map(m => (
+                    <SelectItem key={m.name} value={m.name}>{m.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">Scope the AI to one module, or leave as all modules at this address.</p>
+            </div>
+          )}
+
           {atChainLimit && (
             <div className="flex items-start gap-2.5 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2.5">
               <AlertTriangle className="size-4 text-amber-500 shrink-0 mt-0.5" />
@@ -141,11 +192,11 @@ export function AddContractDialog({ projectId, activeChains, chainLimit }: AddCo
             />
             <p className="text-xs text-muted-foreground">The AI reads this to understand what the contract does and when to use it.</p>
 
-            {/* ABI function hints */}
+            {/* ABI function / module hints */}
             {detectingFns && (
               <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                 <Loader2 className="size-3 animate-spin" />
-                Reading contract from block explorer…
+                {isAptos ? "Reading modules from the Aptos fullnode…" : "Reading contract from block explorer…"}
               </div>
             )}
             {detectedFns && detectedFns.length > 0 && (
@@ -158,8 +209,26 @@ export function AddContractDialog({ projectId, activeChains, chainLimit }: AddCo
                 </div>
               </div>
             )}
-            {detectedFns === null && !detectingFns && /^0x[0-9a-fA-F]{40}$/.test(address.trim()) && (
+            {!isAptos && detectedFns === null && !detectingFns && addressRe.test(address.trim()) && (
               <p className="text-xs text-muted-foreground/60">Contract not verified on block explorer — you&apos;ll need to describe it manually.</p>
+            )}
+            {isAptos && aptosModules && aptosModules.length > 0 && (
+              <div className="rounded-lg border border-border bg-muted/40 px-3 py-2.5 space-y-1.5">
+                <p className="text-xs font-medium text-foreground/70">Modules found: use these to describe what the contract does.</p>
+                <div className="flex flex-wrap gap-1">
+                  {aptosModules.map(m => (
+                    <span key={m.name} className="rounded bg-background border border-border px-1.5 py-0.5 text-xs font-mono text-foreground/60">
+                      {m.name} ({m.entryCount} entry, {m.viewCount} view)
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+            {isAptos && aptosModules && aptosModules.length === 0 && !detectingFns && (
+              <p className="text-xs text-muted-foreground/60">No modules found at this address. You can still add it and describe it manually.</p>
+            )}
+            {isAptos && aptosPeekError && !detectingFns && (
+              <p className="text-xs text-muted-foreground/60">{aptosPeekError}</p>
             )}
           </div>
         </div>

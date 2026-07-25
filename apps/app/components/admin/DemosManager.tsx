@@ -237,19 +237,29 @@ function DemoContracts({ demo, onChange }: { demo: DemoSummary; onChange: (count
   const [addr, setAddr] = useState("")
   const [name, setName] = useState("")
   const [chain, setChain] = useState<ChainId>(demo.chains[0] ?? "0x1")
+  const [moduleName, setModuleName] = useState("")
   const [contracts, setContracts] = useState<DemoContract[]>(demo.contracts)
   const [pending, start] = useTransition()
   const [removingId, setRemovingId] = useState<string | null>(null)
 
+  const isAptos = chain === "aptos"
+
   function add() {
+    const cleanModule = isAptos ? moduleName.trim() : ""
+    if (cleanModule && !/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(cleanModule)) {
+      toast.error("Module name must be a valid Move identifier")
+      return
+    }
     start(async () => {
-      const res = await addDemoContract(demo.id, addr, chain, name)
+      const res = await addDemoContract(demo.id, addr, chain, name, cleanModule || undefined)
       if (res.ok && res.contract) {
         const next = [...contracts, res.contract]
         setContracts(next)
         onChange(next.length)
-        setAddr(""); setName("")
-        toast.success(res.contract.hasAbi ? "Contract added — ABI fetched from explorer" : "Contract added — no verified ABI found (diagnosis still works)")
+        setAddr(""); setName(""); setModuleName("")
+        toast.success(res.contract.hasAbi
+          ? (chain === "aptos" ? "Contract added: module ABI fetched from the fullnode" : "Contract added — ABI fetched from explorer")
+          : (chain === "aptos" ? "Contract added: could not fetch modules (the AI still reads them live on-chain)" : "Contract added — no verified ABI found (diagnosis still works)"))
       } else {
         toast.error(res.error ?? "Couldn't add contract")
       }
@@ -286,7 +296,7 @@ function DemoContracts({ demo, onChange }: { demo: DemoSummary; onChange: (count
               <span className="shrink-0 rounded-md bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">{chainName(c.chain)}</span>
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-medium">{c.name}</p>
-                <p className="truncate font-mono text-[11px] text-muted-foreground">{c.address}</p>
+                <p className="truncate font-mono text-[11px] text-muted-foreground">{c.address}{c.moduleName ? `::${c.moduleName}` : ""}</p>
               </div>
               {c.hasAbi
                 ? <span className="inline-flex shrink-0 items-center gap-1 text-[11px] font-medium text-green-500"><CheckCircle2 className="size-3" /> ABI</span>
@@ -309,6 +319,9 @@ function DemoContracts({ demo, onChange }: { demo: DemoSummary; onChange: (count
         <select value={chain} onChange={e => setChain(e.target.value as ChainId)} className="rounded-lg border border-input bg-transparent px-2 py-2 text-sm">
           {DEMO_CONTRACT_CHAINS.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
         </select>
+        {isAptos && (
+          <input placeholder="Module (optional)" value={moduleName} onChange={e => setModuleName(e.target.value)} className="w-36 rounded-lg border border-input bg-transparent px-3 py-2 text-sm font-mono outline-none focus:border-ring" />
+        )}
         <input placeholder="Label (optional)" value={name} onChange={e => setName(e.target.value)} className="w-32 rounded-lg border border-input bg-transparent px-3 py-2 text-sm outline-none focus:border-ring" />
         <button onClick={add} disabled={pending || !addr} className="rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-50">
           {pending && !removingId ? <Loader2 className="size-4 animate-spin" /> : "Add"}
@@ -409,6 +422,14 @@ function DemoActionsToggle({ demo, onChange }: { demo: DemoSummary; onChange: (v
             <p className="text-[11px] text-muted-foreground">Add a contract with a verified ABI above first.</p>
           )}
           {demo.contracts.map(c => {
+            if (c.chain === "aptos") {
+              return (
+                <div key={c.id} className="rounded-lg border border-border p-2.5">
+                  <p className="text-xs font-medium">{c.name}</p>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">Execution is EVM-only for now.</p>
+                </div>
+              )
+            }
             const fns = c.writeFunctions
             const rules = allowed[c.id] ?? []
             if (fns.length === 0) {

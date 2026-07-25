@@ -7,6 +7,7 @@ import type { ProjectConfig, ChainId, ActionsFunctionRule } from "@/lib/types/co
 import type { Json } from "@/lib/supabase/types"
 import { writeFunctionsOf, type WriteFunction } from "@/lib/action-functions"
 import { fetchAbiFromExplorer, fetchAbiWithProxy } from "@txid/blockchain"
+import { getAptosModuleAbi } from "@txid/aptos"
 import { crawlAndIngestCore, type CrawlResult } from "@/lib/ingest-core"
 import { revalidatePath } from "next/cache"
 
@@ -41,6 +42,7 @@ export interface DemoContract {
   name: string
   address: string
   chain: ChainId
+  moduleName?: string
   hasAbi: boolean
   // Eligible write functions (computed server-side from the ABI) so the demo
   // creator can offer a function allowlist without shipping raw ABIs to the client.
@@ -67,8 +69,10 @@ function toDemoContracts(config: ProjectConfig): DemoContract[] {
     name: c.name,
     address: c.address,
     chain: c.chain as ChainId,
+    ...(c.moduleName ? { moduleName: c.moduleName } : {}),
     hasAbi: !!c.abi,
-    writeFunctions: writeFunctionsOf(c.abi ?? null),
+    // Actions execution is EVM-only: never surface Move functions as executable.
+    writeFunctions: c.chain === "aptos" ? [] : writeFunctionsOf(c.abi ?? null),
   }))
 }
 
@@ -141,9 +145,15 @@ export async function updateDemoConfig(id: string, patch: Partial<ProjectConfig>
   revalidatePath("/admin/demos")
 }
 
-export async function addDemoContract(id: string, address: string, chain: ChainId, contractName: string): Promise<{ ok: boolean; error?: string; contract?: DemoContract }> {
+export async function addDemoContract(id: string, address: string, chain: ChainId, contractName: string, moduleName?: string): Promise<{ ok: boolean; error?: string; contract?: DemoContract }> {
   await assertAdmin()
-  if (!/^0x[0-9a-fA-F]{40}$/.test(address.trim())) return { ok: false, error: "Enter a valid contract address" }
+  const isAptos = chain === "aptos"
+  const addressRe = isAptos ? /^0x[0-9a-fA-F]{1,64}$/ : /^0x[0-9a-fA-F]{40}$/
+  if (!addressRe.test(address.trim())) return { ok: false, error: "Enter a valid contract address" }
+  const cleanModule = isAptos ? (moduleName?.trim() || undefined) : undefined
+  if (cleanModule && !/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(cleanModule)) {
+    return { ok: false, error: "Module name must be a valid Move identifier" }
+  }
   const supabase = createServiceClient()
   const orgId = await demosOrgId(supabase)
   const config = await assertDemoProject(supabase, orgId, id)
@@ -152,20 +162,26 @@ export async function addDemoContract(id: string, address: string, chain: ChainI
   if ((config.watchedContracts ?? []).some(c => c.address.toLowerCase() === cleanAddr.toLowerCase() && c.chain === chain)) {
     return { ok: false, error: "That contract is already added on this chain" }
   }
-  const abi = await fetchAbiWithProxy(cleanAddr, chain, fetchAbiFromExplorer).catch(() => null)
+  // Aptos module ABIs are read live on-chain by the AI; the stored copy is informational.
+  const abi = isAptos
+    ? await (cleanModule ? getAptosModuleAbi(cleanAddr, cleanModule) : getAptosModuleAbi(cleanAddr))
+        .then(r => (!r || (Array.isArray(r) && r.length === 0) ? null : JSON.stringify(r)))
+        .catch(() => null)
+    : await fetchAbiWithProxy(cleanAddr, chain, fetchAbiFromExplorer).catch(() => null)
   const contract = {
     id: crypto.randomUUID(),
     name: contractName.trim() || `Contract ${cleanAddr.slice(0, 6)}`,
     address: cleanAddr,
     chain,
     description: "",
+    ...(cleanModule ? { moduleName: cleanModule } : {}),
     ...(abi ? { abi, abiSource: "explorer" as const } : {}),
   }
   const watchedContracts = [...(config.watchedContracts ?? []), contract]
   const chains = Array.from(new Set([...(config.chains ?? []), chain])) as ChainId[]
   await supabase.from("projects").update({ config: { ...config, watchedContracts, chains, publicDemo: true } as unknown as Json } as never).eq("id", id)
   revalidatePath("/admin/demos")
-  return { ok: true, contract: { id: contract.id, name: contract.name, address: contract.address, chain, hasAbi: !!abi, writeFunctions: writeFunctionsOf(abi) } }
+  return { ok: true, contract: { id: contract.id, name: contract.name, address: contract.address, chain, ...(cleanModule ? { moduleName: cleanModule } : {}), hasAbi: !!abi, writeFunctions: isAptos ? [] : writeFunctionsOf(abi) } }
 }
 
 export async function removeDemoContract(id: string, contractId: string): Promise<void> {

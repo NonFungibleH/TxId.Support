@@ -10,15 +10,42 @@ import { PLAN_CHAIN_LIMITS } from "@/lib/types/config"
 import type { Database, Json } from "@/lib/supabase/types"
 import { fetchAbiFromExplorer, fetchAbiWithProxy } from "@txid/blockchain"
 import { fetchIdlFromRegistry } from "@txid/solana"
+import { getAptosModuleAbi } from "@txid/aptos"
 
 type ProjectRow = Database["public"]["Tables"]["projects"]["Row"]
 
+const EVM_ADDRESS_RE = /^0x[0-9a-fA-F]{40}$/
+const APTOS_ADDRESS_RE = /^0x[0-9a-fA-F]{1,64}$/
+const MOVE_MODULE_RE = /^[a-zA-Z_][a-zA-Z0-9_]*$/
+
 const AddContractSchema = z.object({
   name: z.string().min(1, "Name is required").max(80),
-  address: z.string().regex(/^0x[0-9a-fA-F]{40}$/, "Must be a valid 0x address"),
+  address: z.string(),
   chain: z.string().min(1, "Chain is required"),
   description: z.string().min(1, "Description is required").max(500),
+  moduleName: z.string().trim().regex(MOVE_MODULE_RE, "Module name must be a valid Move identifier").optional(),
+}).superRefine((data, ctx) => {
+  const valid = data.chain === "aptos"
+    ? APTOS_ADDRESS_RE.test(data.address)
+    : EVM_ADDRESS_RE.test(data.address)
+  if (!valid) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["address"],
+      message: data.chain === "aptos" ? "Must be a valid Aptos address" : "Must be a valid 0x address",
+    })
+  }
 })
+
+// Aptos module ABIs are read live on-chain by the AI tools; the stored copy is
+// informational (Solana/IDL precedent). Returns JSON of one module or the list.
+async function fetchAptosAbiJson(address: string, moduleName?: string): Promise<string | null> {
+  const result = moduleName
+    ? await getAptosModuleAbi(address, moduleName).catch(() => null)
+    : await getAptosModuleAbi(address).catch(() => null)
+  if (!result || (Array.isArray(result) && result.length === 0)) return null
+  return JSON.stringify(result)
+}
 
 async function resolveProjectWithOwnership(
   projectId: string
@@ -53,7 +80,7 @@ async function resolveProjectWithOwnership(
 
 export async function addContract(
   projectId: string,
-  input: { name: string; address: string; chain: string; description: string }
+  input: { name: string; address: string; chain: string; description: string; moduleName?: string }
 ) {
   const parsed = AddContractSchema.safeParse(input)
   if (!parsed.success) throw new Error(parsed.error.issues[0].message)
@@ -79,14 +106,19 @@ export async function addContract(
     }
   }
 
-  // Try to fetch ABI from the block explorer automatically. Proxy-aware: if the
+  const isAptos = parsed.data.chain === "aptos"
+  const moduleName = isAptos ? parsed.data.moduleName : undefined
+
+  // Try to fetch ABI automatically. EVM: block explorer, proxy-aware (if the
   // address is a proxy, the implementation ABI is merged in so the bot can read
-  // the real events/getters, not just upgrade plumbing.
-  const abi = await fetchAbiWithProxy(
-    parsed.data.address.toLowerCase(),
-    parsed.data.chain,
-    fetchAbiFromExplorer,
-  ).catch(() => null)
+  // the real events/getters, not just upgrade plumbing). Aptos: fullnode module ABI.
+  const abi = isAptos
+    ? await fetchAptosAbiJson(parsed.data.address, moduleName)
+    : await fetchAbiWithProxy(
+        parsed.data.address.toLowerCase(),
+        parsed.data.chain,
+        fetchAbiFromExplorer,
+      ).catch(() => null)
 
   const newContract: WatchedContract = {
     id: nanoid(),
@@ -94,6 +126,7 @@ export async function addContract(
     address: parsed.data.address.toLowerCase(),
     chain: parsed.data.chain as WatchedContract["chain"],
     description: parsed.data.description,
+    ...(moduleName ? { moduleName } : {}),
     ...(abi ? { abi, abiSource: "explorer" as const } : {}),
   }
 
@@ -121,6 +154,8 @@ export async function refreshContractAbi(projectId: string, contractId: string) 
 
   const abi = contract.chain === "solana"
     ? await fetchIdlFromRegistry(contract.address)
+    : contract.chain === "aptos"
+    ? await fetchAptosAbiJson(contract.address, contract.moduleName)
     : await fetchAbiWithProxy(contract.address, contract.chain, fetchAbiFromExplorer)
 
   const updated: ProjectConfig = {
@@ -359,4 +394,34 @@ export async function peekContractFunctions(
   const abi = JSON.parse(abiJson) as AbiEntry[]
   const names = abi.filter(e => e.type === "function" && e.name).map(e => e.name!)
   return names.length > 0 ? names : null
+}
+
+export interface AptosModulePeek {
+  name: string
+  entryCount: number
+  viewCount: number
+}
+
+/**
+ * Lists the Move modules published at an Aptos address, with entry/view
+ * function counts. No auth required — this is read-only public chain data.
+ */
+export async function peekAptosModules(
+  address: string,
+): Promise<{ modules: AptosModulePeek[] } | { error: string }> {
+  const clean = address.trim()
+  if (!APTOS_ADDRESS_RE.test(clean)) return { error: "Enter a valid Aptos address" }
+  const modules = await getAptosModuleAbi(clean).catch(() => null)
+  // The fullnode client returns null for BOTH not-found and network failure,
+  // so the error must stay honestly ambiguous — never a confident "no modules".
+  if (!modules) {
+    return { error: "Could not fetch modules: the address may have no modules published, or the network request failed" }
+  }
+  return {
+    modules: modules.map(m => ({
+      name: m.moduleName,
+      entryCount: m.functions.filter(f => f.isEntry).length,
+      viewCount: m.functions.filter(f => f.isView).length,
+    })),
+  }
 }

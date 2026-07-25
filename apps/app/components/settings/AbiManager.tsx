@@ -19,7 +19,9 @@ export function AbiManager({ projectId, contract }: Props) {
   const [abiText, setAbiText] = useState("")
 
   const isSolana = contract.chain === "solana"
-  const label = isSolana ? "IDL" : "ABI"
+  const isAptos = contract.chain === "aptos"
+  const label = isSolana ? "IDL" : isAptos ? "Move module ABI" : "ABI"
+  const sourceName = isSolana ? "Anchor registry" : isAptos ? "Aptos fullnode" : "block explorer"
   const hasAbi = !!contract.abi
   const source = contract.abiSource
 
@@ -28,13 +30,18 @@ export function AbiManager({ projectId, contract }: Props) {
       try {
         const result = await refreshContractAbi(projectId, contract.id)
         if (result.found) {
-          toast.success(`${label} fetched from ${isSolana ? "Anchor registry" : "block explorer"}`)
+          toast.success(`${label} fetched from ${sourceName}`)
+        } else if (isAptos) {
+          // The fullnode returns the same null for not-found and network
+          // failure, so stay honestly ambiguous here.
+          toast.error("Could not fetch modules: the address may have no modules published, or the network request failed.")
+          setShowPaste(true)
         } else {
           toast.error(`Program not found in registry. Paste the ${label} manually.`)
           setShowPaste(true)
         }
       } catch {
-        toast.error(`Failed to check ${isSolana ? "Anchor registry" : "block explorer"}`)
+        toast.error(`Failed to check ${sourceName}`)
       }
     })
   }
@@ -66,7 +73,9 @@ export function AbiManager({ projectId, contract }: Props) {
 
   return (
     <div className="mt-3 space-y-2">
-      <p className="text-xs font-medium text-muted-foreground">{label} (for transaction diagnostics)</p>
+      <p className="text-xs font-medium text-muted-foreground">
+        {isAptos ? "Move module ABI (on-chain)" : `${label} (for transaction diagnostics)`}
+      </p>
 
       {hasAbi ? (
         <div className="flex items-center gap-2">
@@ -74,7 +83,7 @@ export function AbiManager({ projectId, contract }: Props) {
             <CheckCircle2 className="size-3.5 shrink-0" />
             <span>
               {source === "explorer"
-                ? (isSolana ? "Fetched from Anchor registry" : "Verified on block explorer")
+                ? (isSolana ? "Fetched from Anchor registry" : isAptos ? "Fetched from Aptos fullnode" : "Verified on block explorer")
                 : `${label} uploaded manually`}
             </span>
           </div>
@@ -107,6 +116,8 @@ export function AbiManager({ projectId, contract }: Props) {
             <p className="text-xs text-amber-400 leading-relaxed">
               {isSolana
                 ? `No IDL found. Custom program errors won't be decoded. Check the Anchor registry, or paste your IDL JSON below.`
+                : isAptos
+                ? `No module ABI stored. The AI reads Move module ABIs live on-chain either way; the stored copy is informational. Fetch it from the fullnode, or paste JSON below.`
                 : `No ABI found. Custom error names won't be decoded — the AI will see raw hex instead of the error name. Either verify this contract on the block explorer, or paste the ABI below.`}
             </p>
           </div>
@@ -116,6 +127,8 @@ export function AbiManager({ projectId, contract }: Props) {
               <Textarea
                 placeholder={isSolana
                   ? "Paste your Anchor IDL JSON here"
+                  : isAptos
+                  ? "Paste your Move module ABI JSON here"
                   : 'Paste your ABI JSON array here, e.g. [{"type":"error","name":"SlippageTooHigh",...}]'}
                 value={abiText}
                 onChange={(e) => setAbiText(e.target.value)}
@@ -151,7 +164,7 @@ export function AbiManager({ projectId, contract }: Props) {
                 disabled={isPending}
               >
                 <RefreshCw className="size-3" />
-                {isSolana ? "Check Anchor registry" : "Check block explorer"}
+                {isSolana ? "Check Anchor registry" : isAptos ? "Check Aptos fullnode" : "Check block explorer"}
               </Button>
               <Button
                 variant="ghost"
