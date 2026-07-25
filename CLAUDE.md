@@ -284,7 +284,8 @@ Source: `packages/aptos/src/`. Chain ID string: `"aptos"` (not hex). Move-VM L1,
 // errmap.ts — PROTOCOL_ERRMAPS (Decibel from its SDK error-reference docs; PancakeSwap/Amnis
 //   harvested from on-chain PackageRegistry source; Thala observed codes). errmapFor(watchedContracts)
 //   unions entries by watched-contract ADDRESS (not pinned module). Framework table is inside decodeAbort.
-// names.ts — ANS: resolveAptosName / reverseAptosName (.apt via aptosnames.com).
+// names.ts — ANS: resolveAptosName / reverseAptosName (.apt) via the Indexer's
+//   current_aptos_names table (the public aptosnames.com REST API was sunset 2026-04).
 // address.ts — isAptosAddress (0x + 1-64 hex), normalizeAptosAddress (pads to 64).
 // index.ts — isAptosChain(chainId): boolean.
 ```

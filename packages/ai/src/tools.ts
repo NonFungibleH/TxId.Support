@@ -415,7 +415,11 @@ export async function executeTool(
           }
           const touches =
             (aptosTx.functionId ? aptosOwned.includes(addrOf(aptosTx.functionId) ?? "") : false) ||
-            aptosTx.events.some(e => aptosOwned.includes(addrOf(e.type) ?? ""))
+            aptosTx.events.some(e => aptosOwned.includes(addrOf(e.type) ?? "")) ||
+            // A failure that ABORTED in one of the protocol's own modules is in
+            // scope even if the tx entered through a third-party router (the
+            // entry function/events would otherwise be a different address).
+            (aptosTx.decodedAbort?.module ? aptosOwned.includes(addrOf(aptosTx.decodedAbort.module) ?? "") : false)
           if (!touches) {
             return {
               hash,
