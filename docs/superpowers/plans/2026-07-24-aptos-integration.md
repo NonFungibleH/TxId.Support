@@ -331,8 +331,20 @@ Skip unless weeks 1-3 are ahead of schedule. ANS: resolver in `names.ts` via `ht
 
 ### Task 17: Demo build + rehearsal
 
-- [ ] Build the real demos in the demo creator: Thala, Aries, Amnis — branding, contracts (module-scoped), crawl their docs, share links.
-- [ ] Dry-run the call script end-to-end twice: once with Petra, once paste-only. Every question in the script must have been asked at least once before the call.
+> **Demo strategy (user decision 2026-07-25): LIVE CREATION.** Howard creates the
+> Decibel demo live on the call in the demo-creator UI — the setup speed IS part
+> of the pitch ("watch me install this in 90 seconds"). No pre-built Decibel demo
+> is shown; instead the live flow is: New demo → brand colours → add the Decibel
+> package address (module-scoped) → crawl their docs → open widget → connect
+> Petra / paste a trader's address → diagnose a real transaction. This makes the
+> Task 9 errmap MORE important, not less: the live-created demo must answer well
+> with zero on-call tuning.
+
+- [ ] **Pre-flight the live-creation path** (before rehearsal): every step of the flow above executed against the real Decibel address + docs site; measure the docs-crawl duration (if > ~60s, pre-agree the talk-track that covers it or crawl a smaller docs subtree); confirm ABI/module auto-fetch lists Decibel's modules; confirm the widget answers a Decibel balance/tx question end-to-end.
+- [ ] **CSP pre-check of the Decibel app site** (Uniswap lesson: hardened dapps block the bookmarklet silently): probe the enforced CSP (headers AND inline meta) of Decibel's trading app. If it blocks injection, the demo runs on the widget preview / share page instead — decide and script this BEFORE the call, never discover it live.
+- [ ] **Build ONE hidden pre-built Decibel demo as the fallback** — identical config, tested — in case live creation hiccups (crawl slow, rate limit, wifi). Switching to it mid-call must take one click.
+- [ ] Optionally pre-build Thala or Aries as a second "here's one we made earlier" example.
+- [ ] Dry-run the LIVE-CREATION script end-to-end twice, timed: once with Petra, once paste-only. Every question in the script must have been asked at least once before the call.
 - [ ] Fix list → final push.
 
 ---
