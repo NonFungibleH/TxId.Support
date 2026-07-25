@@ -57,6 +57,7 @@ import {
   viewFunction,
   getAptosNetworkStatus,
   diagnoseAptosWallet,
+  resolveAptosName,
   errmapFor,
   type AptosModuleAbi,
 } from "@txid/aptos"
@@ -915,6 +916,13 @@ export async function executeTool(
     case "resolve_ens_name": {
       const name = typeof input.name === "string" ? input.name.trim() : ""
       if (!name || !name.includes(".")) throw new Error("name is required, e.g. 'vitalik.eth'")
+      const useAptos = name.toLowerCase().endsWith(".apt") || aptos || watchedContracts.some(c => isAptosChain(c.chain))
+      if (useAptos) {
+        const resolution = await resolveAptosName(name)
+        return resolution
+          ? { name: resolution.name, address: resolution.address, chain: "aptos" }
+          : { name, note: "Aptos Names lookup failed or that name is not registered." }
+      }
       const resolution = await resolveEnsName(name)
       return resolution ?? { name, note: "ENS lookup failed — the resolver RPC did not respond." }
     }
@@ -1353,13 +1361,14 @@ export function buildEnsTool(): Anthropic.Tool {
   return {
     name: "resolve_ens_name",
     description:
-      "Resolve an ENS name like 'vitalik.eth' to its Ethereum address. " +
-      "Use whenever the user provides a .eth (or other ENS) name instead of a 0x address, " +
+      "Resolve a human-readable name to its address. Handles ENS names like 'vitalik.eth' (to an Ethereum address) " +
+      "and Aptos Names (ANS) like 'greg.apt' (to an Aptos address). " +
+      "Use whenever the user provides a .eth, .apt, or other name service name instead of a raw address, " +
       "then use the resolved address with the other tools.",
     input_schema: {
       type: "object" as const,
       properties: {
-        name: { type: "string", description: "The ENS name, e.g. 'vitalik.eth'." },
+        name: { type: "string", description: "The name to resolve, e.g. 'vitalik.eth' or 'greg.apt'." },
       },
       required: ["name"],
     },
@@ -1535,6 +1544,6 @@ export const TOOL_LABELS: Record<string, string> = {
   get_native_price: "Checking native token price…",
   check_address_sanctions: "Screening address (OFAC)…",
   check_token_safety: "Screening token safety…",
-  resolve_ens_name: "Resolving ENS name…",
+  resolve_ens_name: "Resolving name…",
   estimate_action: "Simulating the action…",
 }

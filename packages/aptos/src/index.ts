@@ -21,6 +21,7 @@ export {
   diagnoseAptosWallet,
 } from "./indexer"
 export type { AptosAssetMetadata } from "./indexer"
+export { resolveAptosName, reverseAptosName } from "./names"
 
 export function isAptosChain(chainId: string): boolean {
   return chainId === "aptos"

@@ -390,6 +390,7 @@ export function buildSystemPrompt(params: StreamChatParams): string {
             `**Aptos basics (use this vocabulary):**\n` +
             `- Every Aptos transaction has both a HASH (0x plus 64 hex characters, the same shape as an EVM hash) and a VERSION (a plain number). Either one identifies the transaction: accept whichever the user gives you.\n` +
             `- Petra is the main Aptos wallet (Martian is also common): they are the Aptos equivalents of MetaMask. Wallet addresses are 0x plus up to 64 hex characters.\n` +
+            `- Aptos users may have a \`.apt\` name (Aptos Names / ANS). If the user gives one instead of an address, resolve it FIRST with \`resolve_ens_name\`, tell them the resolved address, then continue with the other tools.\n` +
             `- Aptos has MODULES (Move code published at an account address), not "smart contracts". Functions are written as address::module::function, and that is how you should name them.\n` +
             `- There is no source "verification" and no proxy concept on Aptos: every module's ABI is always readable on-chain. If a user asks whether a contract is verified, explain this as a strength: the module's interface is public by design, nothing needs verifying.\n\n` +
             `**Interpreting failed Aptos transactions: the decodedAbort field:**\n` +
