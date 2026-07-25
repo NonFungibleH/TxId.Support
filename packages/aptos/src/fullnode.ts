@@ -103,9 +103,26 @@ export async function getAptosModuleAbi(
     const raw = await aptosGet<RawModule>(`/accounts/${addr}/module/${moduleName}`)
     return raw ? mapModule(raw) : null
   }
-  const raws = await aptosGet<RawModule[]>(`/accounts/${addr}/modules?limit=25`)
-  if (!raws) return null
-  return raws.map(mapModule).filter((m): m is AptosModuleAbi => m !== null)
+  // Paginate via the x-aptos-cursor header: large packages exceed any single
+  // page (Decibel publishes 91 modules; the old limit=25 silently truncated).
+  // Hard page cap keeps a pathological account from looping forever.
+  const all: RawModule[] = []
+  let cursor: string | null = null
+  for (let page = 0; page < 6; page++) {
+    const qs = `limit=100${cursor ? `&start=${encodeURIComponent(cursor)}` : ""}`
+    const res = await aptosFetch(`${FULLNODE_BASE}/accounts/${addr}/modules?${qs}`, { headers: { ...aptosAuthHeaders() } })
+    if (!res || !res.ok) return page === 0 ? null : all.map(mapModule).filter((m): m is AptosModuleAbi => m !== null)
+    let raws: RawModule[]
+    try {
+      raws = (await res.json()) as RawModule[]
+    } catch {
+      return page === 0 ? null : all.map(mapModule).filter((m): m is AptosModuleAbi => m !== null)
+    }
+    all.push(...raws)
+    cursor = res.headers.get("x-aptos-cursor")
+    if (!cursor || raws.length === 0) break
+  }
+  return all.map(mapModule).filter((m): m is AptosModuleAbi => m !== null)
 }
 
 interface RawUserTransaction {
