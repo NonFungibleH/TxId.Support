@@ -259,6 +259,47 @@ ABI Manager relabels to "IDL" for `chain === "solana"`. "Check block explorer" �
 
 ---
 
+## packages/aptos
+
+Source: `packages/aptos/src/`. Chain ID string: `"aptos"` (not hex). Move-VM L1, so a separate chain family like Solana — NOT another EVM chain. No Moralis/Etherscan coverage; built entirely on Aptos's own **fullnode REST** (`https://fullnode.mainnet.aptoslabs.com/v1`) + **Indexer GraphQL** (`https://api.mainnet.aptoslabs.com/v1/graphql`). Public/keyless, but set `APTOS_API_KEY` (Aptos Build, Bearer) to raise rate limits — `aptosAuthHeaders()` threads it to both fullnode and indexer. Spec: `docs/superpowers/specs/2026-07-24-aptos-integration-design.md`; plan: `docs/superpowers/plans/2026-07-24-aptos-integration.md`.
+
+### Key exports
+```ts
+// fullnode.ts — REST: aptosFetch (10s timeout + single 429 retry, honors Retry-After),
+//   getLedgerInfo, getAccount (via 0x1::account::Account resource — AIP-115 made the
+//   plain /accounts endpoint return a synthetic stub, so it can't signal non-existence),
+//   getAptosModuleAbi (single-module + list overloads; list PAGINATES via x-aptos-cursor,
+//   limit=100, 6-page cap — Decibel has 91 modules), getAptosTransactionByHash(hashOrVersion, errmap?)
+//   (numeric → /by_version; attaches decodedAbort on failure), viewFunction, getAptosNetworkStatus.
+//   formatUnits/microsToIso are no-throw-guarded.
+// indexer.ts — GraphQL: getAptosWalletBalance (current_fungible_asset_balances, unifies
+//   legacy CoinStore + FA standard; APT detected by coin type OR 0xa+symbol), 
+//   getAptosRecentTransactions(addr, moduleAddr?, limit, errmap?) (hydrates versions via fullnode,
+//   threads the errmap so history failures decode with protocol reasons), diagnoseAptosWallet.
+//   ALL client fns return null on FETCH FAILURE (distinct from empty) so the AI never reports
+//   "empty wallet" during an outage.
+// abort.ts — decodeAbort(vmStatus, errmap?): Move-abort decoder. std::error category via BigInt
+//   (never >>, which truncates u64), FRAMEWORK_ERRORS table (0x1/0x3/0x4), name-fallback lookup
+//   (fullnodes embed the constant name), honest module+code framing for unmapped codes. Never throws.
+// errmap.ts — PROTOCOL_ERRMAPS (Decibel from its SDK error-reference docs; PancakeSwap/Amnis
+//   harvested from on-chain PackageRegistry source; Thala observed codes). errmapFor(watchedContracts)
+//   unions entries by watched-contract ADDRESS (not pinned module). Framework table is inside decodeAbort.
+// names.ts — ANS: resolveAptosName / reverseAptosName (.apt via aptosnames.com).
+// address.ts — isAptosAddress (0x + 1-64 hex), normalizeAptosAddress (pads to 64).
+// index.ts — isAptosChain(chainId): boolean.
+```
+
+### Aptos in AI tools
+`packages/ai/src/tools.ts` branches EVERY `isSolanaChain` dispatch site with an `isAptosChain` arm (wallet balance/txs, tx-by-hash, contract info/functions/state/data via module ABIs + `viewFunction`, network status, wallet diagnosis). Tools without an Aptos equivalent (approvals, allowance, token safety, sanctions, estimate) return an honest execution-time note, never EVM data. **Tx-hash routing:** Aptos hashes are `0x`+64hex — format-identical to EVM — so `get_transaction_by_hash` queries the Aptos fullnode in PARALLEL with the EVM fan-out when the session/contracts involve Aptos; all-numeric input short-circuits to Aptos (a version). Actions (execute) are EVM-only — excluded for `"aptos"`.
+
+### Aptos in the widget / dashboard
+Widget (`WidgetApp.tsx`): Petra/Martian connect (`window.aptos ?? window.martian` → `connect()` → `chainId "aptos"`); missing provider falls through to address-paste (fixes the Solana silent-no-op dead-end). Chat route accepts `0x`+1-64hex wallet addresses only when `chainId === "aptos"`. Dashboard/demo-creator: chain-discriminated address validation + optional `WatchedContract.moduleName` (Aptos module scoping); `AddContractDialog` peeks modules via `peekAptosModules` (a Select, not free text); `AbiManager` relabels to "Move module ABI (on-chain)". Chain registry: `"aptos"` in `SUPPORTED_CHAINS`, unpaused (Task 13).
+
+### Demo protocol
+Decibel (Aptos Labs' on-chain perpetuals DEX) is the flagship demo target — mainnet package `0x50ead22afd6ffd9769e3b3d6e0e64a2a350d68e8b102c4e72e33d0b8cfdfdb06`. Its app CSP blocks the bookmarklet, so demos run on the widget preview / share page. Errmap voiced in perp-trader language.
+
+---
+
 ## apps/app
 
 ### Important patterns
