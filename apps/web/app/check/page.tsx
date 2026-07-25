@@ -355,6 +355,7 @@ export default function CheckPage() {
   function goWithManual() {
     setConnectError("")
     const addr = manualAddress.trim()
+    // EVM-only by design: the public /check demo stays EVM (Aptos unsupported here).
     if (!/^0x[0-9a-fA-F]{40}$/.test(addr)) {
       setConnectError("Enter a valid wallet address (0x…)")
       return

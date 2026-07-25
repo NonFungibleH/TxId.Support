@@ -261,6 +261,7 @@ export async function POST(request: Request) {
     // contract. Gated by Turnstile + a hard 3-per-IP-per-day cap so it can't be
     // abused or run up LLM/RPC cost. Real project keys never enter this mode, so
     // the normal scope guard is untouched for them.
+    // EVM-only by design: the public /check inspect tool stays EVM (Aptos unsupported here).
     inspectMode = isDemo && (!!demoProtocolId || /^0x[0-9a-fA-F]{40}$/.test(inspectAddress))
     if (inspectMode) {
       // Require a bot-check token when Turnstile is configured.

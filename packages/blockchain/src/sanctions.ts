@@ -44,6 +44,7 @@ export interface SanctionsResult {
  * (so the caller can say "couldn't screen" rather than a false "clean").
  */
 export async function checkSanctioned(address: string): Promise<SanctionsResult | null> {
+  // EVM-only by design: the Chainalysis oracle screens EVM addresses (Aptos gets an honest note upstream).
   if (!/^0x[0-9a-fA-F]{40}$/.test(address)) return null
   const data = functionSelector("isSanctioned(address)") + encodeStaticArg("address", address)
   for (const rpcUrl of ETH_RPCS) {

@@ -451,6 +451,7 @@ function DemoActionsToggle({ demo, onChange }: { demo: DemoSummary; onChange: (v
                               onBlur={e => {
                                 const t = e.target.value.trim()
                                 if (!t) { setApproval(c.id, fn.name, undefined); return }
+                                // EVM-only by design: approval tokens are ERC-20 (Aptos demos have no Actions).
                                 if (!/^0x[0-9a-fA-F]{40}$/.test(t)) { toast.error("Enter a valid token address"); return }
                                 setApproval(c.id, fn.name, { token: t, amountArg: rule.approval?.amountArg ?? 0 })
                               }}

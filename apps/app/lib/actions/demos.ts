@@ -247,6 +247,7 @@ export async function setDemoContractFunctions(id: string, contractId: string, r
   for (const r of rules ?? []) {
     const fn = eligible.get(r.fn)
     if (!fn) continue // drop anything not an eligible write function of this ABI
+    // EVM-only by design: Actions approval tokens are ERC-20 addresses (Aptos has no Actions).
     if (r.approval && /^0x[0-9a-fA-F]{40}$/.test(r.approval.token)) {
       const amountArg = Math.max(0, Math.min(Math.max(0, fn.inputs.length - 1), Number(r.approval.amountArg) || 0))
       cleaned.set(r.fn, { fn: r.fn, approval: { token: r.approval.token, amountArg } })

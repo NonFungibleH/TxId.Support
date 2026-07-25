@@ -171,6 +171,7 @@ export function ActionsForm({
                                   onBlur={(e) => {
                                     const token = e.target.value.trim()
                                     if (!token) { setApproval(c.id, fn.name, undefined); return }
+                                    // EVM-only by design: approval tokens are ERC-20 (Actions is EVM-only).
                                     if (!/^0x[0-9a-fA-F]{40}$/.test(token)) { toast.error("Enter a valid token address"); return }
                                     setApproval(c.id, fn.name, { token, amountArg: rule.approval?.amountArg ?? 0 })
                                   }}

@@ -80,6 +80,7 @@ function resolveToken(
 ): { address: string; symbol: string } | null {
   const trimmed = ref.trim()
   const majors = MAJOR_TOKENS[chainId] ?? {}
+  // EVM-only by design: the Actions pipeline (swaps + contract writes) is EVM-only.
   if (/^0x[0-9a-fA-F]{40}$/.test(trimmed)) {
     const lower = trimmed.toLowerCase()
     for (const [symbol, address] of Object.entries(majors)) {

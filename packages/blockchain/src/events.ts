@@ -246,6 +246,7 @@ export async function getContractInfo(
       ...(row.ContractName ? { name: row.ContractName } : {}),
       verified,
       isProxy: row.Proxy === "1",
+      // EVM-only by design: proxy implementations are an EVM concept (no Aptos path reaches this).
       ...(row.Implementation && /^0x[0-9a-fA-F]{40}$/.test(row.Implementation) ? { implementation: row.Implementation } : {}),
       ...(row.CompilerVersion ? { compiler: row.CompilerVersion } : {}),
     }
