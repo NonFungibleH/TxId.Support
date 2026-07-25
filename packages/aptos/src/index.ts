@@ -2,6 +2,7 @@ export type { AptosBalance, AptosTransaction, DecodedAbort, AptosModuleFunction,
 export { decodeAbort } from "./abort"
 export type { AbortErrmap } from "./abort"
 export { isAptosAddress, normalizeAptosAddress } from "./address"
+export { PROTOCOL_ERRMAPS, errmapFor } from "./errmap"
 export {
   getLedgerInfo,
   getAccount,

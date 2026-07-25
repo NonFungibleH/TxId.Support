@@ -35,6 +35,14 @@ describe("decodeAbort", () => {
     expect(d.errorName).toBe("E_SLIPPAGE")
     expect(d.reason).toMatch(/slippage/)
   })
+  it("falls back to errmap name matching when the code is category-wrapped", () => {
+    const errmap = { "0xdead::perp_engine": { 4: { name: "EMARKET_HALTED", reason: "The market is halted right now." } } }
+    const d = decodeAbort("Move abort in 0xdead::perp_engine: EMARKET_HALTED(0x30004): ", errmap)
+    expect(d.errorName).toBe("EMARKET_HALTED")
+    expect(d.code).toBe(0x30004)
+    expect(d.category).toBe("invalid state")
+    expect(d.reason).toBe("The market is halted right now.")
+  })
   it("never invents a category for large raw u64 codes", () => {
     const d = decodeAbort("Move abort in 0xabc::vault: 18446744073709551615")
     expect(d.category).toBeNull()

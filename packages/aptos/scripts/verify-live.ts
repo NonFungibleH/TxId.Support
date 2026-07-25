@@ -115,9 +115,17 @@ async function main(): Promise<void> {
 
   await pause()
   {
+    // Known failed mainnet tx from the Task 9 curated set (scripts/tune-diagnosis.ts).
+    // Tried first so the failed-tx check is deterministic; falls back to scanning
+    // recent ledger versions (and then the canned decode) if it cannot be fetched.
+    const KNOWN_FAILED_HASH = "0x0418da4d1d47bd777a6fa5d379f882e0ef9269c3cf5f8ee1aa77530d75725a50"
     let found: RawTx | null = null
+    const knownTx = await getAptosTransactionByHash(KNOWN_FAILED_HASH)
+    if (knownTx && knownTx.success === false) {
+      found = { type: "user_transaction", hash: knownTx.hash, version: knownTx.version, success: false, vm_status: knownTx.vmStatus }
+    }
     const latest = ledger ? Number(ledger.ledgerVersion) : null
-    if (latest) {
+    if (!found && latest) {
       for (let page = 1; page <= 3 && !found; page++) {
         if (page > 1) await pause(300)
         const start = latest - page * 100

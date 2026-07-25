@@ -57,6 +57,7 @@ import {
   viewFunction,
   getAptosNetworkStatus,
   diagnoseAptosWallet,
+  errmapFor,
 } from "@txid/aptos"
 import type { WatchedContractSnapshot } from "./types"
 
@@ -325,7 +326,9 @@ export async function executeTool(
         watchedContracts.some(c => isAptosChain(c.chain))
       const looksAptosVersion = /^\d+$/.test(hash)
       if (aptosInPlay && looksAptosVersion) {
-        const versionTx = await getAptosTransactionByHash(hash)
+        // errmapFor is pure/synchronous: protocol abort tables for the watched
+        // Aptos contracts (decodeAbort adds the framework table by itself).
+        const versionTx = await getAptosTransactionByHash(hash, errmapFor(watchedContracts))
         return versionTx
           ? { chainId: "aptos", ...versionTx }
           : {
@@ -365,7 +368,7 @@ export async function executeTool(
             tx: await getTransactionByHash(hash, chainId, knownAbis).catch(() => null),
           })),
         ),
-        checkAptos ? getAptosTransactionByHash(hash).catch(() => null) : Promise.resolve(null),
+        checkAptos ? getAptosTransactionByHash(hash, errmapFor(watchedContracts)).catch(() => null) : Promise.resolve(null),
       ])
       const checkedChains = checkAptos ? [...candidates, "aptos"] : candidates
       const hit = results.find(r => r.tx)

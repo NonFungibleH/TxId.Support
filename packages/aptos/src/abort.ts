@@ -151,6 +151,13 @@ export function decodeAbort(vmStatus: string, errmap?: AbortErrmap): DecodedAbor
       for (const [k, codes] of Object.entries(errmap)) {
         if (normalizeModuleKey(k) === modKey) {
           mapped = codes[code] ?? null
+          // Name fallback: fullnodes embed the error constant NAME in vm_status
+          // (e.g. "EMARKET_HALTED(0x30004)") while modules may wrap the raw
+          // constant with a 0x1::error category. Errmap entries keyed by the
+          // raw constant still match via the name.
+          if (!mapped && parsedName) {
+            mapped = Object.values(codes).find(e => e.name === parsedName) ?? null
+          }
           break
         }
       }
