@@ -156,6 +156,9 @@ export interface WatchedContract {
   address: string
   chain: ChainId
   description: string
+  // Aptos only: an account can host many modules; when set, contract tools
+  // scope to this single module instead of the account's full module list.
+  moduleName?: string
   errorGlossary?: ErrorGlossaryEntry[]
   abi?: string
   abiSource?: "explorer" | "uploaded"

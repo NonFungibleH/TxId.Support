@@ -88,6 +88,7 @@ export async function POST(request: Request) {
     const walletConfig = { address: wallet.address, chainId: wallet.chainId }
     const watched = (config.watchedContracts ?? []).map(c => ({
       id: c.id, name: c.name, address: c.address, chain: c.chain, description: c.description,
+      ...(c.moduleName ? { moduleName: c.moduleName } : {}),
       ...(c.abi ? { abi: c.abi } : {}),
     }))
 

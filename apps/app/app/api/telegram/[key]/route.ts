@@ -303,6 +303,7 @@ export async function POST(
       address: c.address,
       chain: c.chain,
       description: c.description,
+      ...(c.moduleName ? { moduleName: c.moduleName } : {}),
     })),
     docsUrl: config.docsUrl,
     ...(tgDocLinks.length > 0 ? { docLinks: tgDocLinks } : {}),

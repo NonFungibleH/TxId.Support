@@ -429,6 +429,7 @@ export async function POST(request: Request) {
         address: c.address,
         chain: c.chain,
         description: c.description,
+        ...(c.moduleName ? { moduleName: c.moduleName } : {}),
         // These were being dropped — without abi the contract-read tools are
         // never offered/usable, and without errorGlossary the team's custom
         // wording never reaches the prompt. Both are needed downstream.

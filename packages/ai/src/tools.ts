@@ -58,6 +58,7 @@ import {
   getAptosNetworkStatus,
   diagnoseAptosWallet,
   errmapFor,
+  type AptosModuleAbi,
 } from "@txid/aptos"
 import type { WatchedContractSnapshot } from "./types"
 
@@ -109,9 +110,11 @@ function findWatched(
  * "module::fn" (or the full id) and the watched account fills in the address.
  * A fully-qualified name must point at the WATCHED account — otherwise this
  * tool would read state on arbitrary modules through a scoped tool.
+ * When the watched contract pins a moduleName, a bare function name is
+ * qualified against that module (the model doesn't have to know it).
  * Returns null when the name can't be qualified — the tool explains the format.
  */
-function aptosFunctionId(contractAddress: string, functionName: string): string | null {
+function aptosFunctionId(contractAddress: string, functionName: string, defaultModule?: string): string | null {
   const parts = functionName.split("::").filter(Boolean)
   if (parts.length === 3) {
     const addr = parts[0]!
@@ -119,7 +122,21 @@ function aptosFunctionId(contractAddress: string, functionName: string): string 
     return functionName
   }
   if (parts.length === 2) return `${normalizeAptosAddress(contractAddress)}::${functionName}`
+  if (parts.length === 1 && defaultModule) return `${normalizeAptosAddress(contractAddress)}::${defaultModule}::${functionName}`
   return null
+}
+
+/**
+ * An Aptos account can host many modules. When the watched contract pins a
+ * moduleName, fetch just that module's ABI; otherwise fall back to the
+ * account's full module list.
+ */
+async function aptosModulesFor(target: WatchedContractSnapshot): Promise<AptosModuleAbi[] | null> {
+  if (target.moduleName) {
+    const m = await getAptosModuleAbi(target.address, target.moduleName)
+    return m ? [m] : null
+  }
+  return getAptosModuleAbi(target.address)
 }
 
 const APTOS_FN_FORMAT_NOTE =
@@ -634,7 +651,7 @@ export async function executeTool(
         return { note: "Reading contract state is only available on EVM chains." }
       }
       if (isAptosChain(target.chain)) {
-        const fnId = aptosFunctionId(target.address, functionName)
+        const fnId = aptosFunctionId(target.address, functionName, target.moduleName)
         if (!fnId) return { contract: target.name, function: functionName, note: APTOS_FN_FORMAT_NOTE }
         const result = await viewFunction(fnId, [], [])
         return result
@@ -665,7 +682,7 @@ export async function executeTool(
         return { note: "Reading contract data is only available on EVM chains." }
       }
       if (isAptosChain(target.chain)) {
-        const fnId = aptosFunctionId(target.address, functionName)
+        const fnId = aptosFunctionId(target.address, functionName, target.moduleName)
         if (!fnId) return { contract: target.name, function: functionName, note: APTOS_FN_FORMAT_NOTE }
         const result = await viewFunction(fnId, [], args)
         return result
@@ -693,7 +710,7 @@ export async function executeTool(
         return { note: "Verification/proxy info is only available on EVM chains." }
       }
       if (isAptosChain(target.chain)) {
-        const modules = await getAptosModuleAbi(target.address)
+        const modules = await aptosModulesFor(target)
         if (!modules) return { contract: target.name, error: aptosFullnodeFailed("inspect this account's modules") }
         return {
           contract: target.name,
@@ -724,9 +741,7 @@ export async function executeTool(
       }
       if (!target) throw new Error("Specify which contract (contract_address)")
       if (isAptosChain(target.chain)) {
-        // Full module list for the account — per-module scoping arrives with
-        // moduleName threading in a later task.
-        const modules = await getAptosModuleAbi(target.address)
+        const modules = await aptosModulesFor(target)
         if (!modules) return { contract: target.name, error: aptosFullnodeFailed("read this account's modules") }
         const signature = (f: { name: string; params: string[] }) => `${f.name}(${f.params.join(", ")})`
         return {

@@ -15,6 +15,9 @@ export interface WatchedContractSnapshot {
   address: string
   chain: string
   description: string
+  // Aptos only: scopes contract tools to this single module at the address
+  // (Aptos accounts can host many modules).
+  moduleName?: string
   errorGlossary?: ErrorGlossaryEntry[]
   abi?: string          // ABI JSON string — auto-fetched from explorer or user-uploaded
   abiSource?: "explorer" | "uploaded"
