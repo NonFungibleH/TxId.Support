@@ -493,6 +493,8 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
   const [chainId, setChainId] = useState<string | null>(null)
   const [walletConnecting, setWalletConnecting] = useState(false)
   const isSolanaProject = (config?.chains ?? []).includes("solana")
+  const isAptosProject = (config?.chains ?? []).includes("aptos")
+  const hasEvmChain = (config?.chains ?? []).some((c) => c !== "solana" && c !== "aptos")
 
   // Wallet setup flow: prompt → (connected | manual | skipped)
   const [walletSetup, setWalletSetup] = useState<"prompt" | "manual-input" | "connected" | "manual" | "skipped">("prompt")
@@ -608,11 +610,17 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
   // ── Manual address entry (for users with no injected wallet) ─────────────
   const submitManualAddress = useCallback(() => {
     const addr = manualValue.trim()
-    if (!/^0x[0-9a-fA-F]{40}$/.test(addr)) {
+    const isEvmAddr = /^0x[0-9a-fA-F]{40}$/.test(addr)
+    const isAptosAddr = isAptosProject && /^0x[0-9a-fA-F]{1,64}$/.test(addr)
+    if (!isEvmAddr && !isAptosAddr) {
       setManualError(true)
       return
     }
-    const cid = (config?.chains ?? []).find((c) => c !== "solana") ?? "0x1"
+    // 40-hex is valid on both EVM and Aptos: prefer the project's EVM chain and
+    // treat it as Aptos only when the project has none. Longer hex is
+    // unambiguously Aptos.
+    const evmCid = (config?.chains ?? []).find((c) => c !== "solana" && c !== "aptos")
+    const cid = isEvmAddr ? (evmCid ?? (isAptosProject ? "aptos" : "0x1")) : "aptos"
     setWalletAddress(addr)
     setChainId(cid)
     setWalletSetup("manual")
@@ -646,6 +654,23 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
         setChainId("solana")
         setWalletSetup("connected")
         saveWalletSession(apiKey, { setup: "connected", address: addr, chainId: "solana" })
+      } else if (isAptosProject && !(hasEvmChain && "ethereum" in window)) {
+        // Aptos wallet — Petra injects window.aptos; Martian is the common fallback
+        type AptosProvider = { connect: () => Promise<{ address: string }> }
+        const aptosProvider =
+          (window as unknown as { aptos?: AptosProvider }).aptos ??
+          (window as unknown as { martian?: AptosProvider }).martian
+        if (!aptosProvider) {
+          // No injected Aptos wallet: open manual paste instead of dead-ending
+          setManualOpen(true)
+          return
+        }
+        const acct = await aptosProvider.connect()
+        const addr = acct.address
+        setWalletAddress(addr)
+        setChainId("aptos")
+        setWalletSetup("connected")
+        saveWalletSession(apiKey, { setup: "connected", address: addr, chainId: "aptos" })
       } else {
         // EVM wallet — window.ethereum (MetaMask and other injected wallets)
         if (!("ethereum" in window)) return
@@ -664,7 +689,7 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
     } finally {
       setWalletConnecting(false)
     }
-  }, [apiKey, isSolanaProject])
+  }, [apiKey, isSolanaProject, isAptosProject, hasEvmChain])
 
   // ── Disconnect wallet ────────────────────────────────────────────────────
   const disconnectWallet = useCallback(() => {
@@ -989,7 +1014,18 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
     !!(window as unknown as { solana?: unknown }).solana
   )
   const hasMetaMask = typeof window !== "undefined" && "ethereum" in window
-  const hasWallet = isSolanaProject ? hasPhantom : hasMetaMask
+  const hasAptosWallet = typeof window !== "undefined" && (
+    !!(window as unknown as { aptos?: unknown }).aptos ||
+    !!(window as unknown as { martian?: unknown }).martian
+  )
+  // On mixed EVM+Aptos projects an injected EVM wallet takes precedence;
+  // Aptos-only projects get the Petra flow.
+  const evmWalletUsable = hasEvmChain && hasMetaMask
+  const hasWallet = isSolanaProject
+    ? hasPhantom
+    : isAptosProject
+      ? evmWalletUsable || hasAptosWallet
+      : hasMetaMask
 
   // Ensure text always contrasts with the background regardless of branding config
   const bgIsLight = getBgLuminance(b.backgroundColor) > 0.5
@@ -1067,7 +1103,7 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
               className="rounded-full px-2.5 py-1 text-xs font-medium transition-opacity disabled:opacity-40 active:opacity-70"
               style={{ backgroundColor: b.secondaryColor, color: b.textColor }}
             >
-              {walletConnecting ? "Connecting…" : isSolanaProject ? "Connect Phantom" : "Connect wallet"}
+              {walletConnecting ? "Connecting…" : isSolanaProject ? "Connect Phantom" : isAptosProject && !evmWalletUsable ? "Connect Petra" : "Connect wallet"}
             </button>
           ) : manualOpen ? (
             <div className="flex items-center gap-1">
@@ -1461,6 +1497,7 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
                       {m.switchAction &&
                         walletSetup === "connected" &&
                         chainId !== "solana" &&
+                        chainId !== "aptos" &&
                         chainId !== m.switchAction.chainId &&
                         typeof window !== "undefined" &&
                         "ethereum" in window && (
@@ -1478,6 +1515,7 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
                         walletSetup === "connected" &&
                         walletAddress &&
                         chainId !== "solana" &&
+                        chainId !== "aptos" &&
                         typeof window !== "undefined" &&
                         "ethereum" in window && (
                           <ActionCard
