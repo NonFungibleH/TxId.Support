@@ -292,12 +292,13 @@ function parseInline(text: string): React.ReactNode {
 function MessageContent({
   text,
   primaryColor,
-  textColor,
 }: {
   text: string
   primaryColor: string
-  textColor: string
 }) {
+  // Numbered-step badges sit on primaryColor, so their digit needs to contrast
+  // with the brand colour, not with the bubble text colour.
+  const onPrimary = getBgLuminance(primaryColor) > 0.5 ? "#111111" : "#ffffff"
   const blocks: React.ReactNode[] = []
   const lines = text.split("\n")
   let i = 0
@@ -357,7 +358,7 @@ function MessageContent({
                   height: "17px",
                   borderRadius: "50%",
                   background: primaryColor,
-                  color: textColor,
+                  color: onPrimary,
                   fontSize: "8px",
                   fontWeight: 700,
                   flexShrink: 0,
@@ -416,26 +417,28 @@ function MessageContent({
 
 // ─── FAQ accordion item ──────────────────────────────────────────────────────
 
-function FaqItem({ q, a, secondaryColor, backgroundColor, textColor }: {
+function FaqItem({ q, a, secondaryColor, backgroundColor }: {
   q: string; a: string
-  secondaryColor: string; backgroundColor: string; textColor: string
+  secondaryColor: string; backgroundColor: string
 }) {
   const [open, setOpen] = useState(false)
+  // The card sits on secondaryColor, so its text must contrast with that.
+  const onSecondary = getBgLuminance(secondaryColor) > 0.5 ? "#111111" : "#ffffff"
   return (
     <div className="rounded-xl overflow-hidden" style={{ backgroundColor: secondaryColor }}>
       <button
         onClick={() => setOpen(o => !o)}
         className="flex items-center justify-between w-full px-3 py-2.5 text-left gap-2"
       >
-        <p className="text-xs font-medium flex-1" style={{ color: textColor }}>{q}</p>
+        <p className="text-xs font-medium flex-1" style={{ color: onSecondary }}>{q}</p>
         <ChevronDownIcon
           className={`size-3.5 shrink-0 opacity-50 transition-transform duration-150 ${open ? "rotate-180" : ""}`}
-          style={{ color: textColor }}
+          style={{ color: onSecondary }}
         />
       </button>
       {open && (
         <div className="px-3 pb-2.5 border-t" style={{ borderColor: backgroundColor }}>
-          <p className="text-[11px] opacity-75 leading-relaxed whitespace-pre-wrap pt-2" style={{ color: textColor }}>{a}</p>
+          <p className="text-[11px] opacity-75 leading-relaxed whitespace-pre-wrap pt-2" style={{ color: onSecondary }}>{a}</p>
         </div>
       )}
     </div>
@@ -1030,6 +1033,11 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
   // Ensure text always contrasts with the background regardless of branding config
   const bgIsLight = getBgLuminance(b.backgroundColor) > 0.5
   const adaptiveText = bgIsLight ? "#111111" : b.textColor
+  // Text drawn ON a coloured surface (header, bubbles, buttons) must contrast
+  // with THAT surface, not the widget background. Without this a light brand
+  // colour (e.g. Decibel's yellow) gets white text and is unreadable.
+  const onPrimary = getBgLuminance(b.primaryColor) > 0.5 ? "#111111" : "#ffffff"
+  const onSecondary = getBgLuminance(b.secondaryColor) > 0.5 ? "#111111" : "#ffffff"
   // Desktop only - on mobile the widget is a full-width sheet, so zooming would
   // clip horizontally. (Panel renders after async config load, so window is safe.)
   const isNarrow = typeof window !== "undefined" && window.innerWidth <= 440
@@ -1077,12 +1085,12 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
         ) : (
           <div
             className="flex size-7 items-center justify-center rounded-full text-sm font-bold"
-            style={{ backgroundColor: b.secondaryColor, color: b.textColor }}
+            style={{ backgroundColor: b.secondaryColor, color: onSecondary }}
           >
             {config.projectName.charAt(0).toUpperCase()}
           </div>
         )}
-        <span className="flex-1 text-sm font-semibold" style={{ color: b.textColor }}>
+        <span className="flex-1 text-sm font-semibold" style={{ color: onPrimary }}>
           {b.agentName?.trim() || config.projectName}
         </span>
         {!isTokenMode && (
@@ -1091,7 +1099,7 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
               onClick={disconnectWallet}
               title="Disconnect wallet"
               className="group flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-mono transition-opacity hover:opacity-90 active:opacity-70"
-              style={{ backgroundColor: b.secondaryColor, color: b.textColor }}
+              style={{ backgroundColor: b.secondaryColor, color: onSecondary }}
             >
               {walletAddress.slice(0, 6)}…{walletAddress.slice(-4)}
               <LogOutIcon className="size-3 opacity-70 group-hover:opacity-100" />
@@ -1101,7 +1109,7 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
               onClick={connectWallet}
               disabled={walletConnecting}
               className="rounded-full px-2.5 py-1 text-xs font-medium transition-opacity disabled:opacity-40 active:opacity-70"
-              style={{ backgroundColor: b.secondaryColor, color: b.textColor }}
+              style={{ backgroundColor: b.secondaryColor, color: onSecondary }}
             >
               {walletConnecting ? "Connecting…" : isSolanaProject ? "Connect Phantom" : isAptosProject && !evmWalletUsable ? "Connect Petra" : "Connect wallet"}
             </button>
@@ -1119,7 +1127,7 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
               <button
                 onClick={submitManualAddress}
                 className="rounded-full px-2 py-1 text-xs font-medium transition-opacity active:opacity-70"
-                style={{ backgroundColor: b.secondaryColor, color: b.textColor }}
+                style={{ backgroundColor: b.secondaryColor, color: onSecondary }}
               >
                 Go
               </button>
@@ -1128,7 +1136,7 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
             <button
               onClick={() => setManualOpen(true)}
               className="rounded-full px-2.5 py-1 text-xs font-medium transition-opacity active:opacity-70"
-              style={{ backgroundColor: b.secondaryColor, color: b.textColor }}
+              style={{ backgroundColor: b.secondaryColor, color: onSecondary }}
             >
               Enter address
             </button>
@@ -1151,7 +1159,7 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
             }
           }}
           className="ml-1 shrink-0 flex items-center justify-center opacity-50 hover:opacity-100 transition-opacity"
-          style={{ color: b.textColor }}
+          style={{ color: onPrimary }}
         >
           <XIcon className="size-4" />
         </button>
@@ -1334,7 +1342,7 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
                   ) : (
                     <div
                       className="flex size-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold"
-                      style={{ backgroundColor: b.primaryColor, color: b.textColor }}
+                      style={{ backgroundColor: b.primaryColor, color: onPrimary }}
                     >
                       {b.agentName ? b.agentName.slice(0, 2).toUpperCase() : "AI"}
                     </div>
@@ -1343,7 +1351,7 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
                     className="max-w-[80%] rounded-2xl px-3 py-2 text-xs leading-relaxed"
                     style={{
                       backgroundColor: b.secondaryColor,
-                      color: b.textColor,
+                      color: onSecondary,
                       borderRadius: "1rem 1rem 1rem 0.25rem",
                     }}
                   >
@@ -1363,7 +1371,7 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
                     ) : (
                       <div
                         className="flex size-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold"
-                        style={{ backgroundColor: b.primaryColor, color: b.textColor }}
+                        style={{ backgroundColor: b.primaryColor, color: onPrimary }}
                       >
                         {b.agentName ? b.agentName.slice(0, 2).toUpperCase() : "AI"}
                       </div>
@@ -1373,14 +1381,14 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
                     className="max-w-[80%] rounded-2xl px-3 py-2 text-xs break-words"
                     style={{
                       backgroundColor: m.role === "user" ? b.primaryColor : b.secondaryColor,
-                      color: b.textColor,
+                      color: m.role === "user" ? onPrimary : onSecondary,
                       borderRadius: m.role === "user" ? "1rem 1rem 0.25rem 1rem" : "1rem 1rem 1rem 0.25rem",
                       overflowWrap: "anywhere",
                     }}
                   >
                     {m.content ? (
                       m.role === "assistant" ? (
-                        <MessageContent text={m.content} primaryColor={b.primaryColor} textColor={b.textColor} />
+                        <MessageContent text={m.content} primaryColor={b.primaryColor} />
                       ) : m.content
                     ) : (m.streaming && (
                       <span className="inline-flex items-center gap-1 opacity-60">
@@ -1434,9 +1442,9 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
                 style={{ backgroundColor: b.primaryColor }}
               >
                 {isStreaming ? (
-                  <Loader2Icon className="size-3.5 animate-spin" style={{ color: b.textColor }} />
+                  <Loader2Icon className="size-3.5 animate-spin" style={{ color: onPrimary }} />
                 ) : (
-                  <SendIcon className="size-3.5" style={{ color: b.textColor }} />
+                  <SendIcon className="size-3.5" style={{ color: onPrimary }} />
                 )}
               </button>
             </div>
@@ -1459,7 +1467,7 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
                       ) : (
                         <div
                           className="flex size-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold"
-                          style={{ backgroundColor: b.primaryColor, color: b.textColor }}
+                          style={{ backgroundColor: b.primaryColor, color: onPrimary }}
                         >
                           {b.agentName ? b.agentName.slice(0, 2).toUpperCase() : "AI"}
                         </div>
@@ -1469,14 +1477,14 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
                       className="max-w-[80%] rounded-2xl px-3 py-2 text-xs break-words"
                       style={{
                         backgroundColor: m.role === "user" ? b.primaryColor : b.secondaryColor,
-                        color: b.textColor,
+                        color: m.role === "user" ? onPrimary : onSecondary,
                         borderRadius: m.role === "user" ? "1rem 1rem 0.25rem 1rem" : "1rem 1rem 1rem 0.25rem",
                         overflowWrap: "anywhere",
                       }}
                     >
                       {m.content ? (
                         m.role === "assistant" ? (
-                          <MessageContent text={m.content} primaryColor={b.primaryColor} textColor={b.textColor} />
+                          <MessageContent text={m.content} primaryColor={b.primaryColor} />
                         ) : m.content
                       ) : (m.streaming && (
                         m.toolCall ? (
@@ -1505,7 +1513,7 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
                             onClick={() => switchChain(m.switchAction!.chainId, m.switchAction!.chainName)}
                             disabled={switching}
                             className="mt-2 w-full rounded-lg py-1.5 text-[11px] font-semibold transition-opacity disabled:opacity-50"
-                            style={{ backgroundColor: b.primaryColor, color: b.textColor }}
+                            style={{ backgroundColor: b.primaryColor, color: onPrimary }}
                           >
                             {switching ? "Switching…" : `Switch to ${m.switchAction.chainName} →`}
                           </button>
@@ -1593,7 +1601,7 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
                         onClick={submitTicket}
                         disabled={ticketSubmitting || !ticketName.trim() || !ticketEmail.trim()}
                         className="flex-1 rounded-xl py-2 text-xs font-semibold transition-opacity disabled:opacity-40"
-                        style={{ backgroundColor: b.primaryColor, color: b.textColor }}
+                        style={{ backgroundColor: b.primaryColor, color: onPrimary }}
                       >
                         {ticketSubmitting ? "Submitting…" : "Submit ticket"}
                       </button>
@@ -1679,9 +1687,9 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
                   style={{ backgroundColor: b.primaryColor }}
                 >
                   {isStreaming ? (
-                    <Loader2Icon className="size-3.5 animate-spin" style={{ color: b.textColor }} />
+                    <Loader2Icon className="size-3.5 animate-spin" style={{ color: onPrimary }} />
                   ) : (
-                    <SendIcon className="size-3.5" style={{ color: b.textColor }} />
+                    <SendIcon className="size-3.5" style={{ color: onPrimary }} />
                   )}
                 </button>
               </div>
@@ -1915,7 +1923,6 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
                             a={pair.a}
                             secondaryColor={b.secondaryColor}
                             backgroundColor={b.backgroundColor}
-                            textColor={b.textColor}
                           />
                         ))}
                       </div>

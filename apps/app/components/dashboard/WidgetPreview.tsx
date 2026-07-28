@@ -27,6 +27,13 @@ export function WidgetPreview({
   const { resolvedTheme } = useTheme()
   const isDark = resolvedTheme !== "light"
 
+  // Text drawn ON a coloured surface must contrast with THAT surface, not with
+  // the widget background — otherwise a light brand colour (e.g. Decibel's
+  // yellow) gets white text and becomes unreadable. textColor stays for text on
+  // the widget background itself.
+  const onPrimary = autoInputTextColor(branding.primaryColor)
+  const onSecondary = autoInputTextColor(branding.secondaryColor)
+
   const positionClass =
     branding.position === "bottom-left"
       ? "items-end justify-start"
@@ -75,16 +82,16 @@ export function WidgetPreview({
             ) : (
               <div
                 className="flex size-6 items-center justify-center rounded-full text-xs font-bold"
-                style={{ backgroundColor: branding.secondaryColor, color: branding.textColor }}
+                style={{ backgroundColor: branding.secondaryColor, color: onSecondary }}
               >
                 {projectName.charAt(0).toUpperCase()}
               </div>
             )}
-            <span className="text-sm font-semibold" style={{ color: branding.textColor }}>
+            <span className="text-sm font-semibold" style={{ color: onPrimary }}>
               {projectName}
             </span>
           </div>
-          <XIcon className="size-4 opacity-70" style={{ color: branding.textColor }} />
+          <XIcon className="size-4 opacity-70" style={{ color: onPrimary }} />
         </div>
 
         {/* Messages area */}
@@ -93,7 +100,7 @@ export function WidgetPreview({
           <div className="flex items-start gap-2">
             <div
               className="flex size-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold"
-              style={{ backgroundColor: branding.primaryColor, color: branding.textColor }}
+              style={{ backgroundColor: branding.primaryColor, color: onPrimary }}
             >
               AI
             </div>
@@ -101,7 +108,7 @@ export function WidgetPreview({
               className="max-w-[85%] rounded-2xl rounded-tl-sm px-3 py-2 text-xs leading-relaxed"
               style={{
                 backgroundColor: branding.secondaryColor,
-                color: branding.textColor,
+                color: onSecondary,
               }}
             >
               Hi! I&apos;m here to help with questions about the protocol, token, and
@@ -115,7 +122,7 @@ export function WidgetPreview({
               className="max-w-[85%] rounded-2xl rounded-tr-sm px-3 py-2 text-xs leading-relaxed"
               style={{
                 backgroundColor: branding.primaryColor,
-                color: branding.textColor,
+                color: onPrimary,
               }}
             >
               Is my token locked?
@@ -126,7 +133,7 @@ export function WidgetPreview({
           <div className="flex items-start gap-2">
             <div
               className="flex size-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold"
-              style={{ backgroundColor: branding.primaryColor, color: branding.textColor }}
+              style={{ backgroundColor: branding.primaryColor, color: onPrimary }}
             >
               AI
             </div>
@@ -134,7 +141,7 @@ export function WidgetPreview({
               className="max-w-[85%] rounded-2xl rounded-tl-sm px-3 py-2 text-xs leading-relaxed"
               style={{
                 backgroundColor: branding.secondaryColor,
-                color: branding.textColor,
+                color: onSecondary,
               }}
             >
               I checked the {projectName} lock contract and your token appears to
@@ -161,7 +168,7 @@ export function WidgetPreview({
             className="flex size-6 items-center justify-center rounded-full"
             style={{ backgroundColor: branding.primaryColor }}
           >
-            <SendIcon className="size-3" style={{ color: branding.textColor }} />
+            <SendIcon className="size-3" style={{ color: onPrimary }} />
           </button>
         </div>
       </div>
@@ -173,7 +180,7 @@ export function WidgetPreview({
             className="flex size-12 items-center justify-center rounded-full shadow-lg"
             style={{ backgroundColor: branding.primaryColor }}
           >
-            <MessageCircleIcon className="size-5" style={{ color: branding.textColor }} />
+            <MessageCircleIcon className="size-5" style={{ color: onPrimary }} />
           </button>
         </div>
       )}
