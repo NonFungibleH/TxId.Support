@@ -4,10 +4,8 @@ import { useState, useTransition } from "react"
 import { toast } from "sonner"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { ChevronDown, ChevronRight, Mail } from "lucide-react"
 import { updateTicketStatus, updateTicketNotes } from "@/lib/actions/tickets"
-import { updateConfig } from "@/lib/actions/project"
 import type { Ticket } from "@/lib/actions/tickets"
 
 const STATUS_LABELS: Record<string, { label: string; variant: "default" | "secondary" | "outline" }> = {
@@ -180,90 +178,16 @@ function TicketRow({ ticket }: { ticket: Ticket }) {
 }
 
 interface TicketListProps {
-  projectId: string
   tickets: Ticket[]
-  notificationEmail: string
-  webhookUrl: string
 }
 
-export function TicketList({ projectId, tickets, notificationEmail, webhookUrl }: TicketListProps) {
-  const [email, setEmail] = useState(notificationEmail)
-  const [webhook, setWebhook] = useState(webhookUrl)
-  const [isPending, startTransition] = useTransition()
-
-  function saveEmail() {
-    startTransition(async () => {
-      try {
-        await updateConfig(projectId, { notificationEmail: email || null })
-        toast.success("Notification email saved")
-      } catch {
-        toast.error("Failed to save")
-      }
-    })
-  }
-
-  function saveWebhook() {
-    startTransition(async () => {
-      try {
-        await updateConfig(projectId, { webhookUrl: webhook || null })
-        toast.success("Webhook URL saved")
-      } catch {
-        toast.error("Failed to save")
-      }
-    })
-  }
-
+export function TicketList({ tickets }: TicketListProps) {
   const open     = tickets.filter(t => t.status === "open")
   const progress = tickets.filter(t => t.status === "in_progress")
   const resolved = tickets.filter(t => t.status === "resolved")
 
   return (
     <div className="space-y-6">
-      {/* Email notifications */}
-      <div className="rounded-lg border border-border p-4 space-y-3">
-        <div>
-          <p className="text-sm font-semibold">Email notifications</p>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Get notified when a new ticket is raised. Requires{" "}
-            <code className="text-xs bg-muted px-1 rounded">RESEND_API_KEY</code> to be set.
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Input
-            type="email"
-            placeholder="team@yourprotocol.com"
-            value={email}
-            onChange={e => setEmail(e.target.value)}
-            className="flex-1"
-          />
-          <Button variant="outline" size="sm" onClick={saveEmail} disabled={isPending}>
-            Save
-          </Button>
-        </div>
-      </div>
-
-      {/* Webhook notifications */}
-      <div className="rounded-lg border border-border p-4 space-y-3">
-        <div>
-          <p className="text-sm font-semibold">Escalation webhook</p>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            POST request sent to your URL when a ticket is created — use it to ping Slack, Discord, or your own system.
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Input
-            type="url"
-            placeholder="https://hooks.slack.com/services/..."
-            value={webhook}
-            onChange={e => setWebhook(e.target.value)}
-            className="flex-1"
-          />
-          <Button variant="outline" size="sm" onClick={saveWebhook} disabled={isPending}>
-            Save
-          </Button>
-        </div>
-      </div>
-
       {tickets.length === 0 ? (
         <div className="rounded-lg border border-dashed border-border p-12 text-center">
           <p className="text-sm text-muted-foreground">No tickets yet.</p>

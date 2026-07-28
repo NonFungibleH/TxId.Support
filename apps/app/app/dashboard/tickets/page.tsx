@@ -2,7 +2,9 @@ import { redirect } from "next/navigation"
 import { getProject } from "@/lib/actions/project"
 import { getTickets, getWebhookLogs } from "@/lib/actions/tickets"
 import { TicketList } from "@/components/dashboard/TicketList"
+import { EscalationRouting } from "@/components/dashboard/EscalationRouting"
 import { WebhookLogList } from "@/components/dashboard/WebhookLogList"
+import type { IntegrationsStatus } from "@/components/settings/IntegrationsForm"
 import type { Database } from "@/lib/supabase/types"
 import type { ProjectConfig } from "@/lib/types/config"
 
@@ -20,6 +22,18 @@ export default async function TicketsPage() {
     config.webhookUrl ? getWebhookLogs(typedProject.id) : Promise.resolve([]),
   ])
 
+  // Secrets are never sent to the client — only {configured} booleans plus the
+  // non-secret display fields (repo, domain, team id, chat id, …).
+  const i = config.integrations ?? {}
+  const integrations: IntegrationsStatus = {
+    slack:    { enabled: !!i.slack?.enabled,    configured: !!i.slack?.webhookUrl },
+    discord:  { enabled: !!i.discord?.enabled,  configured: !!i.discord?.webhookUrl },
+    telegram: { enabled: !!i.telegram?.enabled, chatId: i.telegram?.chatId ?? "", botConnected: !!config.telegramBotToken },
+    linear:   { enabled: !!i.linear?.enabled,   teamId: i.linear?.teamId ?? "", configured: !!i.linear?.apiKey },
+    github:   { enabled: !!i.github?.enabled,   repo: i.github?.repo ?? "", configured: !!i.github?.token },
+    jira:     { enabled: !!i.jira?.enabled,     domain: i.jira?.domain ?? "", email: i.jira?.email ?? "", projectKey: i.jira?.projectKey ?? "", configured: !!i.jira?.apiToken },
+  }
+
   return (
     <div className="space-y-8">
       <div>
@@ -29,12 +43,14 @@ export default async function TicketsPage() {
         </p>
       </div>
 
-      <TicketList
+      <EscalationRouting
         projectId={typedProject.id}
-        tickets={tickets}
         notificationEmail={config.notificationEmail ?? ""}
         webhookUrl={config.webhookUrl ?? ""}
+        integrations={integrations}
       />
+
+      <TicketList tickets={tickets} />
 
       {config.webhookUrl && (
         <div className="space-y-3">
