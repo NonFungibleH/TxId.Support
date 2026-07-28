@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import { removeContract, updateContractDetails } from "@/lib/actions/contracts"
 import type { WatchedContract } from "@/lib/types/config"
 import { SUPPORTED_CHAINS } from "@/lib/types/config"
-import { Trash2, ExternalLink, Pencil, Check, X } from "lucide-react"
+import { Trash2, ExternalLink, Pencil, Check, X, FileCode2 } from "lucide-react"
 import { ErrorGlossaryManager } from "./ErrorGlossaryManager"
 import { AbiManager } from "./AbiManager"
 
@@ -19,6 +19,10 @@ function chainName(id: string) {
 function explorerUrl(contract: WatchedContract) {
   const chain = SUPPORTED_CHAINS.find(c => c.id === contract.chain)
   if (!chain) return null
+  // Aptos and Solana explorers index accounts under /account. Only EVM
+  // explorers use /address, which 404s on the other two.
+  if (contract.chain === "aptos") return `https://${chain.explorer}/account/${contract.address}?network=mainnet`
+  if (contract.chain === "solana") return `https://${chain.explorer}/account/${contract.address}`
   return `https://${chain.explorer}/address/${contract.address}`
 }
 
@@ -73,9 +77,14 @@ export function ContractList({ projectId, contracts, showGlossary }: ContractLis
 
   if (contracts.length === 0) {
     return (
-      <p className="text-sm text-muted-foreground py-4 text-center">
-        No contracts added yet. Add one below.
-      </p>
+      <div className="rounded-lg border border-dashed border-border px-4 py-8 text-center">
+        <FileCode2 className="mx-auto size-5 text-muted-foreground/50" />
+        <p className="mt-2 text-sm font-medium">No contracts yet</p>
+        <p className="mt-1 text-xs text-muted-foreground max-w-md mx-auto">
+          Use <span className="font-medium text-foreground">Add contract</span> above to point the AI at the
+          addresses your users touch: markets, vaults, pools, staking, or a Move package and its modules.
+        </p>
+      </div>
     )
   }
 
@@ -99,7 +108,7 @@ export function ContractList({ projectId, contracts, showGlossary }: ContractLis
                     />
                     <Badge variant="secondary" className="text-xs shrink-0">{chainName(contract.chain)}</Badge>
                   </div>
-                  <p className="font-mono text-xs text-muted-foreground truncate">{contract.address}</p>
+                  <p className="font-mono text-xs text-muted-foreground truncate" title={contract.address}>{contract.address}</p>
                   <Input
                     value={editDesc}
                     onChange={e => setEditDesc(e.target.value)}
@@ -110,11 +119,14 @@ export function ContractList({ projectId, contracts, showGlossary }: ContractLis
                 </div>
               ) : (
                 <>
-                  <div className="flex items-center gap-2 mb-1">
+                  <div className="flex flex-wrap items-center gap-2 mb-1">
                     <p className="font-medium text-sm">{contract.name}</p>
                     <Badge variant="secondary" className="text-xs">{chainName(contract.chain)}</Badge>
+                    {contract.moduleName && (
+                      <Badge variant="outline" className="text-xs font-mono">{contract.moduleName}</Badge>
+                    )}
                   </div>
-                  <p className="font-mono text-xs text-muted-foreground truncate">{contract.address}</p>
+                  <p className="font-mono text-xs text-muted-foreground truncate" title={contract.address}>{contract.address}</p>
                   <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{contract.description}</p>
                 </>
               )}
@@ -122,23 +134,31 @@ export function ContractList({ projectId, contracts, showGlossary }: ContractLis
             <div className="flex items-center gap-1 shrink-0">
               {editingId === contract.id ? (
                 <>
-                  <Button variant="ghost" size="sm" onClick={() => saveEdit(contract.id)} disabled={isPending} className="text-emerald-600 hover:text-emerald-600">
+                  <Button variant="ghost" size="sm" onClick={() => saveEdit(contract.id)} disabled={isPending} className="text-emerald-600 hover:text-emerald-600" aria-label="Save changes" title="Save changes">
                     <Check className="size-3.5" />
                   </Button>
-                  <Button variant="ghost" size="sm" onClick={cancelEdit} disabled={isPending}>
+                  <Button variant="ghost" size="sm" onClick={cancelEdit} disabled={isPending} aria-label="Cancel editing" title="Cancel editing">
                     <X className="size-3.5" />
                   </Button>
                 </>
               ) : (
                 <>
-                  <Button variant="ghost" size="sm" onClick={() => startEdit(contract)} disabled={isPending} title="Edit name & description">
+                  <Button variant="ghost" size="sm" onClick={() => startEdit(contract)} disabled={isPending} aria-label="Edit name and description" title="Edit name and description">
                     <Pencil className="size-3.5" />
                   </Button>
                   {url && (
                     <Button
                       variant="ghost"
                       size="sm"
-                      render={<a href={url} target="_blank" rel="noopener noreferrer" />}
+                      render={
+                        <a
+                          href={url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          aria-label={`View ${contract.name} on the block explorer`}
+                          title="View on explorer"
+                        />
+                      }
                     >
                       <ExternalLink className="size-3.5" />
                     </Button>
@@ -148,6 +168,8 @@ export function ContractList({ projectId, contracts, showGlossary }: ContractLis
                     size="sm"
                     onClick={() => remove(contract.id)}
                     disabled={isPending}
+                    aria-label={`Remove ${contract.name}`}
+                    title="Remove contract"
                     className="text-destructive hover:text-destructive"
                   >
                     <Trash2 className="size-3.5" />

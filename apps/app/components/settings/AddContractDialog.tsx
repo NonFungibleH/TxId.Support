@@ -82,7 +82,7 @@ export function AddContractDialog({ projectId, activeChains, chainLimit }: AddCo
             if ("modules" in res) setAptosModules(res.modules)
             else setAptosPeekError(res.error)
           })
-          .catch(() => setAptosModules(null))
+          .catch(() => setAptosPeekError("Could not reach the Aptos fullnode. You can still add this address and describe it manually."))
           .finally(() => setDetectingFns(false))
       } else {
         peekContractFunctions(address.trim(), chain)
@@ -95,8 +95,10 @@ export function AddContractDialog({ projectId, activeChains, chainLimit }: AddCo
     return () => { if (peekTimeout.current) clearTimeout(peekTimeout.current) }
   }, [address, chain])
 
+  // Chain is deliberately NOT reset: teams add several addresses on the same
+  // chain in a row, so re-picking it every time is pure friction.
   function reset() {
-    setName(""); setAddress(""); setChain("0x1"); setDescription("")
+    setName(""); setAddress(""); setDescription("")
     setDetectedFns(null); setDetectingFns(false)
     setAptosModules(null); setAptosPeekError(null); setModuleName("")
   }
@@ -125,7 +127,7 @@ export function AddContractDialog({ projectId, activeChains, chainLimit }: AddCo
           Add contract
         </Button>
       } />
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Add smart contract</DialogTitle>
           <DialogDescription>
@@ -139,7 +141,7 @@ export function AddContractDialog({ projectId, activeChains, chainLimit }: AddCo
             <Input id="contract-name" placeholder="e.g. Perpetuals Market" value={name} onChange={e => setName(e.target.value)} />
           </div>
           <div className="grid gap-2">
-            <Label htmlFor="contract-address">Contract address</Label>
+            <Label htmlFor="contract-address">{isAptos ? "Account address" : "Contract address"}</Label>
             <Input id="contract-address" placeholder="0x..." value={address} onChange={e => setAddress(e.target.value)} className="font-mono" />
             {addressHint && (
               looksAptos ? (
@@ -180,14 +182,16 @@ export function AddContractDialog({ projectId, activeChains, chainLimit }: AddCo
                     {moduleName || "All modules"}
                   </SelectValue>
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="max-h-72">
                   <SelectItem value={ALL_MODULES}>All modules</SelectItem>
                   {aptosModules.map(m => (
                     <SelectItem key={m.name} value={m.name}>{m.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-              <p className="text-xs text-muted-foreground">Scope the AI to one module, or leave as all modules at this address.</p>
+              <p className="text-xs text-muted-foreground">
+                Leave as all {aptosModules.length} modules at this address, or scope the AI to a single module.
+              </p>
             </div>
           )}
 
@@ -234,11 +238,11 @@ export function AddContractDialog({ projectId, activeChains, chainLimit }: AddCo
               </div>
             )}
             {!isAptos && detectedFns === null && !detectingFns && addressRe.test(address.trim()) && (
-              <p className="text-xs text-muted-foreground/60">Contract not verified on block explorer - you&apos;ll need to describe it manually.</p>
+              <p className="text-xs text-muted-foreground">Contract not verified on the block explorer, so you&apos;ll need to describe it manually.</p>
             )}
             {isAptos && aptosModules && aptosModules.length > 0 && (
               <div className="rounded-lg border border-border bg-muted/40 px-3 py-2.5 space-y-1.5">
-                <p className="text-xs font-medium text-foreground/70">All {aptosModules.length} module{aptosModules.length === 1 ? "" : "s"} read live from the chain: proof the AI can see the whole contract. Use them as a reference when writing the description below. &quot;(N entry, M view)&quot; is each module&apos;s count of callable and read-only functions.</p>
+                <p className="text-xs font-medium text-foreground/70">{aptosModules.length} module{aptosModules.length === 1 ? "" : "s"} published at this address, read live from the Aptos fullnode. Use them as a reference when writing the description below. Each module shows its entry function and view function counts.</p>
                 <div className="flex flex-wrap gap-1 max-h-40 overflow-y-auto">
                   {aptosModules.map(m => (
                     <span key={m.name} className="rounded bg-background border border-border px-1.5 py-0.5 text-xs font-mono text-foreground/60">
@@ -249,10 +253,13 @@ export function AddContractDialog({ projectId, activeChains, chainLimit }: AddCo
               </div>
             )}
             {isAptos && aptosModules && aptosModules.length === 0 && !detectingFns && (
-              <p className="text-xs text-muted-foreground/60">No modules found at this address. You can still add it and describe it manually.</p>
+              <p className="text-xs text-muted-foreground">No modules are published at this address. You can still add it and describe it manually.</p>
             )}
             {isAptos && aptosPeekError && !detectingFns && (
-              <p className="text-xs text-muted-foreground/60">{aptosPeekError}</p>
+              <div className="flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2">
+                <AlertTriangle className="size-3.5 text-amber-500 shrink-0 mt-0.5" />
+                <p className="text-xs text-amber-600 dark:text-amber-400">{aptosPeekError}</p>
+              </div>
             )}
           </div>
         </div>

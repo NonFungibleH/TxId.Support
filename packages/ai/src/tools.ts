@@ -56,6 +56,7 @@ import {
   getAptosModuleAbi,
   getAptosDeployment,
   getAptosAssetActivities,
+  getAptosModuleEvents,
   getAptosTokenSafety,
   adapterFor,
   getProtocolAccount,
@@ -711,23 +712,36 @@ export async function executeTool(
         //  1. asset-movement events, which ARE still indexed and go back in time
         //  2. the module's own recent transactions, for protocol-defined events
         const wantsAssetFlow = /deposit|withdraw|transfer|mint|burn|fund/i.test(eventName)
-        const [activities, aptosTxs] = await Promise.all([
+        const [activities, scan] = await Promise.all([
           wantsAssetFlow ? getAptosAssetActivities(target.address, 15) : Promise.resolve(null),
-          getAptosRecentTransactions(target.address, target.address, 10, errmapFor(watchedContracts)),
+          getAptosModuleEvents(target.address, eventName),
         ])
-        if (!aptosTxs && !activities) {
-          return { contract: target.name, event: eventName, events: [], checked: false, error: APTOS_LOOKUP_FAILED }
+        if (!scan && !activities) {
+          return { contract: target.name, event: eventName, events: [], checked: false, error: "Could not reach the Aptos indexer to scan this module's transactions right now. This is a failed lookup, NOT evidence that the event never fired. Try again shortly." }
         }
-        const recentEvents = (aptosTxs ?? []).flatMap(tx =>
-          tx.events
-            .filter(e => e.type.endsWith(`::${eventName}`) || e.type.includes(`::${eventName}<`))
-            .map(e => ({ transactionHash: tx.hash, timestamp: tx.timestamp, type: e.type, data: e.data })),
-        )
+        const recentEvents = (scan?.events ?? []).map(e => ({
+          transactionHash: e.txHash,
+          timestamp: e.timestamp,
+          type: e.type,
+          data: e.data,
+          transactionSucceeded: e.success,
+        }))
         return {
           contract: target.name,
           event: eventName,
           count: recentEvents.length,
           events: recentEvents,
+          // The honest denominator: how far back we actually looked. Without
+          // this an empty result reads as "never happened" when it only means
+          // "not in the window we scanned".
+          ...(scan
+            ? {
+                transactionsScanned: scan.transactionsScanned,
+                searchWindowTruncated: scan.truncated,
+                oldestScanned: scan.oldestTimestampScanned,
+                newestScanned: scan.newestTimestampScanned,
+              }
+            : {}),
           ...(activities && activities.length > 0
             ? {
                 assetActivity: activities.map(a => ({
@@ -741,7 +755,7 @@ export async function executeTool(
               }
             : {}),
           checked: false,
-          note: "On Aptos, asset movement events (deposits, withdrawals, mints, burns) are indexed and searchable, but protocol-defined events are not: the indexer's generic events table was retired. Protocol-specific events here are therefore only those emitted by this module's RECENT transactions, so an empty result does NOT mean the event never fired. Say exactly that and offer explorer.aptoslabs.com for the full history.",
+          note: "On Aptos, asset movement events (deposits, withdrawals, mints, burns) are indexed and searchable, but protocol-defined events are NOT: the indexer's generic events table was retired. Protocol events are therefore recovered by scanning this module's recent transactions, and transactionsScanned says how many were actually inspected. If the list is empty, say the event does not appear in the last N transactions scanned (give the number and the oldest timestamp) and NEVER say it never fired. Offer explorer.aptoslabs.com for history older than the window.",
         }
       }
       const events = await getContractEvents(target.address, target.chain, eventName, target.abi ?? undefined)

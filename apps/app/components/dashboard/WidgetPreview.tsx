@@ -34,6 +34,28 @@ export function WidgetPreview({
   const onPrimary = autoInputTextColor(branding.primaryColor)
   const onSecondary = autoInputTextColor(branding.secondaryColor)
 
+  // Mirrors the live widget so the preview reacts to the persona fields the
+  // user is editing right next to it.
+  const agentTitle = branding.agentName?.trim() || projectName
+  const agentAvatarUrl = branding.agentIconUrl?.trim() || branding.logoUrl
+  const agentInitials = branding.agentName?.trim()
+    ? branding.agentName.trim().slice(0, 2).toUpperCase()
+    : "AI"
+  const greeting = branding.welcomeMessage?.trim()
+    || `Hi! I'm here to help with ${projectName}. Ask me about the protocol, token, smart contracts, or transactions.`
+
+  const agentAvatar = agentAvatarUrl ? (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img src={agentAvatarUrl} alt="" className="size-6 shrink-0 rounded-full object-cover" />
+  ) : (
+    <div
+      className="flex size-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold"
+      style={{ backgroundColor: branding.primaryColor, color: onPrimary }}
+    >
+      {agentInitials}
+    </div>
+  )
+
   const positionClass =
     branding.position === "bottom-left"
       ? "items-end justify-start"
@@ -71,7 +93,7 @@ export function WidgetPreview({
           className="flex items-center justify-between px-4 py-3"
           style={{ backgroundColor: branding.primaryColor }}
         >
-          <div className="flex items-center gap-2">
+          <div className="flex min-w-0 items-center gap-2">
             {branding.logoUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
@@ -87,8 +109,8 @@ export function WidgetPreview({
                 {projectName.charAt(0).toUpperCase()}
               </div>
             )}
-            <span className="text-sm font-semibold" style={{ color: onPrimary }}>
-              {projectName}
+            <span className="truncate text-sm font-semibold" style={{ color: onPrimary }}>
+              {agentTitle}
             </span>
           </div>
           <XIcon className="size-4 opacity-70" style={{ color: onPrimary }} />
@@ -98,12 +120,7 @@ export function WidgetPreview({
         <div className="flex flex-1 flex-col gap-3 overflow-y-auto px-3 py-3">
           {/* Assistant bubble */}
           <div className="flex items-start gap-2">
-            <div
-              className="flex size-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold"
-              style={{ backgroundColor: branding.primaryColor, color: onPrimary }}
-            >
-              AI
-            </div>
+            {agentAvatar}
             <div
               className="max-w-[85%] rounded-2xl rounded-tl-sm px-3 py-2 text-xs leading-relaxed"
               style={{
@@ -111,8 +128,7 @@ export function WidgetPreview({
                 color: onSecondary,
               }}
             >
-              Hi! I&apos;m here to help with questions about the protocol, token, and
-              smart contracts. What would you like to know?
+              {greeting}
             </div>
           </div>
 
@@ -125,18 +141,13 @@ export function WidgetPreview({
                 color: onPrimary,
               }}
             >
-              Is my token locked?
+              Why did my last transaction fail?
             </div>
           </div>
 
           {/* Assistant reply */}
           <div className="flex items-start gap-2">
-            <div
-              className="flex size-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold"
-              style={{ backgroundColor: branding.primaryColor, color: onPrimary }}
-            >
-              AI
-            </div>
+            {agentAvatar}
             <div
               className="max-w-[85%] rounded-2xl rounded-tl-sm px-3 py-2 text-xs leading-relaxed"
               style={{
@@ -144,8 +155,8 @@ export function WidgetPreview({
                 color: onSecondary,
               }}
             >
-              I checked the {projectName} lock contract and your token appears to
-              be locked until 2026. You can verify on the explorer.
+              It was rejected by a slippage check: the price moved between
+              signing and execution. Nothing was lost apart from the fee.
             </div>
           </div>
         </div>

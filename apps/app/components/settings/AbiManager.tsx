@@ -4,7 +4,7 @@ import { useState, useTransition } from "react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
-import { CheckCircle2, AlertTriangle, RefreshCw, Trash2, Upload } from "lucide-react"
+import { CheckCircle2, AlertTriangle, RefreshCw, Trash2, Upload, Info, Loader2 } from "lucide-react"
 import { refreshContractAbi, saveContractAbi, clearContractAbi } from "@/lib/actions/contracts"
 import type { WatchedContract } from "@/lib/types/config"
 
@@ -17,6 +17,9 @@ export function AbiManager({ projectId, contract }: Props) {
   const [isPending, startTransition] = useTransition()
   const [showPaste, setShowPaste] = useState(false)
   const [abiText, setAbiText] = useState("")
+  // Tracked separately from isPending so only the button that started the
+  // fetch shows a spinner. An Aptos package can take seconds to page through.
+  const [checking, setChecking] = useState(false)
 
   const isSolana = contract.chain === "solana"
   const isAptos = contract.chain === "aptos"
@@ -26,6 +29,7 @@ export function AbiManager({ projectId, contract }: Props) {
   const source = contract.abiSource
 
   function handleRefresh() {
+    setChecking(true)
     startTransition(async () => {
       try {
         const result = await refreshContractAbi(projectId, contract.id)
@@ -42,6 +46,8 @@ export function AbiManager({ projectId, contract }: Props) {
         }
       } catch {
         toast.error(`Failed to check ${sourceName}`)
+      } finally {
+        setChecking(false)
       }
     })
   }
@@ -95,8 +101,8 @@ export function AbiManager({ projectId, contract }: Props) {
               onClick={handleRefresh}
               disabled={isPending}
             >
-              <RefreshCw className="size-3" />
-              Re-check
+              {checking ? <Loader2 className="size-3 animate-spin" /> : <RefreshCw className="size-3" />}
+              {checking ? "Checking…" : "Re-check"}
             </Button>
             <Button
               variant="ghost"
@@ -104,6 +110,8 @@ export function AbiManager({ projectId, contract }: Props) {
               className="h-6 text-xs text-destructive hover:text-destructive"
               onClick={handleClear}
               disabled={isPending}
+              aria-label={`Remove stored ${label}`}
+              title={`Remove stored ${label}`}
             >
               <Trash2 className="size-3" />
             </Button>
@@ -111,14 +119,21 @@ export function AbiManager({ projectId, contract }: Props) {
         </div>
       ) : (
         <div className="space-y-2">
-          <div className="flex items-start gap-2 rounded-md bg-amber-500/10 border border-amber-500/20 px-3 py-2">
-            <AlertTriangle className="size-3.5 text-amber-500 shrink-0 mt-0.5" />
-            <p className="text-xs text-amber-400 leading-relaxed">
+          {/* Aptos is informational, not a warning: module ABIs are read live
+              from the fullnode whether or not a copy is stored here. */}
+          <div className={isAptos
+            ? "flex items-start gap-2 rounded-md bg-muted/40 border border-border px-3 py-2"
+            : "flex items-start gap-2 rounded-md bg-amber-500/10 border border-amber-500/20 px-3 py-2"}
+          >
+            {isAptos
+              ? <Info className="size-3.5 text-muted-foreground shrink-0 mt-0.5" />
+              : <AlertTriangle className="size-3.5 text-amber-500 shrink-0 mt-0.5" />}
+            <p className={`text-xs leading-relaxed ${isAptos ? "text-muted-foreground" : "text-amber-400"}`}>
               {isSolana
                 ? `No IDL found. Custom program errors won't be decoded. Check the Anchor registry, or paste your IDL JSON below.`
                 : isAptos
-                ? `No module ABI stored. The AI reads Move module ABIs live on-chain either way; the stored copy is informational. Fetch it from the fullnode, or paste JSON below.`
-                : `No ABI found. Custom error names won't be decoded - the AI will see raw hex instead of the error name. Either verify this contract on the block explorer, or paste the ABI below.`}
+                ? `No module ABI stored, and nothing is missing: the AI reads Move module ABIs live from the fullnode on every question. Store a copy only if you want it pinned.`
+                : `No ABI found. Custom error names won't be decoded, so the AI will see raw hex instead of the error name. Either verify this contract on the block explorer, or paste the ABI below.`}
             </p>
           </div>
 
@@ -163,8 +178,10 @@ export function AbiManager({ projectId, contract }: Props) {
                 onClick={handleRefresh}
                 disabled={isPending}
               >
-                <RefreshCw className="size-3" />
-                {isSolana ? "Check Anchor registry" : isAptos ? "Check Aptos fullnode" : "Check block explorer"}
+                {checking ? <Loader2 className="size-3 animate-spin" /> : <RefreshCw className="size-3" />}
+                {checking
+                  ? "Checking…"
+                  : isSolana ? "Check Anchor registry" : isAptos ? "Check Aptos fullnode" : "Check block explorer"}
               </Button>
               <Button
                 variant="ghost"

@@ -109,18 +109,25 @@ export function DocsForm({ projectId, docCount, pastedChunkCount, pastedLastInde
     setCrawlStatus(null)
     toast.info("Crawl started - this typically takes 30-60 seconds. Keep this tab open.", { duration: 8000 })
     startTransition(async () => {
-      const result = await crawlAndIngest(projectId, targetUrl)
-      setCrawling(false)
-      if (result.ok) {
-        const discovered = (result as { discovered?: number }).discovered
-        const msg = `Crawled ${result.pagesIndexed} pages, indexed ${result.chunksInserted} chunks${discovered ? ` (found ${discovered} total)` : ""}`
-        setCrawlStatus(msg)
-        toast.success(msg)
-        // Refresh page to show updated source list
-        window.location.reload()
-      } else {
+      try {
+        const result = await crawlAndIngest(projectId, targetUrl)
+        if (result.ok) {
+          const discovered = (result as { discovered?: number }).discovered
+          const msg = `Crawled ${result.pagesIndexed} pages, indexed ${result.chunksInserted} chunks${discovered ? ` (found ${discovered} total)` : ""}`
+          setCrawlStatus(msg)
+          toast.success(msg)
+          // Refresh page to show updated source list
+          window.location.reload()
+        } else {
+          setCrawlStatus(null)
+          toast.error(result.error ?? "Crawl failed")
+        }
+      } catch {
+        // Without this the spinner would run forever if the action itself threw.
         setCrawlStatus(null)
-        toast.error(result.error ?? "Crawl failed")
+        toast.error("Crawl failed to complete. Try again, or index key pages one at a time with Fetch page.")
+      } finally {
+        setCrawling(false)
       }
     })
   }
@@ -129,19 +136,23 @@ export function DocsForm({ projectId, docCount, pastedChunkCount, pastedLastInde
     if (!url.trim()) { toast.error("Enter a URL first"); return }
     const targetUrl = url.trim()
     startTransition(async () => {
-      const result = await fetchAndIngest(projectId, targetUrl)
-      if (result.ok && result.chunksInserted) {
-        toast.success(`Indexed ${result.chunksInserted} chunks from ${targetUrl}`)
-        const now = new Date().toISOString()
-        setSources(prev => {
-          const exists = prev.find(s => s.url === targetUrl)
-          if (exists) return prev.map(s => s.url === targetUrl ? { ...s, count: result.chunksInserted!, lastIndexedAt: now } : s)
-          return [...prev, { url: targetUrl, count: result.chunksInserted!, lastIndexedAt: now }]
-        })
-        setTotalChunks(n => n + result.chunksInserted!)
-        setUrl("")
-      } else {
-        toast.error(result.error ?? "Failed to index URL")
+      try {
+        const result = await fetchAndIngest(projectId, targetUrl)
+        if (result.ok && result.chunksInserted) {
+          toast.success(`Indexed ${result.chunksInserted} chunks from ${targetUrl}`)
+          const now = new Date().toISOString()
+          setSources(prev => {
+            const exists = prev.find(s => s.url === targetUrl)
+            if (exists) return prev.map(s => s.url === targetUrl ? { ...s, count: result.chunksInserted!, lastIndexedAt: now } : s)
+            return [...prev, { url: targetUrl, count: result.chunksInserted!, lastIndexedAt: now }]
+          })
+          setTotalChunks(n => n + result.chunksInserted!)
+          setUrl("")
+        } else {
+          toast.error(result.error ?? "Failed to index URL")
+        }
+      } catch {
+        toast.error("Could not index that page. Check the URL is reachable, then try again.")
       }
     })
   }

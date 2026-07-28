@@ -51,6 +51,27 @@ const TOOL_LABELS: Record<string, string> = {
   prepare_contract_action: "Preparing your transaction…",
 }
 
+// Aptos is a Move chain: a "contract" is a module and names resolve through ANS,
+// not ENS. These override the EVM wording above on Aptos-only projects.
+const APTOS_TOOL_LABELS: Record<string, string> = {
+  get_wallet_approvals: "Checking token permissions…",
+  get_contract_transactions: "Checking module activity…",
+  get_contract_events: "Reading module event history…",
+  get_contract_deployment: "Checking module publication…",
+  get_contract_holdings: "Checking module holdings…",
+  get_contract_state: "Reading module state…",
+  get_contract_data: "Reading module data…",
+  get_contract_info: "Checking the module on-chain…",
+  get_contract_functions: "Reading module functions…",
+  get_upgrade_history: "Checking module upgrade history…",
+  resolve_ens_name: "Resolving .apt name…",
+}
+
+function toolLabel(name: string, aptosWording: boolean): string {
+  if (aptosWording && APTOS_TOOL_LABELS[name]) return APTOS_TOOL_LABELS[name]
+  return TOOL_LABELS[name] ?? "Looking up data…"
+}
+
 // ─── Types ──────────────────────────────────────────────────────────────────
 
 interface BrandingConfig {
@@ -260,12 +281,49 @@ function PriceSparkline({ priceChange }: { priceChange: DexPair["priceChange"] }
 
 // ─── Rich message renderer ───────────────────────────────────────────────────
 
+// Markdown link, bold, inline code, or a bare URL. Answers routinely carry
+// explorer and docs links, so both link shapes have to render as real anchors
+// instead of raw syntax.
+const INLINE_RE = /(\[[^\]\n]+\]\(https?:\/\/[^\s)]+\)|\*\*[^*]+\*\*|`[^`]+`|https?:\/\/[^\s<>()]+)/g
+const MD_LINK_RE = /^\[([^\]\n]+)\]\((https?:\/\/[^\s)]+)\)$/
+
+function InlineLink({ href, label }: { href: string; label: string }) {
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      style={{
+        color: "inherit",
+        textDecoration: "underline",
+        textUnderlineOffset: "2px",
+        overflowWrap: "anywhere",
+      }}
+    >
+      {label}
+    </a>
+  )
+}
+
 function parseInline(text: string): React.ReactNode {
-  const parts = text.split(/(\*\*[^*]+\*\*|`[^`]+`)/g)
+  const parts = text.split(INLINE_RE)
   if (parts.length === 1) return text
   return (
     <>
       {parts.map((part, i) => {
+        const mdLink = MD_LINK_RE.exec(part)
+        if (mdLink) return <InlineLink key={i} href={mdLink[2]} label={mdLink[1]} />
+        if (part.startsWith("http://") || part.startsWith("https://")) {
+          // Trailing sentence punctuation is not part of the URL.
+          const trailing = /[.,;:!?]+$/.exec(part)?.[0] ?? ""
+          const url = trailing ? part.slice(0, -trailing.length) : part
+          return (
+            <span key={i}>
+              <InlineLink href={url} label={url} />
+              {trailing}
+            </span>
+          )
+        }
         if (part.startsWith("**") && part.endsWith("**")) {
           return <strong key={i}>{part.slice(2, -2)}</strong>
         }
@@ -337,6 +395,17 @@ function MessageContent({
           {codeLines.join("\n")}
         </pre>,
       )
+      continue
+    }
+
+    // Markdown heading: render as a bold line, never as literal "##".
+    if (/^#{1,4}\s/.test(trimmed)) {
+      blocks.push(
+        <p key={blocks.length} style={{ margin: 0, lineHeight: 1.45, fontWeight: 700 }}>
+          {parseInline(trimmed.replace(/^#{1,4}\s+/, ""))}
+        </p>,
+      )
+      i++
       continue
     }
 
@@ -455,6 +524,11 @@ type WalletSession = {
   chainId: string | null
 }
 
+/** Aptos addresses are 66 chars, so never show one in full inside a chrome pill. */
+function shortAddr(a: string): string {
+  return a.length > 14 ? `${a.slice(0, 6)}…${a.slice(-4)}` : a
+}
+
 function saveWalletSession(key: string, session: WalletSession) {
   try { sessionStorage.setItem(`txid_wallet_${key}`, JSON.stringify(session)) } catch { /* ignore */ }
 }
@@ -549,11 +623,18 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
           const isToken = data.mode === "token"
           setTab(isToken ? "trade" : "chat")
           if (!isToken) {
+            const chains = data.chains ?? []
+            const aptosOnly = chains.includes("aptos") && !chains.some((c) => c !== "aptos" && c !== "solana")
+            const fallback = aptosOnly
+              ? `Hi! I'm here to help with ${data.projectName}. Ask me about the protocol, its Move modules, or any transaction.`
+              : `Hi! I'm here to help with ${data.projectName}. Ask me about the protocol, token, smart contracts, or transactions.`
             setMessages([
               {
                 id: nanoid(),
                 role: "assistant",
-                content: data.welcomeMessage?.trim() || `Hi! I'm here to help with ${data.projectName}. Ask me about the protocol, token, smart contracts, or transactions.`,
+                content: data.welcomeMessage?.trim() || fallback,
+                // The greeting is not an answer, so it carries no 👍/👎.
+                local: true,
               },
             ])
           }
@@ -572,10 +653,12 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
   }, [config])
 
   // ── Auto-scroll to latest message ───────────────────────────────────────
+  // Chips and the ticket form shrink the scroller, so they scroll too: without
+  // them the last line of an answer ends up hidden behind the chip row.
   useEffect(() => {
     const el = messagesContainerRef.current
     if (el) el.scrollTop = el.scrollHeight
-  }, [messages])
+  }, [messages, visibleChips.length, escalation])
 
   // ── DexScreener polling ──────────────────────────────────────────────────
   useEffect(() => {
@@ -638,6 +721,12 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
     setChainId(cid)
     setWalletSetup("manual")
     saveWalletSession(apiKey, { setup: "manual", address: addr, chainId: cid })
+    setMessages((prev) => [...prev, {
+      id: nanoid(),
+      role: "assistant",
+      content: `Using ${shortAddr(addr)}. I can look up its balance and transactions now.`,
+      local: true,
+    }])
     setManualOpen(false)
     setManualValue("")
     setManualError(false)
@@ -704,6 +793,14 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
       setChainId(chainId)
       setWalletSetup("connected")
       saveWalletSession(apiKey, { setup: "connected", address, chainId })
+      // A pill quietly changing in the header is easy to miss: confirm in the
+      // thread so the user knows the wallet is actually in play.
+      setMessages((prev) => [...prev, {
+        id: nanoid(),
+        role: "assistant",
+        content: `Wallet connected: ${shortAddr(address)}. I can look up your balance and transactions now.`,
+        local: true,
+      }])
     }
     try {
       // Try the provider injected into THIS frame first - connecting directly

@@ -4,7 +4,7 @@ import { useState, useTransition } from "react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Plus, Trash2, GripVertical } from "lucide-react"
+import { Plus, Trash2 } from "lucide-react"
 import { updateConfig } from "@/lib/actions/project"
 
 const MAX_QUESTIONS = 6
@@ -61,7 +61,7 @@ export function SuggestedQuestionsEditor({ projectId, initial }: Props) {
       <div className="space-y-2">
         {questions.map((q, i) => (
           <div key={i} className="flex items-center gap-2">
-            <GripVertical className="size-3.5 shrink-0 text-muted-foreground/40" />
+            <span className="w-4 shrink-0 text-center text-xs tabular-nums text-muted-foreground/60">{i + 1}</span>
             <Input
               value={q}
               onChange={e => update(i, e.target.value)}
@@ -101,7 +101,7 @@ export function SuggestedQuestionsEditor({ projectId, initial }: Props) {
           Add question
         </Button>
         <Button size="sm" onClick={save} disabled={isPending}>
-          Save
+          {isPending ? "Saving…" : "Save"}
         </Button>
         <p className="text-xs text-muted-foreground ml-auto">
           {filledCount > 0
