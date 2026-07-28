@@ -1,7 +1,7 @@
 import type { AbortErrmap } from "./abort"
 import { decodeAbort } from "./abort"
 import { normalizeAptosAddress } from "./address"
-import type { AptosModuleAbi, AptosModuleFunction, AptosTransaction } from "./types"
+import type { AptosModuleAbi, AptosModuleFunction, AptosTransaction, DecodedAbort } from "./types"
 
 const FULLNODE_BASE = "https://fullnode.mainnet.aptoslabs.com/v1"
 
@@ -248,6 +248,107 @@ export async function getAptosTransactionByHash(
       return [...rest.slice(0, 20), ...feeStatements]
     })(),
     ...(raw.success === false ? { decodedAbort: decodeAbort(raw.vm_status, errmap) } : {}),
+  }
+}
+
+/**
+ * The sender's ed25519 public key, recovered from a transaction they already
+ * sent. Simulation validates the supplied public key against the account's
+ * auth key, and we only ever hold an ADDRESS, so without this every simulate
+ * call fails with INVALID_AUTH_KEY. An account that has never transacted has
+ * no recoverable key, which is why simulation is best-effort.
+ */
+async function recoverPublicKey(address: string): Promise<string | null> {
+  const addr = normalizeAptosAddress(address)
+  // Primary: the account's own sequenced transactions. Returns [] for
+  // stateless accounts (AIP-115) that have never incremented a sequence
+  // number, hence the by-version fallback below.
+  // Returns [] for a stateless account (AIP-115) that has never incremented a
+  // sequence number. Those simply cannot be simulated, and the caller reports
+  // that as a limit of the CHECK rather than a prediction of failure.
+  const txs = await aptosGet<{ signature?: Record<string, unknown> }[]>(`/accounts/${addr}/transactions?limit=1`)
+  const sig = txs?.[0]?.signature as Record<string, unknown> | undefined
+  if (!sig) return null
+  // fee_payer / multi_agent nest the sender's own signature under `sender`.
+  const inner = (sig.sender as Record<string, unknown> | undefined) ?? sig
+  const pk = inner.public_key
+  if (typeof pk === "string") return pk
+  const list = inner.public_keys
+  return Array.isArray(list) && typeof list[0] === "string" ? list[0] : null
+}
+
+export interface AptosSimulation {
+  /** Would this transaction succeed right now? */
+  success: boolean
+  vmStatus: string
+  gasUsed: string | null
+  gasUnitPrice: string
+  /** Estimated fee in APT at the simulated gas price. */
+  estimatedFeeApt: string | null
+  /** Decoded reason when the simulation aborted, same decoder as a real tx. */
+  decodedAbort?: DecodedAbort
+}
+
+/**
+ * Pre-flight an entry function: "would this work if I tried it now?".
+ *
+ * Aptos simulation runs the real VM against current state without submitting,
+ * so it answers retry questions definitively rather than by inference. Returns
+ * null when we could not simulate at all (no recoverable public key, or the
+ * node was unreachable), which the caller must not report as a failure of the
+ * transaction itself.
+ */
+export async function simulateAptosEntryFunction(
+  sender: string,
+  functionId: string,
+  typeArgs: string[],
+  args: unknown[],
+  errmap?: AbortErrmap,
+): Promise<AptosSimulation | null> {
+  const addr = normalizeAptosAddress(sender)
+  const [publicKey, account, gas] = await Promise.all([
+    recoverPublicKey(addr),
+    aptosGet<{ sequence_number?: string }>(`/accounts/${addr}`),
+    aptosGet<{ gas_estimate?: number }>("/estimate_gas_price"),
+  ])
+  if (!publicKey) return null
+
+  const gasUnitPrice = String(gas?.gas_estimate ?? 100)
+  const res = await aptosFetch(`${FULLNODE_BASE}/transactions/simulate`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...aptosAuthHeaders() },
+    body: JSON.stringify({
+      sender: addr,
+      sequence_number: account?.sequence_number ?? "0",
+      max_gas_amount: "100000",
+      gas_unit_price: gasUnitPrice,
+      expiration_timestamp_secs: String(Math.floor(Date.now() / 1000) + 600),
+      payload: { type: "entry_function_payload", function: functionId, type_arguments: typeArgs, arguments: args },
+      // Signature is not verified during simulation, but the public key must
+      // match the account's auth key, hence the recovery above.
+      signature: { type: "ed25519_signature", public_key: publicKey, signature: `0x${"0".repeat(128)}` },
+    }),
+  })
+  if (!res || !res.ok) return null
+
+  let body: unknown
+  try { body = await res.json() } catch { return null }
+  const sim = (Array.isArray(body) ? body[0] : body) as
+    | { success?: boolean; vm_status?: string; gas_used?: string }
+    | undefined
+  if (!sim || typeof sim.success !== "boolean") return null
+
+  const vmStatus = sim.vm_status ?? ""
+  const fee = (() => {
+    try { return formatUnits((BigInt(sim.gas_used ?? "0") * BigInt(gasUnitPrice)).toString(), 8) } catch { return null }
+  })()
+  return {
+    success: sim.success,
+    vmStatus,
+    gasUsed: sim.gas_used ?? null,
+    gasUnitPrice,
+    estimatedFeeApt: fee,
+    ...(sim.success === false ? { decodedAbort: decodeAbort(vmStatus, errmap) } : {}),
   }
 }
 

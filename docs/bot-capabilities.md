@@ -183,7 +183,7 @@ Legend: ✅ parity · 🟦 N/A by design (the concept does not exist on Aptos) �
 | **Asset movement history** (deposits, withdrawals, mints, burns) | ✅ | `getAptosAssetActivities`: the indexer's generic `events` table was retired, but the typed `fungible_asset_activities` table survives and is a real indexed history (event type, amount, asset, timestamp, entry function). Gas-fee rows are filtered in the query so "empty" genuinely means empty |
 | Protocol-defined event history (e.g. "when did the fee change") | ⚠️ | not queryable: those lived in the removed `events` table. Falls back to events emitted by the module's recent transactions, labelled honestly as partial |
 | Token safety signals | ⚠️ | no scanner covers Aptos (GoPlus supports 44 chains, none of them Aptos). `getAptosTokenSafety` instead reports on-chain FACTS: creator, supply, hard cap (`supplyCapped`), standard, last activity, and whether a holder has actually been frozen. Presented as signals, never a verdict |
-| Pre-flight gas estimate | ❌ | Aptos exposes `/transactions/simulate`, not wired up. Low priority while Aptos is read + diagnose only |
+| Pre-flight simulation ("would this work if I retried?") | ✅ | `simulateAptosEntryFunction` runs the REAL VM against current state via `/transactions/simulate`, returning success, gas and a decoded abort. Simulation validates the sender's public key against their auth key, and we only hold an address, so the key is recovered from a transaction they already sent. A stateless account (AIP-115) that never incremented a sequence number cannot be simulated: that is reported as a limit of the CHECK, never as a prediction of failure. Verified live: success=true, 63 gas units, 0.000063 APT |
 | OFAC sanctions screening | 🟦 | **nothing to screen against**: the screening oracle is EVM-only, AND OFAC's SDN list designates **zero** Aptos addresses (verified against the published list: entries cover XBT, ETH, TRX, USDT, SOL and similar, no APT). The bot states this plainly and never implies the address was checked and cleared |
 | Execute / Actions | 🟦 | deliberately EVM-only (product decision, not a technical gap) |
 
@@ -202,7 +202,7 @@ address (same keying as `PROTOCOL_ERRMAPS`):
 | Wallet → protocol account | ✅ | `getProtocolAccount`: `dex_accounts::primary_subaccount(wallet)`, then collateral / NAV / positions / cross status views. Surfaced as `protocolAccount` on `get_wallet_balance` |
 | "No positions" vs "lookup failed" | ✅ | `viewFunctionResult` separates a Move abort (the resource does not exist, i.e. nothing opened yet: a real answer) from an unreachable node |
 | Market name → object address | ✅ | `getProtocolMarkets`: `list_markets()` + parallel `market_name()`, cached 10 min. `get_contract_data` accepts "BTC/USD" and resolves it, else returns the market list. Verified live: BTC/USD → mark 63,731 in one call |
-| Async fills (succeeded tx ≠ executed order) | ⚠️ | prompt guardrail only: the fill lands in a KEEPER's transaction, so it never appears in the user's own history. The bot must check position state before declaring a trade complete |
+| Async fills (succeeded tx ≠ executed order) | ✅ | the fill lands in a KEEPER's transaction, so it never appears in the user's own history however far back you look. The bot is now told to answer from live state instead: the `protocolAccount` position/collateral, plus `get_async_queue_length` and `is_market_open` reachable by market NAME through the resolver. Verified live: BTC/USD queue 0, market open |
 
 Verified live against Decibel: subaccount resolution, 60 named markets, and the
 abort-vs-outage distinction.
@@ -223,6 +223,10 @@ abort-vs-outage distinction.
 | Coin vs fungible-asset duality (AIP-21) | ✅ | prompt guidance: `token_standard` distinguishes v1 legacy coin from v2 FA, so a "split" or "missing" balance is explained as the migration rather than a bug |
 | Objects and resource accounts | ⚠️ unverified | `get_object_info`: is this address an object or a wallet, who owns it, is it transferable, what resources it holds. Lets the bot explain that a protocol-owned object (a Decibel subaccount, a market) is not the user's wallet |
 | Digital Assets / NFTs + pending claims | ⚠️ unverified | `get_nft_holdings`: holdings plus **pending token claims**, which answer "someone sent me an NFT and it never arrived" (on the older standard a transfer must be claimed unless the recipient opted into direct transfers) |
+
+| Key rotation ("I rotated my key and my funds vanished") | ✅ | `getAptosAuthKeyStatus` on `diagnose_wallet`: an unrotated Aptos account has authKey == address, so a mismatch proves a rotation. Lists the other addresses the same key controls, which is where the "missing" funds are. **This is a public on-chain index, NOT credential recovery**: the bot still never asks for a seed phrase or private key, and never implies a lost key is recoverable |
+| Protocol event history depth | ✅ | `getAptosModuleEvents` pages account transactions far deeper than the old 10-transaction window, with chunked hydration, and reports `transactionsScanned` + `truncated` so "no match" is stated as "not in the last N transactions", never as "never happened" |
+| Token safety: holder concentration | ✅ | holder count and top-holder share of supply added to `getAptosTokenSafety`. Concentration is the most meaningful scam signal available on a chain with no scanner. Still facts only, never a verdict |
 
 ⚠️ **unverified** above means: every column and relationship name was confirmed
 by live GraphQL introspection, and the code typechecks and fails safe, but the

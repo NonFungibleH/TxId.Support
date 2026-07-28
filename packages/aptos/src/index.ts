@@ -13,26 +13,34 @@ export {
   getAptosPackages,
   viewFunction,
   viewFunctionResult,
+  simulateAptosEntryFunction,
   getAptosNetworkStatus,
   formatUnits,
   microsToIso,
 } from "./fullnode"
-export type { AptosLedgerInfo, AptosNetworkStatus, AptosPackage } from "./fullnode"
+export type { AptosLedgerInfo, AptosNetworkStatus, AptosPackage, AptosSimulation, ViewResult } from "./fullnode"
 export {
   aptosGraphql,
   getAptosWalletBalance,
   getAptosRecentTransactions,
+  getAptosModuleEvents,
   getAptosAssetMetadata,
   getAptosAssetActivities,
   getAptosTokenSafety,
   getAptosDeployment,
+  getAptosAccountsForAuthKey,
+  getAptosAuthKeyStatus,
   diagnoseAptosWallet,
 } from "./indexer"
 export type {
   AptosAssetMetadata,
   AptosAssetActivity,
+  AptosModuleEvent,
+  AptosModuleEventScan,
   AptosTokenSafety,
   AptosDeployment,
+  AptosAccountsForAuthKey,
+  AptosAuthKeyStatus,
 } from "./indexer"
 export {
   getAptosDelegations,

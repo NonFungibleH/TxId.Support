@@ -66,6 +66,8 @@ import {
   getAptosNfts,
   getAptosPendingNftClaims,
   getAptosObject,
+  getAptosAuthKeyStatus,
+  simulateAptosEntryFunction,
   getAptosPackages,
   viewFunction,
   getAptosNetworkStatus,
@@ -1120,7 +1122,16 @@ export async function executeTool(
       )
       const onProtocolChain = protocolChains.length === 0 || protocolChains.includes(chainId)
       if (aptos) {
-        const diag = await diagnoseAptosWallet(wallet.address)
+        const [diag, authKey] = await Promise.all([
+          diagnoseAptosWallet(wallet.address),
+          // Aptos accounts can rotate their auth key while KEEPING their
+          // address. Afterwards a wallet often derives a fresh address from the
+          // new key, so the user sees an empty account and thinks their funds
+          // are gone. Surfacing the rotation and any sibling addresses answers
+          // that without touching credentials: this is a public index, and no
+          // lost key can ever be recovered.
+          getAptosAuthKeyStatus(wallet.address),
+        ])
         // Null fields mean the underlying lookup FAILED — unverified, never "zero"/"none".
         // 0x1::coin::balance returns "0" (not null) for never-created accounts, so a
         // non-null aptBalance proves the fullnode was reachable and exists=false is real.
@@ -1139,6 +1150,16 @@ export async function executeTool(
           onProtocolChain,
           protocolChains,
           ...diag,
+          ...(authKey && authKey.rotated
+            ? {
+                keyRotation: {
+                  rotated: true,
+                  authKey: authKey.authKey,
+                  otherAddressesSameKey: authKey.siblingAddresses,
+                  note: "This account has ROTATED its authentication key: the address is unchanged but a different key now controls it. If the user says their funds vanished after changing keys, their wallet is most likely deriving a NEW address rather than showing this one, so point them at the addresses listed here. This is a public on-chain index. Never ask for a seed phrase or private key, and never imply a lost key can be recovered: it cannot.",
+                },
+              }
+            : {}),
           ...(cautions.length > 0 ? { notes: cautions } : {}),
         }
       }
@@ -1162,7 +1183,13 @@ export async function executeTool(
           note: "Could not reach a public RPC for this chain — it may be unsupported or non-EVM.",
         }
       }
-      return { ...diag, walletAddress: wallet.address, onProtocolChain, protocolChains, ...(switchTo ? { switchTo } : {}) }
+      return {
+        ...diag,
+        walletAddress: wallet.address,
+        onProtocolChain,
+        protocolChains,
+        ...(switchTo ? { switchTo } : {}),
+      }
     }
 
     case "check_token_safety": {
@@ -1252,7 +1279,29 @@ export async function executeTool(
         return { note: "Action estimates are only available on EVM chains." }
       }
       if (isAptosChain(target.chain)) {
-        return { note: "Pre-flight estimates are not available on Aptos here — Aptos transaction simulation needs the sender's public key, which only a connected Petra/Martian session provides. Gas on Aptos is usually well under $0.01; a failed tx's decodedAbort (via get_transaction_by_hash) explains why it failed." }
+        const fnId = aptosFunctionId(target.address, functionName, target.moduleName)
+        if (!fnId) return { contract: target.name, function: functionName, note: APTOS_FN_FORMAT_NOTE }
+        const typeArgs = Array.isArray(input.type_args) ? input.type_args.map(t => String(t)) : []
+        const sim = await simulateAptosEntryFunction(wallet.address, fnId, typeArgs, args, errmapFor(watchedContracts))
+        if (!sim) {
+          return {
+            contract: target.name,
+            function: fnId,
+            note: "Could not simulate this call. Aptos simulation checks the sender's public key against their account, and that key is only recoverable from a transaction they have already sent, so a brand new wallet cannot be simulated. This is a limit of the check, NOT a prediction that the transaction would fail.",
+          }
+        }
+        return {
+          contract: target.name,
+          function: fnId,
+          wouldSucceed: sim.success,
+          vmStatus: sim.vmStatus,
+          gasUsed: sim.gasUsed,
+          estimatedFeeApt: sim.estimatedFeeApt,
+          ...(sim.decodedAbort ? { decodedAbort: sim.decodedAbort } : {}),
+          note: sim.success
+            ? "Simulated against current chain state: this call would succeed right now. The estimate is real VM execution, not a guess, but state can change before the user actually signs."
+            : "Simulated against current chain state: this call would FAIL right now, for the reason in vmStatus/decodedAbort. Use that to tell the user what to fix before they try again.",
+        }
       }
       const estimate = await estimateAction(target.address, target.chain, functionName, args, wallet.address, target.abi ?? undefined)
       return estimate
