@@ -60,7 +60,9 @@ function AbiEntrySuggestion({
   return (
     <div className="rounded-md border border-border bg-muted/20 overflow-hidden">
       <button
+        type="button"
         onClick={() => setOpen(o => !o)}
+        aria-expanded={open}
         className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-muted/40 transition-colors"
       >
         <Badge variant="outline" className="font-mono text-[10px] shrink-0">{name}</Badge>

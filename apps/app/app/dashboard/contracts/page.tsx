@@ -92,7 +92,7 @@ export default async function ContractsPage() {
         </CardContent>
       </Card>
 
-      <Card className="border-dashed">
+      <Card>
         <CardContent>
           <div className="space-y-3">
             <p className="text-sm font-medium">Error glossary</p>

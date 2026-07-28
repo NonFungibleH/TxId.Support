@@ -267,7 +267,10 @@ export function AddContractDialog({ projectId, activeChains, chainLimit }: AddCo
         <DialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
           <Button onClick={submit} disabled={isPending || !name || !addressValid || !description || atChainLimit}>
-            {isPending ? "Adding…" : "Add contract"}
+            {isPending && <Loader2 className="size-3.5 mr-1.5 animate-spin" />}
+            {isPending
+              ? (isAptos ? "Reading modules…" : "Adding…")
+              : "Add contract"}
           </Button>
         </DialogFooter>
       </DialogContent>

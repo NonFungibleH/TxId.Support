@@ -9,7 +9,7 @@ import { redirect } from "next/navigation"
 import { GoLiveToggle } from "@/components/dashboard/GoLiveToggle"
 import { ProjectNameEditor } from "@/components/dashboard/ProjectNameEditor"
 import type { ProjectConfig } from "@/lib/types/config"
-import { PLAN_CHAIN_LIMITS, PLAN_CONV_LIMITS, PLAN_LABELS, SUPPORTED_CHAINS, isPaidPlan } from "@/lib/types/config"
+import { PLAN_CHAIN_LIMITS, PLAN_CONV_LIMITS, PLAN_LABELS, SELECTABLE_CHAINS, SUPPORTED_CHAINS, isPaidPlan } from "@/lib/types/config"
 import type { Database } from "@/lib/supabase/types"
 import { cn } from "@/lib/utils"
 
@@ -79,7 +79,7 @@ export default async function DashboardPage() {
   const plan = config.plan ?? "free"
   const chainLimit = PLAN_CHAIN_LIMITS[plan]
   const convLimit = PLAN_CONV_LIMITS[plan]
-  const chainLimitLabel = chainLimit === Infinity ? String(SUPPORTED_CHAINS.length) : String(chainLimit)
+  const chainLimitLabel = chainLimit === Infinity ? String(SELECTABLE_CHAINS.length) : String(chainLimit)
   const convLimitLabel = convLimit === Infinity ? null : convLimit.toLocaleString()
   const usagePct = convLimit === Infinity ? 0 : Math.round((monthlyCount / convLimit) * 100)
 
@@ -169,7 +169,7 @@ export default async function DashboardPage() {
         <StatsCard title="Conversations" value={convResult.count ?? 0} description="All time" icon={MessageSquare} />
         <StatsCard title="Connected wallets" value={uniqueWallets} description="Unique addresses" icon={Users} />
         <StatsCard title="Knowledge base" value={docCount} description="Indexed chunks" icon={Globe} />
-        <StatsCard title="Chains enabled" value={activeChains.length} description={`of ${chainLimitLabel} on ${plan}`} icon={Zap} />
+        <StatsCard title="Chains enabled" value={activeChains.length} description={`of ${chainLimitLabel} on ${PLAN_LABELS[plan]}`} icon={Zap} />
       </div>
 
       {/* Plan usage toward the monthly ceiling - always visible (both free and

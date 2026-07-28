@@ -19,8 +19,15 @@ export function ColorPicker({ value, onChange, label }: ColorPickerProps) {
         setOpen(false)
       }
     }
+    function handleKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setOpen(false)
+    }
     document.addEventListener("mousedown", handleClick)
-    return () => document.removeEventListener("mousedown", handleClick)
+    document.addEventListener("keydown", handleKey)
+    return () => {
+      document.removeEventListener("mousedown", handleClick)
+      document.removeEventListener("keydown", handleKey)
+    }
   }, [])
 
   return (
@@ -28,7 +35,9 @@ export function ColorPicker({ value, onChange, label }: ColorPickerProps) {
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className="flex items-center gap-2 rounded-lg border border-input px-2.5 py-1.5 text-sm outline-none focus-visible:border-ring"
+        aria-expanded={open}
+        aria-label={`${label} colour, currently ${value}`}
+        className="flex items-center gap-2 rounded-lg border border-input px-2.5 py-1.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
       >
         <span
           className="inline-block size-4 rounded-sm border border-border"

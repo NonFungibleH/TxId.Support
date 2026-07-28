@@ -1065,14 +1065,25 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
         }
       }
 
+      // A stream that ends with no text at all would leave an empty bubble and
+      // no way forward, so give the user something to act on.
       setMessages((prev) =>
-        prev.map((m) => (m.id === assistantId ? { ...m, streaming: false } : m)),
+        prev.map((m) =>
+          m.id === assistantId
+            ? {
+                ...m,
+                streaming: false,
+                toolCall: null,
+                content: m.content || "I didn't get an answer back that time. Please try asking again, or use Speak to a person below.",
+              }
+            : m,
+        ),
       )
     } catch {
       setMessages((prev) =>
         prev.map((m) =>
           m.id === assistantId
-            ? { ...m, content: "Sorry, something went wrong. Please try again.", streaming: false }
+            ? { ...m, content: "Sorry, something went wrong. Please try again.", streaming: false, toolCall: null }
             : m,
         ),
       )
@@ -1176,11 +1187,14 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
     !!(window as unknown as { solana?: unknown }).solana
   )
   const hasMetaMask = typeof window !== "undefined" && "ethereum" in window
-  const hasAptosWallet = typeof window !== "undefined" && (
+  const hasPetraLike = typeof window !== "undefined" && (
     !!(window as unknown as { petra?: unknown }).petra ||
-    !!(window as unknown as { aptos?: unknown }).aptos ||
-    !!(window as unknown as { martian?: unknown }).martian
+    !!(window as unknown as { aptos?: unknown }).aptos
   )
+  const hasMartian = typeof window !== "undefined" && !!(window as unknown as { martian?: unknown }).martian
+  const hasAptosWallet = hasPetraLike || hasMartian
+  // Move-chain wording (module, .apt) for Aptos-only projects.
+  const aptosWording = isAptosProject && !hasEvmChain
   // On mixed EVM+Aptos projects an injected EVM wallet takes precedence;
   // Aptos-only projects get the Petra flow.
   const evmWalletUsable = hasEvmChain && hasMetaMask
@@ -1189,6 +1203,14 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
     : isAptosProject
       ? evmWalletUsable || hasAptosWallet || (isEmbedded && (!!bridgeWallet?.aptos || !!bridgeWallet?.evm))
       : hasMetaMask || (isEmbedded && !!bridgeWallet?.evm)
+  // Name the wallet we will actually open. Petra is the default Aptos label
+  // (it is also what the host-page bridge reaches first); only say Martian when
+  // Martian is the one injected here.
+  const connectLabel = isSolanaProject
+    ? "Connect Phantom"
+    : isAptosProject && !evmWalletUsable
+      ? (hasMartian && !hasPetraLike ? "Connect Martian" : "Connect Petra")
+      : "Connect wallet"
 
   // Ensure text always contrasts with the background regardless of branding config
   const bgIsLight = getBgLuminance(b.backgroundColor) > 0.5
@@ -1233,7 +1255,14 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
   } as React.CSSProperties
 
   return (
-    <div className="flex h-full flex-col overflow-hidden" style={cssVars}>
+    <div className="txid-widget-root flex h-full flex-col overflow-hidden" style={cssVars}>
+      {/* Placeholders otherwise keep the browser's own grey, which disappears on
+          a dark widget, and every control here sets outline-none, so keyboard
+          focus was invisible. currentColor keeps both readable on any brand. */}
+      <style>{
+        ".txid-widget-root input::placeholder{color:currentColor;opacity:.45}" +
+        ".txid-widget-root button:focus-visible,.txid-widget-root a:focus-visible{outline:2px solid currentColor;outline-offset:2px}"
+      }</style>
       {/* Header */}
       <div
         className="flex shrink-0 items-center gap-2 px-4 py-3"
@@ -1250,9 +1279,12 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
             {config.projectName.charAt(0).toUpperCase()}
           </div>
         )}
-        <span className="flex-1 text-sm font-semibold" style={{ color: onPrimary }}>
-          {b.agentName?.trim() || config.projectName}
-        </span>
+        {/* Hidden while pasting an address so the field gets the full row. */}
+        {!(manualOpen && !walletAddress) && (
+          <span className="min-w-0 flex-1 truncate text-sm font-semibold" style={{ color: onPrimary }}>
+            {b.agentName?.trim() || config.projectName}
+          </span>
+        )}
         {!isTokenMode && (
           walletAddress ? (
             <button
@@ -1261,41 +1293,60 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
               className="group flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-mono transition-opacity hover:opacity-90 active:opacity-70"
               style={{ backgroundColor: b.secondaryColor, color: onSecondary }}
             >
-              {walletAddress.slice(0, 6)}…{walletAddress.slice(-4)}
+              {shortAddr(walletAddress)}
               <LogOutIcon className="size-3 opacity-70 group-hover:opacity-100" />
             </button>
-          ) : hasWallet ? (
-            <button
-              onClick={connectWallet}
-              disabled={walletConnecting}
-              className="rounded-full px-2.5 py-1 text-xs font-medium transition-opacity disabled:opacity-40 active:opacity-70"
-              style={{ backgroundColor: b.secondaryColor, color: onSecondary }}
-            >
-              {walletConnecting ? "Connecting…" : isSolanaProject ? "Connect Phantom" : isAptosProject && !evmWalletUsable ? "Connect Petra" : "Connect wallet"}
-            </button>
           ) : manualOpen ? (
-            <div className="flex items-center gap-1">
+            // Checked BEFORE hasWallet: a failed or rejected wallet connect
+            // opens this field, and it has to be visible even when a provider
+            // was detected, otherwise that failure is a dead end.
+            <div className="flex min-w-0 flex-1 items-center gap-1">
               <input
                 autoFocus
                 value={manualValue}
                 onChange={(e) => { setManualValue(e.target.value); setManualError(false) }}
-                onKeyDown={(e) => { if (e.key === "Enter") submitManualAddress() }}
-                placeholder="0x address…"
-                className="w-32 rounded-full px-2.5 py-1 text-xs font-mono outline-none"
-                style={{ backgroundColor: bgIsLight ? "rgba(0,0,0,0.04)" : "rgba(255,255,255,0.06)", color: b.inputTextColor ?? adaptiveText, border: manualError ? "1px solid #f87171" : `1px solid var(--w-border)` }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") submitManualAddress()
+                  if (e.key === "Escape") { setManualOpen(false); setManualError(false) }
+                }}
+                placeholder="Paste your address…"
+                aria-label="Wallet address"
+                aria-invalid={manualError}
+                title={manualError ? "That does not look like a valid address" : "Paste a wallet address, or press Escape to go back"}
+                className="min-w-0 flex-1 rounded-full px-2.5 py-1 text-xs font-mono outline-none"
+                // This field sits ON the header, so it contrasts with the brand
+                // colour, not with the widget background. On a light brand
+                // (Decibel's yellow) the old widget-background colours put white
+                // text on yellow.
+                style={{
+                  backgroundColor: onPrimary === "#111111" ? "rgba(0,0,0,0.07)" : "rgba(255,255,255,0.10)",
+                  color: onPrimary,
+                  border: manualError
+                    ? `1px solid ${onPrimary === "#111111" ? "#b91c1c" : "#f87171"}`
+                    : `1px solid ${onPrimary}33`,
+                }}
               />
               <button
                 onClick={submitManualAddress}
-                className="rounded-full px-2 py-1 text-xs font-medium transition-opacity active:opacity-70"
+                className="shrink-0 rounded-full px-2.5 py-1 text-xs font-medium transition-opacity active:opacity-70"
                 style={{ backgroundColor: b.secondaryColor, color: onSecondary }}
               >
                 Go
               </button>
             </div>
+          ) : hasWallet ? (
+            <button
+              onClick={connectWallet}
+              disabled={walletConnecting}
+              className="shrink-0 rounded-full px-2.5 py-1 text-xs font-medium transition-opacity disabled:opacity-40 active:opacity-70"
+              style={{ backgroundColor: b.secondaryColor, color: onSecondary }}
+            >
+              {walletConnecting ? "Connecting…" : connectLabel}
+            </button>
           ) : (
             <button
               onClick={() => setManualOpen(true)}
-              className="rounded-full px-2.5 py-1 text-xs font-medium transition-opacity active:opacity-70"
+              className="shrink-0 rounded-full px-2.5 py-1 text-xs font-medium transition-opacity active:opacity-70"
               style={{ backgroundColor: b.secondaryColor, color: onSecondary }}
             >
               Enter address
@@ -1325,7 +1376,9 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
         </button>
       </div>
 
-      {/* Tab bar */}
+      {/* Tab bar. A lone "Chat" tab is dead chrome, so it only renders when
+          there is somewhere else to go. */}
+      {TABS.length > 1 && (
       <div
         className="flex shrink-0 border-b text-xs"
         style={{ borderColor: `var(--w-border)` }}
@@ -1348,6 +1401,7 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
           )
         })}
       </div>
+      )}
 
       {/* Tab content */}
       <div className="flex flex-1 flex-col overflow-hidden min-h-0">
@@ -1568,12 +1622,12 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
                   <button
                     key={i}
                     onClick={() => sendMessage(s)}
-                    className="text-[10px] rounded-full px-2.5 py-1 border transition-opacity hover:opacity-90 active:scale-95"
+                    className="text-[11px] rounded-full px-3 py-1.5 border transition-opacity hover:opacity-100 active:scale-95"
                     style={{
-                      borderColor: `${b.primaryColor}50`,
+                      borderColor: `${b.primaryColor}55`,
                       color: adaptiveText,
-                      background: `${b.primaryColor}12`,
-                      opacity: 0.75,
+                      background: `${b.primaryColor}14`,
+                      opacity: 0.9,
                     }}
                   >
                     {s}
@@ -1598,7 +1652,8 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
               <button
                 onClick={() => sendMessage()}
                 disabled={isStreaming || !input.trim()}
-                className="flex size-7 shrink-0 items-center justify-center rounded-full transition-opacity disabled:opacity-40"
+                aria-label="Send"
+                className="flex size-8 shrink-0 items-center justify-center rounded-full transition-opacity disabled:opacity-40"
                 style={{ backgroundColor: b.primaryColor }}
               >
                 {isStreaming ? (
@@ -1651,7 +1706,7 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
                           <span className="inline-flex items-center gap-1.5 opacity-70">
                             <Loader2Icon className="size-2.5 animate-spin" />
                             <span className="text-[11px]">
-                              {TOOL_LABELS[m.toolCall] ?? "Looking up data…"}
+                              {toolLabel(m.toolCall, aptosWording)}
                             </span>
                           </span>
                         ) : (
@@ -1662,6 +1717,14 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
                           </span>
                         )
                       ))}
+                      {/* Claude often calls another chain tool part-way through an
+                          answer. Without this the panel looks frozen mid-sentence. */}
+                      {m.streaming && !!m.content && m.toolCall && (
+                        <span className="mt-1.5 flex items-center gap-1.5 opacity-70">
+                          <Loader2Icon className="size-2.5 shrink-0 animate-spin" />
+                          <span className="text-[11px]">{toolLabel(m.toolCall, aptosWording)}</span>
+                        </span>
+                      )}
                       {m.switchAction &&
                         walletSetup === "connected" &&
                         chainId !== "solana" &&
@@ -1735,7 +1798,8 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
                   <>
                     <div>
                       <p className="text-xs font-semibold mb-0.5">Raise a support ticket</p>
-                      <p className="text-[11px] opacity-50 leading-relaxed">{escalation.summary}</p>
+                      {/* Summaries often quote a 66 char hash: it must wrap. */}
+                      <p className="text-[11px] opacity-50 leading-relaxed" style={{ overflowWrap: "anywhere" }}>{escalation.summary}</p>
                     </div>
                     <input
                       type="text"
@@ -1777,7 +1841,7 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
                 ) : (
                   <>
                     <p className="text-xs font-semibold opacity-70">Ticket {ticketRef} created</p>
-                    <p className="text-[11px] opacity-50">We&apos;ll be in touch at {ticketEmail}.</p>
+                    <p className="text-[11px] opacity-50" style={{ overflowWrap: "anywhere" }}>We&apos;ll be in touch at {ticketEmail}.</p>
                     <button
                       onClick={() => { setEscalation(null); setTicketRef(null) }}
                       className="text-[11px] opacity-40 hover:opacity-70 transition-opacity"
@@ -1797,12 +1861,12 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
                   <button
                     key={i}
                     onClick={() => sendMessage(s)}
-                    className="text-[10px] rounded-full px-2.5 py-1 border transition-opacity hover:opacity-90 active:scale-95"
+                    className="text-[11px] rounded-full px-3 py-1.5 border transition-opacity hover:opacity-100 active:scale-95"
                     style={{
-                      borderColor: `${b.primaryColor}50`,
+                      borderColor: `${b.primaryColor}55`,
                       color: adaptiveText,
-                      background: `${b.primaryColor}12`,
-                      opacity: 0.75,
+                      background: `${b.primaryColor}14`,
+                      opacity: 0.9,
                     }}
                   >
                     {s}
@@ -1817,7 +1881,7 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
                 <button
                   onClick={() => setEscalation({ summary: "User requested to speak with a person.", reason: "user_requested" })}
                   className="text-[10px] transition-opacity hover:opacity-70"
-                  style={{ color: adaptiveText, opacity: 0.28 }}
+                  style={{ color: adaptiveText, opacity: 0.45 }}
                 >
                   Speak to a person →
                 </button>
@@ -1843,7 +1907,8 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
                 <button
                   onClick={() => sendMessage()}
                   disabled={isStreaming || !input.trim()}
-                  className="flex size-7 shrink-0 items-center justify-center rounded-full transition-opacity disabled:opacity-40"
+                  aria-label="Send"
+                  className="flex size-8 shrink-0 items-center justify-center rounded-full transition-opacity disabled:opacity-40"
                   style={{ backgroundColor: b.primaryColor }}
                 >
                   {isStreaming ? (

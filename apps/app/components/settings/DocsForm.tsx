@@ -160,38 +160,48 @@ export function DocsForm({ projectId, docCount, pastedChunkCount, pastedLastInde
   function refresh(sourceUrl: string) {
     setRefreshingUrl(sourceUrl)
     startTransition(async () => {
-      const result = await fetchAndIngest(projectId, sourceUrl)
-      if (result.ok && result.chunksInserted != null) {
-        toast.success(`Re-indexed ${result.chunksInserted} chunks`)
-        const now = new Date().toISOString()
-        setSources(prev =>
-          prev.map(s => s.url === sourceUrl ? { ...s, count: result.chunksInserted!, lastIndexedAt: now } : s),
-        )
-        // total changed: removed old count, added new count
-        setTotalChunks(prev => {
-          const old = sources.find(s => s.url === sourceUrl)?.count ?? 0
-          return prev - old + result.chunksInserted!
-        })
-      } else {
-        toast.error(result.error ?? "Refresh failed")
+      try {
+        const result = await fetchAndIngest(projectId, sourceUrl)
+        if (result.ok && result.chunksInserted != null) {
+          toast.success(`Re-indexed ${result.chunksInserted} chunks`)
+          const now = new Date().toISOString()
+          setSources(prev =>
+            prev.map(s => s.url === sourceUrl ? { ...s, count: result.chunksInserted!, lastIndexedAt: now } : s),
+          )
+          // total changed: removed old count, added new count
+          setTotalChunks(prev => {
+            const old = sources.find(s => s.url === sourceUrl)?.count ?? 0
+            return prev - old + result.chunksInserted!
+          })
+        } else {
+          toast.error(result.error ?? "Refresh failed")
+        }
+      } catch {
+        toast.error("Refresh failed. Try again in a moment.")
+      } finally {
+        setRefreshingUrl(null)
       }
-      setRefreshingUrl(null)
     })
   }
 
   function removeSource(sourceUrl: string) {
     setDeletingUrl(sourceUrl)
     startTransition(async () => {
-      const result = await deleteSource(projectId, sourceUrl)
-      if (result.ok) {
-        const removed = sources.find(s => s.url === sourceUrl)?.count ?? 0
-        setSources(prev => prev.filter(s => s.url !== sourceUrl))
-        setTotalChunks(n => n - removed)
-        toast.success("Source removed")
-      } else {
-        toast.error(result.error ?? "Failed to remove source")
+      try {
+        const result = await deleteSource(projectId, sourceUrl)
+        if (result.ok) {
+          const removed = sources.find(s => s.url === sourceUrl)?.count ?? 0
+          setSources(prev => prev.filter(s => s.url !== sourceUrl))
+          setTotalChunks(n => n - removed)
+          toast.success("Source removed")
+        } else {
+          toast.error(result.error ?? "Failed to remove source")
+        }
+      } catch {
+        toast.error("Failed to remove source. Try again in a moment.")
+      } finally {
+        setDeletingUrl(null)
       }
-      setDeletingUrl(null)
     })
   }
 

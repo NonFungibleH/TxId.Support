@@ -52,7 +52,8 @@
     "#txid-widget-frame-wrap{" +
     "right:0;left:0;" +
     "bottom:max(80px,calc(env(safe-area-inset-bottom,0px) + 56px));" +
-    "width:100%;border-radius:16px 16px 0 0;" +
+    /* The sheet floats clear of the bottom edge, so it is rounded all round. */
+    "width:100%;border-radius:16px;" +
     "max-height:calc(100vh - max(100px,calc(env(safe-area-inset-bottom,0px) + 76px)))" +
     "}" +
     "#txid-widget-btn{" +
@@ -104,7 +105,7 @@
   var open = false;
 
   btn.addEventListener("click", function () {
-    // A drag just ended — swallow the click so the panel doesn't toggle.
+    // A drag just ended, so swallow the click and leave the panel as it was.
     if (suppressClick) { suppressClick = false; return; }
     open = !open;
     if (open) {
@@ -124,14 +125,14 @@
 
   // ── Drag to reposition (desktop only) ──────────────────────────────────────
   // Additive: until the user actually drags, customPos stays null and the CSS
-  // defaults (bottom-right) apply untouched — existing embeds are unchanged.
+  // defaults (bottom-right) apply untouched, so existing embeds are unchanged.
   var STORE_KEY = "txid-widget-pos:" + key;
   var BTN_SIZE = parseInt(SIZE, 10);
   var customPos = null; // {left, top} of the launcher once the user has moved it
   try {
     var savedPos = localStorage.getItem(STORE_KEY);
     if (savedPos) customPos = JSON.parse(savedPos);
-  } catch (e) { /* storage blocked — drag simply won't persist */ }
+  } catch (e) { /* storage blocked: drag simply won't persist */ }
 
   function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
 

@@ -99,11 +99,11 @@ export function WidgetPreview({
               <img
                 src={branding.logoUrl}
                 alt="Logo"
-                className="size-6 rounded-full object-cover"
+                className="size-6 shrink-0 rounded-full object-cover"
               />
             ) : (
               <div
-                className="flex size-6 items-center justify-center rounded-full text-xs font-bold"
+                className="flex size-6 shrink-0 items-center justify-center rounded-full text-xs font-bold"
                 style={{ backgroundColor: branding.secondaryColor, color: onSecondary }}
               >
                 {projectName.charAt(0).toUpperCase()}
