@@ -6,12 +6,12 @@ import { testIntegration } from "@/lib/integrations/escalation"
 import type { ProjectConfig, Integrations, IntegrationTarget } from "@/lib/types/config"
 
 // Save one integration's config (merging into config.integrations), and test
-// a target with a sample escalation. Secrets never leave the server — the
+// a target with a sample escalation. Secrets never leave the server - the
 // dashboard sends new values in and only ever reads back {configured} booleans.
 
 /**
  * Merge a patch into one integration's config. The client omits blank secret
- * fields, so a merge preserves the stored secret (write-only pattern) — a saved
+ * fields, so a merge preserves the stored secret (write-only pattern) - a saved
  * token is never sent back to the browser and never overwritten with empty.
  */
 export async function saveIntegration(target: IntegrationTarget, patch: Record<string, unknown>): Promise<void> {

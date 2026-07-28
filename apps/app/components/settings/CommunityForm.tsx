@@ -65,7 +65,7 @@ export function CommunityForm({
         <textarea
           id="announcement"
           rows={3}
-          placeholder="e.g. V2 is live — check out the new staking pools!"
+          placeholder="e.g. V2 is live - check out the new staking pools!"
           value={values.announcement ?? ""}
           onChange={(e) => setValues((v) => ({ ...v, announcement: e.target.value || null }))}
           className="w-full resize-y rounded-lg border border-input bg-transparent px-3 py-2 text-sm outline-none placeholder:text-muted-foreground focus:border-ring"

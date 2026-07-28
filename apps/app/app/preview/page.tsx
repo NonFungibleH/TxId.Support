@@ -25,7 +25,7 @@ const HIGHLIGHTS = [
   {
     icon: FileText,
     title: "Docs-grounded",
-    body: "Answers come from your indexed documentation — not hallucinated.",
+    body: "Answers come from your indexed documentation - not hallucinated.",
   },
   {
     icon: MessageCircle,
@@ -115,7 +115,7 @@ export default function PreviewPage() {
       {/* ── Three-column layout ── */}
       <div className="max-w-6xl mx-auto px-6 pb-20 flex flex-col lg:flex-row gap-8 items-start justify-center">
 
-        {/* Left — example prompts */}
+        {/* Left - example prompts */}
         <div className="lg:w-60 w-full shrink-0 space-y-2">
           <p className={`text-[11px] font-semibold uppercase tracking-widest mb-4 ${textMuted}`}>
             Try asking
@@ -137,7 +137,7 @@ export default function PreviewPage() {
           </p>
         </div>
 
-        {/* Centre — live agent */}
+        {/* Centre - live agent */}
         <div className="flex justify-center flex-1">
           <div className="relative" style={{ width: 340, height: 520 }}>
             {widgetOpen ? (
@@ -176,7 +176,7 @@ export default function PreviewPage() {
           </div>
         </div>
 
-        {/* Right — highlights + checklist */}
+        {/* Right - highlights + checklist */}
         <div className="lg:w-56 w-full shrink-0 space-y-3">
           <p className={`text-[11px] font-semibold uppercase tracking-widest mb-4 ${textMuted}`}>
             What it does

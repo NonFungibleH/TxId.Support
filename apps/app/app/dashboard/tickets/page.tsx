@@ -22,7 +22,7 @@ export default async function TicketsPage() {
     config.webhookUrl ? getWebhookLogs(typedProject.id) : Promise.resolve([]),
   ])
 
-  // Secrets are never sent to the client — only {configured} booleans plus the
+  // Secrets are never sent to the client - only {configured} booleans plus the
   // non-secret display fields (repo, domain, team id, chat id, …).
   const i = config.integrations ?? {}
   const integrations: IntegrationsStatus = {

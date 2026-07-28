@@ -31,7 +31,7 @@ export function ConfirmPreviewButton({ projectId, confirmed }: ConfirmPreviewBut
         toast.success("Looking great! Head to Embed & Go Live to publish.")
         router.push("/dashboard/embed")
       } catch {
-        toast.error("Something went wrong — please try again.")
+        toast.error("Something went wrong - please try again.")
       }
     })
   }

@@ -14,7 +14,7 @@ import {
 // A fixed set of on-chain checks with KNOWN-correct answers, so regressions in
 // the diagnostic tools (wrong chain, wrong decode, wrong price, a dead API) are
 // caught automatically instead of during a live demo. Runs against real chains
-// using the production keys — hit it from the admin console.
+// using the production keys - hit it from the admin console.
 
 export interface EvalCheck {
   name: string
@@ -29,7 +29,7 @@ export interface EvalResult {
   checks: EvalCheck[]
 }
 
-const USDC = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48" // Ethereum USDC — symbol USDC, decimals 6
+const USDC = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48" // Ethereum USDC - symbol USDC, decimals 6
 const ETH = "0x1"
 const ZERO = "0x0000000000000000000000000000000000000000"
 
@@ -56,7 +56,7 @@ export async function runEval(opts?: { tx?: string; txChain?: string }): Promise
     detail: usdcAbi ? `ABI length ${usdcAbi.length}` : "no ABI returned",
   })))
 
-  // 2. Token info: standard ERC-20 reads — symbol/decimals must be exact.
+  // 2. Token info: standard ERC-20 reads - symbol/decimals must be exact.
   checks.push(await check("token_info (USDC = USDC/6)", async () => {
     const info = await getTokenInfo(USDC, ETH)
     return {

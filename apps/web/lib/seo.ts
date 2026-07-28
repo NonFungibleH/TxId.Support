@@ -101,7 +101,7 @@ export const howToEmbedSchema = {
 }
 
 // DefinedTermSet: a glossary of why EVM transactions fail. This is prime
-// GEO surface — answer engines pull short, factual definitions to answer
+// GEO surface - answer engines pull short, factual definitions to answer
 // "what does X mean" queries, and each term maps to a real search.
 export const transactionGlossarySchema = {
   "@context": "https://schema.org",

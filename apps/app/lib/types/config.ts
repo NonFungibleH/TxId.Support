@@ -12,7 +12,7 @@ export const PLAN_CHAIN_LIMITS: Record<Plan, number> = {
 }
 
 export const PLAN_CONV_LIMITS: Record<Plan, number> = {
-  free:       150,      // trial tier — enough to evaluate, then contact us
+  free:       150,      // trial tier - enough to evaluate, then contact us
   starter:    200,      // legacy
   pro:        2500,     // legacy / internal
   enterprise: Infinity,
@@ -60,7 +60,7 @@ const PAUSED_CHAINS = new Set<string>([
   "solana",
 ])
 
-/** Chains offered in chain pickers — SUPPORTED_CHAINS minus paused ones. */
+/** Chains offered in chain pickers - SUPPORTED_CHAINS minus paused ones. */
 export const SELECTABLE_CHAINS = SUPPORTED_CHAINS.filter(c => !PAUSED_CHAINS.has(c.id))
 
 export const SUPPORTED_FONTS = [
@@ -184,7 +184,7 @@ export interface AuditEntry {
   id: string
   auditor: string       // e.g. "Hacken", "CertiK"
   url: string           // link to the published report on the auditor's site
-  date?: string | null  // e.g. "2024-01" — optional
+  date?: string | null  // e.g. "2024-01" - optional
 }
 
 // "Actions": wallet-executed transactions prepared by the AI, signed by the
@@ -210,7 +210,7 @@ export interface ActionsConfig {
 export const ACTIONS_MAX_SWAP_USD_DEFAULT = 2000
 export const ACTIONS_MAX_SWAP_USD_CEILING = 25000
 
-// Escalation integrations. Secrets — NEVER add to the widget-config publicConfig
+// Escalation integrations. Secrets - NEVER add to the widget-config publicConfig
 // object, and never pass raw to a client component (derive {configured} booleans
 // server-side, like telegramBotToken).
 export interface Integrations {
@@ -241,7 +241,7 @@ export interface ProjectConfig {
   plan?: Plan
   // Marks OUR own public-demo project (the one the marketing site's demo key
   // points at). Exempts it from the per-customer domain allowlist and enables
-  // the /check "try it live" protocol scoping, without changing its plan — so
+  // the /check "try it live" protocol scoping, without changing its plan - so
   // it can stay on "custom". Only ever set on our own project, via /admin.
   publicDemo?: boolean
   actions?: ActionsConfig

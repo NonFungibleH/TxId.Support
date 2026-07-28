@@ -118,7 +118,7 @@ export function AbiManager({ projectId, contract }: Props) {
                 ? `No IDL found. Custom program errors won't be decoded. Check the Anchor registry, or paste your IDL JSON below.`
                 : isAptos
                 ? `No module ABI stored. The AI reads Move module ABIs live on-chain either way; the stored copy is informational. Fetch it from the fullnode, or paste JSON below.`
-                : `No ABI found. Custom error names won't be decoded — the AI will see raw hex instead of the error name. Either verify this contract on the block explorer, or paste the ABI below.`}
+                : `No ABI found. Custom error names won't be decoded - the AI will see raw hex instead of the error name. Either verify this contract on the block explorer, or paste the ABI below.`}
             </p>
           </div>
 

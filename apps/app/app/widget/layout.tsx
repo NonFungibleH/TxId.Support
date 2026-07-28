@@ -1,5 +1,5 @@
 /**
- * Minimal layout for the embeddable widget — no dashboard chrome, no sidebar.
+ * Minimal layout for the embeddable widget - no dashboard chrome, no sidebar.
  * The inline <style> forces a dark background in the server-rendered HTML so
  * the iframe never shows white before next-themes hydrates.
  */

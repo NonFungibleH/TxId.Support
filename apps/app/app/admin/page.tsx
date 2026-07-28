@@ -10,7 +10,7 @@ import { PlanControl } from "@/components/admin/PlanControl"
 import { PublicDemoToggle } from "@/components/admin/PublicDemoToggle"
 
 // Approximate Claude Haiku 4.5 pricing, in USD per million tokens. Adjust to
-// match current Anthropic pricing — this drives the estimated-cost columns.
+// match current Anthropic pricing - this drives the estimated-cost columns.
 const USD_PER_MTOK_INPUT = 1.0
 const USD_PER_MTOK_OUTPUT = 5.0
 
@@ -71,7 +71,7 @@ type StatRow = {
 }
 
 export default async function AdminPage() {
-  // Auth guard — only allow configured admin emails (fail-closed).
+  // Auth guard - only allow configured admin emails (fail-closed).
   const primaryEmail = await currentUserEmail()
   if (!isAdminEmail(primaryEmail)) {
     return notFound()
@@ -133,7 +133,7 @@ export default async function AdminPage() {
           ownerByClerkOrg.set(orgId, "internal")
         }
       } catch {
-        // Deleted user/org or lookup failure — leave unset (renders as a dash).
+        // Deleted user/org or lookup failure - leave unset (renders as a dash).
       }
     }),
   )
@@ -168,7 +168,7 @@ export default async function AdminPage() {
     <div className="min-h-screen bg-background p-6 md:p-10 space-y-10">
       {/* Header */}
       <div>
-        <p className="text-xs text-muted-foreground uppercase tracking-wider font-mono mb-1">Internal — do not share</p>
+        <p className="text-xs text-muted-foreground uppercase tracking-wider font-mono mb-1">Internal - do not share</p>
         <h1 className="text-3xl font-bold">Admin Console</h1>
         <p className="text-muted-foreground mt-1">Logged in as {primaryEmail}</p>
         <div className="mt-3 flex flex-wrap gap-2">
@@ -245,7 +245,7 @@ export default async function AdminPage() {
                   <td className="px-4 py-3 whitespace-nowrap">
                     {(() => {
                       const owner = ownerByClerkOrg.get(row.clerk_org_id)
-                      if (!owner) return <span className="text-muted-foreground/50">—</span>
+                      if (!owner) return <span className="text-muted-foreground/50">-</span>
                       if (owner === "internal") return <span className="text-xs text-muted-foreground italic">internal</span>
                       return <span className="text-xs text-muted-foreground font-mono">{owner}</span>
                     })()}
@@ -275,8 +275,8 @@ export default async function AdminPage() {
                     const monthCost = t ? estCostUsd(t.input_month, t.output_month) : 0
                     return (
                       <>
-                        <td className="px-4 py-3 tabular-nums text-muted-foreground">{monthTokens > 0 ? fmtTokens(monthTokens) : "—"}</td>
-                        <td className="px-4 py-3 tabular-nums font-medium">{monthCost > 0 ? fmtUsd(monthCost) : "—"}</td>
+                        <td className="px-4 py-3 tabular-nums text-muted-foreground">{monthTokens > 0 ? fmtTokens(monthTokens) : "-"}</td>
+                        <td className="px-4 py-3 tabular-nums font-medium">{monthCost > 0 ? fmtUsd(monthCost) : "-"}</td>
                       </>
                     )
                   })()}

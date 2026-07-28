@@ -17,7 +17,7 @@ export function WebhookLogList({ logs }: { logs: WebhookLog[] }) {
   if (logs.length === 0) {
     return (
       <p className="text-xs text-muted-foreground py-6 text-center">
-        No deliveries yet — they appear here when a ticket is raised and a webhook URL is configured.
+        No deliveries yet - they appear here when a ticket is raised and a webhook URL is configured.
       </p>
     )
   }

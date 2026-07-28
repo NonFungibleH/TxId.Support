@@ -8,7 +8,7 @@ import { checkSanctioned } from "@txid/blockchain"
 
 // Rebuilds a prepared action after its approval step confirms (or after a
 // quote expired): fresh quote/estimate, full policy re-gate, same action id.
-// The server-persisted params are authoritative — the client sends only ids.
+// The server-persisted params are authoritative - the client sends only ids.
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",

@@ -147,7 +147,7 @@ export function TelegramPageClient({
           </div>
         </div>
 
-        {/* Webhook health — surfaces a silently-failing webhook that would
+        {/* Webhook health - surfaces a silently-failing webhook that would
             otherwise present as a dead bot with no explanation. */}
         {health && health.status !== "ok" && (
           <div className={cn(
@@ -191,7 +191,7 @@ export function TelegramPageClient({
           <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/5 px-4 py-3 flex items-center gap-2.5">
             <CheckCircle2 className="size-4 text-emerald-500 shrink-0" />
             <p className="text-sm text-muted-foreground">
-              Webhook healthy — Telegram is delivering updates to this project.
+              Webhook healthy - Telegram is delivering updates to this project.
             </p>
           </div>
         )}
@@ -213,7 +213,7 @@ export function TelegramPageClient({
           </ul>
         </div>
 
-        {/* Profile picture — the one manual step */}
+        {/* Profile picture - the one manual step */}
         <div className="rounded-lg border border-border bg-card p-5 space-y-3">
           <div className="flex items-center gap-2">
             <Image className="size-4 text-muted-foreground" />

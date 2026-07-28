@@ -34,7 +34,7 @@ const PLANS: PlanDef[] = [
     ctaHref: "#",
     highlight: false,
   },
-  // Pro plan temporarily hidden pre-launch — pricing not yet finalised.
+  // Pro plan temporarily hidden pre-launch - pricing not yet finalised.
   // Restore this entry (and switch the grid back to sm:grid-cols-3) once a
   // price is set and Stripe checkout is re-surfaced.
   // {

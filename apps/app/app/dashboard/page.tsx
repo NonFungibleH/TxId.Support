@@ -15,7 +15,7 @@ import { cn } from "@/lib/utils"
 
 type ProjectRow = Database["public"]["Tables"]["projects"]["Row"]
 
-// Include both hex and decimal chain ID forms — DB may store either
+// Include both hex and decimal chain ID forms - DB may store either
 const CHAIN_NAMES: Record<string, string> = {
   ...Object.fromEntries(SUPPORTED_CHAINS.map(c => [c.id, c.name])),
   "1": "Ethereum", "8453": "Base", "56": "BNB Chain",
@@ -109,7 +109,7 @@ export default async function DashboardPage() {
       step: 2,
       href: "/dashboard/docs",
       label: "Index your docs",
-      desc: "Paste links to your website, docs, or FAQ — the AI reads them and answers questions from them.",
+      desc: "Paste links to your website, docs, or FAQ - the AI reads them and answers questions from them.",
       time: "~3 min",
       done: docsDone,
     },
@@ -172,7 +172,7 @@ export default async function DashboardPage() {
         <StatsCard title="Chains enabled" value={activeChains.length} description={`of ${chainLimitLabel} on ${plan}`} icon={Zap} />
       </div>
 
-      {/* Plan usage toward the monthly ceiling — always visible (both free and
+      {/* Plan usage toward the monthly ceiling - always visible (both free and
           paid) so users see how close they are and can upgrade before hitting
           the limit. */}
       <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-surface)] p-5">
@@ -202,12 +202,12 @@ export default async function DashboardPage() {
             <div className="flex items-center justify-between gap-3 mt-2.5 flex-wrap">
               <p className="text-xs text-muted-foreground">
                 {usagePct >= 100
-                  ? "Monthly limit reached — new conversations are paused until next month."
+                  ? "Monthly limit reached - new conversations are paused until next month."
                   : `${Math.max(0, convLimit - monthlyCount).toLocaleString()} left this month (${usagePct}% used)`}
               </p>
               {usagePct >= 80 && (
                 <a
-                  href="mailto:team@txid.support?subject=TxID%20Support%20—%20higher%20volume%20plan"
+                  href="mailto:team@txid.support?subject=TxID%20Support%20-%20higher%20volume%20plan"
                   className="text-xs font-medium text-amber-400 underline underline-offset-2 hover:text-amber-300"
                 >
                   {usagePct >= 100 ? "Upgrade to resume →" : "Need more conversations? Upgrade →"}
@@ -220,7 +220,7 @@ export default async function DashboardPage() {
         )}
       </div>
 
-      {/* Free-trial upsell — always visible for free projects so the paid
+      {/* Free-trial upsell - always visible for free projects so the paid
           path is one click away. Paid/demo plans never see it. */}
       {!isPaidPlan(plan) && (
         <div className="rounded-xl border border-primary/30 bg-primary/5 p-5 flex items-start justify-between gap-4 flex-wrap">
@@ -233,7 +233,7 @@ export default async function DashboardPage() {
             </p>
           </div>
           <a
-            href="mailto:team@txid.support?subject=TxID%20Support%20—%20upgrade%20%2F%20demo"
+            href="mailto:team@txid.support?subject=TxID%20Support%20-%20upgrade%20%2F%20demo"
             className="shrink-0 inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
           >
             <Zap className="size-3.5" />
@@ -326,14 +326,14 @@ export default async function DashboardPage() {
           </div>
         </div>
       ) : (
-        /* Setup checklist — shown until the user goes live */
+        /* Setup checklist - shown until the user goes live */
         <div>
           <div className="flex items-center justify-between mb-4">
             <div>
               <h2 className="text-lg font-semibold">Getting started</h2>
               <p className="text-sm text-muted-foreground">
                 {completedSteps === SETUP_STEPS.length
-                  ? "All steps complete — your agent is live."
+                  ? "All steps complete - your agent is live."
                   : `${completedSteps} of ${SETUP_STEPS.length} steps complete`}
               </p>
             </div>

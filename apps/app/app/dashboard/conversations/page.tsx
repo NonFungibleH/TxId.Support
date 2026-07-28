@@ -121,7 +121,7 @@ export default async function ConversationsPage({
   // Batch-fetch all messages + existing tickets for the returned conversations
   const convIds = conversations.map((c: { id: string }) => c.id)
 
-  // Cached AI summaries — best-effort + isolated, so the page still renders if
+  // Cached AI summaries - best-effort + isolated, so the page still renders if
   // the 20260718 migration hasn't been applied (the columns simply don't exist
   // yet and this query errors → we fall back to no summaries).
   const summaryById = new Map<string, { summary: string | null; category: string | null; sentiment: string | null }>()
@@ -134,7 +134,7 @@ export default async function ConversationsPage({
     for (const s of (sums ?? []) as { id: string; summary: string | null; category: string | null; sentiment: string | null }[]) {
       summaryById.set(s.id, { summary: s.summary, category: s.category, sentiment: s.sentiment })
     }
-  } catch { /* migration not applied yet — summaries are optional */ }
+  } catch { /* migration not applied yet - summaries are optional */ }
 
   const [{ data: messages }, { data: tickets }] = await Promise.all([
     supabase
@@ -191,12 +191,12 @@ export default async function ConversationsPage({
         <h1 className="text-xl font-semibold">Conversations</h1>
         <p className="text-sm text-muted-foreground mt-1">
           {isFiltered
-            ? `${shownCount} result${shownCount !== 1 ? "s" : ""} — click any to expand the transcript.`
-            : `${shownCount} session${shownCount !== 1 ? "s" : ""}${total > shownCount ? ` of ${total}` : ""} — click any to expand the transcript.`}
+            ? `${shownCount} result${shownCount !== 1 ? "s" : ""} - click any to expand the transcript.`
+            : `${shownCount} session${shownCount !== 1 ? "s" : ""}${total > shownCount ? ` of ${total}` : ""} - click any to expand the transcript.`}
         </p>
         {data.some(c => c.session_id?.startsWith("preview-")) && (
           <p className="text-xs text-violet-400 mt-1">
-            Sessions marked <span className="font-medium">Preview</span> are from your dashboard testing — recorded so you can see this working, and they don&apos;t count toward your quota.
+            Sessions marked <span className="font-medium">Preview</span> are from your dashboard testing - recorded so you can see this working, and they don&apos;t count toward your quota.
           </p>
         )}
       </div>

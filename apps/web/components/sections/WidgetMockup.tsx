@@ -16,7 +16,7 @@ const TABS = ["Support", "Token", "Content"];
 const Q1 = "Why did my swap fail?";
 const A1 =
   "Your swap ran out of gas. Raise the gas limit in your wallet's advanced settings and retry. Want me to check if it cost you anything?";
-const Q2 = "Yes — did I lose any funds?";
+const Q2 = "Yes - did I lose any funds?";
 const A2 =
   "No. The transaction reverted, so nothing left your wallet. You only paid $1.18 in gas. Retry with a higher limit and it should go through.";
 
@@ -130,7 +130,7 @@ export function WidgetMockup({ className }: { className?: string }) {
         className
       )}
     >
-      {/* Header + tabs unified — no separating borders */}
+      {/* Header + tabs unified - no separating borders */}
       <div className="bg-[#252540] px-4 pt-3 pb-0">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">

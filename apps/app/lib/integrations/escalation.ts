@@ -5,7 +5,7 @@ import type { Integrations, IntegrationTarget } from "@/lib/types/config"
 // (Slack/Discord/Telegram) and open a tracked issue (Linear/GitHub/Jira),
 // writing the created issue URL back onto the ticket. Every target is isolated
 // (allSettled + per-call timeout) so one broken integration never blocks the
-// others or the ticket response. Slack/Discord webhook URLs are secrets — we
+// others or the ticket response. Slack/Discord webhook URLs are secrets - we
 // never log them.
 
 export interface EscalationTicket {
@@ -31,7 +31,7 @@ function transcript(t: EscalationTicket, max = 20): string {
 
 function plainBody(t: EscalationTicket): string {
   const lines = [
-    `*${t.ref}* — ${t.projectName}`,
+    `*${t.ref}* - ${t.projectName}`,
     `Issue: ${t.summary}`,
     t.reason ? `Reason: ${t.reason}` : "",
     t.userName || t.userEmail ? `User: ${t.userName ?? "Anonymous"}${t.userEmail ? ` <${t.userEmail}>` : ""}` : "",
@@ -144,7 +144,7 @@ export async function testIntegration(
   const sample: EscalationTicket = {
     ref: "TKT-TEST",
     projectName: "TxID test",
-    summary: "Test escalation from your TxID dashboard — you can ignore this.",
+    summary: "Test escalation from your TxID dashboard - you can ignore this.",
     reason: "integration test",
     conversation: [
       { role: "user", content: "This is a test message." },
@@ -196,7 +196,7 @@ export async function dispatchEscalation(
         result = { ok: false, error: err instanceof Error ? err.message : "error" }
       }
       if (result.ok && result.url && TRACKERS.includes(target)) externalRefs[target] = result.url
-      // Log target + status only — never the Slack/Discord webhook URL (secret).
+      // Log target + status only - never the Slack/Discord webhook URL (secret).
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await (supabase as any).from("webhook_logs").insert({
         project_id: projectId,

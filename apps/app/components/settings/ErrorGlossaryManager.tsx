@@ -50,8 +50,8 @@ function AbiEntrySuggestion({
   }
 
   const placeholder = kind === "event"
-    ? `e.g. "A token lock was successfully created — tokens are now locked until the unlock date."`
-    : `e.g. "You don't have enough tokens approved — go to the token contract and approve more before trying again."`
+    ? `e.g. "A token lock was successfully created - tokens are now locked until the unlock date."`
+    : `e.g. "You don't have enough tokens approved - go to the token contract and approve more before trying again."`
 
   const prompt = kind === "event"
     ? "What does this event mean in plain English? The AI uses this to explain what happened in a transaction."
@@ -217,7 +217,7 @@ export function ErrorGlossaryManager({ projectId, contract }: Props) {
       {unexplainedErrors.length > 0 && (
         <div className="space-y-1.5">
           <p className="text-xs text-muted-foreground">
-            {unexplainedErrors.length} custom error{unexplainedErrors.length !== 1 ? "s" : ""} from ABI — describe what users should do when they hit each one:
+            {unexplainedErrors.length} custom error{unexplainedErrors.length !== 1 ? "s" : ""} from ABI - describe what users should do when they hit each one:
           </p>
           {unexplainedErrors.map(name => (
             <AbiEntrySuggestion
@@ -235,7 +235,7 @@ export function ErrorGlossaryManager({ projectId, contract }: Props) {
       {unexplainedEvents.length > 0 && (
         <div className="space-y-1.5">
           <p className="text-xs text-muted-foreground">
-            {unexplainedEvents.length} event{unexplainedEvents.length !== 1 ? "s" : ""} from ABI — describe what each event means so the AI can explain transaction history:
+            {unexplainedEvents.length} event{unexplainedEvents.length !== 1 ? "s" : ""} from ABI - describe what each event means so the AI can explain transaction history:
           </p>
           {unexplainedEvents.map(name => (
             <AbiEntrySuggestion

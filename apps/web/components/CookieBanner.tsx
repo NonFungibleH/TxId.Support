@@ -12,7 +12,7 @@ export function CookieBanner() {
     try {
       if (!localStorage.getItem(STORAGE_KEY)) setVisible(true)
     } catch {
-      // localStorage blocked (e.g. Safari private mode) — don't show banner
+      // localStorage blocked (e.g. Safari private mode) - don't show banner
     }
   }, [])
 

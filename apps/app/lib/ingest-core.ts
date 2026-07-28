@@ -4,7 +4,7 @@ import type { Json } from "@/lib/supabase/types"
 import { isPrivateUrl } from "@/lib/security"
 
 // Auth-free crawl+embed core, shared by the org-scoped crawlAndIngest action
-// and the admin demo-docs action. NOT a server action — callers must do their
+// and the admin demo-docs action. NOT a server action - callers must do their
 // own auth (ownership or admin) BEFORE calling this. Kept out of a "use server"
 // file so it can't be invoked directly from the client.
 

@@ -24,7 +24,7 @@ const PLANS = [
       { label: "Analytics dashboard", soon: false },
     ],
   },
-  // Pro plan temporarily hidden pre-launch — pricing not yet finalised.
+  // Pro plan temporarily hidden pre-launch - pricing not yet finalised.
   // Restore this object (and the md:grid-cols-2 → md:grid-cols-3 below) once
   // a price is set.
   // {

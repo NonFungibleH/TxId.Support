@@ -45,7 +45,7 @@ function buildBookmarklet(origin: string, key: string): string {
   )
 }
 
-// React strips javascript: hrefs from JSX, so set it imperatively — the anchor
+// React strips javascript: hrefs from JSX, so set it imperatively - the anchor
 // stays fully draggable to the bookmarks bar.
 function BookmarkletLink({ href, label }: { href: string; label: string }) {
   const ref = useRef<HTMLAnchorElement>(null)
@@ -183,7 +183,7 @@ export function DemosManager({ initial }: { initial: DemoSummary[] }) {
           {/* Docs / knowledge */}
           <DemoDocs demo={selected} onChange={url => patchLocal(selected.id, { docsUrl: url })} />
 
-          {/* Actions (execute) — demo the swap flow */}
+          {/* Actions (execute) - demo the swap flow */}
           <DemoActionsToggle key={selected.id} demo={selected} onChange={v => patchLocal(selected.id, { actionsEnabled: v })} />
         </div>
       )}
@@ -224,7 +224,7 @@ function DemoDocs({ demo, onChange }: { demo: DemoSummary; onChange: (url: strin
         </button>
       </div>
       {status && <p className="text-xs text-green-500">{status}</p>}
-      {pending && <p className="text-xs text-muted-foreground">Crawling and embedding — this can take up to a minute for a large docs site.</p>}
+      {pending && <p className="text-xs text-muted-foreground">Crawling and embedding - this can take up to a minute for a large docs site.</p>}
     </div>
   )
 }
@@ -258,8 +258,8 @@ function DemoContracts({ demo, onChange }: { demo: DemoSummary; onChange: (count
         onChange(next.length)
         setAddr(""); setName(""); setModuleName("")
         toast.success(res.contract.hasAbi
-          ? (chain === "aptos" ? "Contract added: module ABI fetched from the fullnode" : "Contract added — ABI fetched from explorer")
-          : (chain === "aptos" ? "Contract added: could not fetch modules (the AI still reads them live on-chain)" : "Contract added — no verified ABI found (diagnosis still works)"))
+          ? (chain === "aptos" ? "Contract added: module ABI fetched from the fullnode" : "Contract added - ABI fetched from explorer")
+          : (chain === "aptos" ? "Contract added: could not fetch modules (the AI still reads them live on-chain)" : "Contract added - no verified ABI found (diagnosis still works)"))
       } else {
         toast.error(res.error ?? "Couldn't add contract")
       }
@@ -345,11 +345,11 @@ function DemoActionsToggle({ demo, onChange }: { demo: DemoSummary; onChange: (v
     setSaving(true)
     try {
       await setDemoActions(demo.id, v)
-      toast.success(v ? "Actions enabled — $500/swap cap, wallet still signs" : "Actions disabled")
+      toast.success(v ? "Actions enabled - $500/swap cap, wallet still signs" : "Actions disabled")
     } catch {
       setOn(!v)
       onChange(!v)
-      toast.error("Couldn't update Actions — try again.")
+      toast.error("Couldn't update Actions - try again.")
     } finally {
       setSaving(false)
     }
@@ -366,7 +366,7 @@ function DemoActionsToggle({ demo, onChange }: { demo: DemoSummary; onChange: (v
       await setDemoContractFunctions(demo.id, contractId, rules)
     } catch {
       setAllowed(prev)
-      toast.error("Couldn't save that function — try again.")
+      toast.error("Couldn't save that function - try again.")
     }
   }
   function toggleFn(contractId: string, fnName: string, enabled: boolean) {
@@ -437,7 +437,7 @@ function DemoActionsToggle({ demo, onChange }: { demo: DemoSummary; onChange: (v
                 <div key={c.id} className="rounded-lg border border-border p-2.5">
                   <p className="text-xs font-medium">{c.name}</p>
                   <p className="text-[11px] text-muted-foreground mt-0.5">
-                    {c.hasAbi ? "No eligible write functions (only simple-argument, non-payable functions are supported)." : "No ABI found — the contract must be verified to list its functions."}
+                    {c.hasAbi ? "No eligible write functions (only simple-argument, non-payable functions are supported)." : "No ABI found - the contract must be verified to list its functions."}
                   </p>
                 </div>
               )

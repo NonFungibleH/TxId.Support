@@ -324,7 +324,7 @@ export default function CheckPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [wallet, manualAddress, protocolId, chainId, messages])
 
-  // ── Enter chat — greeting scoped to the chosen protocol ───────────────────
+  // ── Enter chat - greeting scoped to the chosen protocol ───────────────────
 
   function enterChat(addr: string) {
     setMessages([{
@@ -618,7 +618,7 @@ export default function CheckPage() {
               </div>
             ) : (
               <>
-                {/* Example questions — shown until the first question is asked.
+                {/* Example questions - shown until the first question is asked.
                     Each maps to a real tool call, so every chip reliably works. */}
                 {messages.length <= 1 && !loading && (
                   <div className="flex flex-wrap justify-center gap-2 mb-3">

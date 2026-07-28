@@ -38,7 +38,7 @@ const PRODUCTS = [
     label: "MCP SERVER · ROLLING OUT",
     title: "MCP for support",
     description:
-      "Add TxID to any MCP-compatible client and give your AI tooling real on-chain diagnostic tools: transaction lookup, contract reads, sanctions screening, and more. Rolling out now — talk to us for early access.",
+      "Add TxID to any MCP-compatible client and give your AI tooling real on-chain diagnostic tools: transaction lookup, contract reads, sanctions screening, and more. Rolling out now - talk to us for early access.",
   },
   {
     icon: Bot,

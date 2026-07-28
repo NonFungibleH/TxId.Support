@@ -6,7 +6,7 @@ export default function SignUpPage() {
       <SignUp
         appearance={{
           elements: {
-            // Hide the Web3/wallet sign-up option — require email or GitHub only
+            // Hide the Web3/wallet sign-up option - require email or GitHub only
             web3WalletConnectButton: { display: "none" },
             web3WalletSectionHeader: { display: "none" },
             web3Wallet: { display: "none" },

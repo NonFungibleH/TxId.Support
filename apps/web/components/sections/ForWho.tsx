@@ -66,7 +66,7 @@ export function ForWho() {
             <FadeIn key={seg.heading} delay={i * 0.1}>
               <div className={`relative rounded-2xl border p-8 flex flex-col h-full ${seg.cardClass}`}>
 
-                {/* Badge — dot + label, no box */}
+                {/* Badge - dot + label, no box */}
                 <span className={`inline-flex items-center gap-2 font-mono text-[10px] uppercase tracking-widest mb-5 self-start ${seg.textColor}`}>
                   <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${seg.dotColor}`} />
                   {seg.badge}

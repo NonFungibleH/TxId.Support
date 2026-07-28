@@ -3,7 +3,7 @@ import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
 import type { Database } from "./types";
 
-// Anon client — for authenticated dashboard routes (respects RLS via Clerk JWT)
+// Anon client - for authenticated dashboard routes (respects RLS via Clerk JWT)
 export function createClient() {
   const cookieStore = cookies();
   return createServerClient<Database>(
@@ -20,7 +20,7 @@ export function createClient() {
               cookieStore.set(name, value, options)
             );
           } catch {
-            // Server component — cookies are read-only in some contexts
+            // Server component - cookies are read-only in some contexts
           }
         },
       },
@@ -28,7 +28,7 @@ export function createClient() {
   );
 }
 
-// Service client — bypasses RLS entirely. Only use in server actions and
+// Service client - bypasses RLS entirely. Only use in server actions and
 // API routes where the caller has already been authorised.
 export function createServiceClient() {
   return createSupabaseClient<Database>(

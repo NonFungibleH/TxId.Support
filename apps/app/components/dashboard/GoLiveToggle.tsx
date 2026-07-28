@@ -74,7 +74,7 @@ export function GoLiveToggle({ projectId, isActive }: GoLiveToggleProps) {
         className="h-2 w-2 rounded-full"
         style={{ background: active ? "rgb(34,197,94)" : isDark ? "rgba(255,255,255,0.3)" : "rgba(0,0,0,0.25)" }}
       />
-      {isPending ? "Updating…" : active ? "Live" : "Not live — click to go live"}
+      {isPending ? "Updating…" : active ? "Live" : "Not live - click to go live"}
     </button>
   )
 }

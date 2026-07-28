@@ -15,13 +15,13 @@ export function ContactCard() {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      // Clipboard blocked (rare) — the address is visible to select manually.
+      // Clipboard blocked (rare) - the address is visible to select manually.
     }
   }
 
   return (
     <div className="space-y-4">
-      {/* Email — copyable, never depends on a mail client */}
+      {/* Email - copyable, never depends on a mail client */}
       <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-surface)] p-5">
         <div className="flex items-center gap-2 mb-3">
           <Mail className="w-4 h-4 text-accent" />
@@ -47,7 +47,7 @@ export function ContactCard() {
         </a>
       </div>
 
-      {/* Telegram — most reliable for a crypto-native audience */}
+      {/* Telegram - most reliable for a crypto-native audience */}
       <a
         href={TELEGRAM}
         target="_blank"

@@ -12,7 +12,7 @@ export function getStripe(): Stripe {
   return _stripe
 }
 
-/** True only when both the secret key and the Pro price ID are set — the
+/** True only when both the secret key and the Pro price ID are set - the
  *  minimum needed to run checkout. The upgrade page uses this to decide
  *  between the live "Get Pro" button and the "email us" fallback. */
 export function isStripeConfigured(): boolean {
@@ -21,7 +21,7 @@ export function isStripeConfigured(): boolean {
 
 /**
  * Map a Stripe subscription status to our internal plan. `active`,
- * `trialing`, and `past_due` keep Pro access — past_due is Stripe's dunning
+ * `trialing`, and `past_due` keep Pro access - past_due is Stripe's dunning
  * grace window, during which we don't want to yank the paying customer's
  * features mid-retry. Every terminal state (canceled, unpaid,
  * incomplete_expired) drops to free.

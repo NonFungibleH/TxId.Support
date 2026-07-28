@@ -8,7 +8,7 @@ import { updateConfig } from "@/lib/actions/project"
 import { SUPPORTED_CHAINS, SELECTABLE_CHAINS } from "@/lib/types/config"
 import type { ChainId, Plan } from "@/lib/types/config"
 
-// Chains stored in DB may be hex ("0x1") or decimal ("1") — support both
+// Chains stored in DB may be hex ("0x1") or decimal ("1") - support both
 const CHAIN_LOGOS: Record<string, string> = {
   "0xaa36a7": "/chains/Ethereum.png",
   "0x1":      "/chains/Ethereum.png",
@@ -55,7 +55,7 @@ export function ChainToggles({ projectId, initialChains, chainUsage, plan, chain
       return
     }
 
-    // Block disabling the last mainnet — validate before state update so DB and UI stay in sync
+    // Block disabling the last mainnet - validate before state update so DB and UI stay in sync
     if (isEnabled && !isTestnet) {
       const currentMainnets = MAINNETS.filter(c => chains.includes(c.id as ChainId)).length
       if (currentMainnets <= 1) {
@@ -145,7 +145,7 @@ export function ChainToggles({ projectId, initialChains, chainUsage, plan, chain
 
   return (
     <div className="space-y-6">
-      {/* Live counter — reads client state so it updates instantly on toggle */}
+      {/* Live counter - reads client state so it updates instantly on toggle */}
       <div className="flex items-center justify-between text-sm">
         <span className="text-muted-foreground">Active mainnet chains</span>
         <span className="font-semibold tabular-nums">

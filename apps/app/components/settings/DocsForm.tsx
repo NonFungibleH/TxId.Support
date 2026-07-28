@@ -91,8 +91,8 @@ export function DocsForm({ projectId, docCount, pastedChunkCount, pastedLastInde
   const CRAWL_MESSAGES = [
     { until: 5,  text: "Discovering pages on the site…" },
     { until: 15, text: "Fetching page content…" },
-    { until: 30, text: "Indexing pages — this takes a moment…" },
-    { until: 50, text: "Still working — larger sites take up to 60 seconds…" },
+    { until: 30, text: "Indexing pages - this takes a moment…" },
+    { until: 50, text: "Still working - larger sites take up to 60 seconds…" },
     { until: Infinity, text: "Almost done, hang tight…" },
   ]
   const crawlMessage = CRAWL_MESSAGES.find(m => crawlElapsed < m.until)?.text ?? "Working…"
@@ -107,7 +107,7 @@ export function DocsForm({ projectId, docCount, pastedChunkCount, pastedLastInde
     const targetUrl = url.trim()
     setCrawling(true)
     setCrawlStatus(null)
-    toast.info("Crawl started — this typically takes 30–60 seconds. Keep this tab open.", { duration: 8000 })
+    toast.info("Crawl started - this typically takes 30-60 seconds. Keep this tab open.", { duration: 8000 })
     startTransition(async () => {
       const result = await crawlAndIngest(projectId, targetUrl)
       setCrawling(false)
@@ -300,7 +300,7 @@ export function DocsForm({ projectId, docCount, pastedChunkCount, pastedLastInde
 
               return (
                 <div key={group.hostname}>
-                  {/* Group header — clickable to expand/collapse */}
+                  {/* Group header - clickable to expand/collapse */}
                   <button
                     type="button"
                     onClick={() => toggleGroup(group.hostname)}
@@ -374,7 +374,7 @@ export function DocsForm({ projectId, docCount, pastedChunkCount, pastedLastInde
         <div>
           <p className="text-sm font-medium mb-1">Add a URL to index</p>
           <p className="text-xs text-muted-foreground">
-            Paste links to your website, docs, FAQ, or whitepaper — the AI reads and learns from them automatically.
+            Paste links to your website, docs, FAQ, or whitepaper - the AI reads and learns from them automatically.
           </p>
         </div>
         <div className="flex gap-2">
@@ -410,7 +410,7 @@ export function DocsForm({ projectId, docCount, pastedChunkCount, pastedLastInde
               <p className="text-xs text-primary font-medium flex items-center gap-1.5">
                 <Loader2 className="size-3 animate-spin" />{crawlMessage}
               </p>
-              <p className="text-xs text-muted-foreground">{crawlElapsed}s elapsed — please keep this tab open</p>
+              <p className="text-xs text-muted-foreground">{crawlElapsed}s elapsed - please keep this tab open</p>
             </div>
           : <p className="text-xs text-muted-foreground">Use <strong>Fetch page</strong> for a single URL, or <strong>Crawl site</strong> to automatically index all pages on the domain (up to 60).</p>
         }
@@ -458,7 +458,7 @@ export function DocsForm({ projectId, docCount, pastedChunkCount, pastedLastInde
       {totalChunks > 0 && (
         <p className="flex items-center gap-1.5 text-xs text-green-500">
           <CheckCircle2 className="size-3.5" />
-          Knowledge base active — the AI will draw on these sources when answering user questions.
+          Knowledge base active - the AI will draw on these sources when answering user questions.
         </p>
       )}
     </div>

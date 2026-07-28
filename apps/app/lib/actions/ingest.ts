@@ -216,13 +216,13 @@ export async function fetchAndIngest(
     parsed = new URL(url)
     if (!["http:", "https:"].includes(parsed.protocol)) throw new Error()
   } catch {
-    return { ok: false, error: "Invalid URL — must start with http:// or https://" }
+    return { ok: false, error: "Invalid URL - must start with http:// or https://" }
   }
 
-  if (isPrivateUrl(url)) return { ok: false, error: "Invalid URL — must start with http:// or https://" }
+  if (isPrivateUrl(url)) return { ok: false, error: "Invalid URL - must start with http:// or https://" }
 
   // Use Jina Reader to fetch + render the page (handles JS-heavy sites)
-  // r.jina.ai renders the full page and returns clean markdown text — no API key needed
+  // r.jina.ai renders the full page and returns clean markdown text - no API key needed
   let text: string
   try {
     const jinaUrl = `https://r.jina.ai/${parsed.toString()}`
@@ -236,7 +236,7 @@ export async function fetchAndIngest(
     if (!res.ok) return { ok: false, error: `Could not fetch page (status ${res.status}). Check the URL is public and try again.` }
     text = await res.text()
   } catch (err) {
-    return { ok: false, error: err instanceof Error ? err.message : "Could not fetch URL — check it is publicly accessible" }
+    return { ok: false, error: err instanceof Error ? err.message : "Could not fetch URL - check it is publicly accessible" }
   }
 
   if (text.trim().length < 100) {

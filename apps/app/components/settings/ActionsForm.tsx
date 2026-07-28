@@ -63,7 +63,7 @@ export function ActionsForm({
       <div className="rounded-xl border border-border bg-card p-6">
         <p className="font-semibold">Actions is available on paid plans.</p>
         <p className="text-sm text-muted-foreground mt-1">
-          Upgrade to let your users execute swaps, staking, claims and more straight from the support chat — every transaction signed in their own wallet.
+          Upgrade to let your users execute swaps, staking, claims and more straight from the support chat - every transaction signed in their own wallet.
         </p>
         <a href="/dashboard/upgrade" className="mt-3 inline-block rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground">
           View plans
@@ -91,7 +91,7 @@ export function ActionsForm({
         </div>
         <div className="mt-4 rounded-lg border border-border bg-muted/30 p-3 text-xs text-muted-foreground space-y-1.5">
           <p className="flex items-start gap-1.5"><ShieldCheck className="size-3.5 shrink-0 mt-0.5" />
-            How it works: the assistant only carries out what a user explicitly asks for — it never recommends trades. Users review and sign every transaction in their own wallet; approvals are exact-amount only; wallets are screened against the OFAC sanctions list and the feature is geo-restricted in sanctioned regions. Users see a one-time acknowledgement before their first action.
+            How it works: the assistant only carries out what a user explicitly asks for - it never recommends trades. Users review and sign every transaction in their own wallet; approvals are exact-amount only; wallets are screened against the OFAC sanctions list and the feature is geo-restricted in sanctioned regions. Users see a one-time acknowledgement before their first action.
           </p>
           <p>By enabling Actions you accept responsibility for the functions you allow below on your own contracts.</p>
         </div>
@@ -158,7 +158,7 @@ export function ActionsForm({
                             <code className="text-xs">{fn.name}({fn.inputs.join(", ")})</code>
                             {fn.adminish && (
                               <span className="inline-flex items-center gap-1 text-[11px] text-amber-500">
-                                <AlertTriangle className="size-3" /> looks administrative — enable with care
+                                <AlertTriangle className="size-3" /> looks administrative - enable with care
                               </span>
                             )}
                             {rule && fn.inputs.length > 0 && (

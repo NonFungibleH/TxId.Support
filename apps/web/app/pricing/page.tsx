@@ -6,7 +6,7 @@ import { PricingSection } from "@/components/sections/PricingSection";
 import { ClosingCTA } from "@/components/sections/ClosingCTA";
 import { FadeIn } from "@/components/ui/FadeIn";
 import { Check, Minus } from "lucide-react";
-// APP_URL is consumed by PricingSection — imported there directly
+// APP_URL is consumed by PricingSection - imported there directly
 
 export const metadata: Metadata = {
   title: "Pricing | TxID Support",
@@ -92,7 +92,7 @@ const FAQ = [
 
 // Temporarily hidden pre-launch: the detailed feature comparison and the
 // price-quoting FAQ imply committed tiers/prices we haven't finalised. The
-// data + markup are preserved below — flip this to `true` to restore them
+// data + markup are preserved below - flip this to `true` to restore them
 // (and re-check the $ figures in the FAQ before doing so).
 const SHOW_DETAILED_PRICING = false;
 

@@ -36,7 +36,7 @@ export function ConversationChart({ data }: ConversationChartProps) {
   if (data.every((d) => d.conversations === 0)) {
     return (
       <div className="flex h-48 items-center justify-center text-sm text-muted-foreground">
-        No conversations yet — embed the widget to get started.
+        No conversations yet - embed the widget to get started.
       </div>
     )
   }

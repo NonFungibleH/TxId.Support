@@ -180,7 +180,7 @@ export async function POST(
   const project = projectData as unknown as ProjectRow & { name: string }
   const secretKey = (project as unknown as { secret_key: string }).secret_key
 
-  // Verify Telegram's webhook secret token (constant-time — see secretsMatch)
+  // Verify Telegram's webhook secret token (constant-time - see secretsMatch)
   const incomingSecret = request.headers.get("x-telegram-bot-api-secret-token")
   if (!incomingSecret || !secretsMatch(incomingSecret, secretKey)) {
     return new Response("Unauthorized", { status: 401 })
@@ -210,7 +210,7 @@ export async function POST(
 
   const userText = cleanText(message)
   if (!userText) {
-    // Bare command with no question (/start, /help, /ask) — answer with a
+    // Bare command with no question (/start, /help, /ask) - answer with a
     // canned reply instead of dropping it silently. No AI call, so this
     // doesn't consume quota or create a conversation row.
     const command = leadingCommand(message)
@@ -245,7 +245,7 @@ export async function POST(
     }
   }
 
-  // Session is per-user within each chat — prevents context bleed between group members
+  // Session is per-user within each chat - prevents context bleed between group members
   const sessionId = `tg-${message.chat.id}-${message.from.id}`
 
   // Load recent message history from Supabase for context

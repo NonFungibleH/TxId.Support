@@ -209,7 +209,7 @@ function SortableBlock({
           <p className="text-sm font-medium truncate">{block.title || "(untitled)"}</p>
           {preview
             ? <p className="text-[11px] text-muted-foreground truncate mt-0.5">{preview}</p>
-            : <p className="text-[11px] text-muted-foreground/50 italic mt-0.5">No content — click to edit</p>
+            : <p className="text-[11px] text-muted-foreground/50 italic mt-0.5">No content - click to edit</p>
           }
         </div>
 
@@ -428,7 +428,7 @@ export function ContentBlockEditor({ projectId, initialBlocks }: ContentBlockEdi
 
   return (
     <div className="space-y-4">
-      {/* Add new block — shown first so the flow is: choose type → fill details → add → see list */}
+      {/* Add new block - shown first so the flow is: choose type → fill details → add → see list */}
       {blocks.length < 10 && (
         <div className="space-y-3 border-b border-border pb-4">
           <div className="flex gap-2 items-center">

@@ -33,7 +33,7 @@ async function syncSubscription(
     .eq("stripe_customer_id", customerId)
     .maybeSingle()
 
-  if (!org) return // customer we don't recognise — nothing to update
+  if (!org) return // customer we don't recognise - nothing to update
 
   await supabase
     .from("organisations")
@@ -66,7 +66,7 @@ export async function POST(request: Request) {
     return new Response("Missing signature", { status: 400 })
   }
 
-  // Raw body is required for signature verification — do NOT JSON.parse first.
+  // Raw body is required for signature verification - do NOT JSON.parse first.
   const body = await request.text()
   const stripe = getStripe()
 
@@ -112,7 +112,7 @@ export async function POST(request: Request) {
       event: "stripe.webhook.handler_error",
       stripeEventType: event.type,
     })
-    // 500 so Stripe retries — a transient DB blip shouldn't lose the event.
+    // 500 so Stripe retries - a transient DB blip shouldn't lose the event.
     return new Response("Handler error", { status: 500 })
   }
 

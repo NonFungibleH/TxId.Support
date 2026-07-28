@@ -36,7 +36,7 @@ async function resolveOrg() {
  * Start a Stripe Checkout session for the Pro plan. Ensures the org has a
  * Stripe customer (creating one on first upgrade), then returns the hosted
  * checkout URL for the client to redirect to. The plan itself is only
- * granted once the webhook receives the completed subscription — never
+ * granted once the webhook receives the completed subscription - never
  * client-side.
  */
 export async function createCheckoutSession(): Promise<{ url: string }> {
@@ -82,7 +82,7 @@ export async function createCheckoutSession(): Promise<{ url: string }> {
 export async function createPortalSession(): Promise<{ url: string }> {
   const { org } = await resolveOrg()
   const customerId = org.stripe_customer_id
-  if (!customerId) throw new Error("No billing account yet — upgrade first")
+  if (!customerId) throw new Error("No billing account yet - upgrade first")
 
   const stripe = getStripe()
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? ""

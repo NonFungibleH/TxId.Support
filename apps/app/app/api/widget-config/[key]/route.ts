@@ -31,7 +31,7 @@ export async function OPTIONS() {
  * GET /api/widget-config/[key]
  *
  * Returns the safe-to-expose widget configuration for a publishable key.
- * Only includes branding, chain list, token symbol/chain — never secret_key.
+ * Only includes branding, chain list, token symbol/chain - never secret_key.
  */
 export async function GET(
   request: Request,
@@ -106,7 +106,7 @@ export async function GET(
     }
   }
 
-  // Only return safe fields — never secret_key, org_id, etc.
+  // Only return safe fields - never secret_key, org_id, etc.
   const publicConfig = {
     projectId: typedProject.id,
     projectName: typedProject.name,
@@ -129,7 +129,7 @@ export async function GET(
         }
       : null,
     community: config.community ?? null,
-    // Actions availability only — the function allowlist and caps stay
+    // Actions availability only - the function allowlist and caps stay
     // server-side. Mirrors the chat route's actionsGate: normal projects need a
     // paid, non-demo plan; admin action-demos are the deliberate exception.
     actions: {

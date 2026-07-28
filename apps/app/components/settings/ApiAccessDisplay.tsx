@@ -31,7 +31,7 @@ export function ApiAccessDisplay({ secretKey, apiBaseUrl }: ApiAccessDisplayProp
       {/* Secret key */}
       <div className="flex items-center gap-3 p-3 rounded-lg bg-muted">
         <div className="flex-1 min-w-0">
-          <p className="text-xs text-muted-foreground mb-0.5">Secret key — server-side only, never expose in a browser</p>
+          <p className="text-xs text-muted-foreground mb-0.5">Secret key - server-side only, never expose in a browser</p>
           <p className="font-mono text-sm truncate">{revealed ? secretKey : masked}</p>
         </div>
         <Button variant="outline" size="sm" onClick={() => setRevealed((v) => !v)} aria-label={revealed ? "Hide" : "Reveal"}>

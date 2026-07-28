@@ -75,11 +75,11 @@ export default async function PreviewPage() {
             </li>
             <li className="flex items-start gap-3">
               <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">2</span>
-              <span>Go to your website in the browser — any page you want to test on</span>
+              <span>Go to your website in the browser - any page you want to test on</span>
             </li>
             <li className="flex items-start gap-3">
               <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">3</span>
-              <span>Click the bookmark — your support widget appears in the bottom-right corner, exactly as users will see it. Refresh the page to remove it.</span>
+              <span>Click the bookmark - your support widget appears in the bottom-right corner, exactly as users will see it. Refresh the page to remove it.</span>
             </li>
           </ol>
 

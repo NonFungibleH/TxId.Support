@@ -158,7 +158,7 @@ export async function addDemoContract(id: string, address: string, chain: ChainI
   const orgId = await demosOrgId(supabase)
   const config = await assertDemoProject(supabase, orgId, id)
   const cleanAddr = address.trim()
-  // Guard against dupes — same address on the same chain shouldn't stack.
+  // Guard against dupes - same address on the same chain shouldn't stack.
   if ((config.watchedContracts ?? []).some(c => c.address.toLowerCase() === cleanAddr.toLowerCase() && c.chain === chain)) {
     return { ok: false, error: "That contract is already added on this chain" }
   }
@@ -248,7 +248,7 @@ export async function setDemoActions(id: string, enabled: boolean): Promise<void
 // Set which write functions of ONE watched contract the demo bot may prepare
 // (e.g. withdraw, lockToken). Server is the authority: only functions that are
 // genuinely eligible write functions of that contract's ABI are accepted, and
-// the approval annotation is re-validated — a compromised client can't allowlist
+// the approval annotation is re-validated - a compromised client can't allowlist
 // arbitrary calls. Preserves the master enable + swap cap.
 export async function setDemoContractFunctions(id: string, contractId: string, rules: ActionsFunctionRule[]): Promise<void> {
   await assertAdmin()

@@ -12,7 +12,7 @@ export default async function DemosPage() {
   return (
     <div className="min-h-screen bg-background p-6 md:p-10 space-y-6">
       <div>
-        <p className="text-xs text-muted-foreground uppercase tracking-wider font-mono mb-1">Internal — sales demos</p>
+        <p className="text-xs text-muted-foreground uppercase tracking-wider font-mono mb-1">Internal - sales demos</p>
         <div className="flex items-center gap-3">
           <h1 className="text-3xl font-bold">Demo Creator</h1>
           <Link href="/admin" className="text-sm text-muted-foreground hover:text-foreground">← Admin</Link>

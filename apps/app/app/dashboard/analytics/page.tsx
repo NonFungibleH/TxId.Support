@@ -114,7 +114,7 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Se
     .select("id", { count: "exact", head: true })
     .eq("project_id", projectId)
 
-  // Total messages via an inner join on conversations — robust to whether the
+  // Total messages via an inner join on conversations - robust to whether the
   // message-count RPC has been applied to the database.
   const { count: msgCount } = await supabase
     .from("messages")
@@ -126,7 +126,7 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Se
   let escalationRate: number | null = null
   const periodConvCount = (conversations ?? []).length
   if (periodConvCount > 0) {
-    // Count tickets for this project in the period directly — robust to whether
+    // Count tickets for this project in the period directly - robust to whether
     // the escalation RPC has been applied to the database.
     const { count: escalCount } = await supabase
       .from("tickets")
@@ -155,7 +155,7 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Se
   const ratingsTotal = thumbsUp + thumbsDown
   const satisfaction = ratingsTotal > 0 ? Math.round((thumbsUp / ratingsTotal) * 100) : null
 
-  // Chain breakdown (all-time) — normalize hex IDs before counting to avoid duplicates
+  // Chain breakdown (all-time) - normalize hex IDs before counting to avoid duplicates
   const chainCounts = new Map<string, number>()
   for (const conv of (await supabase
     .from("conversations")
@@ -197,7 +197,7 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Se
   const periodConversations = (conversations ?? []).length
   const avgMessages = periodConversations > 0
     ? (totalMessages / (totalConversations ?? 1)).toFixed(1)
-    : "—"
+    : "-"
   const hasData = (totalConversations ?? 0) > 0
 
   return (
@@ -208,7 +208,7 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Se
           <p className="text-muted-foreground mt-1">Conversation insights for your support widget.</p>
           {(previewCount ?? 0) > 0 && (
             <p className="text-xs text-violet-400 mt-1">
-              Includes {previewCount} preview session{previewCount === 1 ? "" : "s"} from your dashboard testing — proof it works before you go live. These are flagged in Conversations and never count toward your quota.
+              Includes {previewCount} preview session{previewCount === 1 ? "" : "s"} from your dashboard testing - proof it works before you go live. These are flagged in Conversations and never count toward your quota.
             </p>
           )}
         </div>
@@ -297,7 +297,7 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Se
               </>
             ) : (
               <>
-                <p className="text-2xl font-bold text-muted-foreground">—</p>
+                <p className="text-2xl font-bold text-muted-foreground">-</p>
                 <p className="text-xs text-muted-foreground mt-0.5">No data in this period</p>
               </>
             )}
@@ -321,7 +321,7 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Se
               </>
             ) : (
               <>
-                <p className="text-2xl font-bold text-muted-foreground">—</p>
+                <p className="text-2xl font-bold text-muted-foreground">-</p>
                 <p className="text-xs text-muted-foreground mt-0.5">No ratings yet</p>
               </>
             )}

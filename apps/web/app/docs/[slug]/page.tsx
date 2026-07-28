@@ -189,7 +189,7 @@ export default function DocPage({ params }: { params: { slug: string } }) {
       <main className="min-h-screen pt-20 pb-24">
         <div className="max-w-6xl mx-auto px-6">
           <div className="flex gap-12 pt-8">
-            {/* Sidebar — desktop only */}
+            {/* Sidebar - desktop only */}
             <aside className="hidden lg:block w-52 shrink-0">
               <div className="sticky top-24">
                 <Link

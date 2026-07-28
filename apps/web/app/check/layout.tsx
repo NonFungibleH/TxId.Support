@@ -6,7 +6,7 @@ import { transactionGlossarySchema } from "@/lib/seo"
 export const metadata: Metadata = {
   title: "Why Did My Transaction Fail? Free Transaction Checker | TxID Support",
   description:
-    "Paste a transaction hash to find out why it failed — out of gas, reverted, or a custom contract error — explained in plain English. Free, no wallet connection needed.",
+    "Paste a transaction hash to find out why it failed - out of gas, reverted, or a custom contract error - explained in plain English. Free, no wallet connection needed.",
   alternates: { canonical: "/check" },
   openGraph: {
     title: "Free Transaction Checker | TxID Support",
@@ -18,7 +18,7 @@ export const metadata: Metadata = {
 
 export default function CheckLayout({ children }: { children: React.ReactNode }) {
   // The glossary schema is rendered here (a server component) so it lands in
-  // the server HTML, where answer-engine crawlers — which often don't run JS —
+  // the server HTML, where answer-engine crawlers - which often don't run JS -
   // can read it.
   return (
     <>

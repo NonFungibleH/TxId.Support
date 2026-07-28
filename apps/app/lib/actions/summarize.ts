@@ -5,7 +5,7 @@ import { createServiceClient } from "@/lib/supabase/server"
 import { completeChatWithUsage } from "@txid/ai"
 
 // One-line AI summary + category + sentiment per conversation, so the
-// Conversations page is scannable. Generated lazily and capped per call —
+// Conversations page is scannable. Generated lazily and capped per call -
 // no cron. Model cost is recorded to token_usage like every other AI turn.
 
 export const CONV_CATEGORIES = ["failed-tx", "how-to", "bug-report", "feature-request", "account", "other"] as const
@@ -61,7 +61,7 @@ async function summarizeOne(
     .limit(40)
   const messages = (msgs ?? []) as { role: string; content: string }[]
   if (messages.length < 2) {
-    // Nothing worth summarising yet — stamp it so we don't re-check every load.
+    // Nothing worth summarising yet - stamp it so we don't re-check every load.
     await supabase.from("conversations").update({ summarized_at: new Date().toISOString() }).eq("id", conversationId)
     return null
   }
@@ -141,7 +141,7 @@ export async function resummarizeConversation(conversationId: string): Promise<C
     .maybeSingle()
   if (!conv) return null
 
-  // Summarise this exact conversation — don't route through the ordered batch,
+  // Summarise this exact conversation - don't route through the ordered batch,
   // which would pick whichever stale row is most-recently-messaged, not this one.
   return summarizeOne(supabase, projectId, conversationId)
 }

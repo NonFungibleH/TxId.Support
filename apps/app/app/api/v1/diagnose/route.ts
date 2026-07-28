@@ -32,7 +32,7 @@ function readKey(request: Request): string | null {
 }
 
 /**
- * POST /api/v1/diagnose  — headless transaction diagnosis.
+ * POST /api/v1/diagnose  - headless transaction diagnosis.
  *
  * Auth:  Authorization: Bearer sk_live_…   (the project's secret key)
  * Body:  { "tx": "0x…", "chain"?: "0x2105" }

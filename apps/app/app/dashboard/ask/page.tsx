@@ -26,7 +26,7 @@ export default async function AskPage() {
         <CardHeader>
           <CardTitle>Project FAQ</CardTitle>
           <CardDescription>
-            Plain text — no embedding required. This is injected directly into the AI system prompt.
+            Plain text - no embedding required. This is injected directly into the AI system prompt.
             Max ~2,000 characters.
           </CardDescription>
         </CardHeader>

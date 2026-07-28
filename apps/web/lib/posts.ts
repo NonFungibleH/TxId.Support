@@ -186,12 +186,12 @@ export const POSTS: Post[] = [
       {
         type: "ul",
         items: [
-          "0x11 — an arithmetic overflow or underflow (a number went above its maximum or below zero)",
-          "0x12 — a division by zero",
-          "0x32 — an array index that is out of bounds",
-          "0x31 — calling .pop() on an empty array",
-          "0x01 — an assert() check failed, which usually signals a bug in the contract",
-          "0x41 — the contract ran out of memory",
+          "0x11 - an arithmetic overflow or underflow (a number went above its maximum or below zero)",
+          "0x12 - a division by zero",
+          "0x32 - an array index that is out of bounds",
+          "0x31 - calling .pop() on an empty array",
+          "0x01 - an assert() check failed, which usually signals a bug in the contract",
+          "0x41 - the contract ran out of memory",
         ],
       },
       {
@@ -393,8 +393,8 @@ export const POSTS: Post[] = [
       {
         type: "stat-grid",
         stats: [
-          { value: "60–70%", label: "of tickets cluster in fewer than 5 topics" },
-          { value: "10–20%", label: "of questions need human judgment" },
+          { value: "60-70%", label: "of tickets cluster in fewer than 5 topics" },
+          { value: "10-20%", label: "of questions need human judgment" },
           { value: "60 days", label: "typical time to measurable reduction" },
         ],
       },
@@ -404,7 +404,7 @@ export const POSTS: Post[] = [
       },
       {
         type: "p",
-        text: "Before you can fix anything, you need data. Pull your last 200 support tickets (Discord threads, email, Telegram, wherever they come in) and categorize them by topic. You'll almost certainly find that 60–70% cluster around fewer than five categories.",
+        text: "Before you can fix anything, you need data. Pull your last 200 support tickets (Discord threads, email, Telegram, wherever they come in) and categorize them by topic. You'll almost certainly find that 60-70% cluster around fewer than five categories.",
       },
       {
         type: "p",
@@ -463,7 +463,7 @@ export const POSTS: Post[] = [
       },
       {
         type: "p",
-        text: "The 10–20% of questions that genuinely need a human are the ones that matter most. A frustrated user with a unique problem, a potential bug report, a whale with an issue that needs prioritising.",
+        text: "The 10-20% of questions that genuinely need a human are the ones that matter most. A frustrated user with a unique problem, a potential bug report, a whale with an issue that needs prioritising.",
       },
       {
         type: "p",
@@ -484,7 +484,7 @@ export const POSTS: Post[] = [
       },
       {
         type: "p",
-        text: "Protocols that run this playbook consistently report a 50–70% reduction in human-handled tickets within 60 days. The gains compound: as the AI handles more documentation questions, your team spends more time on edge cases, which surfaces real product issues faster, which reduces the volume of future tickets.",
+        text: "Protocols that run this playbook consistently report a 50-70% reduction in human-handled tickets within 60 days. The gains compound: as the AI handles more documentation questions, your team spends more time on edge cases, which surfaces real product issues faster, which reduces the volume of future tickets.",
       },
       {
         type: "quote",
@@ -706,7 +706,7 @@ export const POSTS: Post[] = [
             "\"What error message did you see?\"",
             "\"Which network are you on?\"",
             "User has to describe what they don't understand",
-            "Resolution time: 10–20 minutes",
+            "Resolution time: 10-20 minutes",
           ],
         },
         right: {

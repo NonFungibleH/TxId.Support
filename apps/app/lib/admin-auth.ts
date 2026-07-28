@@ -3,7 +3,7 @@ import { currentUser } from "@clerk/nextjs/server"
 // Single source of truth for /admin access. Emails are configured via the
 // ADMIN_EMAILS env var (comma-separated). FAIL-CLOSED: if ADMIN_EMAILS is unset
 // or empty, NOBODY is an admin. (The earlier per-file guards fell OPEN in that
-// case — any authenticated user became an admin — so ADMIN_EMAILS must be set
+// case - any authenticated user became an admin - so ADMIN_EMAILS must be set
 // in every environment where admin access is needed, including Vercel prod.)
 const ADMIN_EMAILS = (process.env.ADMIN_EMAILS ?? "")
   .toLowerCase()

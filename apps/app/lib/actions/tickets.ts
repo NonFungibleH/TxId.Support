@@ -47,7 +47,7 @@ export async function updateTicketStatus(
   const projectId = (project as unknown as { id: string }).id
 
   const supabase = createServiceClient()
-  // Scoped to the caller's project — prevents cross-account ticket modification
+  // Scoped to the caller's project - prevents cross-account ticket modification
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   await (supabase as any).from("tickets")
     .update({ status, updated_at: new Date().toISOString() })

@@ -201,7 +201,7 @@ export function AddContractDialog({ projectId, activeChains, chainLimit }: AddCo
             )}
             {detectedFns && detectedFns.length > 0 && (
               <div className="rounded-lg border border-border bg-muted/40 px-3 py-2.5 space-y-1.5">
-                <p className="text-xs font-medium text-foreground/70">Functions detected — use these to describe what the contract does:</p>
+                <p className="text-xs font-medium text-foreground/70">Functions detected - use these to describe what the contract does:</p>
                 <div className="flex flex-wrap gap-1">
                   {detectedFns.map(fn => (
                     <span key={fn} className="rounded bg-background border border-border px-1.5 py-0.5 text-xs font-mono text-foreground/60">{fn}</span>
@@ -210,7 +210,7 @@ export function AddContractDialog({ projectId, activeChains, chainLimit }: AddCo
               </div>
             )}
             {!isAptos && detectedFns === null && !detectingFns && addressRe.test(address.trim()) && (
-              <p className="text-xs text-muted-foreground/60">Contract not verified on block explorer — you&apos;ll need to describe it manually.</p>
+              <p className="text-xs text-muted-foreground/60">Contract not verified on block explorer - you&apos;ll need to describe it manually.</p>
             )}
             {isAptos && aptosModules && aptosModules.length > 0 && (
               <div className="rounded-lg border border-border bg-muted/40 px-3 py-2.5 space-y-1.5">

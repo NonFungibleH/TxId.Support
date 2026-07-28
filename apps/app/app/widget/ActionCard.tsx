@@ -96,7 +96,7 @@ export function ActionCard({
   const txHashRef = useRef<string | null>(null)
   const doneRef = useRef(false)
 
-  // Swap quotes go stale — the card disables itself at TTL.
+  // Swap quotes go stale - the card disables itself at TTL.
   useEffect(() => {
     if (!action.expiresAt) return
     const ms = action.expiresAt - Date.now()
@@ -210,7 +210,7 @@ export function ActionCard({
         // Approval mined but the node's allowance view still lagged past the
         // rebuild retry, so no spendable tx came back. Surface an error+retry
         // instead of spinning on "Rebuilding…" forever.
-        setErrorMsg("Your approval went through, but we couldn't finalise the transaction just yet. Ask me again and I'll prepare it fresh — no second approval needed.")
+        setErrorMsg("Your approval went through, but we couldn't finalise the transaction just yet. Ask me again and I'll prepare it fresh - no second approval needed.")
         setPhase("error")
         return
       }
@@ -261,12 +261,12 @@ export function ActionCard({
           <p className="flex items-start gap-1.5">
             <ShieldCheck className="size-3.5 shrink-0 mt-0.5" />
             <span>
-              Transactions are prepared for review and executed by your own wallet — you review and sign every one.
+              Transactions are prepared for review and executed by your own wallet - you review and sign every one.
               This feature may not be available or appropriate in your region; you are responsible for confirming that before using it.
             </span>
           </p>
           <button onClick={acknowledge} className="mt-2 w-full rounded-lg py-1.5 font-semibold" style={{ backgroundColor: primaryColor, color: textColor }}>
-            I understand — continue
+            I understand - continue
           </button>
         </div>
       )}
@@ -284,10 +284,10 @@ export function ActionCard({
         <p className="mt-2 flex items-center gap-1.5 font-semibold"><CheckCircle2 className="size-3.5" /> Confirmed on-chain</p>
       )}
       {phase === "failed" && (
-        <p className="mt-2 flex items-center gap-1.5 font-semibold"><XCircle className="size-3.5" /> Transaction failed — details incoming below</p>
+        <p className="mt-2 flex items-center gap-1.5 font-semibold"><XCircle className="size-3.5" /> Transaction failed - details incoming below</p>
       )}
       {phase === "unknown" && (
-        <p className="mt-2 opacity-80">Status unknown — check the transaction in a block explorer{txHashRef.current ? `: ${txHashRef.current.slice(0, 10)}…` : "."}</p>
+        <p className="mt-2 opacity-80">Status unknown - check the transaction in a block explorer{txHashRef.current ? `: ${txHashRef.current.slice(0, 10)}…` : "."}</p>
       )}
 
       {(phase === "ready" || phase === "rejected" || phase === "wrong_account") && !expired && !terminal && (
@@ -304,10 +304,10 @@ export function ActionCard({
         <p className="mt-2 flex items-center gap-1.5 opacity-80">
           <Loader2Icon className="size-3 animate-spin" />
           {phase === "approving" && "Waiting for the approval signature…"}
-          {phase === "approval_pending" && "Approval submitted — waiting for it to confirm…"}
+          {phase === "approval_pending" && "Approval submitted - waiting for it to confirm…"}
           {phase === "rebuilding" && "Rebuilding the transaction with a fresh quote…"}
           {phase === "signing" && "Waiting for your signature…"}
-          {phase === "pending" && "Transaction submitted — waiting for confirmation…"}
+          {phase === "pending" && "Transaction submitted - waiting for confirmation…"}
         </p>
       )}
 

@@ -1,4 +1,4 @@
-// Shared security utilities — pure helpers, no "use server" needed
+// Shared security utilities - pure helpers, no "use server" needed
 
 const PRIVATE_IP_RE = /^(127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|169\.254\.|0\.0\.0\.0$|::1$|fc00:|fd|fe80:)/
 

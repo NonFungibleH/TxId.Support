@@ -159,7 +159,7 @@ export default function BlogPostPage({ params }: { params: { slug: string } }) {
             All posts
           </Link>
 
-          {/* Hero image — between back link and header */}
+          {/* Hero image - between back link and header */}
           <PostHeroImage variant={post.heroVariant} className="rounded-xl overflow-hidden mb-10" />
 
           {/* Header */}

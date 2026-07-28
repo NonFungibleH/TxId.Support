@@ -69,7 +69,7 @@ export default async function EmbedPage() {
       <Card>
         <CardHeader>
           <CardTitle>Embed code</CardTitle>
-          <CardDescription>Three ways to integrate — pick whatever fits your stack.</CardDescription>
+          <CardDescription>Three ways to integrate - pick whatever fits your stack.</CardDescription>
         </CardHeader>
         <CardContent>
           <EmbedCodeDisplay

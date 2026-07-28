@@ -118,7 +118,7 @@ export async function renameOrg(name: string) {
   const orgKey = orgId ?? userId
 
   const trimmed = name.trim()
-  if (!trimmed || trimmed.length > 80) throw new Error("Name must be 1–80 characters")
+  if (!trimmed || trimmed.length > 80) throw new Error("Name must be 1-80 characters")
 
   const supabase = createServiceClient()
 
@@ -138,7 +138,7 @@ export async function renameProject(projectId: string, name: string) {
   const orgKey = orgId ?? userId
 
   const trimmed = name.trim()
-  if (!trimmed || trimmed.length > 80) throw new Error("Name must be 1–80 characters")
+  if (!trimmed || trimmed.length > 80) throw new Error("Name must be 1-80 characters")
 
   const supabase = createServiceClient()
 
@@ -186,14 +186,14 @@ export async function updateConfig(
 
   if (!org || current.org_id !== org.id) throw new Error("Forbidden")
 
-  // Validate webhookUrl before persisting — must be HTTPS + public IP
+  // Validate webhookUrl before persisting - must be HTTPS + public IP
   if (partial.webhookUrl) {
     const { assertSafeWebhookUrl } = await import("@/lib/security")
     assertSafeWebhookUrl(partial.webhookUrl)
   }
 
   // When a token is being saved, resolve its symbol + name from on-chain so the
-  // widget shows e.g. "PHAR" instead of "Unknown". Best-effort — never blocks
+  // widget shows e.g. "PHAR" instead of "Unknown". Best-effort - never blocks
   // the save if the lookup fails.
   let resolvedPartial = partial
   if (partial.token && partial.token.address) {

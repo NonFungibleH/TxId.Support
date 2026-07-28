@@ -98,7 +98,7 @@ export function ConversationList({
 
   // Persisted list-level summaries (one-line + category + sentiment), merged
   // over the server-rendered rows as stale ones get summarised on mount. This
-  // replaces the old on-expand /api/conversations/[id]/summary fetch — one
+  // replaces the old on-expand /api/conversations/[id]/summary fetch - one
   // cached, categorised, cost-tracked summary system instead of two.
   const [tags, setTags] = useState<Record<string, ConvSummary>>({})
   const [catFilter, setCatFilter] = useState<string>("all")
@@ -112,7 +112,7 @@ export function ConversationList({
       .then(fresh => {
         if (fresh.length) setTags(prev => ({ ...prev, ...Object.fromEntries(fresh.map(f => [f.id, f])) }))
       })
-      .catch(() => { /* non-fatal — rows fall back to first message */ })
+      .catch(() => { /* non-fatal - rows fall back to first message */ })
   }, [conversations])
 
   async function raiseTicket(convId: string) {
@@ -273,7 +273,7 @@ export function ConversationList({
                   </div>
                   <div>
                     <p className="text-[10px] uppercase tracking-wide text-muted-foreground/60 mb-0.5">Network</p>
-                    <p className="text-xs text-foreground">{chainName ?? "—"}</p>
+                    <p className="text-xs text-foreground">{chainName ?? "-"}</p>
                   </div>
                   <div>
                     <p className="text-[10px] uppercase tracking-wide text-muted-foreground/60 mb-0.5">Started</p>
@@ -333,7 +333,7 @@ export function ConversationList({
                   {tStatus === "done" ? (
                     <span className="flex items-center gap-1.5 text-xs text-green-400">
                       <CheckCircle2 className="size-3.5" />
-                      {tRef} raised —{" "}
+                      {tRef} raised -{" "}
                       <a href="/dashboard/tickets" className="underline hover:no-underline">
                         View tickets
                       </a>

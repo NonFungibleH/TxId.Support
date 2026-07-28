@@ -6,7 +6,7 @@ import { setProjectPlan } from "@/lib/actions/admin"
 import { PLAN_LABELS } from "@/lib/types/config"
 import type { Plan } from "@/lib/types/config"
 
-// Order shown in the dropdown — the plans we actually use up front.
+// Order shown in the dropdown - the plans we actually use up front.
 const PLAN_OPTIONS: Plan[] = ["free", "demo", "custom", "enterprise", "pro", "starter"]
 
 export function PlanControl({ projectId, currentPlan }: { projectId: string; currentPlan: Plan }) {

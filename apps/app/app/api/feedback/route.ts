@@ -29,7 +29,7 @@ export async function POST(request: Request) {
       request.headers.get("x-real-ip") ??
       "unknown"
 
-    // Generous cap — feedback is cheap, but stop a loop from hammering it.
+    // Generous cap - feedback is cheap, but stop a loop from hammering it.
     const { allowed } = await rateLimit(`feedback:${ip}`, 60, 60_000)
     if (!allowed) {
       return new Response(JSON.stringify({ error: "Too many requests." }), {
@@ -75,7 +75,7 @@ export async function POST(request: Request) {
       .eq("session_id", sessionId)
       .maybeSingle()
     if (!conv) {
-      // Nothing persisted yet — nothing to rate. Treat as a no-op success.
+      // Nothing persisted yet - nothing to rate. Treat as a no-op success.
       return new Response(JSON.stringify({ ok: true }), {
         status: 200,
         headers: { ...CORS_HEADERS, "Content-Type": "application/json" },

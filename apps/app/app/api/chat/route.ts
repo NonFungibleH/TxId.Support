@@ -47,7 +47,7 @@ function extractHostname(originOrReferer: string): string | null {
 }
 
 /**
- * Domain allowlist enforcement — mirrors /api/widget-config so the expensive
+ * Domain allowlist enforcement - mirrors /api/widget-config so the expensive
  * chat endpoint is gated the same way the config endpoint is. Without this a
  * copied publishable key lets any browser origin burn a project's conversation
  * quota + LLM spend. Empty allowedDomains = not yet restricted (open); once the
@@ -135,7 +135,7 @@ export async function POST(request: Request) {
 
     // Public "inspect / demo-protocol" scoping (the /check "try it live" tool)
     // is built AFTER the project is resolved, because whether it's allowed
-    // depends on this being our demo project — recognised by the demo key OR the
+    // depends on this being our demo project - recognised by the demo key OR the
     // "demo" plan, so it works even when the demo key env var isn't mirrored onto
     // this deployment. Declarations kept here so they stay in scope downstream.
     const inspectAddress = typeof contractAddress === "string" ? contractAddress.trim() : ""
@@ -187,7 +187,7 @@ export async function POST(request: Request) {
 
     const typedProject = project as unknown as ProjectRow & { name: string; is_active: boolean }
 
-    // F1: preview mode requires a server-signed token — prevents unauthenticated quota abuse
+    // F1: preview mode requires a server-signed token - prevents unauthenticated quota abuse
     if (!typedProject.is_active) {
       if (!preview || !verifyPreviewToken(typedProject.id, previewToken)) {
         return new Response(JSON.stringify({ error: "Project is inactive" }), {
@@ -239,12 +239,12 @@ export async function POST(request: Request) {
     // Our own demo project, recognised three ways: the demo key (when its env
     // var is set on this deployment), the "demo" plan, or the publicDemo flag on
     // the project row. The flag lets our demo project stay on "custom" (needed
-    // for the marketing-site widget + admin) while still powering /check — set it
+    // for the marketing-site widget + admin) while still powering /check - set it
     // in /admin. This means /check works without mirroring the demo key env var
     // from the marketing site onto this API deployment.
     const isDemo = isDemoKey(key) || plan === "demo" || rawConfig.publicDemo === true
 
-    // Domain allowlist — reject before claiming a conversation slot or calling
+    // Domain allowlist - reject before claiming a conversation slot or calling
     // the LLM, so a copied key from a non-registered origin can't drain quota.
     // Exempt OUR own demo project: it powers the /demo + /check pages on the
     // marketing site (any origin by design) and is protected by the per-IP rate
@@ -273,7 +273,7 @@ export async function POST(request: Request) {
       // Hard cap: 8 messages per IP per 24h. Server-enforced (a refresh, a new
       // session, or switching demo protocol can't reset it) so the public demo
       // can never run up our LLM/RPC cost. Matches CHAT_LIMITS.demoSessionMessages
-      // below — both must move together or the tighter one silently wins.
+      // below - both must move together or the tighter one silently wins.
       const daily = await rateLimit(`inspect:${ip}`, 8, 86_400_000)
       if (!daily.allowed) {
         return new Response(JSON.stringify({
@@ -321,7 +321,7 @@ export async function POST(request: Request) {
       .maybeSingle()
 
     if (existingConv.data) {
-      // Existing session — enforce the per-session message cap (stricter for
+      // Existing session - enforce the per-session message cap (stricter for
       // the public demo key).
       const sessionCap = isDemo ? CHAT_LIMITS.demoSessionMessages : CHAT_LIMITS.sessionMessages
       const { count: msgCount } = await supabase
@@ -329,9 +329,9 @@ export async function POST(request: Request) {
         .select("id", { count: "exact", head: true })
         .eq("conversation_id", existingConv.data.id)
         .eq("role", "user")
-      // Action follow-ups are not user turns — the cap never applies to them.
+      // Action follow-ups are not user turns - the cap never applies to them.
       if (!validActionResult && (msgCount ?? 0) >= sessionCap) {
-        // Cap reached — don't cold-error the user out. Escalate to a human:
+        // Cap reached - don't cold-error the user out. Escalate to a human:
         // emit the same SSE `escalate` event the AI uses, which the widget
         // renders as its ticket form and ends the conversation gracefully.
         const enc = new TextEncoder()
@@ -340,7 +340,7 @@ export async function POST(request: Request) {
             controller.enqueue(
               enc.encode(
                 `data: ${JSON.stringify({
-                  text: "We've covered a lot in this chat. So nothing gets lost, I'll hand you over to the team — drop your details below and someone will follow up with you directly.",
+                  text: "We've covered a lot in this chat. So nothing gets lost, I'll hand you over to the team - drop your details below and someone will follow up with you directly.",
                 })}\n\n`,
               ),
             )
@@ -373,7 +373,7 @@ export async function POST(request: Request) {
       // Conversations/Analytics working, but they never count toward the paid
       // conversation quota. persistMessages will create the conversation row.
     } else {
-      // New session — atomically claim a slot against the monthly + daily caps.
+      // New session - atomically claim a slot against the monthly + daily caps.
       const { monthly, daily } = conversationLimitsFor(plan)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data: slot } = await (supabase as any).rpc("claim_conversation_slot", {
@@ -400,7 +400,7 @@ export async function POST(request: Request) {
     const projectMode = (typedProject as unknown as { mode?: string }).mode ?? "support"
 
     // Build snapshot for AI package (no Clerk types)
-    // Curated documentation links from "docs" content blocks — the bot can
+    // Curated documentation links from "docs" content blocks - the bot can
     // point users to specific pages for more detail.
     const docLinks = (config.contentBlocks ?? [])
       .filter((bl) => bl.type === "docs")
@@ -430,7 +430,7 @@ export async function POST(request: Request) {
         chain: c.chain,
         description: c.description,
         ...(c.moduleName ? { moduleName: c.moduleName } : {}),
-        // These were being dropped — without abi the contract-read tools are
+        // These were being dropped - without abi the contract-read tools are
         // never offered/usable, and without errorGlossary the team's custom
         // wording never reaches the prompt. Both are needed downstream.
         ...(c.errorGlossary ? { errorGlossary: c.errorGlossary } : {}),
@@ -459,7 +459,7 @@ export async function POST(request: Request) {
       }
     }
 
-    // Wallet config — passed to the AI so Claude can decide whether to use tools
+    // Wallet config - passed to the AI so Claude can decide whether to use tools
     const walletConfig =
       projectMode === "support" && walletAddress && chainId
         ? { address: walletAddress, chainId }
@@ -531,11 +531,11 @@ export async function POST(request: Request) {
     if (userTurnCount >= 4 && !validActionResult) {
       systemPrompt +=
         `\n\n⚠️ ESCALATION REQUIRED: This user has now sent ${userTurnCount} messages. ` +
-        `Their issue is not yet resolved. You MUST call create_support_ticket in this response — ` +
+        `Their issue is not yet resolved. You MUST call create_support_ticket in this response - ` +
         `do not attempt another resolution. Acknowledge what you've tried and hand off to the team.`
     }
 
-    // Stream the response — Claude uses tools as needed for on-chain data
+    // Stream the response - Claude uses tools as needed for on-chain data
     const encoder = new TextEncoder()
     const stream = new ReadableStream({
       async start(controller) {
@@ -550,7 +550,7 @@ export async function POST(request: Request) {
                 {
                   role: "user" as const,
                   content:
-                    `[Transaction update — system message, not typed by the user] ` +
+                    `[Transaction update - system message, not typed by the user] ` +
                     `The prepared action "${validActionResult.row.summary ?? "transaction"}" was ${validActionResult.confirmed ? "CONFIRMED" : "FAILED"} on-chain. ` +
                     `Tx hash: ${validActionResult.txHash}.` +
                     (validActionResult.gasUsed ? ` Gas used: ${validActionResult.gasUsed}.` : "") +
@@ -581,7 +581,7 @@ export async function POST(request: Request) {
             } else if (event.type === "wallet_action") {
               data = `data: ${JSON.stringify({ wallet_action: event.action })}\n\n`
             } else if (event.type === "usage") {
-              // Internal — captured for per-project cost accounting, not forwarded.
+              // Internal - captured for per-project cost accounting, not forwarded.
               usage = { inputTokens: event.inputTokens, outputTokens: event.outputTokens, model: event.model }
               continue
             } else {
@@ -601,7 +601,7 @@ export async function POST(request: Request) {
                 )
               }
             } catch {
-              // non-fatal — chips are a nice-to-have
+              // non-fatal - chips are a nice-to-have
             }
           }
 
@@ -609,7 +609,7 @@ export async function POST(request: Request) {
 
           // Persist user message + assistant response after stream completes
           // The action-update marker is a system-generated status note, not a
-          // user turn — persist it as an assistant-side row so it never counts
+          // user turn - persist it as an assistant-side row so it never counts
           // against the per-session user-message cap on subsequent requests.
           void persistMessages(supabase, typedProject.id, sessionId, validActionResult ? [...messages, { role: "assistant" as const, content: `⚙️ Action update: ${validActionResult.row.summary ?? "transaction"} ${validActionResult.confirmed ? "confirmed" : "failed"} (${validActionResult.txHash})` }] : messages, walletAddress, chainId, fullResponseText || undefined, usage)
         } catch (err) {
@@ -669,7 +669,7 @@ async function persistMessages(
 
     // Persist the turn-opening message: a real user turn on the normal path, or
     // an assistant-side action-update marker on the post-transaction follow-up.
-    // (Prior history is already stored from earlier turns — only the latest.)
+    // (Prior history is already stored from earlier turns - only the latest.)
     const latest = messages[messages.length - 1]
     if (latest?.role === "user" || latest?.role === "assistant") {
       toInsert.push({ conversation_id: conv.id, role: latest.role, content: latest.content })

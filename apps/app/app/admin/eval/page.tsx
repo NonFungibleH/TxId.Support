@@ -20,7 +20,7 @@ export default async function EvalPage({
   return (
     <div className="min-h-screen bg-background p-6 md:p-10 space-y-6">
       <div>
-        <p className="text-xs text-muted-foreground uppercase tracking-wider font-mono mb-1">Internal — diagnostic eval</p>
+        <p className="text-xs text-muted-foreground uppercase tracking-wider font-mono mb-1">Internal - diagnostic eval</p>
         <h1 className="text-3xl font-bold">Bot capability eval</h1>
         <p className="text-muted-foreground mt-1 text-sm">
           Live checks of the on-chain tools against known-correct answers. Add <code className="font-mono text-xs bg-muted px-1 rounded">?tx=0x…&chain=0x1</code> to spot-check a real transaction.

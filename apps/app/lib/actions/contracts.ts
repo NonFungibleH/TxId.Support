@@ -91,7 +91,7 @@ export async function addContract(
 
   if (existing.length >= 20) throw new Error("Maximum of 20 watched contracts per project")
 
-  // Enforce chain limit — derived from existing contracts + token (chains page removed)
+  // Enforce chain limit - derived from existing contracts + token (chains page removed)
   const plan = (config.plan ?? "free") as Plan
   const chainLimit = PLAN_CHAIN_LIMITS[plan]
   if (chainLimit !== Infinity) {
@@ -381,7 +381,7 @@ export async function removeContract(projectId: string, contractId: string) {
 
 /**
  * Reads the public function names from a verified contract's ABI.
- * No auth required — this is read-only public blockchain data.
+ * No auth required - this is read-only public blockchain data.
  * Returns null if the contract isn't verified or the explorer is unreachable.
  */
 export async function peekContractFunctions(
@@ -404,7 +404,7 @@ export interface AptosModulePeek {
 
 /**
  * Lists the Move modules published at an Aptos address, with entry/view
- * function counts. No auth required — this is read-only public chain data.
+ * function counts. No auth required - this is read-only public chain data.
  */
 export async function peekAptosModules(
   address: string,
@@ -413,7 +413,7 @@ export async function peekAptosModules(
   if (!APTOS_ADDRESS_RE.test(clean)) return { error: "Enter a valid Aptos address" }
   const modules = await getAptosModuleAbi(clean).catch(() => null)
   // The fullnode client returns null for BOTH not-found and network failure,
-  // so the error must stay honestly ambiguous — never a confident "no modules".
+  // so the error must stay honestly ambiguous - never a confident "no modules".
   if (!modules) {
     return { error: "Could not fetch modules: the address may have no modules published, or the network request failed" }
   }

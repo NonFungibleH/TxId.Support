@@ -68,7 +68,7 @@ function rgbToHex(r: number, g: number, b: number): string {
 
 // oklch is used by Tailwind v4 / shadcn v2. Approximate by mapping to HSL using the hue channel.
 function oklchApproxHex(l: number, c: number, h: number): string | null {
-  if (c < 0.02) return null // achromatic — no useful hue
+  if (c < 0.02) return null // achromatic - no useful hue
   const approxL = Math.min(95, Math.max(5, l * 100))
   const approxS = Math.min(100, c * 280)
   return hslToHex(h, approxS, approxL)
@@ -176,7 +176,7 @@ export async function fetchBrandColors(rawUrl: string): Promise<BrandColorResult
       /<(?:html|body)[^>]*class=["'][^"']*\bdark\b/i.test(html) ||
       /<(?:html|body)[^>]*data-theme=["']dark["']/i.test(html)
 
-    // 0. body/html inline style background — most direct signal
+    // 0. body/html inline style background - most direct signal
     if (!backgroundColor) {
       const bodyStyleBg =
         html.match(/<(?:body|html)[^>]+style=["'][^"']*background(?:-color)?\s*:\s*(#[0-9a-fA-F]{3,8})/i)
@@ -186,7 +186,7 @@ export async function fetchBrandColors(rawUrl: string): Promise<BrandColorResult
       }
     }
 
-    // 1. <meta name="theme-color"> — most reliable primary signal
+    // 1. <meta name="theme-color"> - most reliable primary signal
     const themeColorMatch =
       html.match(/<meta[^>]*name=["']theme-color["'][^>]*content=["']([^"']+)["']/i) ||
       html.match(/<meta[^>]*content=["']([^"']+)["'][^>]*name=["']theme-color["']/i)
@@ -199,7 +199,7 @@ export async function fetchBrandColors(rawUrl: string): Promise<BrandColorResult
       }
     }
 
-    // 2. Web app manifest — theme_color + background_color
+    // 2. Web app manifest - theme_color + background_color
     if (!primaryColor || !backgroundColor) {
       const manifestMatch =
         html.match(/<link[^>]*rel=["']manifest["'][^>]*href=["']([^"']+)["']/i) ||
@@ -246,7 +246,7 @@ export async function fetchBrandColors(rawUrl: string): Promise<BrandColorResult
       }
     }
 
-    // 4. External stylesheets — most modern sites put CSS variables here
+    // 4. External stylesheets - most modern sites put CSS variables here
     if (!primaryColor) {
       const sheetMatches = [...html.matchAll(/<link[^>]*rel=["']stylesheet["'][^>]*href=["']([^"']+)["']/gi)]
       const sheetUrls = sheetMatches
@@ -303,7 +303,7 @@ export async function fetchBrandColors(rawUrl: string): Promise<BrandColorResult
     }
 
     // Background: use detected value, or infer from explicit dark signals.
-    // Default to white — most marketing/B2B sites are light-themed even when their
+    // Default to white - most marketing/B2B sites are light-themed even when their
     // brand colour is a dark/saturated hue.
     const explicitlyDark = hasDarkColorScheme || hasDarkBodyClass ||
       (backgroundColor != null && !isLight(backgroundColor))

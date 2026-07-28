@@ -56,7 +56,7 @@ export function OnboardingForm() {
           </p>
         </div>
 
-        {/* Mode selection — only shown when token mode is enabled */}
+        {/* Mode selection - only shown when token mode is enabled */}
         {ENABLE_TOKEN_MODE && (
           <div className="space-y-3">
             {MODES.map(({ id, emoji, title, desc }) => (

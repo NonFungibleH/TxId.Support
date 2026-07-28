@@ -81,7 +81,7 @@ export async function saveTelegramToken(projectId: string, token: string) {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? ""
   const webhookUrl = `${appUrl}/api/telegram/${project.publishable_key}`
 
-  // Wire webhook — this must succeed
+  // Wire webhook - this must succeed
   await callTelegramApi(token.trim(), "setWebhook", {
     url: webhookUrl,
     secret_token: project.secret_key,
@@ -89,7 +89,7 @@ export async function saveTelegramToken(projectId: string, token: string) {
     drop_pending_updates: true,
   })
 
-  // Auto-configure bot identity + commands — best-effort, don't block on failure
+  // Auto-configure bot identity + commands - best-effort, don't block on failure
   const botDisplayName = telegramBotName(project.name)
   const description = `I'm the AI support assistant for ${project.name}. Ask me anything: I can look up your transactions, explain contract errors, and help you get unstuck.`
   const shortDescription = `AI support for ${project.name}. Ask anything.`.slice(0, 120)
@@ -212,7 +212,7 @@ export async function removeTelegramToken(projectId: string) {
     try {
       await callTelegramApi(config.telegramBotToken, "deleteWebhook")
     } catch {
-      // Best effort — proceed even if Telegram call fails
+      // Best effort - proceed even if Telegram call fails
     }
   }
 

@@ -12,7 +12,7 @@ const DEMO_KEY = process.env.NEXT_PUBLIC_DEMO_WIDGET_KEY ?? null;
 const WIDGET_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://app.txid.support";
 
 // ---------------------------------------------------------------------------
-// Scenario data — delays are reading-paced (slower than real typing)
+// Scenario data - delays are reading-paced (slower than real typing)
 // ---------------------------------------------------------------------------
 
 const SCENARIOS = [
@@ -44,7 +44,7 @@ const SCENARIOS = [
       },
       {
         role: "ai" as const,
-        text: "Yes, gas is charged even on failed transactions (~$4.20 at current prices). Miners are paid for computation regardless of outcome.\n\nTip: retry during off-peak hours (UTC midnight–6am) when fees are 40–60% lower.",
+        text: "Yes, gas is charged even on failed transactions (~$4.20 at current prices). Miners are paid for computation regardless of outcome.\n\nTip: retry during off-peak hours (UTC midnight-6am) when fees are 40-60% lower.",
         delay: 11500,
       },
     ],
@@ -67,7 +67,7 @@ const SCENARIOS = [
       },
       {
         role: "ai" as const,
-        text: "Based on the protocol docs: 24 months total, with a 6-month cliff.\n\n• Months 0–6: nothing released\n• Month 6: 25% unlocks\n• Months 7–24: remaining 75% releases linearly (~4.2%/month)",
+        text: "Based on the protocol docs: 24 months total, with a 6-month cliff.\n\n• Months 0-6: nothing released\n• Month 6: 25% unlocks\n• Months 7-24: remaining 75% releases linearly (~4.2%/month)",
         delay: 5000,
       },
       {
@@ -222,7 +222,7 @@ function WidgetDemo({ scenario }: { scenario: (typeof SCENARIOS)[number] }) {
         <span className="font-mono text-xs text-muted">0x1a2b...3c4d connected</span>
       </div>
 
-      {/* Messages — fixed height, scrolls internally */}
+      {/* Messages - fixed height, scrolls internally */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-3">
         {scenario.messages.slice(0, step).map((msg, i) => (
           <ChatBubble key={i} role={msg.role} text={msg.text} />
@@ -323,7 +323,7 @@ export default function DemoPage() {
           {/* Demo layout */}
           <div className="flex flex-col lg:flex-row gap-10 items-start justify-center">
 
-            {/* Left: scenario selector — hidden in live mode */}
+            {/* Left: scenario selector - hidden in live mode */}
             {liveMode ? (
               <div className="hidden lg:block lg:w-64 w-full shrink-0" />
             ) : null}
@@ -369,7 +369,7 @@ export default function DemoPage() {
               </div>
             </div>
 
-            {/* Right: about this product — clearly NOT interactive */}
+            {/* Right: about this product - clearly NOT interactive */}
             <div className="lg:w-56 w-full shrink-0">
               <p className="hidden lg:block text-xs font-semibold text-muted uppercase tracking-wider mb-4">About TxID Support</p>
               <div className="space-y-3">

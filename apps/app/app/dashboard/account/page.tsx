@@ -140,8 +140,8 @@ export default async function AccountPage() {
                 {usagePct >= 80 && (
                   <p className="mt-2 text-xs text-amber-400">
                     {usagePct >= 100
-                      ? "Limit reached — conversations are paused. "
-                      : `${usagePct}% used — `}
+                      ? "Limit reached - conversations are paused. "
+                      : `${usagePct}% used - `}
                     <Link href="/dashboard/upgrade" className="underline underline-offset-2 hover:text-amber-300">
                       Upgrade to continue →
                     </Link>

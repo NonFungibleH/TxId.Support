@@ -110,7 +110,7 @@ interface WidgetConfig {
   actions?: { enabled: boolean }
 }
 
-// Returns perceived luminance 0–1; > 0.5 = light background
+// Returns perceived luminance 0-1; > 0.5 = light background
 function getBgLuminance(hex: string): number {
   try {
     const r = parseInt(hex.slice(1, 3), 16) / 255
@@ -178,13 +178,13 @@ interface Message {
   role: "user" | "assistant"
   content: string
   streaming?: boolean
-  /** Tool currently being called — shown while Claude fetches blockchain data */
+  /** Tool currently being called - shown while Claude fetches blockchain data */
   toolCall?: string | null
   /** One-tap "switch network" prompt when the wallet is on the wrong chain */
   switchAction?: { chainId: string; chainName: string }
   /** "Review in wallet" card for an AI-prepared, user-signed transaction */
   walletAction?: WalletActionPayload
-  /** Client-only line (e.g. a switch confirmation) — never persisted, not ratable */
+  /** Client-only line (e.g. a switch confirmation) - never persisted, not ratable */
   local?: boolean
   /** User's 👍/👎 on this assistant answer: 1 up, -1 down, 0/undefined none */
   feedback?: number
@@ -218,7 +218,7 @@ const CHAIN_SLUG: Record<string, string> = {
 }
 
 function formatUsd(n: number | null | undefined): string {
-  if (n == null) return "—"
+  if (n == null) return "-"
   if (n >= 1_000_000_000) return `$${(n / 1_000_000_000).toFixed(2)}B`
   if (n >= 1_000_000)     return `$${(n / 1_000_000).toFixed(2)}M`
   if (n >= 1_000)         return `$${(n / 1_000).toFixed(2)}K`
@@ -579,7 +579,7 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
         const pair = data.pairs?.find((p) => p.chainId === targetChain) ?? data.pairs?.[0] ?? null
         setDexData(pair)
       } catch {
-        // silently fail — fallback state shown
+        // silently fail - fallback state shown
       } finally {
         setDexLoading(false)
       }
@@ -597,7 +597,7 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
     const session = loadWalletSession(apiKey)
     if (!session) return
 
-    // Only auto-restore manual addresses — never auto-call MetaMask (triggers popup)
+    // Only auto-restore manual addresses - never auto-call MetaMask (triggers popup)
     if (session.setup === "manual" && session.address) {
       setWalletAddress(session.address)
       setChainId(session.chainId ?? "0x1")
@@ -638,7 +638,7 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
     setWalletConnecting(true)
     try {
       if (isSolanaProject) {
-        // Phantom wallet — window.phantom.solana (new) or window.solana (legacy)
+        // Phantom wallet - window.phantom.solana (new) or window.solana (legacy)
         type PhantomProvider = {
           connect: () => Promise<{ publicKey: { toString: () => string } }>
           isPhantom?: boolean
@@ -655,7 +655,7 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
         setWalletSetup("connected")
         saveWalletSession(apiKey, { setup: "connected", address: addr, chainId: "solana" })
       } else if (isAptosProject && !(hasEvmChain && "ethereum" in window)) {
-        // Aptos wallet — Petra injects window.aptos; Martian is the common fallback
+        // Aptos wallet - Petra injects window.aptos; Martian is the common fallback
         type AptosProvider = { connect: () => Promise<{ address: string }> }
         const aptosProvider =
           (window as unknown as { aptos?: AptosProvider }).aptos ??
@@ -672,7 +672,7 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
         setWalletSetup("connected")
         saveWalletSession(apiKey, { setup: "connected", address: addr, chainId: "aptos" })
       } else {
-        // EVM wallet — window.ethereum (MetaMask and other injected wallets)
+        // EVM wallet - window.ethereum (MetaMask and other injected wallets)
         if (!("ethereum" in window)) return
         const eth = (window as unknown as { ethereum: { request: (a: { method: string }) => Promise<string[]> } }).ethereum
         const accounts = await eth.request({ method: "eth_requestAccounts" })
@@ -712,9 +712,9 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
       setMessages((prev) => [...prev, { id: nanoid(), role: "assistant", content: `✅ Switched to ${chainName}. Try your transaction again now.`, local: true }])
     } catch (err) {
       const code = (err as { code?: number })?.code
-      if (code === 4001) return // user rejected — say nothing
+      if (code === 4001) return // user rejected - say nothing
       const msg = code === 4902
-        ? `Your wallet doesn't have ${chainName} added yet — add ${chainName} in your wallet, then try again.`
+        ? `Your wallet doesn't have ${chainName} added yet - add ${chainName} in your wallet, then try again.`
         : `Couldn't switch automatically. Please change your wallet's network to ${chainName} manually.`
       setMessages((prev) => [...prev, { id: nanoid(), role: "assistant", content: msg, local: true }])
     } finally {
@@ -731,7 +731,7 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ key: apiKey, sessionId: sessionId.current, content, rating: next }),
-    }).catch(() => { /* non-fatal — feedback is best-effort */ })
+    }).catch(() => { /* non-fatal - feedback is best-effort */ })
   }, [apiKey])
 
 
@@ -759,7 +759,7 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
         setMessages(prev => [...prev, {
           id: nanoid(),
           role: "assistant" as const,
-          content: `Ticket ${data.ref} has been raised — the team will be in touch at ${ticketEmail.trim()}.`,
+          content: `Ticket ${data.ref} has been raised - the team will be in touch at ${ticketEmail.trim()}.`,
           streaming: false,
         }])
       } else {
@@ -812,7 +812,7 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
         try {
           const body = (await res.json()) as { error?: string }
           if (body?.error) msg = body.error
-        } catch { /* non-JSON body — keep the generic message */ }
+        } catch { /* non-JSON body - keep the generic message */ }
         setMessages((prev) =>
           prev.map((m) => (m.id === assistantId ? { ...m, content: msg, streaming: false } : m)),
         )
@@ -855,7 +855,7 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
               break
             }
             if (parsed.escalate) {
-              // AI wants to raise a ticket — end stream and show form
+              // AI wants to raise a ticket - end stream and show form
               setMessages((prev) =>
                 prev.map((m) => (m.id === assistantId ? { ...m, streaming: false } : m)),
               )
@@ -864,7 +864,7 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
               return
             }
             if (parsed.tool_call) {
-              // Claude is fetching blockchain data — show tool indicator
+              // Claude is fetching blockchain data - show tool indicator
               setMessages((prev) =>
                 prev.map((m) =>
                   m.id === assistantId ? { ...m, toolCall: parsed.tool_call } : m,
@@ -881,7 +881,7 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
               )
             }
             if (parsed.switch_chain) {
-              // Wallet is on the wrong network — attach a one-tap switch button
+              // Wallet is on the wrong network - attach a one-tap switch button
               // to this message (only actionable for injected/connected wallets).
               const sc = parsed.switch_chain
               setMessages((prev) =>
@@ -889,7 +889,7 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
               )
             }
             if (parsed.text) {
-              // Text is streaming — clear any tool indicator
+              // Text is streaming - clear any tool indicator
               accumulated += parsed.text
               setMessages((prev) =>
                 prev.map((m) =>
@@ -963,7 +963,7 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
       setMessages((prev) =>
         prev.map((m) =>
           m.id === assistantId
-            ? { ...m, content: status === "confirmed" ? "Transaction confirmed on-chain." : "The transaction failed — paste the hash and I can diagnose it.", streaming: false, local: true }
+            ? { ...m, content: status === "confirmed" ? "Transaction confirmed on-chain." : "The transaction failed - paste the hash and I can diagnose it.", streaming: false, local: true }
             : m,
         ),
       )
@@ -1030,7 +1030,7 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
   // Ensure text always contrasts with the background regardless of branding config
   const bgIsLight = getBgLuminance(b.backgroundColor) > 0.5
   const adaptiveText = bgIsLight ? "#111111" : b.textColor
-  // Desktop only — on mobile the widget is a full-width sheet, so zooming would
+  // Desktop only - on mobile the widget is a full-width sheet, so zooming would
   // clip horizontally. (Panel renders after async config load, so window is safe.)
   const isNarrow = typeof window !== "undefined" && window.innerWidth <= 440
   const widgetScale = isNarrow ? 1 : (FONT_SCALE_VALUE[b.fontScale ?? "md"] ?? 1)
@@ -1048,7 +1048,7 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
         ...(hasInfoContent ? [{ id: "info", label: "Info", icon: InfoIcon }] : []),
       ]
 
-  // CSS variables for branding — applied to the root container
+  // CSS variables for branding - applied to the root container
   const cssVars = {
     "--w-primary": b.primaryColor,
     "--w-secondary": b.secondaryColor,
@@ -1203,7 +1203,7 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
                       return (
                         <>
                           <div style={{ fontSize: "24px", fontWeight: 700, color: "var(--txid-text)" }}>
-                            {price != null ? `$${price < 0.01 ? price.toExponential(4) : price.toFixed(4)}` : "—"}
+                            {price != null ? `$${price < 0.01 ? price.toExponential(4) : price.toFixed(4)}` : "-"}
                           </div>
                           {change24h != null && (
                             <div style={{ fontSize: "13px", color: isUp ? "#22c55e" : "#ef4444", marginTop: "2px" }}>
@@ -1232,7 +1232,7 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
               </>
             ) : (
               <div style={{ textAlign: "center", color: "var(--txid-muted)", fontSize: "13px", padding: "32px 0" }}>
-                Price data unavailable — check DexScreener
+                Price data unavailable - check DexScreener
               </div>
             )}
 
@@ -1557,7 +1557,7 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
               <div ref={messagesEndRef} />
             </div>
 
-            {/* Ticket escalation form — shown when AI triggers escalation */}
+            {/* Ticket escalation form - shown when AI triggers escalation */}
             {escalation && (
               <div
                 className="shrink-0 border-t space-y-2.5 px-3 py-3"
@@ -1622,7 +1622,7 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
               </div>
             )}
 
-            {/* Quick-reply chips — appear after each AI response, cleared on send */}
+            {/* Quick-reply chips - appear after each AI response, cleared on send */}
             {suggestions.length > 0 && !isStreaming && !escalation && (
               <div className="shrink-0 flex flex-wrap gap-1.5 px-3 pt-2.5 pb-2">
                 {suggestions.map((s, i) => (
@@ -1643,7 +1643,7 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
               </div>
             )}
 
-            {/* Speak to a person — always available once conversation has started */}
+            {/* Speak to a person - always available once conversation has started */}
             {!escalation && messages.length > 1 && !isStreaming && (
               <div className="shrink-0 flex justify-center pb-1">
                 <button
@@ -1656,7 +1656,7 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
               </div>
             )}
 
-            {/* Input — hidden while escalation form is shown */}
+            {/* Input - hidden while escalation form is shown */}
             {!escalation && (
               <div
                 className="shrink-0 flex items-center gap-2 border-t px-3 py-2"

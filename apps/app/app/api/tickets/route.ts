@@ -125,7 +125,7 @@ export async function POST(request: Request) {
       })
     }
 
-    // Optional webhook notification — fires async, logs delivery result
+    // Optional webhook notification - fires async, logs delivery result
     const webhookUrl = config.webhookUrl
     if (webhookUrl) {
       const webhookPayload = JSON.stringify({
@@ -175,7 +175,7 @@ export async function POST(request: Request) {
       })()
     }
 
-    // Optional email notification via Resend (no package needed — plain HTTP)
+    // Optional email notification via Resend (no package needed - plain HTTP)
     const notificationEmail = config.notificationEmail
     if (notificationEmail && process.env.RESEND_API_KEY) {
       const conversationText = safeConversation

@@ -21,7 +21,7 @@ export default async function TelegramPage() {
 
   const contractCount = (config.watchedContracts ?? []).length
 
-  // Live webhook health — best effort. A Telegram/network hiccup here must
+  // Live webhook health - best effort. A Telegram/network hiccup here must
   // not blank the whole page, so fall back to null and let the client hide
   // the health card rather than error.
   let health: TelegramHealth | null = null

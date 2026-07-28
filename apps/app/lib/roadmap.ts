@@ -15,7 +15,7 @@ export interface RoadmapItem {
   complexity: Complexity
   effort: string
   status: DefaultStatus
-  /** What it is + why it matters (1–2 sentences). */
+  /** What it is + why it matters (1-2 sentences). */
   what: string
   /** Dependency / blocker, if any. */
   depends?: string
@@ -42,11 +42,11 @@ export const FRAMING = {
   vision:
     "Shift from a reactive support widget (problem → answer) to a trustworthy knowledge-and-records layer: prevent tickets, resolve them well when they happen, and turn every interaction into product intelligence.",
   constraint:
-    "Guardrail: INFORM, don't act or advise. No on-chain actions (no signing/simulation/revoke), and no regulated advice (no buy/sell, price, tax, or legal). Reading the chain to diagnose a past transaction is fine — that's factual and read-only.",
+    "Guardrail: INFORM, don't act or advise. No on-chain actions (no signing/simulation/revoke), and no regulated advice (no buy/sell, price, tax, or legal). Reading the chain to diagnose a past transaction is fine - that's factual and read-only.",
 }
 
 export const ROADMAP: RoadmapItem[] = [
-  // ── Phase 0 — Foundations ─────────────────────────────────────────────────
+  // ── Phase 0 - Foundations ─────────────────────────────────────────────────
   {
     id: "f-seats",
     title: "Team seats + roles",
@@ -81,7 +81,7 @@ export const ROADMAP: RoadmapItem[] = [
     depends: "Blocks: knowledge gap detection.",
   },
 
-  // ── Phase 1 — Quick wins ──────────────────────────────────────────────────
+  // ── Phase 1 - Quick wins ──────────────────────────────────────────────────
   {
     id: "c-noadvice",
     title: "No-advice guardrail (first-class + logged)",
@@ -125,7 +125,7 @@ export const ROADMAP: RoadmapItem[] = [
     depends: "Needs the cron runner (Phase 0).",
   },
 
-  // ── Phase 2 — Flywheel ────────────────────────────────────────────────────
+  // ── Phase 2 - Flywheel ────────────────────────────────────────────────────
   {
     id: "k-gaps",
     title: "Gap detection (top unanswered questions)",
@@ -190,14 +190,14 @@ export const ROADMAP: RoadmapItem[] = [
     what: "@supabase/realtime-js is already a dependency. Subscribe the dashboard to the tickets table for live status + new-ticket alerts, plus the pre-worked diagnostic context on each ticket.",
   },
 
-  // ── Phase 3 — Heavy, high-payoff ──────────────────────────────────────────
+  // ── Phase 3 - Heavy, high-payoff ──────────────────────────────────────────
   {
     id: "h-twoway",
     title: "Two-way reply to the user (email round-trip)",
     area: "handoff",
     phase: 3,
     complexity: "High",
-    effort: "~2–3 wk",
+    effort: "~2-3 wk",
     status: "later",
     what: "THE crux of handoff. Widget users are transient/anonymous, so the realistic reply channel is email (they leave one at escalation): team replies → user gets an email → user replies → an inbound-email parser threads it back onto the ticket.",
     care: "Decide v1 = email round-trip (pragmatic) vs forcing users back into the widget (fragile).",
@@ -218,7 +218,7 @@ export const ROADMAP: RoadmapItem[] = [
     area: "compliance",
     phase: 3,
     complexity: "Medium",
-    effort: "~1.5–2 wk",
+    effort: "~1.5-2 wk",
     status: "soon",
     what: "The privacy policy states 12-month retention but nothing enforces it (a real liability). Add a scheduled purge + delete-on-request + export endpoints.",
     depends: "Retention purge needs the cron runner (Phase 0).",
@@ -235,7 +235,7 @@ export const ROADMAP: RoadmapItem[] = [
     depends: "Extends team seats (Phase 0).",
   },
 
-  // ── Phase 4 — Parking lot ─────────────────────────────────────────────────
+  // ── Phase 4 - Parking lot ─────────────────────────────────────────────────
   {
     id: "h-takeover",
     title: "Live 'takeover' / co-browse",

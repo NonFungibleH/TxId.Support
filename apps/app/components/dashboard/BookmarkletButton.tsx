@@ -7,7 +7,7 @@ interface BookmarkletButtonProps {
 }
 
 /**
- * Draggable bookmarklet anchor — must be a client component because it
+ * Draggable bookmarklet anchor - must be a client component because it
  * carries an onClick handler (which cannot exist in a Server Component).
  */
 export function BookmarkletButton({ href }: BookmarkletButtonProps) {

@@ -61,7 +61,7 @@ export default function Image() {
             </span>
           </div>
 
-          {/* Headline — flex column avoids <br> which is unsupported */}
+          {/* Headline - flex column avoids <br> which is unsupported */}
           <div style={{ display: "flex", flexDirection: "column", marginBottom: 22 }}>
             <span style={{ fontSize: 50, fontWeight: 800, color: "#ffffff", lineHeight: 1.1, letterSpacing: "-0.5px" }}>
               Expert support for every user.
@@ -109,7 +109,7 @@ export default function Image() {
           </div>
         </div>
 
-        {/* Right column — widget mockup */}
+        {/* Right column - widget mockup */}
         <div
           style={{
             display: "flex",

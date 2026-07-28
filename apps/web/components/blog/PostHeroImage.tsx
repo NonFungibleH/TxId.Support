@@ -38,7 +38,7 @@ function DiscordScamSVG() {
       {/* Background */}
       <rect width="700" height="280" fill="#07070d" />
 
-      {/* LEFT panel — Discord-style */}
+      {/* LEFT panel - Discord-style */}
       <rect x="20" y="15" width="310" height="250" rx="10" fill="#0f0f1a" stroke="#1e1e3a" strokeWidth="1.5" />
 
       {/* Header bar */}
@@ -73,7 +73,7 @@ function DiscordScamSVG() {
       <line x1="350" y1="25" x2="350" y2="255" stroke="#1e1e3a" strokeWidth="1" strokeDasharray="4 4" />
       <text x="340" y="145" fontFamily="monospace" fontSize="11" fill="#64748b">vs</text>
 
-      {/* RIGHT panel — In-app support */}
+      {/* RIGHT panel - In-app support */}
       <rect x="365" y="15" width="315" height="250" rx="10" fill="#0a1a0a" stroke="#10b981" strokeWidth="1.5" />
       <rect x="365" y="15" width="315" height="36" rx="10" fill="#071209" />
       <rect x="365" y="37" width="315" height="14" fill="#071209" />
@@ -186,7 +186,7 @@ function DocsQaSVG() {
 
       <rect width="700" height="280" fill="#07070d" />
 
-      {/* LEFT — Your docs */}
+      {/* LEFT - Your docs */}
       <g className="dq_left">
         <text x="30" y="38" fontFamily="monospace" fontSize="11" fill="#6366f1" fontWeight="bold">Your docs</text>
         {/* URL bar */}
@@ -201,7 +201,7 @@ function DocsQaSVG() {
         <rect x="20" y="136" width="155" height="7" rx="2" fill="#1e1e3a" />
       </g>
 
-      {/* MIDDLE — AI retrieval */}
+      {/* MIDDLE - AI retrieval */}
       <text x="258" y="38" fontFamily="monospace" fontSize="11" fill="#64748b">AI retrieval</text>
 
       {/* Vector nodes */}
@@ -217,7 +217,7 @@ function DocsQaSVG() {
       {/* Arrow */}
       <text x="400" y="125" fontFamily="monospace" fontSize="20" fill="#6366f1" textAnchor="middle">→</text>
 
-      {/* RIGHT — Answer */}
+      {/* RIGHT - Answer */}
       <g className="dq_right">
         <text x="430" y="38" fontFamily="monospace" fontSize="11" fill="#10b981" fontWeight="bold">Answer</text>
         <rect x="420" y="48" width="260" height="175" rx="8" fill="#0d1f0d" stroke="#10b981" strokeWidth="1.5" />
@@ -343,25 +343,25 @@ function OnChainDataSVG() {
       {/* Title */}
       <text x="20" y="36" fontFamily="monospace" fontSize="13" fill="white" fontWeight="bold">What your support bot reads</text>
 
-      {/* Card 1 — Tx History */}
+      {/* Card 1 - Tx History */}
       <rect x="20" y="56" width="155" height="95" rx="8" fill="#0f0f1a" stroke="#6366f1" strokeWidth="1.5" />
       <text x="32" y="80" fontFamily="monospace" fontSize="11" fill="white" fontWeight="bold">Tx History</text>
       <text x="32" y="96" fontFamily="monospace" fontSize="9" fill="#64748b">Reverts, hashes,</text>
       <text x="32" y="110" fontFamily="monospace" fontSize="9" fill="#64748b">status</text>
 
-      {/* Card 2 — Token Balances */}
+      {/* Card 2 - Token Balances */}
       <rect x="185" y="56" width="155" height="95" rx="8" fill="#0f0f1a" stroke="#8b5cf6" strokeWidth="1.5" />
       <text x="197" y="80" fontFamily="monospace" fontSize="11" fill="white" fontWeight="bold">Token Balances</text>
       <text x="197" y="96" fontFamily="monospace" fontSize="9" fill="#64748b">ERC-20,</text>
       <text x="197" y="110" fontFamily="monospace" fontSize="9" fill="#64748b">approvals</text>
 
-      {/* Card 3 — Chain ID */}
+      {/* Card 3 - Chain ID */}
       <rect x="20" y="163" width="155" height="95" rx="8" fill="#0f0f1a" stroke="#06b6d4" strokeWidth="1.5" />
       <text x="32" y="187" fontFamily="monospace" fontSize="11" fill="white" fontWeight="bold">Chain ID</text>
       <text x="32" y="203" fontFamily="monospace" fontSize="9" fill="#64748b">Network</text>
       <text x="32" y="217" fontFamily="monospace" fontSize="9" fill="#64748b">detection</text>
 
-      {/* Card 4 — Contract State */}
+      {/* Card 4 - Contract State */}
       <rect x="185" y="163" width="155" height="95" rx="8" fill="#0f0f1a" stroke="#f59e0b" strokeWidth="1.5" />
       <text x="197" y="187" fontFamily="monospace" fontSize="11" fill="white" fontWeight="bold">Contract State</text>
       <text x="197" y="203" fontFamily="monospace" fontSize="9" fill="#64748b">Locks, vesting,</text>

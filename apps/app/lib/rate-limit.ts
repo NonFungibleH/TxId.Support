@@ -1,12 +1,12 @@
-// Shared rate limiter. Uses Upstash Redis (via its REST API — no SDK
+// Shared rate limiter. Uses Upstash Redis (via its REST API - no SDK
 // dependency) when configured, so limits are enforced across every
 // serverless instance. Falls back to a per-instance in-memory counter
 // when the Upstash env vars are absent, so local dev and un-configured
 // deploys still get basic abuse protection (just not distributed).
 //
 // Env:
-//   UPSTASH_REDIS_REST_URL   — e.g. https://xxx.upstash.io
-//   UPSTASH_REDIS_REST_TOKEN — REST token from the Upstash console
+//   UPSTASH_REDIS_REST_URL   - e.g. https://xxx.upstash.io
+//   UPSTASH_REDIS_REST_TOKEN - REST token from the Upstash console
 //
 // Both must be set for the distributed path; if either is missing we
 // silently use the in-memory fallback.
@@ -77,7 +77,7 @@ export async function rateLimit(key: string, limit: number, windowMs: number): P
     try {
       return await upstashLimit(key, limit, Math.ceil(windowMs / 1000))
     } catch {
-      // Redis unreachable — fall back to the in-memory limiter so we
+      // Redis unreachable - fall back to the in-memory limiter so we
       // still cap abuse on this instance instead of failing fully open.
       return memoryLimit(key, limit, windowMs)
     }

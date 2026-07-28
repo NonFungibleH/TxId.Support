@@ -90,7 +90,7 @@ export function ConversationFilters({ initial }: ConversationFiltersProps) {
             className={`${inputCls} text-muted-foreground`}
             title="From date"
           />
-          <span className="text-xs text-muted-foreground">–</span>
+          <span className="text-xs text-muted-foreground">-</span>
           <input
             type="date"
             value={to}

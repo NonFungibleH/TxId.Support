@@ -68,12 +68,12 @@ export const DOCS: Doc[] = [
     category: "getting-started",
     order: 1,
     content: [
-      { type: "p", text: "From sign-up to a live widget takes about 20–30 minutes. Most of that is indexing your docs and adding your contracts. The embed itself takes under 2 minutes." },
+      { type: "p", text: "From sign-up to a live widget takes about 20-30 minutes. Most of that is indexing your docs and adding your contracts. The embed itself takes under 2 minutes." },
       { type: "steps", items: [
         { title: "Sign up and create your project", description: "Go to app.txid.support, sign up, and complete the onboarding. You'll set your project name (shown in the widget header) and choose your mode." },
         { title: "Configure branding", description: "Set your widget colours, choose a font, upload your logo, and pick a widget position (bottom-right, bottom-left, or inline). The live preview updates as you make changes." },
         { title: "Add your smart contracts", description: "Paste each relevant contract address, select its chain, and upload or paste the ABI. The AI uses this to answer on-chain questions: lock expiry, staking balances, vesting schedules." },
-        { title: "Index your documentation", description: "Paste URLs from your docs, whitepaper, or FAQ pages. The AI crawls and chunks each page, then searches them when users ask questions. Aim for 10–20 high-quality pages to start." },
+        { title: "Index your documentation", description: "Paste URLs from your docs, whitepaper, or FAQ pages. The AI crawls and chunks each page, then searches them when users ask questions. Aim for 10-20 high-quality pages to start." },
         { title: "Enable the right chains", description: "Toggle on only the chains your protocol is deployed on. The AI scans these chains when looking up wallet history and contract state." },
         { title: "Embed the widget", description: "Copy the two-line embed snippet from the Embed & Go Live page and paste it before the closing </body> tag in your app." },
         { title: "Go live", description: "Click 'Go live' in the dashboard. The widget becomes visible to your users. You can pause at any time from the dashboard." },
@@ -303,7 +303,7 @@ export const DOCS: Doc[] = [
     content: [
       { type: "p", text: "Once you've configured branding, contracts, and docs, embedding the widget takes about 2 minutes. The Embed & Go Live page provides the code snippet and a one-click toggle to publish." },
       { type: "h2", text: "The embed snippet" },
-      { type: "p", text: "Add a single script tag with your publishable key in the data-key attribute — the loader injects the floating widget for you:" },
+      { type: "p", text: "Add a single script tag with your publishable key in the data-key attribute - the loader injects the floating widget for you:" },
       { type: "code", lang: "html", text: `<script\n  id="txid-widget-script"\n  src="https://app.txid.support/widget.js"\n  data-key="YOUR_PUBLISHABLE_KEY"\n  async>\n</script>` },
       { type: "p", text: "Paste it before the closing </body> tag in your HTML. Your publishable key is shown on the Embed & Go Live page. It's safe to include in client-side code." },
       { type: "h2", text: "Next.js / React" },

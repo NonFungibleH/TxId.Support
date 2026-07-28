@@ -5,7 +5,7 @@ import { isCurrentUserAdmin } from "@/lib/admin-auth"
 import { RoadmapBoard } from "@/components/admin/RoadmapBoard"
 
 export default async function RoadmapPage() {
-  // Auth guard — only configured admin emails (mirrors /admin).
+  // Auth guard - only configured admin emails (mirrors /admin).
   if (!(await isCurrentUserAdmin())) {
     return notFound()
   }

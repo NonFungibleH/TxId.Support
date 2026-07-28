@@ -1,6 +1,6 @@
 // Which write functions of a contract are eligible for Actions. Shared by the
 // customer dashboard (ActionsForm) and the admin Demo Creator so both compute
-// eligibility identically — and identically to what the server enforces at
+// eligibility identically - and identically to what the server enforces at
 // prepare time: non-payable, non-view/pure, and only simple (static) arg types.
 // Admin-looking names are flagged so they're enabled with care.
 

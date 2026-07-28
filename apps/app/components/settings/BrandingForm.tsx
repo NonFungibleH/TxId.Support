@@ -53,7 +53,7 @@ export function BrandingForm({ projectId, initial, onBrandingChange }: BrandingF
         try {
           await updateConfig(projectId, { branding })
         } catch {
-          toast.error("Auto-save failed — click Save to retry")
+          toast.error("Auto-save failed - click Save to retry")
         }
       })
     }, 800)
@@ -94,7 +94,7 @@ export function BrandingForm({ projectId, initial, onBrandingChange }: BrandingF
         }))
         setColorFetchMsg({
           ok: true,
-          text: `Found via ${result.foundSignals.join(", ")} — colours applied below. Tweak as needed.`,
+          text: `Found via ${result.foundSignals.join(", ")} - colours applied below. Tweak as needed.`,
         })
       }
     } finally {

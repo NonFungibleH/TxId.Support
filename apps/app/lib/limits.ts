@@ -29,7 +29,7 @@ export const CHAT_LIMITS = {
    *  ticket and the conversation ends (see /api/chat cap handoff). */
   sessionMessages: 10,
   /** Stricter session cap for the public demo key. Matches the
-   *  inspect:${ip} daily rate limit in /api/chat — both must move together. */
+   *  inspect:${ip} daily rate limit in /api/chat - both must move together. */
   demoSessionMessages: 8,
 } as const
 
@@ -44,7 +44,7 @@ export const TICKET_LIMITS = {
 } as const
 
 /**
- * Per-project DAILY conversation ceiling — a circuit-breaker so a single
+ * Per-project DAILY conversation ceiling - a circuit-breaker so a single
  * customer's traffic spike (or abuse of a leaked key) can't burn a whole
  * month's allowance in one day. Even "unlimited" plans get a daily ceiling.
  * A value of Infinity means no daily cap.

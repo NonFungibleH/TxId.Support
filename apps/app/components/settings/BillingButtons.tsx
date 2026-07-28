@@ -58,7 +58,7 @@ export function CheckoutButton({
 }
 
 /**
- * "Manage billing" button — opens the Stripe customer portal for an existing
+ * "Manage billing" button - opens the Stripe customer portal for an existing
  * subscriber. Falls back to the mailto link when Stripe isn't configured.
  */
 export function ManageBillingButton({
