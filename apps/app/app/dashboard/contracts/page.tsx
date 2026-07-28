@@ -4,7 +4,8 @@ import { ContractList } from "@/components/settings/ContractList"
 import { AddContractDialog } from "@/components/settings/AddContractDialog"
 import { AuditsManager } from "@/components/settings/AuditsManager"
 import { TokenForm } from "@/components/settings/TokenForm"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { CollapsibleCard } from "@/components/settings/CollapsibleCard"
+import { Card, CardContent } from "@/components/ui/card"
 import type { ProjectConfig, Plan } from "@/lib/types/config"
 import { PLAN_CHAIN_LIMITS, SUPPORTED_CHAINS } from "@/lib/types/config"
 import type { Database } from "@/lib/supabase/types"
@@ -13,6 +14,10 @@ type ProjectRow = Database["public"]["Tables"]["projects"]["Row"]
 
 function chainName(id: string) {
   return SUPPORTED_CHAINS.find(c => c.id === id)?.name ?? id
+}
+
+function shortAddr(a: string) {
+  return a.length > 12 ? `${a.slice(0, 6)}…${a.slice(-4)}` : a
 }
 
 export default async function ContractsPage() {
@@ -43,42 +48,43 @@ export default async function ContractsPage() {
         </p>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Token contract</CardTitle>
-          <CardDescription>
-            Your protocol&apos;s own token. Powers live price, the buy link, and token questions in the widget - kept separate from the watched contracts below.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <TokenForm projectId={typedProject.id} initial={config.token} />
-        </CardContent>
-      </Card>
+      <CollapsibleCard
+        title="Token contract"
+        description="Your protocol's own token. Powers live price, the buy link, and token questions in the widget. Kept separate from the watched contracts below."
+        summary={
+          config.token?.address
+            ? <>Set: <span className="font-mono">{shortAddr(config.token.address)}</span>{config.token.chain ? ` · ${chainName(config.token.chain)}` : ""}</>
+            : "Not configured yet (optional)."
+        }
+        defaultOpen={false}
+      >
+        <TokenForm projectId={typedProject.id} initial={config.token} />
+      </CollapsibleCard>
 
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <div>
-            <CardTitle>Watched contracts</CardTitle>
-            <CardDescription>
-              {contracts.length}/20 contracts.
-              {activeChains.length > 0 && (
-                <span className={atChainLimit ? " text-amber-500" : ""}>
-                  {" "}{activeChains.map(chainName).join(", ")}
-                  {chainLimit !== -1 && ` (${activeChains.length}/${chainLimit} chain${chainLimit === 1 ? "" : "s"})`}.
-                </span>
-              )}
-            </CardDescription>
-          </div>
+      <CollapsibleCard
+        title="Watched contracts"
+        description={
+          <>
+            {contracts.length}/20 contracts.
+            {activeChains.length > 0 && (
+              <span className={atChainLimit ? " text-amber-500" : ""}>
+                {" "}{activeChains.map(chainName).join(", ")}
+                {chainLimit !== -1 && ` (${activeChains.length}/${chainLimit} chain${chainLimit === 1 ? "" : "s"})`}.
+              </span>
+            )}
+          </>
+        }
+        action={
           <AddContractDialog
             projectId={typedProject.id}
             activeChains={activeChains}
             chainLimit={chainLimit}
           />
-        </CardHeader>
-        <CardContent>
-          <ContractList projectId={typedProject.id} contracts={contracts} showGlossary />
-        </CardContent>
-      </Card>
+        }
+        defaultOpen
+      >
+        <ContractList projectId={typedProject.id} contracts={contracts} showGlossary />
+      </CollapsibleCard>
 
       <Card>
         <CardContent className="pt-6">
