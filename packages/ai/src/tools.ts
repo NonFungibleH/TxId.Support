@@ -782,7 +782,7 @@ export async function executeTool(
         // Aptos has no contract-creation tx: modules are published to an
         // account, so the account's FIRST transaction is the true equivalent.
         const dep = await getAptosDeployment(target.address)
-        if (!dep) return { contract: target.name, note: aptosFullnodeFailed("look up when this account was created") }
+        if (!dep) return { contract: target.name, note: "Could not look up when this account was created: the Aptos indexer or fullnode did not respond. This is a failed lookup, NOT a statement that the account is new or does not exist. Try again shortly." }
         const pkgs = await getAptosPackages(target.address)
         return {
           contract: target.name,

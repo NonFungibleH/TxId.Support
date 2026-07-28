@@ -40,6 +40,9 @@ export const PROTOCOL_ADAPTERS: Record<string, ProtocolAdapter> = {
     accountLabel: "subaccount",
     resolveAccountFn: `${DECIBEL}::dex_accounts::primary_subaccount`,
     accountViews: [
+      // CROSS margin only. Decibel also supports ISOLATED positions, whose
+      // collateral is held per market and is NOT counted here, so a zero
+      // cross figure does not mean the trader has no funds on the venue.
       { label: "crossCollateralValue", fn: `${DECIBEL}::perp_engine::get_cross_total_collateral_value` },
       { label: "netAssetValue", fn: `${DECIBEL}::perp_engine::get_account_net_asset_value` },
       { label: "positions", fn: `${DECIBEL}::perp_engine::list_positions` },
@@ -48,7 +51,7 @@ export const PROTOCOL_ADAPTERS: Record<string, ProtocolAdapter> = {
     listMarketsFn: `${DECIBEL}::perp_engine::list_markets`,
     marketNameFn: `${DECIBEL}::perp_engine::market_name`,
     note:
-      "On Decibel a trader's collateral and positions live in their subaccount object, NOT in their wallet. The wallet balance is only idle funds that have not been deposited. Always answer position and collateral questions from the subaccount figures below, and never present the wallet balance as the trading balance.",
+      "On Decibel a trader's collateral and positions live in their subaccount object, NOT in their wallet. The wallet balance is only idle funds that have not been deposited. Always answer position and collateral questions from the subaccount figures below, and never present the wallet balance as the trading balance. IMPORTANT: crossCollateralValue covers CROSS margin only. Decibel also supports ISOLATED positions, whose collateral sits per market and is not included, so a zero cross figure does NOT mean the trader has no funds on the venue. If cross collateral is zero but the user believes they hold a position, say that you can see no cross-margin collateral and ask which market they traded, then read that market's isolated collateral rather than telling them they have nothing.",
   },
 }
 
