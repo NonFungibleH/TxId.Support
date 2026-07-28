@@ -103,6 +103,8 @@ interface WidgetConfig {
   } | null
   tokenModeAsk?: string | null
   welcomeMessage?: string | null
+  /** Team-curated starter chips. Non-empty overrides AI-generated follow-ups. */
+  suggestedQuestions?: string[]
   contentBlocks?: ContentBlockData[]
   /** Paid/hand-provisioned plans hide the "Powered by TxID Support" badge. */
   hidePoweredBy?: boolean
@@ -516,6 +518,14 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
 
   // Quick-reply suggestion chips
   const [suggestions, setSuggestions] = useState<string[]>([])
+  // Team-curated chips from the dashboard. When present they are the ONLY
+  // chips shown: the AI-generated follow-ups are suppressed, so a chip can
+  // never offer a feature the protocol doesn't have.
+  const curatedQuestions = (config?.suggestedQuestions ?? []).filter(q => q.trim().length > 0)
+  const hasCurated = curatedQuestions.length > 0
+  // Curated chips are always on offer (they are starter questions, not
+  // follow-ups), so they persist rather than clearing after each turn.
+  const visibleChips = hasCurated ? curatedQuestions : suggestions
 
   // Token mode state
   const [dexData, setDexData] = useState<DexPair | null>(null)
@@ -925,7 +935,8 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
                 ),
               )
             }
-            if (parsed.suggestions?.items?.length) {
+            // Curated chips win: ignore the model's follow-ups entirely.
+            if (!hasCurated && parsed.suggestions?.items?.length) {
               setSuggestions(parsed.suggestions.items)
             }
             if (parsed.wallet_action) {
@@ -971,7 +982,7 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
     } finally {
       setIsStreaming(false)
     }
-  }, [input, isStreaming, config, messages, apiKey, walletAddress, chainId, isPreview, previewToken, walletSetup])
+  }, [input, isStreaming, config, messages, apiKey, walletAddress, chainId, isPreview, previewToken, walletSetup, hasCurated])
 
   const sendActionResult = useCallback(async (actionId: string, txHash: string, status: "confirmed" | "failed", gasUsed?: string, blockNumber?: string) => {
     if (!config) return
@@ -1454,9 +1465,9 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
               ))}
               <div ref={messagesEndRef} />
             </div>
-            {suggestions.length > 0 && !isStreaming && (
+            {visibleChips.length > 0 && !isStreaming && (
               <div className="shrink-0 flex flex-wrap gap-1.5 px-3 pt-2.5 pb-2">
-                {suggestions.map((s, i) => (
+                {visibleChips.map((s, i) => (
                   <button
                     key={i}
                     onClick={() => sendMessage(s)}
@@ -1683,9 +1694,9 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
             )}
 
             {/* Quick-reply chips - appear after each AI response, cleared on send */}
-            {suggestions.length > 0 && !isStreaming && !escalation && (
+            {visibleChips.length > 0 && !isStreaming && !escalation && (
               <div className="shrink-0 flex flex-wrap gap-1.5 px-3 pt-2.5 pb-2">
-                {suggestions.map((s, i) => (
+                {visibleChips.map((s, i) => (
                   <button
                     key={i}
                     onClick={() => sendMessage(s)}

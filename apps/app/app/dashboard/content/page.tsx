@@ -3,6 +3,7 @@ import { redirect } from "next/navigation"
 import Link from "next/link"
 import { ContentBlockEditor } from "@/components/settings/ContentBlockEditor"
 import { TokenCardToggle } from "@/components/settings/TokenCardToggle"
+import { SuggestedQuestionsEditor } from "@/components/settings/SuggestedQuestionsEditor"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import type { ProjectConfig } from "@/lib/types/config"
 import type { Database } from "@/lib/supabase/types"
@@ -22,6 +23,22 @@ export default async function ContentPage() {
         <h1 className="text-2xl font-bold">Content Menu</h1>
         <p className="text-muted-foreground mt-1">Add content blocks to the Content tab in your widget. Drag to reorder.</p>
       </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Suggested questions</CardTitle>
+          <CardDescription>
+            Starter questions shown as tappable chips in the chat. Set your own and they replace the
+            AI&apos;s automatic suggestions, so users are only ever offered questions you know it can answer.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <SuggestedQuestionsEditor
+            projectId={typedProject.id}
+            initial={config.suggestedQuestions ?? []}
+          />
+        </CardContent>
+      </Card>
+
       <Card>
         <CardHeader>
           <CardTitle>Token card</CardTitle>

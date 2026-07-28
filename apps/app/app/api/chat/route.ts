@@ -591,8 +591,11 @@ export async function POST(request: Request) {
             controller.enqueue(encoder.encode(data))
           }
 
-          // Generate contextual follow-up chips after the main response
-          if (!wasEscalated && fullResponseText.length > 20) {
+          // Generate contextual follow-up chips after the main response.
+          // Skipped when the team has curated its own chips: the widget would
+          // ignore these anyway, so don't pay for the extra model call.
+          const hasCuratedChips = (config.suggestedQuestions ?? []).some(q => q.trim().length > 0)
+          if (!wasEscalated && !hasCuratedChips && fullResponseText.length > 20) {
             try {
               const items = await generateSuggestions(safeMessages, fullResponseText)
               if (items.length > 0) {

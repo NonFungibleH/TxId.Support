@@ -234,6 +234,13 @@ export interface ProjectConfig {
   watchedContracts: WatchedContract[]
   audits?: AuditEntry[]
   community: CommunityConfig | null
+  /**
+   * Curated starter questions shown as chips in the widget. When set, these
+   * replace the AI-generated follow-up suggestions, so the team controls
+   * exactly what is offered and no chip can propose a feature that does not
+   * exist. Empty/unset keeps the AI-generated behaviour.
+   */
+  suggestedQuestions?: string[]
   tokenModeAsk: string | null
   previewConfirmed: boolean
   notificationEmail?: string | null

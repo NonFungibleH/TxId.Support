@@ -129,6 +129,9 @@ export async function GET(
         }
       : null,
     community: config.community ?? null,
+    // Curated chips. Non-empty means the widget uses these instead of the
+    // AI-generated follow-ups, so no chip can offer a nonexistent feature.
+    suggestedQuestions: (config.suggestedQuestions ?? []).filter(q => q.trim().length > 0).slice(0, 6),
     // Actions availability only - the function allowlist and caps stay
     // server-side. Mirrors the chat route's actionsGate: normal projects need a
     // paid, non-demo plan; admin action-demos are the deliberate exception.
