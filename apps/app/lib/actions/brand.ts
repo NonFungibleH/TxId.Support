@@ -52,6 +52,31 @@ function isNearWhite(hex: string): boolean {
   return (0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2]) / 255 > 0.92
 }
 
+function chroma(hex: string): number {
+  const rgb = hexToRgb(hex)
+  if (!rgb) return 0
+  return (Math.max(...rgb) - Math.min(...rgb)) / 255
+}
+
+// Fallback for compiled/token-based CSS (Next.js, Tailwind, design-token scales)
+// where the brand colour isn't in a conventionally-named var — e.g. Decibel ships
+// `--colors-brand-yellow-500: #fff600`, which no fixed name list would match.
+// Pick the most frequently-referenced saturated colour across the stylesheets,
+// filtering out near-black/white and low-chroma greys (text, borders, shadows).
+function mostFrequentSaturatedHex(texts: string[]): string | undefined {
+  const freq = new Map<string, number>()
+  for (const t of texts) {
+    for (const m of t.matchAll(/#([0-9a-fA-F]{6}|[0-9a-fA-F]{3})\b/g)) {
+      const hex = normalizeHex(m[0])
+      if (isNearBlack(hex) || isNearWhite(hex) || chroma(hex) < 0.25) continue
+      freq.set(hex, (freq.get(hex) ?? 0) + 1)
+    }
+  }
+  if (freq.size === 0) return undefined
+  // Most referenced wins; ties broken by higher chroma (more clearly a brand hue).
+  return [...freq.entries()].sort((a, b) => b[1] - a[1] || chroma(b[0]) - chroma(a[0]))[0][0]
+}
+
 // ── CSS scanning helpers ──────────────────────────────────────────────────────
 
 function hslToHex(h: number, s: number, l: number): string {
@@ -171,7 +196,7 @@ export async function fetchBrandColors(rawUrl: string): Promise<BrandColorResult
     // Detect explicit dark-theme signals upfront
     const hasDarkColorScheme =
       /<meta[^>]*name=["']color-scheme["'][^>]*content=["'][^"']*dark/i.test(html) ||
-      /color-scheme\s*:\s*dark(?:\s|;|")/i.test(html)
+      /color-scheme\s*:\s*dark\b/i.test(html)
     const hasDarkBodyClass =
       /<(?:html|body)[^>]*class=["'][^"']*\bdark\b/i.test(html) ||
       /<(?:html|body)[^>]*data-theme=["']dark["']/i.test(html)
@@ -228,11 +253,15 @@ export async function fetchBrandColors(rawUrl: string): Promise<BrandColorResult
       }
     }
 
+    // Accumulate stylesheet text seen along the way, for the frequency fallback (step 6).
+    const cssBlobs: string[] = []
+
     // 3. CSS custom properties in inline <style> blocks
     if (!primaryColor) {
       const styleContent = [...html.matchAll(/<style[^>]*>([\s\S]*?)<\/style>/gi)]
         .map(m => m[1])
         .join("\n")
+      if (styleContent) cssBlobs.push(styleContent)
 
       const found = extractPrimaryFromCss(styleContent)
       if (found) {
@@ -262,6 +291,7 @@ export async function fetchBrandColors(rawUrl: string): Promise<BrandColorResult
           })
           if (!res.ok) continue
           const cssText = await res.text()
+          cssBlobs.push(cssText)
           const found = extractPrimaryFromCss(cssText)
           if (found) {
             primaryColor = found
@@ -292,6 +322,17 @@ export async function fetchBrandColors(rawUrl: string): Promise<BrandColorResult
         const top = [...freq.entries()].sort((a, b) => b[1] - a[1])[0][0]
         primaryColor = normalizeHex(top)
         foundSignals.push("Tailwind arbitrary color class")
+      }
+    }
+
+    // 6. Frequency fallback: most-referenced saturated colour in the stylesheets.
+    // Catches token-scale/compiled CSS (e.g. Decibel's `--colors-brand-yellow-500`)
+    // that no fixed var-name list would recognise.
+    if (!primaryColor) {
+      const found = mostFrequentSaturatedHex([...cssBlobs, html])
+      if (found) {
+        primaryColor = found
+        foundSignals.push("most-referenced saturated colour")
       }
     }
 
