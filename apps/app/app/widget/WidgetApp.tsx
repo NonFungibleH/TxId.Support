@@ -689,20 +689,18 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
   const connectWallet = useCallback(async () => {
     if (typeof window === "undefined") return
     setWalletConnecting(true)
+    const applyConn = (address: string, chainId: string) => {
+      setWalletAddress(address)
+      setChainId(chainId)
+      setWalletSetup("connected")
+      saveWalletSession(apiKey, { setup: "connected", address, chainId })
+    }
     try {
-      // Embedded: the host page owns the wallet provider — go through the bridge.
-      if (isEmbedded) {
-        const kind: "aptos" | "evm" | "solana" = isSolanaProject ? "solana" : isAptosProject ? "aptos" : "evm"
-        const res = await connectViaBridge(kind)
-        if (!res) { setManualOpen(true); return }
-        setWalletAddress(res.address)
-        setChainId(res.chainId)
-        setWalletSetup("connected")
-        saveWalletSession(apiKey, { setup: "connected", address: res.address, chainId: res.chainId })
-        return
-      }
+      // Try the provider injected into THIS frame first — connecting directly
+      // from the click keeps the user gesture, so the wallet popup actually
+      // appears. Only when no provider is present here (embedded and the wallet
+      // lives in the host page) do we delegate to the loader bridge.
       if (isSolanaProject) {
-        // Phantom wallet - window.phantom.solana (new) or window.solana (legacy)
         type PhantomProvider = {
           connect: () => Promise<{ publicKey: { toString: () => string } }>
           isPhantom?: boolean
@@ -711,43 +709,32 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
           (window as unknown as { phantom?: { solana?: PhantomProvider } }).phantom?.solana ??
           (window as unknown as { solana?: PhantomProvider }).solana
         )
-        if (!phantom) return
-        const resp = await phantom.connect()
-        const addr = resp.publicKey.toString()
-        setWalletAddress(addr)
-        setChainId("solana")
-        setWalletSetup("connected")
-        saveWalletSession(apiKey, { setup: "connected", address: addr, chainId: "solana" })
-      } else if (isAptosProject && !(hasEvmChain && "ethereum" in window)) {
-        // Aptos wallet - Petra injects window.aptos; Martian is the common fallback
+        if (phantom) { const resp = await phantom.connect(); applyConn(resp.publicKey.toString(), "solana"); return }
+        if (isEmbedded) { const res = await connectViaBridge("solana"); if (res) { applyConn(res.address, res.chainId || "solana"); return } }
+        setManualOpen(true)
+        return
+      }
+      if (isAptosProject && !(hasEvmChain && "ethereum" in window)) {
+        // Petra injects window.aptos; Martian is the common fallback.
         type AptosProvider = { connect: () => Promise<{ address: string }> }
         const aptosProvider =
           (window as unknown as { aptos?: AptosProvider }).aptos ??
           (window as unknown as { martian?: AptosProvider }).martian
-        if (!aptosProvider) {
-          // No injected Aptos wallet: open manual paste instead of dead-ending
-          setManualOpen(true)
-          return
-        }
-        const acct = await aptosProvider.connect()
-        const addr = acct.address
-        setWalletAddress(addr)
-        setChainId("aptos")
-        setWalletSetup("connected")
-        saveWalletSession(apiKey, { setup: "connected", address: addr, chainId: "aptos" })
-      } else {
-        // EVM wallet - window.ethereum (MetaMask and other injected wallets)
-        if (!("ethereum" in window)) return
+        if (aptosProvider) { const acct = await aptosProvider.connect(); applyConn(acct.address, "aptos"); return }
+        if (isEmbedded) { const res = await connectViaBridge("aptos"); if (res) { applyConn(res.address, res.chainId || "aptos"); return } }
+        setManualOpen(true)
+        return
+      }
+      // EVM - window.ethereum (MetaMask and other injected wallets)
+      if ("ethereum" in window) {
         const eth = (window as unknown as { ethereum: { request: (a: { method: string }) => Promise<string[]> } }).ethereum
         const accounts = await eth.request({ method: "eth_requestAccounts" })
-        const chain = await eth.request({ method: "eth_chainId" }) as unknown as string[]
-        const addr = accounts[0]
-        const cId = chain as unknown as string
-        setWalletAddress(addr)
-        setChainId(cId)
-        setWalletSetup("connected")
-        saveWalletSession(apiKey, { setup: "connected", address: addr, chainId: cId })
+        const chain = await eth.request({ method: "eth_chainId" }) as unknown as string
+        applyConn(accounts[0], chain)
+        return
       }
+      if (isEmbedded) { const res = await connectViaBridge("evm"); if (res) { applyConn(res.address, res.chainId); return } }
+      setManualOpen(true)
     } catch {
       // user rejected
     } finally {
