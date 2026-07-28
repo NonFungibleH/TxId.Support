@@ -46,6 +46,10 @@ export type {
   AptosPoolLockup,
   AptosDelegatorStake,
 } from "./staking"
+export { getAptosObject, getAptosObjectsOwnedBy } from "./objects"
+export type { AptosObject, AptosObjectLookup, AptosOwnedObject } from "./objects"
+export { getAptosNfts, getAptosPendingNftClaims, getAptosNftActivity } from "./digital-assets"
+export type { AptosNftHolding, AptosPendingNftClaim, AptosNftActivityEntry } from "./digital-assets"
 export { resolveAptosName, reverseAptosName } from "./names"
 
 export function isAptosChain(chainId: string): boolean {

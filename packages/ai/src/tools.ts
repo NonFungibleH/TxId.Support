@@ -63,6 +63,9 @@ import {
   getAptosDelegations,
   getAptosStakingActivity,
   getAptosPoolLockup,
+  getAptosNfts,
+  getAptosPendingNftClaims,
+  getAptosObject,
   getAptosPackages,
   viewFunction,
   getAptosNetworkStatus,
@@ -213,8 +216,32 @@ export function buildWalletTools(
       }]
     : []
 
+  const aptosExtraTools: Anthropic.Tool[] = aptosProject
+    ? [
+        {
+          name: "get_nft_holdings",
+          description:
+            "Aptos only: the connected wallet's Digital Assets (NFTs), plus any PENDING token claims, i.e. tokens sent to them that have not been accepted yet. " +
+            "Use for 'where is my NFT', 'someone sent me an NFT and it never arrived', 'what NFTs do I hold'.",
+          input_schema: { type: "object" as const, properties: {}, required: [] },
+        },
+        {
+          name: "get_object_info",
+          description:
+            "Aptos only: what an address actually IS. Reports whether it is an object rather than a wallet, who owns it, whether it can be transferred, and which resources it holds. " +
+            "Use when an address behaves unexpectedly, when the user asks who owns something, or to explain that an address is a protocol-owned object and not their wallet.",
+          input_schema: {
+            type: "object" as const,
+            properties: { address: { type: "string", description: "The Aptos address to inspect." } },
+            required: ["address"],
+          },
+        },
+      ]
+    : []
+
   return [
     ...stakingTool,
+    ...aptosExtraTools,
     {
       name: "get_wallet_balance",
       description:
@@ -339,6 +366,42 @@ export async function executeTool(
           : { positionsNote: aptosFullnodeFailed("read this wallet's delegation positions") }),
         ...(activity ? { recentActivity: activity } : { activityNote: aptosFullnodeFailed("read this wallet's staking history") }),
         note: "Amounts are octas: 1 APT = 100,000,000 octas. 'active' is earning, 'pending_inactive' is unlocking this cycle, 'inactive' is withdrawable now. A lockup expiry is the CURRENT cycle's end: stake unlocked after that instant waits for the following cycle, so do not present it as a countdown for an unlock the user has not requested yet.",
+      }
+    }
+
+    case "get_nft_holdings": {
+      if (!wallet) throw new Error("Wallet not connected")
+      if (!aptos) return { note: "Digital Asset lookups here are Aptos only." }
+      const [held, pending] = await Promise.all([
+        getAptosNfts(wallet.address, 25),
+        getAptosPendingNftClaims(wallet.address, 25),
+      ])
+      if (held === null && pending === null) return { error: APTOS_LOOKUP_FAILED }
+      return {
+        walletAddress: wallet.address,
+        ...(held ? { holdings: held } : { holdingsNote: APTOS_LOOKUP_FAILED }),
+        ...(pending ? { pendingClaims: pending } : { pendingClaimsNote: APTOS_LOOKUP_FAILED }),
+        note: "pendingClaims are tokens SENT to this wallet that have not been accepted. On the older token standard a transfer has to be claimed by the recipient unless they opted into direct transfers, so a token sitting here is the usual reason for 'someone sent me an NFT and it never arrived': it is not lost, the recipient just needs to claim it. An empty holdings list means this wallet holds no Digital Assets, NOT that the lookup failed.",
+      }
+    }
+
+    case "get_object_info": {
+      const addr = typeof input.address === "string" ? input.address.trim() : ""
+      if (!addr) throw new Error("address is required")
+      if (!isAptosAddress(addr)) return { address: addr, note: "This tool inspects Aptos addresses only." }
+      const lookup = await getAptosObject(addr)
+      if (!lookup) return { address: addr, error: APTOS_LOOKUP_FAILED }
+      if (!lookup.found) {
+        return {
+          address: addr,
+          isObject: false,
+          note: "The indexer has no object at this address, so it is most likely an ordinary account (a wallet) rather than an object. This is a real answer, not a failed lookup.",
+        }
+      }
+      return {
+        ...lookup.object,
+        isObject: true,
+        note: "This address is an OBJECT, not a wallet: on Aptos protocols hold state in objects (a per-user trading subaccount, a market, an NFT). resourceTypes says what it actually is. allowUngatedTransfer false means it cannot be freely transferred, which is normal for protocol-owned objects and for soulbound tokens. Explain that sending funds to an object address is not the same as sending them to its owner.",
       }
     }
 

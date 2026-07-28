@@ -221,6 +221,15 @@ abort-vs-outage distinction.
 | Gas itemisation + storage refund | ✅ | `feeBreakdown` from the FeeStatement event: execution, IO, total gas units, storage fee and **storage refund**. Explains why freeing state can pay APT back |
 | `.apt` name status | ✅ | **Honesty fix.** An EXPIRED name was reported as "not registered", conflating three different answers. `resolveAptosName` now returns `active` / `expired` / `unregistered`, and `null` only when the lookup itself failed. An expired name's last address is explicitly flagged as unsafe to send to |
 | Coin vs fungible-asset duality (AIP-21) | ✅ | prompt guidance: `token_standard` distinguishes v1 legacy coin from v2 FA, so a "split" or "missing" balance is explained as the migration rather than a bug |
+| Objects and resource accounts | ⚠️ unverified | `get_object_info`: is this address an object or a wallet, who owns it, is it transferable, what resources it holds. Lets the bot explain that a protocol-owned object (a Decibel subaccount, a market) is not the user's wallet |
+| Digital Assets / NFTs + pending claims | ⚠️ unverified | `get_nft_holdings`: holdings plus **pending token claims**, which answer "someone sent me an NFT and it never arrived" (on the older standard a transfer must be claimed unless the recipient opted into direct transfers) |
+
+⚠️ **unverified** above means: every column and relationship name was confirmed
+by live GraphQL introspection, and the code typechecks and fails safe, but the
+data queries themselves were never executed because this IP is exhausted
+against the anonymous indexer limit (40k compute units / 300s). Smoke-test
+these two once `APTOS_API_KEY` is set. The riskiest single clause is the
+`is_fungible_v2` null-safe filter in `getAptosNfts`.
 
 **Never-fabricate rule holds on Aptos:** every client returns `null` on a failed
 fetch (distinct from a genuine empty result), and each call site converts that to
