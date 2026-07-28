@@ -51,7 +51,7 @@ export const softwareApplicationSchema = {
     "Escalation to human support tickets",
     "White-label custom branding",
     "Telegram bot integration",
-    "Multi-chain: Ethereum, Base, BNB Chain, Polygon, Arbitrum, Optimism, Avalanche",
+    "Multi-chain: Ethereum, Base, BNB Chain, Polygon, Arbitrum, Optimism, Avalanche, Aptos",
     "One script-tag embed, works with any stack",
   ],
 }

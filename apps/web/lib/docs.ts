@@ -220,6 +220,7 @@ export const DOCS: Doc[] = [
         { title: "Arbitrum One", description: "Ethereum L2 rollup. Enable for Arbitrum-deployed protocols." },
         { title: "Optimism", description: "Ethereum L2 rollup. Enable for OP-based protocols." },
         { title: "Avalanche C-Chain", description: "Avalanche's EVM chain. Enable for Avalanche-deployed protocols." },
+        { title: "Aptos", description: "Move-based L1. Reads on-chain modules and decodes Move aborts to diagnose failed transactions in plain English." },
         { title: "Sepolia (testnet)", description: "Ethereum testnet. Enable during development to test wallet lookup without real assets." },
       ]},
       { type: "h2", text: "Enabling and disabling chains" },

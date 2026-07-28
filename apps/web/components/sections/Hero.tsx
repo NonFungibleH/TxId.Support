@@ -67,6 +67,7 @@ export function Hero() {
                   { name: "Optimism", file: "Optimism.png", whiteBg: false },
                   { name: "Avalanche", file: "Avalanche.png", whiteBg: false },
                   { name: "BNB",      file: "BNB.png",      whiteBg: false },
+                  { name: "Aptos",    file: "Aptos.png",    whiteBg: true  },
                 ].map(({ name, file, whiteBg }) => (
                   <div
                     key={name}

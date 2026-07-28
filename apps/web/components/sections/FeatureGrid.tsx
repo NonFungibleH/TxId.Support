@@ -60,7 +60,7 @@ const FEATURES = [
     icon: Globe2,
     title: "Multi-Chain",
     description:
-      "Ethereum, Base, BNB Chain, Polygon, Arbitrum, Optimism, and Avalanche. Wallet detection and transaction data across all of them.",
+      "Ethereum, Base, BNB Chain, Polygon, Arbitrum, Optimism, Avalanche, and Aptos. Wallet detection and transaction data across all of them, including Move-based Aptos.",
   },
   {
     icon: BarChart3,
