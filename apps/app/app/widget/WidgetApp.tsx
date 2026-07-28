@@ -858,6 +858,42 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
     })
   }, [])
 
+  // Injected-provider detection and the resulting connect target. Declared
+  // before connectWallet so the callback and its dependency array can both
+  // reference walletTarget.
+  const hasPhantom = typeof window !== "undefined" && (
+    !!(window as unknown as { phantom?: { solana?: unknown } }).phantom?.solana ||
+    !!(window as unknown as { solana?: unknown }).solana
+  )
+  const hasMetaMask = typeof window !== "undefined" && "ethereum" in window
+  const hasPetraLike = typeof window !== "undefined" && (
+    !!(window as unknown as { petra?: unknown }).petra ||
+    !!(window as unknown as { aptos?: unknown }).aptos
+  )
+  const hasMartian = typeof window !== "undefined" && !!(window as unknown as { martian?: unknown }).martian
+  const hasAptosWallet = hasPetraLike || hasMartian
+  const evmWalletUsable = hasEvmChain && hasMetaMask
+  /**
+   * ONE source of truth for which wallet family Connect will actually open,
+   * used by the label, the enabled check and the click handler so they can
+   * never disagree.
+   *
+   * The previous rule was `isAptosProject && !(hasEvmChain && "ethereum" in
+   * window)`, which meant a project watching BOTH Aptos and an EVM chain fell
+   * through to the EVM path whenever MetaMask happened to be installed. On
+   * such a project Petra was unreachable: the button opened MetaMask, or on an
+   * Aptos-only wallet simply failed. An Aptos provider that is actually present
+   * now wins for an Aptos project, because that is the chain the user is being
+   * asked about.
+   */
+  const aptosProviderAvailable = hasAptosWallet || (isEmbedded && !!bridgeWallet?.aptos)
+  const evmProviderAvailable = hasMetaMask || (isEmbedded && !!bridgeWallet?.evm)
+  const walletTarget: "solana" | "aptos" | "evm" = isSolanaProject
+    ? "solana"
+    : isAptosProject && (aptosProviderAvailable || !evmWalletUsable)
+      ? "aptos"
+      : "evm"
+
   const connectWallet = useCallback(async () => {
     if (typeof window === "undefined") return
     setWalletConnecting(true)
@@ -880,7 +916,7 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
       // from the click keeps the user gesture, so the wallet popup actually
       // appears. Only when no provider is present here (embedded and the wallet
       // lives in the host page) do we delegate to the loader bridge.
-      if (isSolanaProject) {
+      if (walletTarget === "solana") {
         type PhantomProvider = {
           connect: () => Promise<{ publicKey: { toString: () => string } }>
           isPhantom?: boolean
@@ -894,7 +930,7 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
         setManualOpen(true)
         return
       }
-      if (isAptosProject && !(hasEvmChain && "ethereum" in window)) {
+      if (walletTarget === "aptos") {
         // Prefer window.petra (Petra's dedicated namespace) over window.aptos:
         // with several wallets installed, Phantom also claims window.aptos for
         // its Aptos support, so the generic handle can be the wrong wallet.
@@ -923,7 +959,7 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
     } finally {
       setWalletConnecting(false)
     }
-  }, [apiKey, isSolanaProject, isAptosProject, hasEvmChain, isEmbedded, connectViaBridge])
+  }, [apiKey, walletTarget, isEmbedded, connectViaBridge])
 
   // ── Disconnect wallet ────────────────────────────────────────────────────
   const disconnectWallet = useCallback(() => {
@@ -1255,35 +1291,21 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
 
   const b = config.branding
   const isTokenMode = config.mode === "token"
-  const hasPhantom = typeof window !== "undefined" && (
-    !!(window as unknown as { phantom?: { solana?: unknown } }).phantom?.solana ||
-    !!(window as unknown as { solana?: unknown }).solana
-  )
-  const hasMetaMask = typeof window !== "undefined" && "ethereum" in window
-  const hasPetraLike = typeof window !== "undefined" && (
-    !!(window as unknown as { petra?: unknown }).petra ||
-    !!(window as unknown as { aptos?: unknown }).aptos
-  )
-  const hasMartian = typeof window !== "undefined" && !!(window as unknown as { martian?: unknown }).martian
-  const hasAptosWallet = hasPetraLike || hasMartian
   // Move-chain wording (module, .apt) for Aptos-only projects.
   const aptosWording = isAptosProject && !hasEvmChain
-  // On mixed EVM+Aptos projects an injected EVM wallet takes precedence;
-  // Aptos-only projects get the Petra flow.
-  const evmWalletUsable = hasEvmChain && hasMetaMask
-  const hasWallet = isSolanaProject
-    ? hasPhantom || (isEmbedded && !!bridgeWallet?.solana)
-    : isAptosProject
-      ? evmWalletUsable || hasAptosWallet || (isEmbedded && (!!bridgeWallet?.aptos || !!bridgeWallet?.evm))
-      : hasMetaMask || (isEmbedded && !!bridgeWallet?.evm)
-  // Name the wallet we will actually open. Petra is the default Aptos label
-  // (it is also what the host-page bridge reaches first); only say Martian when
-  // Martian is the one injected here.
-  const connectLabel = isSolanaProject
-    ? "Connect Phantom"
-    : isAptosProject && !evmWalletUsable
-      ? (hasMartian && !hasPetraLike ? "Connect Martian" : "Connect Petra")
-      : "Connect wallet"
+  const hasWallet =
+    walletTarget === "solana"
+      ? hasPhantom || (isEmbedded && !!bridgeWallet?.solana)
+      : walletTarget === "aptos"
+        ? aptosProviderAvailable || evmProviderAvailable
+        : evmProviderAvailable
+  // Name the wallet we will actually open, derived from the same target.
+  const connectLabel =
+    walletTarget === "solana"
+      ? "Connect Phantom"
+      : walletTarget === "aptos"
+        ? (hasMartian && !hasPetraLike ? "Connect Martian" : "Connect Petra")
+        : "Connect wallet"
 
   // Ensure text always contrasts with the background regardless of branding config
   const bgIsLight = getBgLuminance(b.backgroundColor) > 0.5
