@@ -180,10 +180,11 @@ Legend: ✅ parity · 🟦 N/A by design (the concept does not exist on Aptos) �
 | Custom-error glossary | ✅ | per-protocol errmap + dashboard glossary |
 | Approvals / allowances | 🟦 | Aptos has no standing approvals: assets move only when the owner signs. The bot explains this rather than reporting a gap |
 | Proxy / implementation | 🟦 | no proxy pattern; upgrades happen in place under the package policy |
-| Event history (topic-indexed scan) | ❌ | the indexer's `events` table was **deprecated and removed** (no v2 replacement exposed). Substitute: scan events emitted by the module's recent transactions, labelled honestly as partial |
+| **Asset movement history** (deposits, withdrawals, mints, burns) | ✅ | `getAptosAssetActivities`: the indexer's generic `events` table was retired, but the typed `fungible_asset_activities` table survives and is a real indexed history (event type, amount, asset, timestamp, entry function). Gas-fee rows are filtered in the query so "empty" genuinely means empty |
+| Protocol-defined event history (e.g. "when did the fee change") | ⚠️ | not queryable: those lived in the removed `events` table. Falls back to events emitted by the module's recent transactions, labelled honestly as partial |
+| Token safety signals | ⚠️ | no scanner covers Aptos (GoPlus supports 44 chains, none of them Aptos). `getAptosTokenSafety` instead reports on-chain FACTS: creator, supply, hard cap (`supplyCapped`), standard, last activity, and whether a holder has actually been frozen. Presented as signals, never a verdict |
 | Pre-flight gas estimate | ❌ | Aptos exposes `/transactions/simulate`, not wired up. Low priority while Aptos is read + diagnose only |
-| OFAC sanctions screening | ❌ | the Chainalysis oracle is EVM-only; no Aptos equivalent exists. Bot says so plainly |
-| Token safety / honeypot screen | ❌ | GoPlus is EVM-only; no Aptos equivalent. Bot says so plainly |
+| OFAC sanctions screening | 🟦 | **nothing to screen against**: the screening oracle is EVM-only, AND OFAC's SDN list designates **zero** Aptos addresses (verified against the published list: entries cover XBT, ETH, TRX, USDT, SOL and similar, no APT). The bot states this plainly and never implies the address was checked and cleared |
 | Execute / Actions | 🟦 | deliberately EVM-only (product decision, not a technical gap) |
 
 **Never-fabricate rule holds on Aptos:** every client returns `null` on a failed

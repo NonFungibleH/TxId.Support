@@ -20,10 +20,17 @@ export {
   getAptosWalletBalance,
   getAptosRecentTransactions,
   getAptosAssetMetadata,
+  getAptosAssetActivities,
+  getAptosTokenSafety,
   getAptosDeployment,
   diagnoseAptosWallet,
 } from "./indexer"
-export type { AptosAssetMetadata, AptosDeployment } from "./indexer"
+export type {
+  AptosAssetMetadata,
+  AptosAssetActivity,
+  AptosTokenSafety,
+  AptosDeployment,
+} from "./indexer"
 export { resolveAptosName, reverseAptosName } from "./names"
 
 export function isAptosChain(chainId: string): boolean {

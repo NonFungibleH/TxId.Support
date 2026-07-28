@@ -55,6 +55,8 @@ import {
   getAptosAssetMetadata,
   getAptosModuleAbi,
   getAptosDeployment,
+  getAptosAssetActivities,
+  getAptosTokenSafety,
   getAptosPackages,
   viewFunction,
   getAptosNetworkStatus,
@@ -544,11 +546,19 @@ export async function executeTool(
         return { events: [], note: "Event history lookups are only available on EVM chains." }
       }
       if (isAptosChain(target.chain)) {
-        // No topic-indexed log scan on Aptos here — the honest cheap substitute
-        // is the events emitted by the module's own recent transactions.
-        const aptosTxs = await getAptosRecentTransactions(target.address, target.address, 10, errmapFor(watchedContracts))
-        if (!aptosTxs) return { contract: target.name, event: eventName, events: [], checked: false, error: APTOS_LOOKUP_FAILED }
-        const recentEvents = aptosTxs.flatMap(tx =>
+        // Two complementary Aptos sources, since the indexer's generic events
+        // table was removed:
+        //  1. asset-movement events, which ARE still indexed and go back in time
+        //  2. the module's own recent transactions, for protocol-defined events
+        const wantsAssetFlow = /deposit|withdraw|transfer|mint|burn|fund/i.test(eventName)
+        const [activities, aptosTxs] = await Promise.all([
+          wantsAssetFlow ? getAptosAssetActivities(target.address, 15) : Promise.resolve(null),
+          getAptosRecentTransactions(target.address, target.address, 10, errmapFor(watchedContracts)),
+        ])
+        if (!aptosTxs && !activities) {
+          return { contract: target.name, event: eventName, events: [], checked: false, error: APTOS_LOOKUP_FAILED }
+        }
+        const recentEvents = (aptosTxs ?? []).flatMap(tx =>
           tx.events
             .filter(e => e.type.endsWith(`::${eventName}`) || e.type.includes(`::${eventName}<`))
             .map(e => ({ transactionHash: tx.hash, timestamp: tx.timestamp, type: e.type, data: e.data })),
@@ -558,8 +568,20 @@ export async function executeTool(
           event: eventName,
           count: recentEvents.length,
           events: recentEvents,
+          ...(activities && activities.length > 0
+            ? {
+                assetActivity: activities.map(a => ({
+                  type: a.type,
+                  amount: a.amount,
+                  asset: a.assetType,
+                  timestamp: a.timestamp,
+                  via: a.entryFunction,
+                })),
+                assetActivityNote: "These asset movement events come from the indexer and are a real history, not just a recent-transaction scan.",
+              }
+            : {}),
           checked: false,
-          note: "Aptos: this only scans the events emitted by this module's RECENT transactions — it is not a full history. An empty result does NOT mean the event never fired; say the recent transactions don't show it and offer explorer.aptoslabs.com for the full history.",
+          note: "On Aptos, asset movement events (deposits, withdrawals, mints, burns) are indexed and searchable, but protocol-defined events are not: the indexer's generic events table was retired. Protocol-specific events here are therefore only those emitted by this module's RECENT transactions, so an empty result does NOT mean the event never fired. Say exactly that and offer explorer.aptoslabs.com for the full history.",
         }
       }
       const events = await getContractEvents(target.address, target.chain, eventName, target.abi ?? undefined)
@@ -935,7 +957,27 @@ export async function executeTool(
       const chainId = typeof input.chain_id === "string" ? input.chain_id : (wallet?.chainId ?? watchedContracts[0]?.chain ?? "0x1")
       if (isSolanaChain(chainId)) return { token, note: "Token safety screening is EVM-only." }
       if (isAptosChain(chainId)) {
-        return { token, note: "Token safety screening uses an EVM-only source and is not available for Aptos assets. Suggest checking the asset's metadata (get_token_info) and its holders/activity on explorer.aptoslabs.com instead — do not claim the asset is safe or unsafe." }
+        // No third-party scanner covers Aptos, so report the facts Aptos
+        // itself publishes rather than guessing or refusing outright.
+        const signals = await getAptosTokenSafety(token)
+        if (!signals) {
+          return { token, note: "Could not read this asset's on-chain metadata, or the indexer has no record of it. Do not claim the asset is safe or unsafe." }
+        }
+        return {
+          token,
+          symbol: signals.symbol,
+          name: signals.name,
+          decimals: signals.decimals,
+          creator: signals.creator,
+          supply: signals.supply,
+          maxSupply: signals.maxSupply,
+          supplyCapped: signals.supplyCapped,
+          standard: signals.standard === "v1" ? "legacy coin" : signals.standard === "v2" ? "fungible asset" : signals.standard,
+          lastActivity: signals.lastActivity,
+          freezeObserved: signals.freezeObserved,
+          scannerAvailable: false,
+          note: "These are on-chain FACTS about the asset, not a safety verdict: no third-party honeypot/scam scanner covers Aptos, so present them as signals the user can weigh. supplyCapped=false means supply has no declared hard cap (it can be increased), not that it is a scam. freezeObserved=true means at least one holder of this asset has actually been frozen, which implies a freeze capability exists and is in use. Never state the asset IS safe or IS a scam.",
+        }
       }
       const safety = await getTokenSafety(token, chainId)
       return safety ?? { token, note: "Could not screen this token — the chain may be unsupported or the safety API unavailable." }
@@ -992,7 +1034,11 @@ export async function executeTool(
       const isEvmFormat = /^0x[0-9a-fA-F]{40}$/.test(address)
       const screeningConnectedAptosWallet = aptos && typeof input.address === "undefined"
       if ((!isEvmFormat && isAptosAddress(address)) || screeningConnectedAptosWallet) {
-        return { address, available: false, note: "Sanctions screening uses an EVM on-chain oracle and is not available for Aptos addresses." }
+        return {
+          address,
+          available: false,
+          note: "Sanctions screening is not available for Aptos addresses, and there is nothing to screen against: the screening oracle is EVM-only, and OFAC's SDN list currently designates no Aptos addresses at all (its published digital-currency entries cover Bitcoin, Ethereum, Tron, USDT, Solana and similar, but not APT). Say this plainly rather than implying the address was checked and cleared: it was not checked.",
+        }
       }
       const result = await checkSanctioned(address)
       return result ?? { address, note: "Could not screen this address against the sanctions oracle." }

@@ -6,6 +6,8 @@ import type { ProjectConfig, Plan } from "@/lib/types/config"
 import { PLAN_CONV_LIMITS } from "@/lib/types/config"
 import type { Database } from "@/lib/supabase/types"
 import { log } from "@/lib/logger"
+import { rateLimit } from "@/lib/rate-limit"
+import { TELEGRAM_LIMITS } from "@/lib/limits"
 
 // Constant-time compare of the webhook secret token. A plain !== leaks the
 // secret_key through timing (audit H1); secret_key also gates the AI pipeline,
@@ -247,6 +249,21 @@ export async function POST(
 
   // Session is per-user within each chat - prevents context bleed between group members
   const sessionId = `tg-${message.chat.id}-${message.from.id}`
+
+  // Rate limit BEFORE any model call. The monthly conversation quota counts
+  // conversations, not messages, so one long-lived chat would otherwise allow
+  // unlimited AI completions: a spammy group, or anyone who learns the webhook
+  // secret, could drain LLM spend indefinitely. Keyed per chat and per sender
+  // so one abusive user cannot starve the rest of a legitimate group.
+  const tgLimits = await Promise.all([
+    rateLimit(`tg:${project.id}:${message.chat.id}`, TELEGRAM_LIMITS.perChatPerWindow, TELEGRAM_LIMITS.windowMs),
+    rateLimit(`tg:${project.id}:u:${message.from.id}`, TELEGRAM_LIMITS.perUserPerWindow, TELEGRAM_LIMITS.windowMs),
+  ])
+  if (tgLimits.some(r => !r.allowed)) {
+    log.warn("Telegram rate limited", { event: "telegram.rate_limited", projectId: project.id, chatId: String(message.chat.id) })
+    // 200 so Telegram does not retry the update into the same wall.
+    return new Response("OK", { status: 200 })
+  }
 
   // Load recent message history from Supabase for context
   const { data: convData } = await supabase

@@ -209,6 +209,179 @@ export async function getAptosDeployment(address: string): Promise<AptosDeployme
   }
 }
 
+export interface AptosAssetActivity {
+  /** Move event type, e.g. 0x1::fungible_asset::Deposit / Withdraw. */
+  type: string
+  amount: string | null
+  assetType: string | null
+  timestamp: string
+  version: string
+  /** Entry function that produced the event, when it was a user transaction. */
+  entryFunction: string | null
+  isFrozen: boolean | null
+  success: boolean | null
+  isGasFee: boolean
+}
+
+/**
+ * Event-derived asset movement history for an account.
+ *
+ * The indexer's generic `events` table was deprecated and removed, but the
+ * typed activity tables it was split into remain. `fungible_asset_activities`
+ * carries the deposit/withdraw/mint/burn events for both legacy coins and the
+ * fungible-asset standard, which is what "what moved, when, and via which
+ * call" questions actually need. Arbitrary protocol-defined events (e.g. a
+ * custom FeeChanged) are NOT queryable any more, so callers must not present
+ * this as a complete event log.
+ *
+ * Gas-fee rows are excluded by default: every transaction produces one and
+ * they drown out real activity.
+ */
+export async function getAptosAssetActivities(
+  address: string,
+  limit = 15,
+  includeGasFees = false,
+): Promise<AptosAssetActivity[] | null> {
+  const owner = normalizeAptosAddress(address)
+  const data = await aptosGraphql<{
+    fungible_asset_activities: {
+      type: string
+      amount: number | string | null
+      asset_type: string | null
+      transaction_timestamp: string
+      transaction_version: number | string
+      entry_function_id_str: string | null
+      is_frozen: boolean | null
+      is_transaction_success: boolean | null
+      is_gas_fee: boolean | null
+    }[]
+  }>(
+    // Gas-fee rows are excluded in the QUERY, not after fetching: filtering
+    // client-side could turn a page of pure gas rows into an empty array, which
+    // the model would read as "this account has no activity".
+    `query AssetActivities($owner: String!, $limit: Int!, $gasFilter: [Boolean!]) {
+      fungible_asset_activities(
+        where: { owner_address: { _eq: $owner }, is_gas_fee: { _in: $gasFilter } }
+        order_by: { transaction_version: desc }
+        limit: $limit
+      ) {
+        type
+        amount
+        asset_type
+        transaction_timestamp
+        transaction_version
+        entry_function_id_str
+        is_frozen
+        is_transaction_success
+        is_gas_fee
+      }
+    }`,
+    { owner, limit: Math.min(100, limit), gasFilter: includeGasFees ? [true, false] : [false] }
+  )
+  // Anything other than a well-formed array means we did not get an answer.
+  // Coercing that to [] would let the model report "no activity on this
+  // account", which is a fabrication rather than a failed lookup.
+  if (!data || !Array.isArray(data.fungible_asset_activities)) return null
+
+  return data.fungible_asset_activities
+    .map(r => ({
+      type: r.type,
+      amount: r.amount === null || r.amount === undefined ? null : String(r.amount),
+      assetType: r.asset_type,
+      timestamp: r.transaction_timestamp,
+      version: String(r.transaction_version),
+      entryFunction: r.entry_function_id_str,
+      isFrozen: r.is_frozen ?? null,
+      success: r.is_transaction_success ?? null,
+      isGasFee: r.is_gas_fee === true,
+    }))
+}
+
+export interface AptosTokenSafety {
+  assetType: string
+  symbol: string | null
+  name: string | null
+  decimals: number | null
+  /** Who created the asset. */
+  creator: string | null
+  supply: string | null
+  /** Hard cap on supply, when the asset declares one. null = uncapped. */
+  maxSupply: string | null
+  /** True when a hard cap exists, so supply cannot be inflated past it. */
+  supplyCapped: boolean
+  /** "v1" = legacy coin, "v2" = fungible asset. */
+  standard: string | null
+  /** Most recent activity, useful as a liveness/age signal. */
+  lastActivity: string | null
+  /** True when a freeze has actually been applied to a holder of this asset. */
+  freezeObserved: boolean
+}
+
+/**
+ * Aptos-native safety signals for a fungible asset.
+ *
+ * There is no GoPlus-style scanner for Aptos (GoPlus covers 44 chains, none of
+ * them Aptos), so instead of guessing we report the facts Aptos publishes
+ * on-chain: who created the asset, whether supply is hard-capped or can be
+ * inflated, which standard it uses, how recently it has been active, and
+ * whether any holder has actually been frozen (i.e. a freeze capability is
+ * real and in use). These are signals, not a verdict, and callers must present
+ * them that way.
+ */
+export async function getAptosTokenSafety(assetType: string): Promise<AptosTokenSafety | null> {
+  const data = await aptosGraphql<{
+    fungible_asset_metadata: {
+      asset_type: string
+      symbol: string | null
+      name: string | null
+      decimals: number | null
+      creator_address: string | null
+      supply_v2: number | string | null
+      maximum_v2: number | string | null
+      token_standard: string | null
+      last_transaction_timestamp: string | null
+    }[]
+    fungible_asset_activities: { is_frozen: boolean | null }[]
+  }>(
+    `query TokenSafety($asset: String!) {
+      fungible_asset_metadata(where: { asset_type: { _eq: $asset } }, limit: 1) {
+        asset_type
+        symbol
+        name
+        decimals
+        creator_address
+        supply_v2
+        maximum_v2
+        token_standard
+        last_transaction_timestamp
+      }
+      fungible_asset_activities(
+        where: { asset_type: { _eq: $asset }, is_frozen: { _eq: true } }
+        limit: 1
+      ) { is_frozen }
+    }`,
+    { asset: assetType }
+  )
+  if (!data) return null
+
+  const meta = data.fungible_asset_metadata?.[0]
+  if (!meta) return null
+  const max = meta.maximum_v2 === null || meta.maximum_v2 === undefined ? null : String(meta.maximum_v2)
+  return {
+    assetType: meta.asset_type,
+    symbol: meta.symbol,
+    name: meta.name,
+    decimals: meta.decimals,
+    creator: meta.creator_address,
+    supply: meta.supply_v2 === null || meta.supply_v2 === undefined ? null : String(meta.supply_v2),
+    maxSupply: max,
+    supplyCapped: max !== null,
+    standard: meta.token_standard,
+    lastActivity: meta.last_transaction_timestamp,
+    freezeObserved: (data.fungible_asset_activities ?? []).length > 0,
+  }
+}
+
 export interface AptosAssetMetadata {
   assetType: string
   name: string

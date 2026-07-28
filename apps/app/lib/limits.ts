@@ -20,6 +20,12 @@ export const CHAT_LIMITS = {
   /** Requests per IP per window (distributed via Upstash when configured). */
   ratePerWindow: 20,
   windowMs: 60_000,
+  /** Aggregate ceiling per publishable key, independent of IP. The per-IP
+   *  limit alone gives a distributed attacker (proxy pool, IPv6 /64) with a
+   *  copied key no ceiling at all: each source gets its own bucket. This caps
+   *  total spend attributable to one key however many IPs it arrives from.
+   *  Sized well above any real single-site widget load. */
+  ratePerKeyPerWindow: 300,
   /** Max prior messages sent to the model (context/cost cap). */
   maxHistoryMessages: 30,
   /** Max characters kept per message. A tx hash (66) + address (42) + a short
@@ -31,6 +37,19 @@ export const CHAT_LIMITS = {
   /** Stricter session cap for the public demo key. Matches the
    *  inspect:${ip} daily rate limit in /api/chat - both must move together. */
   demoSessionMessages: 8,
+} as const
+
+/**
+ * Telegram webhook (`/api/telegram/[key]`). The monthly conversation quota
+ * counts CONVERSATIONS, and a Telegram chat is one long-lived conversation, so
+ * without a per-message limit a single busy (or malicious) chat could drive
+ * unlimited model calls. Applied per chat and per sender so one abusive user
+ * can't starve a legitimate group.
+ */
+export const TELEGRAM_LIMITS = {
+  perChatPerWindow: 20,
+  perUserPerWindow: 8,
+  windowMs: 60_000,
 } as const
 
 /** Ticket creation endpoint (`/api/tickets`). */

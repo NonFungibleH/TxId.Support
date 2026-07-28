@@ -112,6 +112,23 @@ export async function POST(request: Request) {
       })
     }
 
+    // Second, IP-independent ceiling. The per-IP limit above does nothing
+    // against a distributed attacker holding a copied publishable key, since
+    // every source address gets its own bucket. This bounds the total spend
+    // attributable to a single key no matter how many IPs it comes from.
+    const { allowed: keyAllowed } = await rateLimit(
+      `chat:key:${key}`,
+      CHAT_LIMITS.ratePerKeyPerWindow,
+      CHAT_LIMITS.windowMs,
+    )
+    if (!keyAllowed) {
+      log.warn("Chat key rate limited", { event: "chat.key_rate_limited", key: key.slice(0, 12) })
+      return new Response(JSON.stringify({ error: "Too many requests. Please slow down." }), {
+        status: 429,
+        headers: { ...CORS_HEADERS, "Content-Type": "application/json", "Retry-After": "60" },
+      })
+    }
+
     // ── Layer 2: Turnstile bot validation (when token provided by client) ──────
     // Only enforced when TURNSTILE_SECRET_KEY is configured. Requests without a
     // token are allowed through so embedded protocol widgets aren't affected.
@@ -187,14 +204,21 @@ export async function POST(request: Request) {
 
     const typedProject = project as unknown as ProjectRow & { name: string; is_active: boolean }
 
-    // F1: preview mode requires a server-signed token - prevents unauthenticated quota abuse
-    if (!typedProject.is_active) {
-      if (!preview || !verifyPreviewToken(typedProject.id, previewToken)) {
-        return new Response(JSON.stringify({ error: "Project is inactive" }), {
-          status: 403,
-          headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
-        })
-      }
+    // `preview` is a client-supplied flag that bypasses BOTH the domain
+    // allowlist and the conversation quota, so it is never taken on trust:
+    // it only counts once the server-signed HMAC token verifies. An
+    // unverified claim is silently downgraded to a normal request, which then
+    // pays the full allowlist + quota cost. The dashboard preview always
+    // sends the token alongside the flag, so legitimate previews are
+    // unaffected.
+    const previewVerified = preview === true && verifyPreviewToken(typedProject.id, previewToken)
+
+    // Inactive projects are reachable ONLY through a verified preview.
+    if (!typedProject.is_active && !previewVerified) {
+      return new Response(JSON.stringify({ error: "Project is inactive" }), {
+        status: 403,
+        headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
+      })
     }
 
     // ── Conversation quota (monthly + daily) + per-session message cap ────────
@@ -249,7 +273,7 @@ export async function POST(request: Request) {
     // Exempt OUR own demo project: it powers the /demo + /check pages on the
     // marketing site (any origin by design) and is protected by the per-IP rate
     // cap + Turnstile, not the per-customer domain allowlist.
-    if (!isDemo && !originAllowed(request, rawConfig.allowedDomains, preview === true)) {
+    if (!isDemo && !originAllowed(request, rawConfig.allowedDomains, previewVerified)) {
       return new Response(JSON.stringify({ error: "Domain not registered for this key" }), {
         status: 403,
         headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
@@ -368,7 +392,7 @@ export async function POST(request: Request) {
           },
         })
       }
-    } else if (preview) {
+    } else if (previewVerified) {
       // Preview sessions (dashboard testing) are recorded so the user can see
       // Conversations/Analytics working, but they never count toward the paid
       // conversation quota. persistMessages will create the conversation row.
@@ -452,7 +476,7 @@ export async function POST(request: Request) {
     // RAG: only run for support mode (never for the docs-less inspect tool)
     let ragContext = ""
     if (projectMode === "support" && !inspectMode) {
-      const latestUserMessage = [...messages].reverse().find((m) => m.role === "user")
+      const latestUserMessage = [...safeMessages].reverse().find((m) => m.role === "user")
       if (latestUserMessage) {
         const ragResult = await retrieveContext(supabase, typedProject.id, latestUserMessage.content)
         ragContext = ragResult.context
@@ -614,7 +638,7 @@ export async function POST(request: Request) {
           // The action-update marker is a system-generated status note, not a
           // user turn - persist it as an assistant-side row so it never counts
           // against the per-session user-message cap on subsequent requests.
-          void persistMessages(supabase, typedProject.id, sessionId, validActionResult ? [...messages, { role: "assistant" as const, content: `⚙️ Action update: ${validActionResult.row.summary ?? "transaction"} ${validActionResult.confirmed ? "confirmed" : "failed"} (${validActionResult.txHash})` }] : messages, walletAddress, chainId, fullResponseText || undefined, usage)
+          void persistMessages(supabase, typedProject.id, sessionId, validActionResult ? [...safeMessages, { role: "assistant" as const, content: `⚙️ Action update: ${validActionResult.row.summary ?? "transaction"} ${validActionResult.confirmed ? "confirmed" : "failed"} (${validActionResult.txHash})` }] : safeMessages, walletAddress, chainId, fullResponseText || undefined, usage)
         } catch (err) {
           log.error("Chat stream error", err, { event: "chat.stream_error", projectId: typedProject.id })
           // For our own demo/publicDemo projects, surface the real reason to make
