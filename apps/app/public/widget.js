@@ -211,6 +211,20 @@
   // Apply any saved position on load.
   applyButtonPos();
 
+  // ── Wallet bridge ──────────────────────────────────────────────────────────
+  // Injected wallet providers (Petra window.aptos, MetaMask window.ethereum,
+  // Phantom) live in THIS host page, not the cross-origin widget iframe, so the
+  // iframe can't reach them directly. Relay connect requests on its behalf.
+  function txidProvider(kind) {
+    if (kind === "aptos")  return window.aptos || window.martian || null;
+    if (kind === "solana") return (window.phantom && window.phantom.solana) || window.solana || null;
+    if (kind === "evm")    return window.ethereum || null;
+    return null;
+  }
+  function txidToFrame(msg) {
+    try { iframe.contentWindow.postMessage(msg, BASE); } catch (err) { /* frame gone */ }
+  }
+
   window.addEventListener("message", function (e) {
     // Close when the iframe posts a "txid-close" message
     if (e.data === "txid-close") {
@@ -231,6 +245,49 @@
         // Re-anchor to the launcher if the user has dragged it.
         if (open) positionPanel();
       }
+      return;
+    }
+
+    // Wallet messages are sensitive: only ever honour them from OUR own iframe.
+    if (e.origin !== BASE || e.source !== iframe.contentWindow) return;
+
+    if (e.data && e.data.type === "txid-wallet-detect") {
+      txidToFrame({
+        type: "txid-wallet-available",
+        aptos: !!txidProvider("aptos"),
+        evm: !!txidProvider("evm"),
+        solana: !!txidProvider("solana"),
+      });
+      return;
+    }
+
+    if (e.data && e.data.type === "txid-wallet-connect") {
+      var id = e.data.id;
+      var kind = e.data.provider;
+      var p = txidProvider(kind);
+      if (!p) { txidToFrame({ type: "txid-wallet-result", id: id, ok: false, error: "no-provider" }); return; }
+      Promise.resolve()
+        .then(function () {
+          if (kind === "solana") {
+            return p.connect().then(function (r) { return { address: r.publicKey.toString(), chainId: "solana" }; });
+          }
+          if (kind === "evm") {
+            return p.request({ method: "eth_requestAccounts" }).then(function (accts) {
+              return p.request({ method: "eth_chainId" }).then(function (cid) {
+                return { address: accts && accts[0], chainId: cid };
+              });
+            });
+          }
+          // aptos (Petra / Martian)
+          return p.connect().then(function (acct) { return { address: acct.address, chainId: "aptos" }; });
+        })
+        .then(function (res) {
+          txidToFrame({ type: "txid-wallet-result", id: id, ok: !!(res && res.address), address: res && res.address, chainId: res && res.chainId });
+        })
+        .catch(function () {
+          txidToFrame({ type: "txid-wallet-result", id: id, ok: false, error: "rejected" });
+        });
+      return;
     }
   });
 })();

@@ -636,10 +636,71 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
   }, [manualValue, config, apiKey])
 
   // ── Connect wallet ───────────────────────────────────────────────────────
+  // ── Embedded wallet bridge ─────────────────────────────────────────────────
+  // When the widget runs as a cross-origin iframe (embedded on a customer site),
+  // injected wallet providers (Petra's window.aptos, MetaMask, Phantom) live in
+  // the HOST page, not this iframe — so window.aptos is undefined here. The
+  // loader (widget.js) relays connect requests over postMessage. On mount we ask
+  // it which providers the host page can see, and connectWallet routes through it.
+  const isEmbedded = typeof window !== "undefined" && window.parent !== window
+  const [bridgeWallet, setBridgeWallet] = useState<{ aptos: boolean; evm: boolean; solana: boolean } | null>(null)
+
+  useEffect(() => {
+    if (!isEmbedded || typeof window === "undefined") return
+    function onMsg(e: MessageEvent) {
+      if (e.source !== window.parent) return
+      const d = e.data as { type?: string; aptos?: boolean; evm?: boolean; solana?: boolean } | null
+      if (d?.type === "txid-wallet-available") {
+        setBridgeWallet({ aptos: !!d.aptos, evm: !!d.evm, solana: !!d.solana })
+      }
+    }
+    window.addEventListener("message", onMsg)
+    window.parent.postMessage({ type: "txid-wallet-detect" }, "*")
+    return () => window.removeEventListener("message", onMsg)
+  }, [isEmbedded])
+
+  const connectViaBridge = useCallback((kind: "aptos" | "evm" | "solana"): Promise<{ address: string; chainId: string } | null> => {
+    return new Promise((resolve) => {
+      if (typeof window === "undefined") { resolve(null); return }
+      const id = `wc_${Date.now()}_${Math.random().toString(36).slice(2)}`
+      let settled = false
+      function onMsg(e: MessageEvent) {
+        if (e.source !== window.parent) return
+        const d = e.data as { type?: string; id?: string; ok?: boolean; address?: string; chainId?: string } | null
+        if (d?.type === "txid-wallet-result" && d.id === id && !settled) {
+          settled = true
+          window.removeEventListener("message", onMsg)
+          clearTimeout(timer)
+          resolve(d.ok && d.address ? { address: d.address, chainId: d.chainId ?? "" } : null)
+        }
+      }
+      // Generous timeout — the host wallet popup can sit waiting for the user.
+      const timer = setTimeout(() => {
+        if (settled) return
+        settled = true
+        window.removeEventListener("message", onMsg)
+        resolve(null)
+      }, 120000)
+      window.addEventListener("message", onMsg)
+      window.parent.postMessage({ type: "txid-wallet-connect", provider: kind, id }, "*")
+    })
+  }, [])
+
   const connectWallet = useCallback(async () => {
     if (typeof window === "undefined") return
     setWalletConnecting(true)
     try {
+      // Embedded: the host page owns the wallet provider — go through the bridge.
+      if (isEmbedded) {
+        const kind: "aptos" | "evm" | "solana" = isSolanaProject ? "solana" : isAptosProject ? "aptos" : "evm"
+        const res = await connectViaBridge(kind)
+        if (!res) { setManualOpen(true); return }
+        setWalletAddress(res.address)
+        setChainId(res.chainId)
+        setWalletSetup("connected")
+        saveWalletSession(apiKey, { setup: "connected", address: res.address, chainId: res.chainId })
+        return
+      }
       if (isSolanaProject) {
         // Phantom wallet - window.phantom.solana (new) or window.solana (legacy)
         type PhantomProvider = {
@@ -692,7 +753,7 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
     } finally {
       setWalletConnecting(false)
     }
-  }, [apiKey, isSolanaProject, isAptosProject, hasEvmChain])
+  }, [apiKey, isSolanaProject, isAptosProject, hasEvmChain, isEmbedded, connectViaBridge])
 
   // ── Disconnect wallet ────────────────────────────────────────────────────
   const disconnectWallet = useCallback(() => {
@@ -1025,10 +1086,10 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
   // Aptos-only projects get the Petra flow.
   const evmWalletUsable = hasEvmChain && hasMetaMask
   const hasWallet = isSolanaProject
-    ? hasPhantom
+    ? hasPhantom || (isEmbedded && !!bridgeWallet?.solana)
     : isAptosProject
-      ? evmWalletUsable || hasAptosWallet
-      : hasMetaMask
+      ? evmWalletUsable || hasAptosWallet || (isEmbedded && (!!bridgeWallet?.aptos || !!bridgeWallet?.evm))
+      : hasMetaMask || (isEmbedded && !!bridgeWallet?.evm)
 
   // Ensure text always contrasts with the background regardless of branding config
   const bgIsLight = getBgLuminance(b.backgroundColor) > 0.5
