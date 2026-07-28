@@ -217,6 +217,10 @@ abort-vs-outage distinction.
 | Generic view functions | ✅ | `type_args` threaded through `get_contract_data`. Verified: `0x1::coin::supply<AptosCoin>` = 1.206B APT |
 | Delegated staking | ✅ | `get_staking_positions` (Aptos-only tool): pools, exact active/inactive/pending_inactive octas read from `0x1::delegation_pool::get_stake`, lockup expiry, recent staking events. NOTE the indexer stores SHARES as floats, not octas, so amounts come from the chain view, never derived from shares |
 | Huge package listings | ✅ | `get_contract_functions` returned ~15k tokens on Decibel's 91 modules, swallowing the tool-round budget. Now returns a module index plus `module_name` to drill in |
+| Gas price recommendation | ✅ | `/estimate_gas_price` on `get_network_status`: standard + prioritized + deprioritized. Verified live: 100 / 150 / 100 octas |
+| Gas itemisation + storage refund | ✅ | `feeBreakdown` from the FeeStatement event: execution, IO, total gas units, storage fee and **storage refund**. Explains why freeing state can pay APT back |
+| `.apt` name status | ✅ | **Honesty fix.** An EXPIRED name was reported as "not registered", conflating three different answers. `resolveAptosName` now returns `active` / `expired` / `unregistered`, and `null` only when the lookup itself failed. An expired name's last address is explicitly flagged as unsafe to send to |
+| Coin vs fungible-asset duality (AIP-21) | ✅ | prompt guidance: `token_standard` distinguishes v1 legacy coin from v2 FA, so a "split" or "missing" balance is explained as the migration rather than a bug |
 
 **Never-fabricate rule holds on Aptos:** every client returns `null` on a failed
 fetch (distinct from a genuine empty result), and each call site converts that to

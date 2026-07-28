@@ -1140,9 +1140,31 @@ export async function executeTool(
       const useAptos = name.toLowerCase().endsWith(".apt") || aptos || watchedContracts.some(c => isAptosChain(c.chain))
       if (useAptos) {
         const resolution = await resolveAptosName(name)
-        return resolution
-          ? { name: resolution.name, address: resolution.address, chain: "aptos" }
-          : { name, note: "Aptos Names lookup failed or that name is not registered." }
+        // Four distinct outcomes. Collapsing them into one "not registered"
+        // message told users something false about expired names.
+        if (!resolution) {
+          return { name, chain: "aptos", note: APTOS_LOOKUP_FAILED }
+        }
+        if (resolution.status === "active") {
+          return {
+            name: resolution.name,
+            address: resolution.address,
+            chain: "aptos",
+            ...(resolution.expiresAt ? { registrationExpires: resolution.expiresAt } : {}),
+          }
+        }
+        if (resolution.status === "expired") {
+          return {
+            name: resolution.name,
+            chain: "aptos",
+            resolves: false,
+            expired: true,
+            ...(resolution.expiredAt ? { expiredAt: resolution.expiredAt } : {}),
+            ...(resolution.address ? { lastKnownAddress: resolution.address } : {}),
+            note: "This name WAS registered but its registration has lapsed, so it does not currently resolve to anyone. Do NOT say it was never registered. Any address shown is the last one it pointed at and must not be treated as a current destination: sending there is unsafe. The name can be re-registered on aptosnames.com.",
+          }
+        }
+        return { name: resolution.name, chain: "aptos", resolves: false, note: "The Aptos Names registry has no record of this name, so it has not been registered." }
       }
       const resolution = await resolveEnsName(name)
       return resolution ?? { name, note: "ENS lookup failed — the resolver RPC did not respond." }

@@ -224,6 +224,21 @@ export async function getAptosTransactionByHash(
     signatureType: raw.signature?.type ?? null,
     feePayer: raw.signature?.fee_payer_address ?? null,
     secondarySigners: raw.signature?.secondary_signer_addresses ?? [],
+    // Aptos charges separately for execution, IO and storage, and REFUNDS the
+    // storage deposit when state is freed. "Why did this cost what it cost"
+    // and "where is my storage refund" are only answerable from here.
+    feeBreakdown: (() => {
+      const fs = (raw.events ?? []).find(e => e.type.endsWith("::FeeStatement"))
+      const d = fs?.data as Record<string, string> | undefined
+      if (!d) return null
+      return {
+        executionGasUnits: d.execution_gas_units ?? null,
+        ioGasUnits: d.io_gas_units ?? null,
+        totalChargeGasUnits: d.total_charge_gas_units ?? null,
+        storageFeeOctas: d.storage_fee_octas ?? null,
+        storageRefundOctas: d.storage_fee_refund_octas ?? null,
+      }
+    })(),
     // FeeStatement is emitted LAST, so a naive head-slice would always drop the
     // very event that explains the gas cost and any storage refund. Keep it.
     events: (() => {
@@ -293,16 +308,38 @@ export interface AptosNetworkStatus {
   up: boolean
   latestVersion: string | null
   secondsBehind: number | null
+  /**
+   * Gas unit price in octas from /estimate_gas_price. The EVM side returns a
+   * suggested max fee, so without this the bot could not answer "what gas
+   * price should I set" on Aptos at all. `prioritized` is what to use when a
+   * transaction keeps failing to land.
+   */
+  gasUnitPrice: number | null
+  gasUnitPricePrioritized: number | null
+  gasUnitPriceDeprioritized: number | null
 }
 
 export async function getAptosNetworkStatus(): Promise<AptosNetworkStatus> {
-  const info = await getLedgerInfo()
-  if (!info) return { up: false, latestVersion: null, secondsBehind: null }
+  const [info, gas] = await Promise.all([
+    getLedgerInfo(),
+    aptosGet<{
+      gas_estimate?: number
+      prioritized_gas_estimate?: number
+      deprioritized_gas_estimate?: number
+    }>("/estimate_gas_price"),
+  ])
+  const gasFields = {
+    gasUnitPrice: gas?.gas_estimate ?? null,
+    gasUnitPricePrioritized: gas?.prioritized_gas_estimate ?? null,
+    gasUnitPriceDeprioritized: gas?.deprioritized_gas_estimate ?? null,
+  }
+  if (!info) return { up: false, latestVersion: null, secondsBehind: null, ...gasFields }
   const behindMs = Date.now() - Math.floor(Number(info.ledgerTimestamp) / 1000)
   return {
     up: behindMs < 60_000,
     latestVersion: info.ledgerVersion,
     secondsBehind: Math.max(0, Math.round(behindMs / 1000)),
+    ...gasFields,
   }
 }
 

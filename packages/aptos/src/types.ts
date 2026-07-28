@@ -42,6 +42,15 @@ export interface AptosTransaction {
   /** Set when the gas was sponsored by another account. */
   feePayer: string | null
   secondarySigners: string[]
+  /** From the FeeStatement event. Null when the transaction emitted none. */
+  feeBreakdown: {
+    executionGasUnits: string | null
+    ioGasUnits: string | null
+    totalChargeGasUnits: string | null
+    storageFeeOctas: string | null
+    /** Octas refunded for state this transaction freed. */
+    storageRefundOctas: string | null
+  } | null
   events: { type: string; data: unknown }[]
   decodedAbort?: DecodedAbort
 }
