@@ -10,7 +10,7 @@ import {
 import { useTheme } from "next-themes"
 import { cn } from "@/lib/utils"
 
-type NavItem = { href: string; label: string; icon: React.ElementType }
+type NavItem = { href: string; label: string; icon: React.ElementType; beta?: boolean }
 type NavGroup = { label?: string; items: NavItem[] }
 
 const SUPPORT_GROUPS: NavGroup[] = [
@@ -26,15 +26,14 @@ const SUPPORT_GROUPS: NavGroup[] = [
       { href: "/dashboard/docs",      label: "Docs & KB",        icon: BookOpen },
       { href: "/dashboard/branding",  label: "Branding",         icon: Paintbrush },
       { href: "/dashboard/content",   label: "Content",          icon: LayoutList },
-      { href: "/dashboard/telegram",  label: "Telegram",         icon: Send },
-      { href: "/dashboard/actions",   label: "Actions",          icon: Wallet },
     ],
   },
   {
     label: "Launch",
     items: [
-      { href: "/dashboard/preview", label: "Preview",         icon: Eye },
-      { href: "/dashboard/embed",   label: "Embed & Go Live", icon: Code2 },
+      { href: "/dashboard/preview",  label: "Preview",         icon: Eye },
+      { href: "/dashboard/embed",    label: "Embed & Go Live", icon: Code2 },
+      { href: "/dashboard/telegram", label: "Telegram",        icon: Send },
     ],
   },
   {
@@ -43,6 +42,12 @@ const SUPPORT_GROUPS: NavGroup[] = [
       { href: "/dashboard/conversations", label: "Conversations", icon: MessagesSquare },
       { href: "/dashboard/tickets",       label: "Tickets",       icon: Ticket },
       { href: "/dashboard/analytics",     label: "Analytics",     icon: BarChart3 },
+    ],
+  },
+  {
+    label: "Beta",
+    items: [
+      { href: "/dashboard/actions", label: "Actions", icon: Wallet, beta: true },
     ],
   },
 ]
@@ -120,7 +125,7 @@ export function Sidebar({ mode = "support", plan = "free", isAdmin = false, isOp
                 {group.label}
               </p>
             )}
-            {group.items.map(({ href, label, icon: Icon }) => {
+            {group.items.map(({ href, label, icon: Icon, beta }) => {
               const isActive = href === "/dashboard"
                 ? pathname === "/dashboard"
                 : (pathname ?? "").startsWith(href)
@@ -142,6 +147,11 @@ export function Sidebar({ mode = "support", plan = "free", isAdmin = false, isOp
                   )}
                   <Icon className="size-4 shrink-0" />
                   {label}
+                  {beta && (
+                    <span className="ml-auto rounded-full bg-amber-500/20 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-amber-400">
+                      Beta
+                    </span>
+                  )}
                 </Link>
               )
             })}
