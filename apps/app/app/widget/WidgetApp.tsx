@@ -658,6 +658,8 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
   const [manualOpen, setManualOpen] = useState(false)
   const [manualValue, setManualValue] = useState("")
   const [manualError, setManualError] = useState(false)
+  // Surfaced in the header when a connect attempt fails, so a failure is never silent.
+  const [walletError, setWalletError] = useState<string | null>(null)
   // A pasted 66 char address would otherwise fill the header bar, so the field
   // shows a middle-truncated form whenever it is not being edited.
   const [manualFocused, setManualFocused] = useState(false)
@@ -858,6 +860,39 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
     })
   }, [])
 
+  /**
+   * Wallet connect diagnostics. Connect failures are invisible by nature (a
+   * popup that never appears looks identical to a no-op), so every branch
+   * reports what it saw. Prefixed so it is greppable in a customer's console.
+   */
+  const walletDiag = (what: string, detail?: unknown) => {
+    try { console.info("[TxID wallet]", what, detail ?? "") } catch { /* console blocked */ }
+  }
+
+  /**
+   * Read an address out of whatever a wallet's connect() resolves to. Petra has
+   * shipped several shapes over time: a bare string, {address}, and an
+   * AccountAddress object exposing toString/toStringLong. Returning null for
+   * anything unrecognised keeps a malformed response from being stored as a
+   * real connection.
+   */
+  const readAptosAddress = (acct: unknown): string | null => {
+    const pick = (v: unknown): string | null => {
+      if (typeof v === "string") return v
+      if (v && typeof v === "object") {
+        const o = v as { toStringLong?: () => string; toString?: () => string }
+        if (typeof o.toStringLong === "function") { const r = o.toStringLong(); if (typeof r === "string") return r }
+        if (typeof o.toString === "function") { const r = o.toString(); if (typeof r === "string" && r.startsWith("0x")) return r }
+      }
+      return null
+    }
+    const direct = pick(acct)
+    if (direct?.startsWith("0x")) return direct
+    const addr = (acct as { address?: unknown } | null)?.address
+    const nested = pick(addr)
+    return nested?.startsWith("0x") ? nested : null
+  }
+
   // Injected-provider detection and the resulting connect target. Declared
   // before connectWallet so the callback and its dependency array can both
   // reference walletTarget.
@@ -896,7 +931,18 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
 
   const connectWallet = useCallback(async () => {
     if (typeof window === "undefined") return
+    setWalletError(null)
     setWalletConnecting(true)
+    walletDiag("connect requested", {
+      target: walletTarget,
+      embedded: isEmbedded,
+      providers: {
+        petra: typeof window !== "undefined" && !!(window as unknown as { petra?: unknown }).petra,
+        aptos: typeof window !== "undefined" && !!(window as unknown as { aptos?: unknown }).aptos,
+        martian: typeof window !== "undefined" && !!(window as unknown as { martian?: unknown }).martian,
+        ethereum: typeof window !== "undefined" && "ethereum" in window,
+      },
+    })
     const applyConn = (address: string, chainId: string) => {
       setWalletAddress(address)
       setChainId(chainId)
@@ -939,7 +985,15 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
           (window as unknown as { petra?: AptosProvider }).petra ??
           (window as unknown as { aptos?: AptosProvider }).aptos ??
           (window as unknown as { martian?: AptosProvider }).martian
-        if (aptosProvider) { const acct = await aptosProvider.connect(); applyConn(acct.address, "aptos"); return }
+        if (aptosProvider) {
+          const acct = await aptosProvider.connect()
+          const addr = readAptosAddress(acct)
+          if (addr) { applyConn(addr, "aptos"); return }
+          // Connected, but we could not read an address out of the response.
+          // Falling through is better than storing an empty address, which
+          // would silently leave the header looking unconnected.
+          walletDiag("aptos provider returned no usable address", acct)
+        }
         if (isEmbedded) { const res = await connectViaBridge("aptos"); if (res) { applyConn(res.address, res.chainId || "aptos"); return } }
         setManualOpen(true)
         return
@@ -954,8 +1008,20 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
       }
       if (isEmbedded) { const res = await connectViaBridge("evm"); if (res) { applyConn(res.address, res.chainId); return } }
       setManualOpen(true)
-    } catch {
-      // user rejected
+    } catch (err) {
+      // NEVER swallow this. A silent catch here made every failure look like
+      // "the button does nothing": the fallback below is after the throw
+      // point, so it was never reached, and the user got no message at all.
+      const rejected = /reject|denied|cancel/i.test(err instanceof Error ? err.message : String(err))
+      walletDiag(rejected ? "user rejected the connect request" : "connect threw", err)
+      const msg = rejected
+        ? "Wallet connection was cancelled. You can try again, or paste your address in the box at the top instead."
+        : "I could not open your wallet. Paste your address in the box at the top and I can still look up your balance and transactions."
+      setWalletError(msg)
+      // Say it where the user is actually looking. A header-only signal was
+      // easy to miss, which is how this read as "the button does nothing".
+      setMessages(prev => [...prev, { id: `wallet-err-${Date.now()}`, role: "assistant", content: msg, local: true }])
+      setManualOpen(true)
     } finally {
       setWalletConnecting(false)
     }
@@ -1392,7 +1458,7 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
             // Checked BEFORE hasWallet: a failed or rejected wallet connect
             // opens this field, and it has to be visible even when a provider
             // was detected, otherwise that failure is a dead end.
-            <div className="flex shrink-0 items-center gap-1">
+            <div className="flex shrink-0 items-center gap-1" title={walletError ?? undefined}>
               <input
                 autoFocus
                 value={manualFocused ? manualValue : (shortenHex(manualValue.trim()) ?? manualValue)}
