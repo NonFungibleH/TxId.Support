@@ -281,11 +281,87 @@ function PriceSparkline({ priceChange }: { priceChange: DexPair["priceChange"] }
 
 // ─── Rich message renderer ───────────────────────────────────────────────────
 
-// Markdown link, bold, inline code, or a bare URL. Answers routinely carry
+// Markdown link, bold, inline code, a bare URL, or a bare long hex value
+// (address, tx hash, or an Aptos addr::module path). Answers routinely carry
 // explorer and docs links, so both link shapes have to render as real anchors
 // instead of raw syntax.
-const INLINE_RE = /(\[[^\]\n]+\]\(https?:\/\/[^\s)]+\)|\*\*[^*]+\*\*|`[^`]+`|https?:\/\/[^\s<>()]+)/g
+const INLINE_RE = /(\[[^\]\n]+\]\(https?:\/\/[^\s)]+\)|\*\*[^*]+\*\*|`[^`]+`|https?:\/\/[^\s<>()]+|0x[0-9a-fA-F]{20,}(?:::[A-Za-z_][A-Za-z0-9_]*)*)/g
 const MD_LINK_RE = /^\[([^\]\n]+)\]\((https?:\/\/[^\s)]+)\)$/
+
+const LONG_HEX_RE = /^0x[0-9a-fA-F]{20,}$/
+const MODULE_PATH_RE = /^(0x[0-9a-fA-F]{20,})((?:::[A-Za-z_][A-Za-z0-9_]*)+)$/
+
+/**
+ * Display form for a long hex value: middle-truncated so a 66 char Aptos
+ * address or tx hash cannot wrap across three lines and swamp the panel.
+ * Returns null for anything short enough to show in full.
+ */
+function shortenHex(value: string): string | null {
+  if (LONG_HEX_RE.test(value)) return `${value.slice(0, 8)}…${value.slice(-6)}`
+  const mod = MODULE_PATH_RE.exec(value)
+  if (mod) return `${mod[1].slice(0, 8)}…${mod[1].slice(-6)}${mod[2]}`
+  return null
+}
+
+const CODE_STYLE: React.CSSProperties = {
+  fontFamily: "monospace",
+  fontSize: "0.85em",
+  // Neutral grey reads as a code chip on a dark OR a light bubble;
+  // the old black wash vanished on dark branding.
+  background: "rgba(128,128,128,0.28)",
+  padding: "1px 4px",
+  borderRadius: "4px",
+}
+
+/** Truncated hex chip: full value on hover, and a tap copies the whole thing. */
+function HexChip({ value, display }: { value: string; display: string }) {
+  const [copied, setCopied] = useState(false)
+  const copy = () => {
+    try {
+      void navigator.clipboard?.writeText(value).then(() => {
+        setCopied(true)
+        setTimeout(() => setCopied(false), 1200)
+      }).catch(() => { /* clipboard blocked: the title still shows the value */ })
+    } catch { /* no clipboard API */ }
+  }
+  return (
+    <code
+      title={`${value}\n(click to copy)`}
+      onClick={copy}
+      style={{
+        ...CODE_STYLE,
+        cursor: "pointer",
+        // Already short: keep it on one line, and clip rather than overflow the
+        // bubble if a module name makes it long anyway.
+        display: "inline-block",
+        maxWidth: "100%",
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+        whiteSpace: "nowrap",
+        overflowWrap: "normal",
+        verticalAlign: "bottom",
+      }}
+    >
+      {copied ? "Copied" : display}
+    </code>
+  )
+}
+
+/** Short, human link text. A raw explorer URL is 100+ chars and wraps badly. */
+function linkLabel(raw: string): string {
+  try {
+    const u = new URL(raw)
+    const host = u.hostname.replace(/^www\./, "")
+    if (host.endsWith("aptoslabs.com")) return "View on Aptos Explorer"
+    const bare = raw.replace(/^https?:\/\//, "").replace(/\/$/, "")
+    if (bare.length <= 44) return bare
+    const seg = u.pathname.replace(/\/$/, "").split("/").filter(Boolean).pop()
+    if (!seg) return host
+    return `${host}/…/${shortenHex(seg) ?? seg}`
+  } catch {
+    return raw
+  }
+}
 
 function InlineLink({ href, label }: { href: string; label: string }) {
   return (
@@ -293,6 +369,7 @@ function InlineLink({ href, label }: { href: string; label: string }) {
       href={href}
       target="_blank"
       rel="noopener noreferrer"
+      title={href}
       style={{
         color: "inherit",
         textDecoration: "underline",
@@ -319,7 +396,7 @@ function parseInline(text: string): React.ReactNode {
           const url = trailing ? part.slice(0, -trailing.length) : part
           return (
             <span key={i}>
-              <InlineLink href={url} label={url} />
+              <InlineLink href={url} label={linkLabel(url)} />
               {trailing}
             </span>
           )
@@ -328,21 +405,14 @@ function parseInline(text: string): React.ReactNode {
           return <strong key={i}>{part.slice(2, -2)}</strong>
         }
         if (part.startsWith("`") && part.endsWith("`")) {
-          return (
-            <code
-              key={i}
-              style={{
-                fontFamily: "monospace",
-                fontSize: "0.85em",
-                background: "rgba(0,0,0,0.25)",
-                padding: "0 3px",
-                borderRadius: "3px",
-              }}
-            >
-              {part.slice(1, -1)}
-            </code>
-          )
+          const inner = part.slice(1, -1)
+          const short = shortenHex(inner.trim())
+          if (short) return <HexChip key={i} value={inner.trim()} display={short} />
+          return <code key={i} style={CODE_STYLE}>{inner}</code>
         }
+        // Bare (un-backticked) address, hash, or addr::module path.
+        const bareShort = shortenHex(part)
+        if (bareShort) return <HexChip key={i} value={part} display={bareShort} />
         return part
       })}
     </>
@@ -588,6 +658,9 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
   const [manualOpen, setManualOpen] = useState(false)
   const [manualValue, setManualValue] = useState("")
   const [manualError, setManualError] = useState(false)
+  // A pasted 66 char address would otherwise fill the header bar, so the field
+  // shows a middle-truncated form whenever it is not being edited.
+  const [manualFocused, setManualFocused] = useState(false)
 
 
   // Quick-reply suggestion chips
@@ -1279,12 +1352,9 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
             {config.projectName.charAt(0).toUpperCase()}
           </div>
         )}
-        {/* Hidden while pasting an address so the field gets the full row. */}
-        {!(manualOpen && !walletAddress) && (
-          <span className="min-w-0 flex-1 truncate text-sm font-semibold" style={{ color: onPrimary }}>
-            {b.agentName?.trim() || config.projectName}
-          </span>
-        )}
+        <span className="min-w-0 flex-1 truncate text-sm font-semibold" style={{ color: onPrimary }}>
+          {b.agentName?.trim() || config.projectName}
+        </span>
         {!isTokenMode && (
           walletAddress ? (
             <button
@@ -1300,10 +1370,12 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
             // Checked BEFORE hasWallet: a failed or rejected wallet connect
             // opens this field, and it has to be visible even when a provider
             // was detected, otherwise that failure is a dead end.
-            <div className="flex min-w-0 flex-1 items-center gap-1">
+            <div className="flex shrink-0 items-center gap-1">
               <input
                 autoFocus
-                value={manualValue}
+                value={manualFocused ? manualValue : (shortenHex(manualValue.trim()) ?? manualValue)}
+                onFocus={() => setManualFocused(true)}
+                onBlur={() => setManualFocused(false)}
                 onChange={(e) => { setManualValue(e.target.value); setManualError(false) }}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") submitManualAddress()
@@ -1313,7 +1385,7 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
                 aria-label="Wallet address"
                 aria-invalid={manualError}
                 title={manualError ? "That does not look like a valid address" : "Paste a wallet address, or press Escape to go back"}
-                className="min-w-0 flex-1 rounded-full px-2.5 py-1 text-xs font-mono outline-none"
+                className="w-36 rounded-full px-2.5 py-1 text-xs font-mono outline-none"
                 // This field sits ON the header, so it contrasts with the brand
                 // colour, not with the widget background. On a light brand
                 // (Decibel's yellow) the old widget-background colours put white
