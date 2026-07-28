@@ -87,23 +87,25 @@ export default async function ContractsPage() {
       </CollapsibleCard>
 
       <Card>
-        <CardContent className="pt-6">
+        <CardContent>
           <AuditsManager projectId={typedProject.id} audits={config.audits ?? []} />
         </CardContent>
       </Card>
 
       <Card className="border-dashed">
-        <CardContent className="pt-6">
+        <CardContent>
           <div className="space-y-3">
             <p className="text-sm font-medium">Error glossary</p>
             <p className="text-sm text-muted-foreground">
-              When a user&apos;s transaction fails, the AI decodes the revert reason automatically. Add error
-              explanations to each contract so the AI uses your exact wording, not a generic guess.
+              When a user&apos;s transaction fails, the AI decodes the failure reason automatically. Add error
+              explanations per contract so the AI uses your exact wording, not a generic guess. Set these up on each
+              contract in the Watched contracts section above.
             </p>
             <ul className="text-sm text-muted-foreground space-y-1.5 list-disc list-inside">
-              <li>The error name (e.g. <code className="font-mono text-xs">SlippageTooHigh</code>) is matched against the decoded revert</li>
+              <li>Matched by error name, e.g. <code className="font-mono text-xs">SlippageTooHigh</code> on EVM chains, or a Move abort like <code className="font-mono text-xs">EINVALID_TP_SL_ORDER_ID</code> on Aptos</li>
               <li>Your explanation replaces any AI-generated guess</li>
-              <li>Works for Solidity custom errors, standard revert strings, and panic codes</li>
+              <li>Works across chains: Solidity custom errors, revert strings and panic codes, and Aptos Move abort codes</li>
+              <li>Known protocols such as Decibel are already covered automatically, no setup needed</li>
             </ul>
           </div>
         </CardContent>

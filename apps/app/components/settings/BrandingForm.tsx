@@ -144,9 +144,25 @@ export function BrandingForm({ projectId, initial, onBrandingChange }: BrandingF
           )}
         </div>
 
-        {/* Quick themes */}
+        {/* Colours */}
+        <div className="space-y-2">
+          <h3 className="text-sm font-medium">Colours</h3>
+          <ColorPicker value={branding.primaryColor} onChange={v => update("primaryColor", v)} label="Primary" />
+          <ColorPicker value={branding.secondaryColor} onChange={v => update("secondaryColor", v)} label="Secondary" />
+          <ColorPicker value={branding.backgroundColor} onChange={v => update("backgroundColor", v)} label="Background" />
+          <ColorPicker value={branding.textColor} onChange={v => update("textColor", v)} label="Text" />
+          <ColorPicker
+            value={branding.inputTextColor ?? autoInputTextColor(branding.backgroundColor)}
+            onChange={v => update("inputTextColor", v)}
+            label="Input text"
+          />
+          <p className="text-xs text-muted-foreground">Colour of what visitors type. Defaults to auto-contrast with the background so it is never invisible.</p>
+        </div>
+
+        {/* Quick themes - a starting point if you would rather not set colours by hand */}
         <div className="space-y-2">
           <h3 className="text-sm font-medium">Quick themes</h3>
+          <p className="text-xs text-muted-foreground">Prefer a preset? Pick one to fill the colours above, then fine-tune.</p>
           <div className="flex flex-wrap gap-2">
             {PRESETS.map(preset => (
               <button
@@ -165,21 +181,6 @@ export function BrandingForm({ projectId, initial, onBrandingChange }: BrandingF
               </button>
             ))}
           </div>
-        </div>
-
-        {/* Colours */}
-        <div className="space-y-2">
-          <h3 className="text-sm font-medium">Colours</h3>
-          <ColorPicker value={branding.primaryColor} onChange={v => update("primaryColor", v)} label="Primary" />
-          <ColorPicker value={branding.secondaryColor} onChange={v => update("secondaryColor", v)} label="Secondary" />
-          <ColorPicker value={branding.backgroundColor} onChange={v => update("backgroundColor", v)} label="Background" />
-          <ColorPicker value={branding.textColor} onChange={v => update("textColor", v)} label="Text" />
-          <ColorPicker
-            value={branding.inputTextColor ?? autoInputTextColor(branding.backgroundColor)}
-            onChange={v => update("inputTextColor", v)}
-            label="Input text"
-          />
-          <p className="text-xs text-muted-foreground">Colour of what visitors type. Defaults to auto-contrast with the background so it is never invisible.</p>
         </div>
 
         {/* Logo */}

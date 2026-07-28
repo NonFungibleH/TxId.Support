@@ -214,7 +214,7 @@ export function AddContractDialog({ projectId, activeChains, chainLimit }: AddCo
             )}
             {isAptos && aptosModules && aptosModules.length > 0 && (
               <div className="rounded-lg border border-border bg-muted/40 px-3 py-2.5 space-y-1.5">
-                <p className="text-xs font-medium text-foreground/70">{aptosModules.length} module{aptosModules.length === 1 ? "" : "s"} found - a reference for writing the description. To narrow what the AI reads, use the Module dropdown above.</p>
+                <p className="text-xs font-medium text-foreground/70">All {aptosModules.length} module{aptosModules.length === 1 ? "" : "s"} read live from the chain: proof the AI can see the whole contract. Use them as a reference when writing the description below. &quot;(N entry, M view)&quot; is each module&apos;s count of callable and read-only functions.</p>
                 <div className="flex flex-wrap gap-1 max-h-40 overflow-y-auto">
                   {aptosModules.map(m => (
                     <span key={m.name} className="rounded bg-background border border-border px-1.5 py-0.5 text-xs font-mono text-foreground/60">
