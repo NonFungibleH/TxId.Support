@@ -57,7 +57,12 @@ export default function ChainPage({ params }: { params: { slug: string } }) {
   const secondaryLabel = isLive ? "See it live" : "See how it works";
 
   const demo = getChainDemo(chain.slug);
-  const walletLabel = chain.family === "evm" ? "0x1a2b…3c4d connected" : "Wallet connected";
+  const isEvm = chain.family === "evm";
+  const walletLabel = isEvm ? "0x1a2b…3c4d connected" : "Wallet connected";
+  // /check is an EVM-only funnel (curated EVM protocols, 0x address input), so
+  // non-EVM visitors go to the general interactive demo instead.
+  const demoHref = isEvm ? "/check" : "/demo";
+  const demoLabel = isEvm ? "Try it live on a real tx" : "See a live demo";
 
   const faqLd = {
     "@context": "https://schema.org",
@@ -160,11 +165,11 @@ export default function ChainPage({ params }: { params: { slug: string } }) {
                   </p>
                   <div className="flex flex-wrap justify-center lg:justify-start gap-3">
                     <a
-                      href="/check"
+                      href={demoHref}
                       className="inline-flex items-center justify-center gap-2 rounded-lg px-6 py-3 text-base font-medium transition-all duration-200"
                       style={{ background: chain.color, color: ctaText, boxShadow: `0 10px 30px -10px ${hexToRgba(chain.color, 0.5)}` }}
                     >
-                      Try it live on a real tx
+                      {demoLabel}
                       <ArrowRight className="w-4 h-4" />
                     </a>
                   </div>

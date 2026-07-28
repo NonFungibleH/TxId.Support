@@ -51,6 +51,20 @@ export function AddContractDialog({ projectId, activeChains, chainLimit }: AddCo
   const isNewChain = !activeChains.includes(chain)
   const atChainLimit = chainLimit !== -1 && isNewChain && activeChains.length >= chainLimit
 
+  const trimmedAddress = address.trim()
+  const addressValid = addressRe.test(trimmedAddress)
+  const chainLabel = SUPPORTED_CHAINS.find(c => c.id === chain)?.name ?? chain
+  // An address of exactly 40 hex chars is valid on both families, so only flag
+  // the unambiguous case: Aptos-shaped but too long to be an EVM address.
+  const looksAptos = !isAptos && APTOS_ADDRESS_RE.test(trimmedAddress) && !EVM_ADDRESS_RE.test(trimmedAddress)
+  const addressHint = !trimmedAddress || addressValid
+    ? null
+    : looksAptos
+      ? `This looks like an Aptos address. ${chainLabel} addresses are 0x plus exactly 40 hex characters, Aptos allows up to 64. Set the Chain dropdown below to Aptos to add it.`
+      : isAptos
+        ? "Aptos addresses are 0x followed by 1 to 64 hex characters. Check for a stray space or a missing character."
+        : `${chainLabel} addresses are 0x followed by exactly 40 hex characters. Check for a stray space or a missing character.`
+
   // Fetch function names (EVM: block explorer) or the module list (Aptos:
   // fullnode) whenever address + chain look valid
   useEffect(() => {
@@ -122,11 +136,21 @@ export function AddContractDialog({ projectId, activeChains, chainLimit }: AddCo
         <div className="space-y-4 py-2">
           <div className="grid gap-2">
             <Label htmlFor="contract-name">Name</Label>
-            <Input id="contract-name" placeholder="e.g. Token Lock Contract" value={name} onChange={e => setName(e.target.value)} />
+            <Input id="contract-name" placeholder="e.g. Perpetuals Market" value={name} onChange={e => setName(e.target.value)} />
           </div>
           <div className="grid gap-2">
             <Label htmlFor="contract-address">Contract address</Label>
             <Input id="contract-address" placeholder="0x..." value={address} onChange={e => setAddress(e.target.value)} className="font-mono" />
+            {addressHint && (
+              looksAptos ? (
+                <div className="flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2">
+                  <AlertTriangle className="size-3.5 text-amber-500 shrink-0 mt-0.5" />
+                  <p className="text-xs text-amber-600 dark:text-amber-400">{addressHint}</p>
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground">{addressHint}</p>
+              )
+            )}
           </div>
           <div className="grid gap-2">
             <Label htmlFor="contract-chain">Chain</Label>
@@ -185,7 +209,7 @@ export function AddContractDialog({ projectId, activeChains, chainLimit }: AddCo
             <textarea
               id="contract-desc"
               rows={3}
-              placeholder="e.g. Tracks vested TEAM tokens per wallet. Holds unlock dates and vested amounts for each holder."
+              placeholder="e.g. Handles the protocol's core user actions and holds the state behind them. Say what users do here and what can go wrong."
               value={description}
               onChange={e => setDescription(e.target.value)}
               className="w-full rounded-lg border border-input bg-transparent px-3 py-2 text-sm outline-none focus:border-ring resize-none"
@@ -235,7 +259,7 @@ export function AddContractDialog({ projectId, activeChains, chainLimit }: AddCo
 
         <DialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-          <Button onClick={submit} disabled={isPending || !name || !address || !description || atChainLimit}>
+          <Button onClick={submit} disabled={isPending || !name || !addressValid || !description || atChainLimit}>
             {isPending ? "Adding…" : "Add contract"}
           </Button>
         </DialogFooter>

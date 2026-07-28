@@ -50,8 +50,8 @@ function AbiEntrySuggestion({
   }
 
   const placeholder = kind === "event"
-    ? `e.g. "A token lock was successfully created - tokens are now locked until the unlock date."`
-    : `e.g. "You don't have enough tokens approved - go to the token contract and approve more before trying again."`
+    ? `e.g. "Your order was placed and is now resting on the book until it fills or you cancel it."`
+    : `e.g. "The take-profit or stop-loss order you referenced no longer exists: it already filled or was cancelled. Refresh your positions and try again."`
 
   const prompt = kind === "event"
     ? "What does this event mean in plain English? The AI uses this to explain what happened in a transaction."
@@ -253,7 +253,7 @@ export function ErrorGlossaryManager({ projectId, contract }: Props) {
       {showForm ? (
         <div className="space-y-2 rounded-md border border-dashed border-border p-3">
           <Input
-            placeholder="Error or event name, e.g. SlippageTooHigh or LockAdded"
+            placeholder="Error, abort code, or event name, e.g. SlippageTooHigh or EINVALID_TP_SL_ORDER_ID"
             value={entryName}
             onChange={(e) => setEntryName(e.target.value)}
             className="text-xs h-8 font-mono"

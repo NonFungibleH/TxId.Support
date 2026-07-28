@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils"
 interface CollapsibleCardProps {
   title: string
   description?: ReactNode
-  /** Shown in the header only while collapsed — e.g. the current value / status. */
+  /** Shown in the header only while collapsed - e.g. the current value / status. */
   summary?: ReactNode
   /** Right-aligned control (e.g. an Add button). Sits outside the toggle, so clicks don't collapse. */
   action?: ReactNode
@@ -18,7 +18,7 @@ interface CollapsibleCardProps {
 
 // Accordion-style section: a Card whose header toggles its body. Used on the
 // Smart Contracts page so the large Token section can be collapsed away from
-// the Watched-contracts section — the two were easy to confuse when both were
+// the Watched-contracts section - the two were easy to confuse when both were
 // expanded and a user could paste a watched-contract address into the token box.
 export function CollapsibleCard({ title, description, summary, action, defaultOpen = false, children }: CollapsibleCardProps) {
   const [open, setOpen] = useState(defaultOpen)

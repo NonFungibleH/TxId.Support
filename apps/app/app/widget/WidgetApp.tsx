@@ -639,7 +639,7 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
   // ── Embedded wallet bridge ─────────────────────────────────────────────────
   // When the widget runs as a cross-origin iframe (embedded on a customer site),
   // injected wallet providers (Petra's window.aptos, MetaMask, Phantom) live in
-  // the HOST page, not this iframe — so window.aptos is undefined here. The
+  // the HOST page, not this iframe - so window.aptos is undefined here. The
   // loader (widget.js) relays connect requests over postMessage. On mount we ask
   // it which providers the host page can see, and connectWallet routes through it.
   const isEmbedded = typeof window !== "undefined" && window.parent !== window
@@ -674,7 +674,7 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
           resolve(d.ok && d.address ? { address: d.address, chainId: d.chainId ?? "" } : null)
         }
       }
-      // Generous timeout — the host wallet popup can sit waiting for the user.
+      // Generous timeout - the host wallet popup can sit waiting for the user.
       const timer = setTimeout(() => {
         if (settled) return
         settled = true
@@ -696,7 +696,7 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
       saveWalletSession(apiKey, { setup: "connected", address, chainId })
     }
     try {
-      // Try the provider injected into THIS frame first — connecting directly
+      // Try the provider injected into THIS frame first - connecting directly
       // from the click keeps the user gesture, so the wallet popup actually
       // appears. Only when no provider is present here (embedded and the wallet
       // lives in the host page) do we delegate to the loader bridge.

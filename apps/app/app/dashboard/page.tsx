@@ -101,7 +101,7 @@ export default async function DashboardPage() {
       step: 1,
       href: "/dashboard/contracts",
       label: "Add smart contracts",
-      desc: "Add your protocol's contracts so the AI can look them up when users ask about locks, staking, or vesting.",
+      desc: "Add your protocol's contracts or modules so the AI can look them up when users ask about a failed transaction, their positions and orders, or how the protocol works.",
       time: "~2 min",
       done: contractsDone,
     },
@@ -168,7 +168,7 @@ export default async function DashboardPage() {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-4">
         <StatsCard title="Conversations" value={convResult.count ?? 0} description="All time" icon={MessageSquare} />
         <StatsCard title="Connected wallets" value={uniqueWallets} description="Unique addresses" icon={Users} />
-        <StatsCard title="Knowledge docs" value={docCount} description="Indexed chunks" icon={Globe} />
+        <StatsCard title="Knowledge base" value={docCount} description="Indexed chunks" icon={Globe} />
         <StatsCard title="Chains enabled" value={activeChains.length} description={`of ${chainLimitLabel} on ${plan}`} icon={Zap} />
       </div>
 

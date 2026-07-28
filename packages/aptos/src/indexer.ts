@@ -165,6 +165,50 @@ const METADATA_QUERY = `query AssetMetadata($assetType: String!) {
   }
 }`
 
+export interface AptosDeployment {
+  /** ISO timestamp of the account's first on-chain transaction. */
+  timestamp: string
+  /** Sender of that first transaction: whoever created/funded the account. */
+  deployer: string
+  txHash: string
+  version: string
+  /** Entry function of the first transaction, e.g. a package-publish call. */
+  functionId: string | null
+}
+
+/**
+ * Aptos has no "contract creation tx" like EVM: modules are published to an
+ * account. The closest true equivalent is the account's FIRST transaction,
+ * which for a module-publishing account is the publish (or the funding tx that
+ * immediately precedes it). Returns null when the indexer/fullnode can't be
+ * reached, so callers never report "never deployed" during an outage.
+ */
+export async function getAptosDeployment(address: string): Promise<AptosDeployment | null> {
+  const owner = normalizeAptosAddress(address)
+  const data = await aptosGraphql<{ account_transactions: { transaction_version: number | string }[] }>(
+    `query FirstTx($owner: String!) {
+      account_transactions(
+        where: { account_address: { _eq: $owner } }
+        order_by: { transaction_version: asc }
+        limit: 1
+      ) { transaction_version }
+    }`,
+    { owner }
+  )
+  const first = data?.account_transactions?.[0]
+  if (!first) return null
+
+  const tx = await getAptosTransactionByHash(String(first.transaction_version))
+  if (!tx) return null
+  return {
+    timestamp: tx.timestamp,
+    deployer: tx.sender,
+    txHash: tx.hash,
+    version: tx.version,
+    functionId: tx.functionId,
+  }
+}
+
 export interface AptosAssetMetadata {
   assetType: string
   name: string

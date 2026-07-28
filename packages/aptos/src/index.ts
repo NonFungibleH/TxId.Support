@@ -8,19 +8,22 @@ export {
   getAccount,
   getAptosModuleAbi,
   getAptosTransactionByHash,
+  getAptosPackages,
   viewFunction,
   getAptosNetworkStatus,
   formatUnits,
+  microsToIso,
 } from "./fullnode"
-export type { AptosLedgerInfo, AptosNetworkStatus } from "./fullnode"
+export type { AptosLedgerInfo, AptosNetworkStatus, AptosPackage } from "./fullnode"
 export {
   aptosGraphql,
   getAptosWalletBalance,
   getAptosRecentTransactions,
   getAptosAssetMetadata,
+  getAptosDeployment,
   diagnoseAptosWallet,
 } from "./indexer"
-export type { AptosAssetMetadata } from "./indexer"
+export type { AptosAssetMetadata, AptosDeployment } from "./indexer"
 export { resolveAptosName, reverseAptosName } from "./names"
 
 export function isAptosChain(chainId: string): boolean {

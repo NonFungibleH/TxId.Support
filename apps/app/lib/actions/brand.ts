@@ -59,7 +59,7 @@ function chroma(hex: string): number {
 }
 
 // Fallback for compiled/token-based CSS (Next.js, Tailwind, design-token scales)
-// where the brand colour isn't in a conventionally-named var — e.g. Decibel ships
+// where the brand colour isn't in a conventionally-named var - e.g. Decibel ships
 // `--colors-brand-yellow-500: #fff600`, which no fixed name list would match.
 // Pick the most frequently-referenced saturated colour across the stylesheets,
 // filtering out near-black/white and low-chroma greys (text, borders, shadows).

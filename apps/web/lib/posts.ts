@@ -102,7 +102,7 @@ export const POSTS: Post[] = [
       {
         type: "callout",
         label: "Get the answer instantly",
-        text: "Paste a transaction hash into the free TxID Support transaction checker at txid.support/check. It replays the transaction and tells you whether it was truly out of gas or reverting for another reason, in plain English, with no wallet connection required.",
+        text: "Open the free TxID Support transaction checker at txid.support/check, pick the protocol you were using, and paste your wallet address. It finds the transaction, replays it, and tells you whether it was truly out of gas or reverting for another reason, in plain English, with no wallet connection required.",
       },
       {
         type: "p",
@@ -239,7 +239,7 @@ export const POSTS: Post[] = [
       {
         type: "callout",
         label: "Skip the detective work",
-        text: "Paste a transaction hash into the free TxID Support transaction checker at txid.support/check. It replays the transaction and tells you the cause in plain English, including out-of-gas, reason strings, custom errors, and panics, with no wallet connection required. Protocols embed the same engine on their own site so their users get the answer instantly instead of opening a support ticket.",
+        text: "Open the free TxID Support transaction checker at txid.support/check, pick the protocol you were using, and paste your wallet address. It finds the transaction, replays it, and tells you the cause in plain English, including out-of-gas, reason strings, custom errors, and panics, with no wallet connection required. Protocols embed the same engine on their own site so their users get the answer instantly instead of opening a support ticket.",
       },
       {
         type: "h2",

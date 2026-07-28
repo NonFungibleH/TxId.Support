@@ -28,7 +28,7 @@ export function WidgetPreview({
   const isDark = resolvedTheme !== "light"
 
   // Text drawn ON a coloured surface must contrast with THAT surface, not with
-  // the widget background — otherwise a light brand colour (e.g. Decibel's
+  // the widget background - otherwise a light brand colour (e.g. Decibel's
   // yellow) gets white text and becomes unreadable. textColor stays for text on
   // the widget background itself.
   const onPrimary = autoInputTextColor(branding.primaryColor)

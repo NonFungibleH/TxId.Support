@@ -139,9 +139,46 @@ interface RawUserTransaction {
   events?: { type: string; data: unknown }[]
 }
 
-function microsToIso(micros: string): string {
+export function microsToIso(micros: string): string {
   const ms = Math.floor(Number(micros) / 1000)
   return Number.isFinite(ms) ? new Date(ms).toISOString() : ""
+}
+
+export interface AptosPackage {
+  name: string
+  /** Times the package has been upgraded since first publish (0 = never upgraded). */
+  upgradeNumber: number
+  /** 1 = compatible (upgradeable under compatibility rules), 2 = immutable. */
+  upgradePolicy: number
+  moduleNames: string[]
+}
+
+/**
+ * Packages published under an account, from 0x1::code::PackageRegistry.
+ * This is Aptos's equivalent of EVM upgrade history: each package carries an
+ * upgrade counter and its declared upgrade policy, so "has this changed, and
+ * can it change?" is answerable from one on-chain read.
+ */
+export async function getAptosPackages(address: string): Promise<AptosPackage[] | null> {
+  const res = await aptosGet<{
+    data?: {
+      packages?: {
+        name: string
+        upgrade_number: string | number
+        upgrade_policy?: { policy: string | number }
+        modules?: { name: string }[]
+      }[]
+    }
+  }>(`/accounts/${normalizeAptosAddress(address)}/resource/0x1::code::PackageRegistry`)
+
+  const packages = res?.data?.packages
+  if (!packages) return null
+  return packages.map(p => ({
+    name: p.name,
+    upgradeNumber: Number(p.upgrade_number) || 0,
+    upgradePolicy: Number(p.upgrade_policy?.policy) || 0,
+    moduleNames: (p.modules ?? []).map(m => m.name),
+  }))
 }
 
 export async function getAptosTransactionByHash(

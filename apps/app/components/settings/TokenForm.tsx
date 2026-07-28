@@ -93,7 +93,7 @@ export function TokenForm({ projectId, initial }: TokenFormProps) {
         <Label htmlFor="dex-url">DEX link (optional)</Label>
         <Input
           id="dex-url"
-          placeholder="https://app.uniswap.org/..."
+          placeholder="https://your-dex.example/swap?token=0x..."
           value={dexUrl}
           onChange={e => setDexUrl(e.target.value)}
         />

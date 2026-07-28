@@ -37,13 +37,13 @@ const GROUPS = [
         icon: ScanSearch,
         title: "OFAC sanctions screening, on demand",
         description:
-          "Ask whether an address or counterparty is flagged and the assistant screens it live against the on-chain Chainalysis sanctions oracle (OFAC SDN list), then cites the source.",
+          "On EVM chains, ask whether an address or counterparty is flagged and the assistant screens it live against the on-chain Chainalysis sanctions oracle (OFAC SDN list), then cites the source.",
       },
       {
         icon: ShieldCheck,
         title: "Contract verification, on request",
         description:
-          "Ask “is this the real contract?” and it confirms source-verified status from the block explorer, including proxy transparency and upgrade history.",
+          "Ask “is this the real contract?” and on EVM chains it confirms source-verified status from the block explorer, with proxy transparency and upgrade history. On Aptos, modules publish their ABI on-chain, so it reads them directly.",
       },
       {
         icon: FileCheck2,

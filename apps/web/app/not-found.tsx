@@ -9,7 +9,7 @@ const DESTINATIONS = [
   {
     icon: SearchCheck,
     title: "Try it live",
-    description: "Paste any transaction hash and watch TxID diagnose it, free.",
+    description: "Pick a protocol, connect a wallet, and watch TxID diagnose your real transactions, free.",
     href: "/check",
   },
   {

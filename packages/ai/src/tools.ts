@@ -54,6 +54,8 @@ import {
   getAptosTransactionByHash,
   getAptosAssetMetadata,
   getAptosModuleAbi,
+  getAptosDeployment,
+  getAptosPackages,
   viewFunction,
   getAptosNetworkStatus,
   diagnoseAptosWallet,
@@ -595,9 +597,20 @@ export async function executeTool(
         return { note: "Deployment lookup is only available on EVM chains." }
       }
       if (isAptosChain(target.chain)) {
+        // Aptos has no contract-creation tx: modules are published to an
+        // account, so the account's FIRST transaction is the true equivalent.
+        const dep = await getAptosDeployment(target.address)
+        if (!dep) return { contract: target.name, note: aptosFullnodeFailed("look up when this account was created") }
+        const pkgs = await getAptosPackages(target.address)
         return {
           contract: target.name,
-          note: "Deployment lookup is not available for Aptos here — Aptos modules are published to an account rather than deployed as contracts. The account's first transaction on explorer.aptoslabs.com shows when it was created.",
+          publishedAt: dep.timestamp,
+          publishedBy: dep.deployer,
+          txHash: dep.txHash,
+          version: dep.version,
+          firstFunction: dep.functionId,
+          ...(pkgs ? { packages: pkgs.map(p => ({ name: p.name, moduleCount: p.moduleNames.length })) } : {}),
+          note: "On Aptos this is the module-publishing account's first on-chain transaction, which is when the account was created and its code first published. There is no separate contract-creation transaction as on EVM.",
         }
       }
       const deployment = await getContractDeployment(target.address, target.chain)
@@ -777,10 +790,21 @@ export async function executeTool(
         return { upgrades: [], note: "Upgrade history is only available on EVM chains." }
       }
       if (isAptosChain(target.chain)) {
+        // Aptos has no proxy/implementation pattern: packages are upgraded in
+        // place, and the on-chain PackageRegistry records how many times each
+        // has been upgraded plus whether it is still allowed to change.
+        const pkgs = await getAptosPackages(target.address)
+        if (!pkgs) return { contract: target.name, note: aptosFullnodeFailed("read this account's package registry") }
+        const policyName = (p: number) => (p === 2 ? "immutable" : p === 1 ? "compatible" : "arbitrary")
         return {
           contract: target.name,
-          upgrades: [],
-          note: "Upgrade-history tracking here is EVM-only (proxy Upgraded events). Aptos modules are upgraded in place under the package's declared upgrade policy — the account's page on explorer.aptoslabs.com shows package publish/upgrade transactions.",
+          packages: pkgs.map(p => ({
+            name: p.name,
+            timesUpgraded: p.upgradeNumber,
+            upgradePolicy: policyName(p.upgradePolicy),
+            moduleCount: p.moduleNames.length,
+          })),
+          note: "Aptos packages are upgraded in place rather than behind a proxy. timesUpgraded is the on-chain upgrade counter since first publish. upgradePolicy 'immutable' means the code can never change again; 'compatible' means it can be upgraded but only in backward-compatible ways.",
         }
       }
       const upgrades = await getUpgradeHistory(target.address, target.chain)

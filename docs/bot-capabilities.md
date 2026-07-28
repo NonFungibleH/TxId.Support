@@ -153,6 +153,44 @@ Key files: `packages/blockchain/src/*` (data + decode), `packages/ai/src/tools.t
 
 ---
 
+## 8. Aptos parity (Move VM)
+
+Aptos is a separate chain family, not another EVM chain: modules instead of
+contracts, Move aborts instead of reverts, no approvals, no proxies. Parity is
+measured against the EVM tables above. Verified live against Decibel
+(`0x50ead22a…db06`, 8 packages / 91 modules) on 2026-07-28.
+
+Legend: ✅ parity · 🟦 N/A by design (the concept does not exist on Aptos) · ❌ gap
+
+| Capability | Aptos | Mechanism / note |
+|---|---|---|
+| Tx status + failure diagnosis | ✅ | `getAptosTransactionByHash` + `decodeAbort` (std::error category, framework table, protocol errmap) |
+| Chain auto-detect on a hash | ✅ | Aptos joins the parallel fan-out; all-numeric input = a version |
+| Decoded function + type args | ✅ | entry-function payload from the fullnode |
+| Wallet balances / recent txs / diagnosis | ✅ | indexer `current_fungible_asset_balances` + `account_transactions` |
+| Live state, no-arg and with-args getters | ✅ | Move view functions (`addr::module::fn`) |
+| Function catalogue | ✅ | on-chain module ABI (paginated, 91 modules verified) |
+| Verification / transparency | ✅ | stronger than EVM: every module publishes its ABI on-chain, no proxy indirection |
+| **Deployment date + deployer** | ✅ | `getAptosDeployment`: the account's FIRST transaction (Aptos has no contract-creation tx). Decibel: 2026-02-18 |
+| **Upgrade history** | ✅ | `getAptosPackages`: `0x1::code::PackageRegistry` upgrade counter + policy (immutable / compatible) |
+| Token metadata | ✅ | indexer fungible-asset metadata |
+| Token + native price (USD) | ✅ | DexScreener has an `aptos` chain slug; APT priced by coin type |
+| Name resolution (`.apt`) | ✅ | ANS via the indexer's `current_aptos_names` |
+| Network status / gas | ✅ | `getAptosNetworkStatus` |
+| Custom-error glossary | ✅ | per-protocol errmap + dashboard glossary |
+| Approvals / allowances | 🟦 | Aptos has no standing approvals: assets move only when the owner signs. The bot explains this rather than reporting a gap |
+| Proxy / implementation | 🟦 | no proxy pattern; upgrades happen in place under the package policy |
+| Event history (topic-indexed scan) | ❌ | the indexer's `events` table was **deprecated and removed** (no v2 replacement exposed). Substitute: scan events emitted by the module's recent transactions, labelled honestly as partial |
+| Pre-flight gas estimate | ❌ | Aptos exposes `/transactions/simulate`, not wired up. Low priority while Aptos is read + diagnose only |
+| OFAC sanctions screening | ❌ | the Chainalysis oracle is EVM-only; no Aptos equivalent exists. Bot says so plainly |
+| Token safety / honeypot screen | ❌ | GoPlus is EVM-only; no Aptos equivalent. Bot says so plainly |
+| Execute / Actions | 🟦 | deliberately EVM-only (product decision, not a technical gap) |
+
+**Never-fabricate rule holds on Aptos:** every client returns `null` on a failed
+fetch (distinct from a genuine empty result), and each call site converts that to
+an explicit "couldn't reach it" note. Verified: a nonexistent account returns
+`null`, never a fabricated deployment date.
+
 ## Constraints & known gaps
 
 - **Explorer access** tries Etherscan V2 first, then **Blockscout** (free,

@@ -38,9 +38,12 @@ export default async function PreviewPage() {
           <div className="flex items-center gap-2">
             <MonitorSmartphone className="size-4 text-muted-foreground" />
             <CardTitle>Standalone preview</CardTitle>
+            <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary">
+              Recommended
+            </span>
           </div>
           <CardDescription>
-            Opens your widget on a branded page at its exact display size.
+            Opens your widget on a branded page at its exact display size. This is the reliable way to test it: it works in any browser, on any network, and you can share the link with your team.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -62,12 +65,20 @@ export default async function PreviewPage() {
           <div className="flex items-center gap-2">
             <Bookmark className="size-4 text-muted-foreground" />
             <CardTitle>Preview on your own website</CardTitle>
+            <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+              Optional
+            </span>
           </div>
           <CardDescription>
             Test the widget on your actual site without touching any code.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2.5">
+            <p className="text-xs text-amber-600 dark:text-amber-400">
+              Heads up: this trick works by injecting the widget into the page, so a site with a strict Content Security Policy will block it. Most DeFi apps have one. If you click the bookmark and nothing appears, that is why, and there is no error to see. Use the standalone preview above instead: it works everywhere.
+            </p>
+          </div>
           <ol className="space-y-3 text-sm text-muted-foreground list-none">
             <li className="flex items-start gap-3">
               <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">1</span>
