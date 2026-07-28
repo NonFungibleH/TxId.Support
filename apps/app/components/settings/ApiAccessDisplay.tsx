@@ -59,7 +59,7 @@ export function ApiAccessDisplay({ secretKey, apiBaseUrl }: ApiAccessDisplayProp
         Send a transaction hash, get back a structured diagnosis: status, cause, decoded error, a plain-English
         explanation, the recommended fix, token transfers and a gas verdict. API calls are rate-limited to 60/min and
         don&apos;t count against your widget&apos;s monthly conversation limit.{" "}
-        <a href="/platform" className="underline underline-offset-2 hover:text-foreground">Read the docs →</a>
+        <a href="https://txid.support/api" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-foreground">Read the docs →</a>
       </p>
     </div>
   )

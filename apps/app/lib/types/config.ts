@@ -39,7 +39,6 @@ export function isPaidPlan(plan: Plan): boolean {
 }
 
 export const SUPPORTED_CHAINS = [
-  { id: "0xaa36a7", name: "Sepolia (Testnet)",  explorer: "sepolia.etherscan.io" },
   { id: "0x1",      name: "Ethereum",          explorer: "etherscan.io" },
   { id: "0x2105",   name: "Base",              explorer: "basescan.org" },
   { id: "0x38",     name: "BNB Chain",         explorer: "bscscan.com" },
@@ -48,8 +47,9 @@ export const SUPPORTED_CHAINS = [
   { id: "0xa",      name: "Optimism",          explorer: "optimistic.etherscan.io" },
   { id: "0xa86a",   name: "Avalanche",         explorer: "snowtrace.io" },
   { id: "0xa729",   name: "Etherlink",         explorer: "explorer.etherlink.com" },
-  { id: "solana",   name: "Solana",            explorer: "solscan.io" },
   { id: "aptos",    name: "Aptos",             explorer: "explorer.aptoslabs.com" },
+  { id: "solana",   name: "Solana",            explorer: "solscan.io" },
+  { id: "0xaa36a7", name: "Sepolia (Testnet)",  explorer: "sepolia.etherscan.io" },
 ] as const
 
 export type ChainId = (typeof SUPPORTED_CHAINS)[number]["id"]

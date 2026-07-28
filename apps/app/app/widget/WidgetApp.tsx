@@ -715,9 +715,12 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
         return
       }
       if (isAptosProject && !(hasEvmChain && "ethereum" in window)) {
-        // Petra injects window.aptos; Martian is the common fallback.
+        // Prefer window.petra (Petra's dedicated namespace) over window.aptos:
+        // with several wallets installed, Phantom also claims window.aptos for
+        // its Aptos support, so the generic handle can be the wrong wallet.
         type AptosProvider = { connect: () => Promise<{ address: string }> }
         const aptosProvider =
+          (window as unknown as { petra?: AptosProvider }).petra ??
           (window as unknown as { aptos?: AptosProvider }).aptos ??
           (window as unknown as { martian?: AptosProvider }).martian
         if (aptosProvider) { const acct = await aptosProvider.connect(); applyConn(acct.address, "aptos"); return }
@@ -1066,6 +1069,7 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
   )
   const hasMetaMask = typeof window !== "undefined" && "ethereum" in window
   const hasAptosWallet = typeof window !== "undefined" && (
+    !!(window as unknown as { petra?: unknown }).petra ||
     !!(window as unknown as { aptos?: unknown }).aptos ||
     !!(window as unknown as { martian?: unknown }).martian
   )
