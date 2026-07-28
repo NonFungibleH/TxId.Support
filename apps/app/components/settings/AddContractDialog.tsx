@@ -201,8 +201,8 @@ export function AddContractDialog({ projectId, activeChains, chainLimit }: AddCo
             )}
             {detectedFns && detectedFns.length > 0 && (
               <div className="rounded-lg border border-border bg-muted/40 px-3 py-2.5 space-y-1.5">
-                <p className="text-xs font-medium text-foreground/70">Functions detected - use these to describe what the contract does:</p>
-                <div className="flex flex-wrap gap-1">
+                <p className="text-xs font-medium text-foreground/70">{detectedFns.length} function{detectedFns.length === 1 ? "" : "s"} detected - use these to describe what the contract does:</p>
+                <div className="flex flex-wrap gap-1 max-h-40 overflow-y-auto">
                   {detectedFns.map(fn => (
                     <span key={fn} className="rounded bg-background border border-border px-1.5 py-0.5 text-xs font-mono text-foreground/60">{fn}</span>
                   ))}
@@ -214,8 +214,8 @@ export function AddContractDialog({ projectId, activeChains, chainLimit }: AddCo
             )}
             {isAptos && aptosModules && aptosModules.length > 0 && (
               <div className="rounded-lg border border-border bg-muted/40 px-3 py-2.5 space-y-1.5">
-                <p className="text-xs font-medium text-foreground/70">Modules found: use these to describe what the contract does.</p>
-                <div className="flex flex-wrap gap-1">
+                <p className="text-xs font-medium text-foreground/70">{aptosModules.length} module{aptosModules.length === 1 ? "" : "s"} found - a reference for writing the description. To narrow what the AI reads, use the Module dropdown above.</p>
+                <div className="flex flex-wrap gap-1 max-h-40 overflow-y-auto">
                   {aptosModules.map(m => (
                     <span key={m.name} className="rounded bg-background border border-border px-1.5 py-0.5 text-xs font-mono text-foreground/60">
                       {m.name} ({m.entryCount} entry, {m.viewCount} view)
