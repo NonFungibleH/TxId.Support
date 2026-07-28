@@ -34,6 +34,18 @@ export type {
   AptosTokenSafety,
   AptosDeployment,
 } from "./indexer"
+export {
+  getAptosDelegations,
+  getAptosStakingActivity,
+  getAptosPoolLockup,
+  getAptosStakeFromChain,
+} from "./staking"
+export type {
+  AptosDelegationPosition,
+  AptosStakingActivity,
+  AptosPoolLockup,
+  AptosDelegatorStake,
+} from "./staking"
 export { resolveAptosName, reverseAptosName } from "./names"
 
 export function isAptosChain(chainId: string): boolean {

@@ -37,6 +37,56 @@ export const CHAT_LIMITS = {
   /** Stricter session cap for the public demo key. Matches the
    *  inspect:${ip} daily rate limit in /api/chat - both must move together. */
   demoSessionMessages: 8,
+  /** Caps applied instead of the two above when the DISTRIBUTED limiter is
+   *  unavailable (Upstash unset, erroring, or timing out). The fallback counter
+   *  is per lambda instance, so N concurrent instances would otherwise allow
+   *  N x the intended rate. Deliberately tight: a degraded limiter is the one
+   *  moment an attacker gets the most leverage. */
+  degradedRatePerWindow: 5,
+  degradedRatePerKeyPerWindow: 60,
+} as const
+
+/**
+ * Positive integer from the environment, falling back to `fallback` when the
+ * var is unset or not a usable number (so a typo can't silently disable the
+ * circuit breaker or set it to zero).
+ */
+function envPositiveInt(name: string, fallback: number): number {
+  const raw = process.env[name]
+  const parsed = raw ? Number(raw) : NaN
+  return Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : fallback
+}
+
+/**
+ * DAILY SPEND CIRCUIT BREAKER (lib/spend-guard.ts, enforced by /api/chat).
+ *
+ * Counts input + output tokens recorded in token_usage for the current UTC
+ * day. Every other limit here caps requests or conversations; this one caps
+ * the thing that actually costs money, and it is the last line of defence if
+ * every other cap is somehow bypassed.
+ *
+ * Defaults, on Haiku pricing (roughly $1/M input, $5/M output), assuming a
+ * mostly-input mix:
+ *   DAILY_TOKEN_BUDGET_PROJECT  = 2,000,000 tokens/day  (~$2-$10 per project)
+ *   DAILY_TOKEN_BUDGET_PLATFORM = 20,000,000 tokens/day (~$20-$100 total)
+ * A busy real widget uses a small fraction of the per-project figure: a chat
+ * turn is on the order of a few thousand tokens.
+ *
+ * Both are overridable per deployment via those env vars. Raise them when real
+ * traffic approaches the ceiling; a breach returns 503 from /api/chat and no
+ * model call is made.
+ */
+export const SPEND_LIMITS = {
+  dailyTokensProject: envPositiveInt("DAILY_TOKEN_BUDGET_PROJECT", 2_000_000),
+  dailyTokensPlatform: envPositiveInt("DAILY_TOKEN_BUDGET_PLATFORM", 20_000_000),
+  /** How long a totals read is reused before the guard queries again. Keeps
+   *  the check off the per-request hot path: one query per project per minute
+   *  however many requests arrive. */
+  cacheMs: 60_000,
+  /** Shorter reuse window after a FAILED totals read. The guard fails open, so
+   *  this bounds how long a transient error leaves us unprotected while still
+   *  stopping a broken query from being retried on every request. */
+  errorCacheMs: 15_000,
 } as const
 
 /**

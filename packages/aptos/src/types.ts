@@ -26,6 +26,22 @@ export interface AptosTransaction {
   typeArguments: string[]
   gasUsed: string
   gasUnitPrice: string
+  /** Total gas paid in octas (gasUsed x gasUnitPrice). 1 APT = 1e8 octas. */
+  feeOctas: string
+  /** Same fee rendered in APT, so the model never does the maths itself. */
+  feeApt: string
+  /**
+   * How the transaction was authorised. Aptos has account abstraction in the
+   * base layer, so this is a real user-facing fact, not plumbing:
+   * "fee_payer" means someone else (usually the dApp) paid the gas,
+   * "multi_agent" means several accounts signed, "single_sender" is the
+   * ordinary case. Users ask "why was I not charged gas", and the answer is
+   * here rather than in their balance history.
+   */
+  signatureType: string | null
+  /** Set when the gas was sponsored by another account. */
+  feePayer: string | null
+  secondarySigners: string[]
   events: { type: string; data: unknown }[]
   decodedAbort?: DecodedAbort
 }

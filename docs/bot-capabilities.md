@@ -207,6 +207,17 @@ address (same keying as `PROTOCOL_ERRMAPS`):
 Verified live against Decibel: subaccount resolution, 60 named markets, and the
 abort-vs-outage distinction.
 
+### Aptos platform coverage (added for the core-team demo)
+
+| Capability | Status | Mechanism |
+|---|---|---|
+| Who paid the gas (sponsored / fee-payer, multi-agent) | ✅ | `signatureType` + `feePayer` + `secondarySigners` on every tx. Aptos has account abstraction in the base layer, so this is a user-facing fact: Decibel's own txs are `fee_payer_signature`, i.e. gas is sponsored |
+| Gas actually paid | ✅ | `feeOctas`/`feeApt` precomputed. `FeeStatement` is emitted LAST so it is now pinned into the event list instead of being cut by the head-slice |
+| Framework reads at 0x1 / 0x3 / 0x4 | ✅ | allowed as a synthetic target: chain-standard modules, not another protocol's contracts. Unblocks APT supply, staking lockups, object ownership, coin/FA pairing |
+| Generic view functions | ✅ | `type_args` threaded through `get_contract_data`. Verified: `0x1::coin::supply<AptosCoin>` = 1.206B APT |
+| Delegated staking | ✅ | `get_staking_positions` (Aptos-only tool): pools, exact active/inactive/pending_inactive octas read from `0x1::delegation_pool::get_stake`, lockup expiry, recent staking events. NOTE the indexer stores SHARES as floats, not octas, so amounts come from the chain view, never derived from shares |
+| Huge package listings | ✅ | `get_contract_functions` returned ~15k tokens on Decibel's 91 modules, swallowing the tool-round budget. Now returns a module index plus `module_name` to drill in |
+
 **Never-fabricate rule holds on Aptos:** every client returns `null` on a failed
 fetch (distinct from a genuine empty result), and each call site converts that to
 an explicit "couldn't reach it" note. Verified: a nonexistent account returns

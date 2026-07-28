@@ -5,7 +5,8 @@ import { actionsGate, effectiveMaxSwapUsd } from "@/lib/actions-gate"
 import type { ProjectConfig, Plan } from "@/lib/types/config"
 import type { Database } from "@/lib/supabase/types"
 import { verifyPreviewToken } from "@/lib/preview-token"
-import { rateLimit } from "@/lib/rate-limit"
+import { rateLimit, clientIp } from "@/lib/rate-limit"
+import { checkSpendBudget } from "@/lib/spend-guard"
 import { log } from "@/lib/logger"
 import { CHAT_LIMITS, conversationLimitsFor } from "@/lib/limits"
 import { fetchAbiWithProxy, fetchAbiFromExplorer } from "@txid/blockchain"
@@ -75,12 +76,11 @@ export async function OPTIONS() {
 
 export async function POST(request: Request) {
   try {
-    const ip =
-      request.headers.get("x-forwarded-for")?.split(",")[0].trim() ??
-      request.headers.get("x-real-ip") ??
-      "unknown"
+    const ip = clientIp(request)
 
-    const { allowed } = await rateLimit(`chat:${ip}`, CHAT_LIMITS.ratePerWindow, CHAT_LIMITS.windowMs)
+    const { allowed } = await rateLimit(`chat:${ip}`, CHAT_LIMITS.ratePerWindow, CHAT_LIMITS.windowMs, {
+      degradedLimit: CHAT_LIMITS.degradedRatePerWindow,
+    })
     if (!allowed) {
       return new Response(JSON.stringify({ error: "Too many requests. Please slow down." }), {
         status: 429,
@@ -120,6 +120,7 @@ export async function POST(request: Request) {
       `chat:key:${key}`,
       CHAT_LIMITS.ratePerKeyPerWindow,
       CHAT_LIMITS.windowMs,
+      { degradedLimit: CHAT_LIMITS.degradedRatePerKeyPerWindow },
     )
     if (!keyAllowed) {
       log.warn("Chat key rate limited", { event: "chat.key_rate_limited", key: key.slice(0, 12) })
@@ -219,6 +220,28 @@ export async function POST(request: Request) {
         status: 403,
         headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
       })
+    }
+
+    // ── Daily spend circuit breaker ───────────────────────────────────────────
+    // Last line of defence on cost: checked before RAG, before any ABI/RPC
+    // fetch, and before the model call, so a breach costs nothing. Cached in
+    // lib/spend-guard.ts, and fails open if the count itself errors. The
+    // response deliberately says nothing about budgets or which ceiling was
+    // hit, so it can't be used to probe our spend.
+    const budget = await checkSpendBudget(supabase, typedProject.id)
+    if (!budget.allowed) {
+      log.warn("Chat blocked by spend guard", {
+        event: "chat.spend_blocked",
+        projectId: typedProject.id,
+        scope: budget.scope,
+      })
+      return new Response(
+        JSON.stringify({ error: "Support chat is temporarily unavailable. Please try again later." }),
+        {
+          status: 503,
+          headers: { ...CORS_HEADERS, "Content-Type": "application/json", "Retry-After": "3600" },
+        },
+      )
     }
 
     // ── Conversation quota (monthly + daily) + per-session message cap ────────

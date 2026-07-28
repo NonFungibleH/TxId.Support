@@ -2,7 +2,7 @@ import crypto from "crypto"
 import { createServiceClient } from "@/lib/supabase/server"
 import type { ProjectConfig } from "@/lib/types/config"
 import type { Database } from "@/lib/supabase/types"
-import { rateLimit } from "@/lib/rate-limit"
+import { rateLimit, clientIp } from "@/lib/rate-limit"
 import { TICKET_LIMITS } from "@/lib/limits"
 import { dispatchEscalation } from "@/lib/integrations/escalation"
 
@@ -30,10 +30,7 @@ function makeRef(): string {
 
 export async function POST(request: Request) {
   try {
-    const ip =
-      request.headers.get("x-forwarded-for")?.split(",")[0].trim() ??
-      request.headers.get("x-real-ip") ??
-      "unknown"
+    const ip = clientIp(request)
 
     // Stricter than chat (creating a ticket emails the team + fires a webhook).
     // Distributed via Upstash when configured; see lib/rate-limit.ts.

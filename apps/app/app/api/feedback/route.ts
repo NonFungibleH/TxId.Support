@@ -1,5 +1,5 @@
 import { createServiceClient } from "@/lib/supabase/server"
-import { rateLimit } from "@/lib/rate-limit"
+import { rateLimit, clientIp } from "@/lib/rate-limit"
 import { log } from "@/lib/logger"
 
 // Cross-origin: the widget runs on the customer's site.
@@ -24,10 +24,7 @@ export function OPTIONS() {
  */
 export async function POST(request: Request) {
   try {
-    const ip =
-      request.headers.get("x-forwarded-for")?.split(",")[0].trim() ??
-      request.headers.get("x-real-ip") ??
-      "unknown"
+    const ip = clientIp(request)
 
     // Generous cap - feedback is cheap, but stop a loop from hammering it.
     const { allowed } = await rateLimit(`feedback:${ip}`, 60, 60_000)

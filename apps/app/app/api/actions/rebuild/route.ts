@@ -1,5 +1,5 @@
 import { createServiceClient } from "@/lib/supabase/server"
-import { rateLimit } from "@/lib/rate-limit"
+import { rateLimit, clientIp } from "@/lib/rate-limit"
 import { actionsGate, effectiveMaxSwapUsd } from "@/lib/actions-gate"
 import type { ProjectConfig, Plan } from "@/lib/types/config"
 import { prepareSwap, prepareContractAction } from "@txid/ai"
@@ -28,7 +28,7 @@ export async function OPTIONS() {
 
 export async function POST(request: Request) {
   try {
-    const ip = request.headers.get("x-forwarded-for")?.split(",")[0].trim() ?? "unknown"
+    const ip = clientIp(request)
     const { allowed } = await rateLimit(`actions-rebuild:${ip}`, 10, 60_000)
     if (!allowed) return json(429, { error: "Too many requests" })
 

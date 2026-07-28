@@ -60,6 +60,9 @@ import {
   adapterFor,
   getProtocolAccount,
   getProtocolMarkets,
+  getAptosDelegations,
+  getAptosStakingActivity,
+  getAptosPoolLockup,
   getAptosPackages,
   viewFunction,
   getAptosNetworkStatus,
@@ -104,7 +107,29 @@ function findWatched(
     a.toLowerCase() === b.toLowerCase() ||
     (isAptosAddress(a) && isAptosAddress(b) && normalizeAptosAddress(a) === normalizeAptosAddress(b))
   const matches = watchedContracts.filter(c => sameAddress(c.address, contractAddress))
-  if (matches.length === 0) return {}
+  if (matches.length === 0) {
+    // The Aptos framework (0x1 core, 0x3 token v1, 0x4 token v2) is public,
+    // read-only and the same for every project, so scoping reads to the
+    // protocol's own modules blocks legitimate platform questions: staking
+    // lockups, APT supply, object ownership, coin/FA pairing all live at 0x1.
+    // Allow it as a synthetic target when the project is an Aptos one. This is
+    // not a scope hole: these are chain-standard view functions, not another
+    // protocol's contracts.
+    const fw = isAptosAddress(contractAddress) ? normalizeAptosAddress(contractAddress) : null
+    const isFramework = fw !== null && APTOS_FRAMEWORK_ADDRESSES.has(fw)
+    if (isFramework && watchedContracts.some(c => isAptosChain(c.chain))) {
+      return {
+        target: {
+          id: "aptos-framework",
+          name: "Aptos framework",
+          address: contractAddress,
+          chain: "aptos",
+          description: "The Aptos framework: core chain modules published at 0x1, 0x3 and 0x4.",
+        } as WatchedContractSnapshot,
+      }
+    }
+    return {}
+  }
   if (matches.length === 1) return { target: matches[0]! }
   if (chainId) {
     const m = matches.find(c => c.chain.toLowerCase() === chainId.toLowerCase())
@@ -150,6 +175,10 @@ async function aptosModulesFor(target: WatchedContractSnapshot): Promise<AptosMo
 const APTOS_FN_FORMAT_NOTE =
   "On Aptos, functions live inside named modules — call again with function_name as 'module::function' (e.g. 'pool::get_fee'). Only functions on this protocol's own module account can be read, and type arguments are not supported here. Use get_contract_functions to list this account's modules and their view functions."
 
+const APTOS_FRAMEWORK_ADDRESSES = new Set(
+  ["0x1", "0x3", "0x4"].map(normalizeAptosAddress),
+)
+
 const aptosFullnodeFailed = (what: string) =>
   `Could not reach the Aptos fullnode to ${what} right now — a failed lookup, not a statement about the account. Try again shortly.`
 
@@ -166,7 +195,26 @@ export function buildWalletTools(
       ? ` This protocol's contracts are: ${watchedContracts.map((c) => `${c.name} at ${c.address}`).join(", ")}. Use the contract_address filter when diagnosing a specific interaction.`
       : ""
 
+  // Staking is Aptos's largest retail support surface ("when can I unstake?"),
+  // but the tool only exists for Aptos projects so EVM projects pay nothing
+  // for its schema.
+  const aptosProject = watchedContracts.some(c => isAptosChain(c.chain))
+  const stakingTool: Anthropic.Tool[] = aptosProject
+    ? [{
+        name: "get_staking_positions",
+        description:
+          "Aptos only: the connected wallet's delegated staking. Returns each pool it delegates to with the exact active / inactive / pending_inactive amounts read from the chain, the pool's current lockup expiry, and recent staking events (AddStake, UnlockStake, WithdrawStake, ReactivateStake). " +
+          "Use for 'am I staking', 'when can I unstake', 'where are my rewards', 'why has my stake not moved'.",
+        input_schema: {
+          type: "object" as const,
+          properties: {},
+          required: [],
+        },
+      }]
+    : []
+
   return [
+    ...stakingTool,
     {
       name: "get_wallet_balance",
       description:
@@ -267,6 +315,33 @@ export async function executeTool(
   const aptos = wallet ? isAptosChain(wallet.chainId) : false
 
   switch (name) {
+    case "get_staking_positions": {
+      if (!wallet) throw new Error("Wallet not connected")
+      if (!aptos) return { note: "Delegated staking lookups here are Aptos only." }
+      const [positions, activity] = await Promise.all([
+        getAptosDelegations(wallet.address),
+        getAptosStakingActivity(wallet.address, 10),
+      ])
+      if (positions === null && activity === null) {
+        return { error: aptosFullnodeFailed("read this wallet's staking positions") }
+      }
+      // Lockups are per pool, so resolve them only for pools this wallet
+      // actually uses rather than scanning every validator.
+      const lockups = positions
+        ? await Promise.all(
+            positions.slice(0, 8).map(async p => [p.poolAddress, await getAptosPoolLockup(p.poolAddress)] as const),
+          )
+        : []
+      return {
+        walletAddress: wallet.address,
+        ...(positions
+          ? { positions, lockups: Object.fromEntries(lockups) }
+          : { positionsNote: aptosFullnodeFailed("read this wallet's delegation positions") }),
+        ...(activity ? { recentActivity: activity } : { activityNote: aptosFullnodeFailed("read this wallet's staking history") }),
+        note: "Amounts are octas: 1 APT = 100,000,000 octas. 'active' is earning, 'pending_inactive' is unlocking this cycle, 'inactive' is withdrawable now. A lockup expiry is the CURRENT cycle's end: stake unlocked after that instant waits for the following cycle, so do not present it as a countdown for an unlock the user has not requested yet.",
+      }
+    }
+
     case "get_wallet_balance": {
       if (!wallet) throw new Error("Wallet not connected")
       if (solana) {
@@ -772,7 +847,8 @@ export async function executeTool(
             }
           }
         }
-        const result = await viewFunction(fnId, [], resolvedArgs)
+        const typeArgs = Array.isArray(input.type_args) ? input.type_args.map(t => String(t)) : []
+        const result = await viewFunction(fnId, typeArgs, resolvedArgs)
         if (result && marketResolution) {
           return { contract: target.name, function: fnId, result, note: marketResolution }
         }
@@ -834,14 +910,38 @@ export async function executeTool(
       if (isAptosChain(target.chain)) {
         const modules = await aptosModulesFor(target)
         if (!modules) return { contract: target.name, error: aptosFullnodeFailed("read this account's modules") }
+        // A big Aptos package is enormous when fully expanded: Decibel's 91
+        // modules serialise to ~15k tokens, which swallows the tool-round
+        // budget and buries the handful of functions that answer the question.
+        // Narrow by module when asked, otherwise return an index of module
+        // names plus signatures only for modules that expose view functions.
+        const filter = typeof input.module_name === "string" ? input.module_name.trim().toLowerCase() : ""
         const signature = (f: { name: string; params: string[] }) => `${f.name}(${f.params.join(", ")})`
+        const selected = filter ? modules.filter(m => m.moduleName.toLowerCase() === filter) : modules
+        if (filter && selected.length === 0) {
+          return {
+            contract: target.name,
+            note: `No module named "${filter}" at this address.`,
+            availableModules: modules.map(m => m.moduleName),
+          }
+        }
+
+        const detailed = selected.map(m => ({
+          module: m.moduleName,
+          viewFunctions: m.functions.filter(f => f.isView).map(signature),
+          entryFunctions: m.functions.filter(f => f.isEntry).map(signature),
+        }))
+        // Under this many modules the full listing is affordable, so keep it.
+        if (filter || detailed.length <= 12) {
+          return { contract: target.name, moduleCount: modules.length, modules: detailed }
+        }
+        const withViews = detailed.filter(m => m.viewFunctions.length > 0)
         return {
           contract: target.name,
-          modules: modules.map(m => ({
-            module: m.moduleName,
-            viewFunctions: m.functions.filter(f => f.isView).map(signature),
-            entryFunctions: m.functions.filter(f => f.isEntry).map(signature),
-          })),
+          moduleCount: modules.length,
+          allModules: modules.map(m => m.moduleName),
+          readableModules: withViews.slice(0, 12).map(m => ({ module: m.module, viewFunctions: m.viewFunctions.slice(0, 20) })),
+          note: `This package has ${modules.length} modules, too many to list in full. Shown: every module name, plus the view functions of the first ${Math.min(12, withViews.length)} modules that expose any. To see one module in detail, call this tool again with module_name set to the module you want.`,
         }
       }
       const fns = contractFunctions(target.abi ?? undefined)
@@ -1176,7 +1276,7 @@ export function buildContractEventsTool(
         },
         chain_id: {
           type: "string",
-          description: "Chain ID — required when the same address is watched on multiple chains.",
+          description: "Chain ID, required when the same address is watched on multiple chains.",
         },
        
         event_name: {
@@ -1214,7 +1314,7 @@ export function buildContractDeploymentTool(
         },
         chain_id: {
           type: "string",
-          description: "Chain ID — required when the same address is watched on multiple chains.",
+          description: "Chain ID, required when the same address is watched on multiple chains.",
         },
        
       },
@@ -1249,7 +1349,7 @@ export function buildContractHoldingsTool(
         },
         chain_id: {
           type: "string",
-          description: "Chain ID — required when the same address is watched on multiple chains.",
+          description: "Chain ID, required when the same address is watched on multiple chains.",
         },
        
       },
@@ -1292,7 +1392,7 @@ export function buildContractStateTool(
         },
         chain_id: {
           type: "string",
-          description: "Chain ID — required when the same address is watched on multiple chains.",
+          description: "Chain ID, required when the same address is watched on multiple chains.",
         },
        
         function_name: {
@@ -1333,12 +1433,17 @@ export function buildContractDataTool(
     input_schema: {
       type: "object" as const,
       properties: {
-        contract_address: { type: "string", description: "The contract address (from the list above)." }, chain_id: { type: "string", description: "Chain ID — required when the same address is watched on multiple chains." },
+        contract_address: { type: "string", description: "The contract address (from the list above)." }, chain_id: { type: "string", description: "Chain ID, required when the same address is watched on multiple chains." },
         function_name: { type: "string", description: "The exact function name, e.g. 'getUserLock'." },
         args: {
           type: "array",
           items: { type: "string" },
           description: "Arguments in order. Addresses as 0x…, numbers as decimal strings, booleans as 'true'/'false'.",
+        },
+        type_args: {
+          type: "array",
+          items: { type: "string" },
+          description: "Aptos only: generic type arguments, e.g. ['0x1::aptos_coin::AptosCoin'] for a generic view like 0x1::coin::supply<CoinType>. Omit when the function is not generic.",
         },
       },
       required: ["contract_address", "function_name", "args"],
@@ -1363,7 +1468,7 @@ export function buildContractInfoTool(
       `Contracts: ${list}.`,
     input_schema: {
       type: "object" as const,
-      properties: { contract_address: { type: "string", description: "The contract address (from the list above)." }, chain_id: { type: "string", description: "Chain ID — required when the same address is watched on multiple chains." } },
+      properties: { contract_address: { type: "string", description: "The contract address (from the list above)." }, chain_id: { type: "string", description: "Chain ID, required when the same address is watched on multiple chains." } },
       required: ["contract_address"],
     },
   }
@@ -1384,7 +1489,7 @@ export function buildContractFunctionsTool(
       `Contracts: ${list}.`,
     input_schema: {
       type: "object" as const,
-      properties: { contract_address: { type: "string", description: "The contract address (from the list above)." }, chain_id: { type: "string", description: "Chain ID — required when the same address is watched on multiple chains." } },
+      properties: { contract_address: { type: "string", description: "The contract address (from the list above)." }, chain_id: { type: "string", description: "Chain ID, required when the same address is watched on multiple chains." }, module_name: { type: "string", description: "Aptos only: narrow to one module. Large packages return a module index instead of every signature, so call again with this set to drill in." } },
       required: ["contract_address"],
     },
   }
@@ -1403,7 +1508,7 @@ export function buildUpgradeHistoryTool(
       `Contracts: ${list}.`,
     input_schema: {
       type: "object" as const,
-      properties: { contract_address: { type: "string", description: "The contract address (from the list above)." }, chain_id: { type: "string", description: "Chain ID — required when the same address is watched on multiple chains." } },
+      properties: { contract_address: { type: "string", description: "The contract address (from the list above)." }, chain_id: { type: "string", description: "Chain ID, required when the same address is watched on multiple chains." } },
       required: ["contract_address"],
     },
   }
@@ -1528,7 +1633,7 @@ export function buildEstimateActionTool(
     input_schema: {
       type: "object" as const,
       properties: {
-        contract_address: { type: "string", description: "The contract address (from the list above)." }, chain_id: { type: "string", description: "Chain ID — required when the same address is watched on multiple chains." },
+        contract_address: { type: "string", description: "The contract address (from the list above)." }, chain_id: { type: "string", description: "Chain ID, required when the same address is watched on multiple chains." },
         function_name: { type: "string", description: "The exact write function name, e.g. 'lockTokens'." },
         args: {
           type: "array",

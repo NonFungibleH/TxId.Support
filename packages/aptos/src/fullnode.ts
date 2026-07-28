@@ -137,6 +137,21 @@ interface RawUserTransaction {
   gas_unit_price: string
   payload?: { type: string; function?: string; type_arguments?: string[] }
   events?: { type: string; data: unknown }[]
+  signature?: {
+    type?: string
+    fee_payer_address?: string
+    secondary_signer_addresses?: string[]
+  }
+}
+
+/** gasUsed x gasUnitPrice, both octas-denominated strings from the node. */
+function feeFrom(gasUsed: string, gasUnitPrice: string): { octas: string; apt: string } {
+  try {
+    const octas = BigInt(gasUsed) * BigInt(gasUnitPrice)
+    return { octas: octas.toString(), apt: formatUnits(octas.toString(), 8) }
+  } catch {
+    return { octas: "0", apt: "0" }
+  }
 }
 
 export function microsToIso(micros: string): string {
@@ -204,7 +219,19 @@ export async function getAptosTransactionByHash(
     typeArguments: (isEntryFunction ? payload?.type_arguments : undefined) ?? [],
     gasUsed: raw.gas_used,
     gasUnitPrice: raw.gas_unit_price,
-    events: (raw.events ?? []).slice(0, 20).map(e => ({ type: e.type, data: e.data })),
+    feeOctas: feeFrom(raw.gas_used, raw.gas_unit_price).octas,
+    feeApt: feeFrom(raw.gas_used, raw.gas_unit_price).apt,
+    signatureType: raw.signature?.type ?? null,
+    feePayer: raw.signature?.fee_payer_address ?? null,
+    secondarySigners: raw.signature?.secondary_signer_addresses ?? [],
+    // FeeStatement is emitted LAST, so a naive head-slice would always drop the
+    // very event that explains the gas cost and any storage refund. Keep it.
+    events: (() => {
+      const all = (raw.events ?? []).map(e => ({ type: e.type, data: e.data }))
+      const feeStatements = all.filter(e => e.type.endsWith("::FeeStatement"))
+      const rest = all.filter(e => !e.type.endsWith("::FeeStatement"))
+      return [...rest.slice(0, 20), ...feeStatements]
+    })(),
     ...(raw.success === false ? { decodedAbort: decodeAbort(raw.vm_status, errmap) } : {}),
   }
 }

@@ -1,5 +1,5 @@
 import { createServiceClient } from "@/lib/supabase/server"
-import { rateLimit } from "@/lib/rate-limit"
+import { rateLimit, clientIp } from "@/lib/rate-limit"
 
 // Records the end-user's one-time Actions acknowledgement (the "I understand"
 // modal in the widget). Audit-only: kind='ack', action_id NULL. The widget
@@ -17,7 +17,7 @@ export async function OPTIONS() {
 
 export async function POST(request: Request) {
   try {
-    const ip = request.headers.get("x-forwarded-for")?.split(",")[0].trim() ?? "unknown"
+    const ip = clientIp(request)
     const { allowed } = await rateLimit(`actions-ack:${ip}`, 10, 60_000)
     if (!allowed) return new Response(JSON.stringify({ error: "Too many requests" }), { status: 429, headers: { ...CORS_HEADERS, "Content-Type": "application/json" } })
 
