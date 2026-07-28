@@ -57,6 +57,9 @@ import {
   getAptosDeployment,
   getAptosAssetActivities,
   getAptosTokenSafety,
+  adapterFor,
+  getProtocolAccount,
+  getProtocolMarkets,
   getAptosPackages,
   viewFunction,
   getAptosNetworkStatus,
@@ -270,8 +273,25 @@ export async function executeTool(
         return getSolanaWalletBalance(wallet.address)
       }
       if (aptos) {
-        const balance = await getAptosWalletBalance(wallet.address)
-        return balance ?? { error: APTOS_LOOKUP_FAILED }
+        // On Aptos a protocol's user state usually lives in ITS OWN account
+        // object, not the wallet: Decibel keeps collateral and positions in a
+        // per-user subaccount. Returning only the wallet balance would be a
+        // confidently WRONG answer for any trader, so resolve the protocol
+        // account alongside it whenever the watched protocol is a known one.
+        const adapter = adapterFor(watchedContracts)
+        const [balance, protocolAccount] = await Promise.all([
+          getAptosWalletBalance(wallet.address),
+          adapter ? getProtocolAccount(adapter, wallet.address) : Promise.resolve(null),
+        ])
+        if (!balance && !protocolAccount) return { error: APTOS_LOOKUP_FAILED }
+        return {
+          ...(balance ?? { walletBalanceNote: APTOS_LOOKUP_FAILED }),
+          ...(protocolAccount
+            ? { protocolAccount }
+            : adapter
+              ? { protocolAccountNote: `Could not resolve this wallet's ${adapter.name} ${adapter.accountLabel} right now, so do NOT present the wallet balance as their ${adapter.name} balance.` }
+              : {}),
+        }
       }
       const [native, tokens] = await Promise.all([
         getNativeBalance(wallet.address, wallet.chainId),
@@ -724,7 +744,38 @@ export async function executeTool(
       if (isAptosChain(target.chain)) {
         const fnId = aptosFunctionId(target.address, functionName, target.moduleName)
         if (!fnId) return { contract: target.name, function: functionName, note: APTOS_FN_FORMAT_NOTE }
-        const result = await viewFunction(fnId, [], args)
+        // Market-scoped views take an opaque object address, and the protocol's
+        // market list is names-by-lookup only (Decibel: 60 markets, one view
+        // call each). Resolving a human name like "BTC/USD" here turns a
+        // question that would otherwise exhaust the tool-round budget into a
+        // single call.
+        const adapter = adapterFor(watchedContracts)
+        let resolvedArgs = args
+        let marketResolution: string | undefined
+        if (adapter && args.some(a => !a.startsWith("0x"))) {
+          const markets = await getProtocolMarkets(adapter)
+          if (markets) {
+            resolvedArgs = args.map(a => {
+              if (a.startsWith("0x")) return a
+              const needle = a.trim().toUpperCase().replace(/[-_]/g, "/")
+              const hit =
+                markets.find(m => m.name.toUpperCase() === needle) ??
+                markets.find(m => m.name.toUpperCase().startsWith(needle.split("/")[0] + "/"))
+              if (hit) {
+                marketResolution = `Resolved market "${a}" to ${hit.name} (${hit.object}).`
+                return hit.object
+              }
+              return a
+            })
+            if (resolvedArgs.some((a, i) => a === args[i] && !a.startsWith("0x"))) {
+              marketResolution = `${marketResolution ?? ""} Known markets: ${markets.map(m => m.name).join(", ")}.`.trim()
+            }
+          }
+        }
+        const result = await viewFunction(fnId, [], resolvedArgs)
+        if (result && marketResolution) {
+          return { contract: target.name, function: fnId, result, note: marketResolution }
+        }
         return result
           ? { contract: target.name, function: fnId, args, result }
           : { contract: target.name, function: fnId, args, note: "The view call failed — check the argument count/types (addresses as 0x…, numbers as strings); functions needing type arguments are not supported here, or the Aptos fullnode did not respond." }

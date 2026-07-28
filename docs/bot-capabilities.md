@@ -187,6 +187,26 @@ Legend: ✅ parity · 🟦 N/A by design (the concept does not exist on Aptos) �
 | OFAC sanctions screening | 🟦 | **nothing to screen against**: the screening oracle is EVM-only, AND OFAC's SDN list designates **zero** Aptos addresses (verified against the published list: entries cover XBT, ETH, TRX, USDT, SOL and similar, no APT). The bot states this plainly and never implies the address was checked and cleared |
 | Execute / Actions | 🟦 | deliberately EVM-only (product decision, not a technical gap) |
 
+### Protocol account model (the wrong-answer class)
+
+On Aptos a protocol's user state normally lives in ITS OWN account object, not
+the user's wallet. Decibel keeps every trader's collateral and positions in a
+per-user `Subaccount`. Reporting the wallet balance as the trading balance is
+not a missing feature, it is a confidently wrong answer.
+
+`packages/aptos/src/protocols.ts` holds per-protocol adapters keyed by package
+address (same keying as `PROTOCOL_ERRMAPS`):
+
+| Capability | Status | Mechanism |
+|---|---|---|
+| Wallet → protocol account | ✅ | `getProtocolAccount`: `dex_accounts::primary_subaccount(wallet)`, then collateral / NAV / positions / cross status views. Surfaced as `protocolAccount` on `get_wallet_balance` |
+| "No positions" vs "lookup failed" | ✅ | `viewFunctionResult` separates a Move abort (the resource does not exist, i.e. nothing opened yet: a real answer) from an unreachable node |
+| Market name → object address | ✅ | `getProtocolMarkets`: `list_markets()` + parallel `market_name()`, cached 10 min. `get_contract_data` accepts "BTC/USD" and resolves it, else returns the market list. Verified live: BTC/USD → mark 63,731 in one call |
+| Async fills (succeeded tx ≠ executed order) | ⚠️ | prompt guardrail only: the fill lands in a KEEPER's transaction, so it never appears in the user's own history. The bot must check position state before declaring a trade complete |
+
+Verified live against Decibel: subaccount resolution, 60 named markets, and the
+abort-vs-outage distinction.
+
 **Never-fabricate rule holds on Aptos:** every client returns `null` on a failed
 fetch (distinct from a genuine empty result), and each call site converts that to
 an explicit "couldn't reach it" note. Verified: a nonexistent account returns

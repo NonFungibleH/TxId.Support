@@ -209,6 +209,45 @@ export async function getAptosTransactionByHash(
   }
 }
 
+export type ViewResult =
+  | { ok: true; data: unknown[] }
+  /** The VM ran and rejected the call, e.g. the resource does not exist yet. */
+  | { ok: false; kind: "aborted"; message: string }
+  /** We never got an answer: network/timeout/rate limit. */
+  | { ok: false; kind: "unreachable" }
+
+/**
+ * Like viewFunction, but keeps "the chain answered no" separate from "we could
+ * not reach the chain". A Move view aborts (HTTP 400) when the resource it
+ * reads does not exist: for a perps subaccount that has never opened a
+ * position, "Failed to borrow global resource" is a real ANSWER (no positions),
+ * not a lookup failure. Collapsing both into null makes the bot either invent
+ * an outage or invent an empty portfolio.
+ */
+export async function viewFunctionResult(fn: string, typeArgs: string[], args: unknown[]): Promise<ViewResult> {
+  const res = await aptosFetch(`${FULLNODE_BASE}/view`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...aptosAuthHeaders() },
+    body: JSON.stringify({ function: fn, type_arguments: typeArgs, arguments: args }),
+  })
+  if (!res) return { ok: false, kind: "unreachable" }
+  if (!res.ok) {
+    // 4xx = the VM/API rejected this specific call; 5xx = the node is unwell.
+    if (res.status >= 500) return { ok: false, kind: "unreachable" }
+    let message = `view call rejected (HTTP ${res.status})`
+    try {
+      const body = (await res.json()) as { message?: string }
+      if (body?.message) message = body.message
+    } catch { /* keep the generic message */ }
+    return { ok: false, kind: "aborted", message }
+  }
+  try {
+    return { ok: true, data: (await res.json()) as unknown[] }
+  } catch {
+    return { ok: false, kind: "unreachable" }
+  }
+}
+
 export async function viewFunction(fn: string, typeArgs: string[], args: unknown[]): Promise<unknown[] | null> {
   const res = await aptosFetch(`${FULLNODE_BASE}/view`, {
     method: "POST",

@@ -3,6 +3,8 @@ export { decodeAbort } from "./abort"
 export type { AbortErrmap } from "./abort"
 export { isAptosAddress, normalizeAptosAddress } from "./address"
 export { PROTOCOL_ERRMAPS, errmapFor } from "./errmap"
+export { PROTOCOL_ADAPTERS, adapterFor, getProtocolAccount, getProtocolMarkets } from "./protocols"
+export type { ProtocolAdapter, ProtocolAccount } from "./protocols"
 export {
   getLedgerInfo,
   getAccount,
@@ -10,6 +12,7 @@ export {
   getAptosTransactionByHash,
   getAptosPackages,
   viewFunction,
+  viewFunctionResult,
   getAptosNetworkStatus,
   formatUnits,
   microsToIso,
