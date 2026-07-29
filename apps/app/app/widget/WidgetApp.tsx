@@ -942,6 +942,46 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
   const evmFallbackAllowed = hasEvmChain && evmProviderAvailable
 
   /**
+   * Aptos Wallet Standard (AIP-62) discovery.
+   *
+   * Petra now tells us directly: "Direct usage of the PetraApiClient through
+   * window.petra is deprecated, refer to the Aptos Wallet Standard". Under that
+   * standard a wallet does not expose a window global at all: it registers
+   * itself through an event handshake, and the app connects through the
+   * wallet's own "aptos:connect" feature.
+   *
+   * Implemented directly rather than pulling in @aptos-labs/wallet-standard, so
+   * the widget bundle stays small and dependency-free.
+   */
+  type StandardWallet = {
+    name?: string
+    features?: Record<string, { connect?: (...a: unknown[]) => Promise<unknown>; version?: string }>
+  }
+  const discoverStandardWallets = useCallback((): StandardWallet[] => {
+    if (typeof window === "undefined") return []
+    const found: StandardWallet[] = []
+    const register = (w: StandardWallet | StandardWallet[]) => {
+      for (const one of Array.isArray(w) ? w : [w]) if (one) found.push(one)
+      return () => {}
+    }
+    try {
+      // Wallets already registered push themselves when they see app-ready;
+      // wallets that loaded first answer the register-wallet listener.
+      const onRegister = (e: Event) => {
+        const cb = (e as CustomEvent<(api: { register: typeof register }) => void>).detail
+        if (typeof cb === "function") { try { cb({ register }) } catch { /* one bad wallet must not stop the rest */ } }
+      }
+      window.addEventListener("wallet-standard:register-wallet", onRegister)
+      window.dispatchEvent(new CustomEvent("wallet-standard:app-ready", { detail: { register } }))
+      window.removeEventListener("wallet-standard:register-wallet", onRegister)
+    } catch { /* discovery unavailable */ }
+    // Some builds also expose an array directly.
+    const direct = (window as unknown as { aptosWallets?: StandardWallet[] }).aptosWallets
+    if (Array.isArray(direct)) found.push(...direct)
+    return found
+  }, [])
+
+  /**
    * One place that reports a failed connect. Each call site passes a distinct
    * STAGE so the on-screen message identifies which branch failed: a single
    * generic "could not connect" made every cause look identical and cost a lot
@@ -1015,13 +1055,37 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
          * throw from any single candidate falls through to the next instead of
          * ending the attempt.
          */
+        let lastProviderError: string | null = null
+        // AIP-62 first: this is the path Petra's own deprecation notice points
+        // at, and modern builds register here INSTEAD of exposing a global.
+        const standardWallets = discoverStandardWallets()
+        walletDiag("wallet-standard wallets discovered", standardWallets.map(w => w.name ?? "unnamed"))
+        for (const w of standardWallets) {
+          const feature = w.features?.["aptos:connect"]
+          const fn = feature?.connect
+          if (typeof fn !== "function") continue
+          try {
+            walletDiag("trying wallet standard", w.name ?? "unnamed")
+            const res = await fn()
+            // Standard connect resolves { status, args: { address, ... } }.
+            const payload = (res as { args?: unknown } | null)?.args ?? res
+            const addr = readAptosAddress(payload)
+            if (addr) { walletDiag("connected via wallet standard", w.name ?? "unnamed"); applyConn(addr, "aptos"); return }
+            walletDiag("wallet standard returned no address", res)
+          } catch (e) {
+            const m = e instanceof Error ? e.message : String(e)
+            walletDiag("wallet standard failed", { wallet: w.name, error: m })
+            if (/reject|denied|cancel/i.test(m)) throw e
+            lastProviderError = `${w.name ?? "wallet standard"}: ${m}`
+          }
+        }
+
         type AptosProvider = { connect: () => Promise<unknown> }
         const candidates: { name: string; provider: AptosProvider | undefined }[] = [
           { name: "window.aptos", provider: (window as unknown as { aptos?: AptosProvider }).aptos },
           { name: "window.martian", provider: (window as unknown as { martian?: AptosProvider }).martian },
           { name: "window.petra", provider: (window as unknown as { petra?: AptosProvider }).petra },
         ]
-        let lastProviderError: string | null = null
         for (const c of candidates) {
           if (!c.provider || typeof c.provider.connect !== "function") continue
           try {
@@ -1037,7 +1101,7 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
             // A deliberate dismissal should stop the loop: trying the next
             // handle would just pop a second prompt at someone who said no.
             if (/reject|denied|cancel/i.test(m)) throw e
-            lastProviderError = m
+            lastProviderError = `${c.name}: ${m}`
           }
         }
         if (isEmbedded) {
@@ -1058,7 +1122,7 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
         failConnect(
           lastProviderError ? "aptos-provider-failed" : "no-aptos-provider",
           lastProviderError
-            ? `Your Aptos wallet did not complete the connection: ${lastProviderError.slice(0, 120)}`
+            ? `Your Aptos wallet did not complete the connection. ${standardWallets.length} standard wallet(s) seen. Last error, ${lastProviderError.slice(0, 130)}`
             : isEmbedded
               ? "No Aptos wallet answered. Wallet extensions often do not load inside an embedded panel."
               : "No Aptos wallet extension was detected.",
@@ -1089,7 +1153,7 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
     } finally {
       setWalletConnecting(false)
     }
-  }, [apiKey, walletTarget, isEmbedded, connectViaBridge, failConnect, evmFallbackAllowed])
+  }, [apiKey, walletTarget, isEmbedded, connectViaBridge, failConnect, evmFallbackAllowed, discoverStandardWallets])
 
   // ── Disconnect wallet ────────────────────────────────────────────────────
   const disconnectWallet = useCallback(() => {
