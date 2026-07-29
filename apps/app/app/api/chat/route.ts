@@ -589,7 +589,7 @@ export async function POST(request: Request) {
         try {
           let fullResponseText = ""
           let wasEscalated = false
-          let usage: { inputTokens: number; outputTokens: number; model: string } | null = null
+          let usage: { inputTokens: number; outputTokens: number; cacheReadTokens: number; cacheWriteTokens: number; model: string } | null = null
 
           const streamMessages = validActionResult
             ? [
@@ -629,7 +629,7 @@ export async function POST(request: Request) {
               data = `data: ${JSON.stringify({ wallet_action: event.action })}\n\n`
             } else if (event.type === "usage") {
               // Internal - captured for per-project cost accounting, not forwarded.
-              usage = { inputTokens: event.inputTokens, outputTokens: event.outputTokens, model: event.model }
+              usage = { inputTokens: event.inputTokens, outputTokens: event.outputTokens, cacheReadTokens: event.cacheReadTokens, cacheWriteTokens: event.cacheWriteTokens, model: event.model }
               continue
             } else {
               fullResponseText += event.text
@@ -701,7 +701,7 @@ async function persistMessages(
   walletAddress?: string,
   chainId?: string,
   assistantResponse?: string,
-  usage?: { inputTokens: number; outputTokens: number; model: string } | null,
+  usage?: { inputTokens: number; outputTokens: number; cacheReadTokens: number; cacheWriteTokens: number; model: string } | null,
 ) {
   try {
     const { data: conv } = await supabase
@@ -735,7 +735,7 @@ async function persistMessages(
     }
 
     // Record token usage for the admin cost cockpit (denormalised project_id).
-    if (usage && (usage.inputTokens > 0 || usage.outputTokens > 0)) {
+    if (usage && (usage.inputTokens > 0 || usage.outputTokens > 0 || usage.cacheReadTokens > 0 || usage.cacheWriteTokens > 0)) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await (supabase as any).from("token_usage").insert({
         project_id: projectId,
@@ -743,6 +743,8 @@ async function persistMessages(
         model: usage.model,
         input_tokens: usage.inputTokens,
         output_tokens: usage.outputTokens,
+        cache_read_tokens: usage.cacheReadTokens,
+        cache_write_tokens: usage.cacheWriteTokens,
       })
     }
   } catch {

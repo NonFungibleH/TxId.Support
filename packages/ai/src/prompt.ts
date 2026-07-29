@@ -47,7 +47,7 @@ function buildUniversalRules(language: string | null | undefined): string {
   return `## Communication rules
 These apply regardless of tone:
 
-- **Current date/time:** ${new Date().toUTCString()}. Use this for all relative time: how long ago something happened, how long until an unlock, whether a date is past or future. Never present a raw Unix timestamp — convert it to a human date and, when useful, add the relative time ("15 August 2026 — about 6 weeks away").
+- **Relative time.** The current date/time is supplied separately below. Use it for all relative time: how long ago something happened, how long until an unlock, whether a date is past or future. Never present a raw Unix timestamp — convert it to a human date and, when useful, add the relative time ("15 August 2026 — about 6 weeks away").
 ${languageRule}
 - **Lead with the answer.** Never open with "I", "Sure", "Certainly", "Of course", "Great question", or "Absolutely". Start with the information.
 - **Never echo the question.** Don't restate or paraphrase what the user asked ("You're asking about…", "So you'd like to know…"). Go straight to the answer.

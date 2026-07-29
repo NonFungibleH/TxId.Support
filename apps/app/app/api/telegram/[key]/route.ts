@@ -338,7 +338,7 @@ export async function POST(
   })
 
   let reply: string
-  let usage: { inputTokens: number; outputTokens: number; model: string } | null = null
+  let usage: { inputTokens: number; outputTokens: number; cacheReadTokens: number; cacheWriteTokens: number; model: string } | null = null
   try {
     const res = await completeChatWithUsage(systemPrompt, messages, 800)
     reply = res.text
@@ -366,7 +366,7 @@ async function persistTelegramMessages(
   sessionId: string,
   userText: string,
   assistantReply: string,
-  usage?: { inputTokens: number; outputTokens: number; model: string } | null,
+  usage?: { inputTokens: number; outputTokens: number; cacheReadTokens: number; cacheWriteTokens: number; model: string } | null,
 ) {
   try {
     const { data: conv } = await supabase
@@ -398,6 +398,8 @@ async function persistTelegramMessages(
         model: usage.model,
         input_tokens: usage.inputTokens,
         output_tokens: usage.outputTokens,
+        cache_read_tokens: usage.cacheReadTokens,
+        cache_write_tokens: usage.cacheWriteTokens,
       })
     }
   } catch {

@@ -43,7 +43,7 @@ export type StreamEvent =
   // Emitted once at the very end with the total tokens spent on this turn
   // (summed across all tool-loop rounds). The API returns these for free in
   // each response; the caller persists them for per-project usage accounting.
-  | { type: "usage"; inputTokens: number; outputTokens: number; model: string }
+  | { type: "usage"; inputTokens: number; outputTokens: number; cacheReadTokens: number; cacheWriteTokens: number; model: string }
   // Emitted when a prepare_* action tool built an unsigned transaction — the
   // widget renders a "Review in wallet" card. The user signs in their own
   // wallet; nothing executes server-side.
@@ -120,6 +120,30 @@ async function executeToolWithTimeout(
  * Yields: text chunks for streaming the response, and tool_call events so
  * the widget can show "Checking your transactions…" while Claude is working.
  */
+/**
+ * The system prompt plus tool schemas is ~10.8k tokens and is byte-identical
+ * across every call in a conversation, yet it was being resent at full input
+ * price on each of up to MAX_ROUNDS rounds per user message. Marking it as a
+ * cache breakpoint bills the first call at 1.25x and every later one at 0.1x.
+ *
+ * Placement: tools render before system, so one breakpoint on the last system
+ * block covers BOTH. The prefix must stay byte-stable to hit - anything
+ * per-request (a timestamp, the user's question) belongs in messages, never
+ * here. Haiku 4.5's minimum cacheable prefix is 4096 tokens; ours clears it
+ * comfortably, and a shorter prompt simply misses rather than erroring.
+ */
+function cachedSystem(prompt: string): Anthropic.TextBlockParam[] {
+  return [
+    { type: "text", text: prompt, cache_control: { type: "ephemeral" } },
+    // AFTER the breakpoint on purpose. The prompt needs the wall clock to
+    // answer "how long until the unlock", but a second-resolution timestamp
+    // inside the cached block would change its bytes on every call: the prefix
+    // would never match, and every request would pay the 1.25x write premium
+    // with no read ever. Trailing blocks don't affect the prefix hash.
+    { type: "text", text: `Current date/time: ${new Date().toUTCString()}.` },
+  ]
+}
+
 export async function* streamChatWithTools(
   systemPrompt: string,
   messages: ChatMessage[],
@@ -335,6 +359,8 @@ export async function* streamChatWithTools(
   const MODEL = "claude-haiku-4-5-20251001"
   const MAX_ROUNDS = 5
   let totalInputTokens = 0
+  let totalCacheReadTokens = 0
+  let totalCacheWriteTokens = 0
   let totalOutputTokens = 0
   let endedWithText = false
   let anyTextThisTurn = false
@@ -343,7 +369,7 @@ export async function* streamChatWithTools(
     const stream = anthropic.messages.stream({
       model: MODEL,
       max_tokens: maxTokens,
-      system: systemPrompt,
+      system: cachedSystem(systemPrompt),
       messages: currentMessages,
       ...(tools.length > 0 ? { tools } : {}),
     })
@@ -375,6 +401,8 @@ export async function* streamChatWithTools(
     const finalMsg = await stream.finalMessage()
     totalInputTokens += finalMsg.usage.input_tokens
     totalOutputTokens += finalMsg.usage.output_tokens
+    totalCacheReadTokens += finalMsg.usage.cache_read_input_tokens ?? 0
+    totalCacheWriteTokens += finalMsg.usage.cache_creation_input_tokens ?? 0
 
     // Claude gave a text response with no tool calls — done
     if (!hasToolCalls) { endedWithText = true; break }
@@ -388,7 +416,7 @@ export async function* streamChatWithTools(
     if (escalationBlock) {
       const input = escalationBlock.input as { summary?: string; reason?: string }
       yield { type: "escalate", summary: input.summary ?? "Issue needs further attention", reason: input.reason ?? "unresolved" }
-      yield { type: "usage", inputTokens: totalInputTokens, outputTokens: totalOutputTokens, model: MODEL }
+      yield { type: "usage", inputTokens: totalInputTokens, outputTokens: totalOutputTokens, cacheReadTokens: totalCacheReadTokens, cacheWriteTokens: totalCacheWriteTokens, model: MODEL }
       return
     }
 
@@ -444,7 +472,13 @@ export async function* streamChatWithTools(
       const closing = anthropic.messages.stream({
         model: MODEL,
         max_tokens: maxTokens,
-        system: systemPrompt + "\n\nYou have gathered tool results above. Give the user your best final answer now in plain English, using what you found. Do not call any more tools.",
+        // The wrap-up instruction goes in a SEPARATE trailing block: appending
+        // it to the prompt string would change the cached prefix's bytes and
+        // force a full re-read on the most expensive call of the turn.
+        system: [
+          ...cachedSystem(systemPrompt),
+          { type: "text", text: "You have gathered tool results above. Give the user your best final answer now in plain English, using what you found. Do not call any more tools." },
+        ],
         messages: currentMessages,
       })
       for await (const event of closing) {
@@ -456,6 +490,8 @@ export async function* streamChatWithTools(
       const fm = await closing.finalMessage()
       totalInputTokens += fm.usage.input_tokens
       totalOutputTokens += fm.usage.output_tokens
+      totalCacheReadTokens += fm.usage.cache_read_input_tokens ?? 0
+      totalCacheWriteTokens += fm.usage.cache_creation_input_tokens ?? 0
     } catch { /* fall through to the guaranteed fallback below */ }
   }
 
@@ -464,7 +500,7 @@ export async function* streamChatWithTools(
     yield { type: "text", text: "I looked into that but couldn't complete the diagnosis in one go. Could you rephrase, or share the specific transaction hash so I can dig in directly?" }
   }
 
-  yield { type: "usage", inputTokens: totalInputTokens, outputTokens: totalOutputTokens, model: MODEL }
+  yield { type: "usage", inputTokens: totalInputTokens, outputTokens: totalOutputTokens, cacheReadTokens: totalCacheReadTokens, cacheWriteTokens: totalCacheWriteTokens, model: MODEL }
 }
 
 // ── Text-only helpers ────────────────────────────────────────────────────────
@@ -483,7 +519,7 @@ export async function* streamChat(
     const stream = anthropic.messages.stream({
       model: "claude-haiku-4-5-20251001",
       max_tokens: maxTokens,
-      system: systemPrompt,
+      system: cachedSystem(systemPrompt),
       messages: messages.map((m) => ({ role: m.role, content: m.content })),
     })
     for await (const event of stream) {
@@ -536,14 +572,14 @@ export async function completeChatWithUsage(
   systemPrompt: string,
   messages: ChatMessage[],
   maxTokens = 2048,
-): Promise<{ text: string; usage: { inputTokens: number; outputTokens: number; model: string } | null }> {
+): Promise<{ text: string; usage: { inputTokens: number; outputTokens: number; cacheReadTokens: number; cacheWriteTokens: number; model: string } | null }> {
   const anthropic = getAnthropicClient()
   if (anthropic) {
     const MODEL = "claude-haiku-4-5-20251001"
     const stream = anthropic.messages.stream({
       model: MODEL,
       max_tokens: maxTokens,
-      system: systemPrompt,
+      system: cachedSystem(systemPrompt),
       messages: messages.map((m) => ({ role: m.role, content: m.content })),
     })
     let text = ""
@@ -551,7 +587,13 @@ export async function completeChatWithUsage(
       if (event.type === "content_block_delta" && event.delta.type === "text_delta") text += event.delta.text
     }
     const fm = await stream.finalMessage()
-    return { text, usage: { inputTokens: fm.usage.input_tokens, outputTokens: fm.usage.output_tokens, model: MODEL } }
+    return { text, usage: {
+      inputTokens: fm.usage.input_tokens,
+      outputTokens: fm.usage.output_tokens,
+      cacheReadTokens: fm.usage.cache_read_input_tokens ?? 0,
+      cacheWriteTokens: fm.usage.cache_creation_input_tokens ?? 0,
+      model: MODEL,
+    } }
   }
   let text = ""
   for await (const chunk of streamChat(systemPrompt, messages, maxTokens)) text += chunk
