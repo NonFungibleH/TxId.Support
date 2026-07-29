@@ -171,7 +171,8 @@ export async function getTokenPrice(token: string, chainId?: string): Promise<To
         chainId?: string
         url?: string
         liquidity?: { usd?: number }
-        baseToken?: { symbol?: string }
+        baseToken?: { symbol?: string; address?: string }
+        quoteToken?: { symbol?: string; address?: string }
       }>
     }
     let pairs = (data.pairs ?? []).filter(p => p.priceUsd)
@@ -179,6 +180,20 @@ export async function getTokenPrice(token: string, chainId?: string): Promise<To
     if (wantChain) {
       const onChain = pairs.filter(p => p.chainId === wantChain)
       if (onChain.length) pairs = onChain
+    }
+    // DexScreener's priceUsd is the price of the pair's BASE token. A token
+    // that is usually the QUOTE side (APT, WETH, USDC) matches plenty of deep
+    // pairs where it is NOT the base, and taking the deepest pair blindly then
+    // reports the OTHER token's price. Asking for APT's fungible-asset address
+    // 0xa returned WBTC at $64,417 that way. Only pairs where the requested
+    // token IS the base can answer "what is this token worth".
+    const want = token.toLowerCase()
+    const asBase = pairs.filter(p => p.baseToken?.address?.toLowerCase() === want)
+    if (asBase.length) pairs = asBase
+    else if (pairs.some(p => p.quoteToken?.address?.toLowerCase() === want)) {
+      // Known to trade, but only ever quoted against. Better to say nothing
+      // than to hand back the counterparty's price.
+      return null
     }
     if (!pairs.length) return null
     pairs.sort((a, b) => (b.liquidity?.usd ?? 0) - (a.liquidity?.usd ?? 0))

@@ -86,6 +86,19 @@ const isNonEvm = (chainId: string): boolean => isSolanaChain(chainId) || isAptos
 const APTOS_LOOKUP_FAILED =
   "Could not reach the Aptos indexer to check this right now — this is a failed lookup, NOT a statement about the wallet's contents or history. Try again shortly."
 
+// A missing transaction means something DIFFERENT on Aptos than on EVM, and the
+// EVM instinct ("it is probably still pending, wait") is wrong here. Every Move
+// transaction carries expiration_timestamp_secs; once that passes without
+// commitment the transaction is permanently invalid and leaves NO on-chain
+// record at all. Wallets still show the user a hash for it, so a user holding a
+// hash that resolves to nothing is a normal, explainable Aptos outcome.
+const APTOS_NOT_FOUND_CAUSES = [
+  "The transaction expired before a validator committed it (every Aptos transaction has an expiration timestamp). It then leaves no record at all, even though the wallet showed a hash. Nothing was spent, and it is safe to retry.",
+  "The sender's sequence number had already been used by another transaction, so this one could never be committed. Aptos sequence numbers are strictly ordered per account, like an EVM nonce.",
+  "The transaction was submitted to a different network (testnet vs mainnet) than the one being searched.",
+  "It was committed very recently and the indexer has not caught up yet. Retrying in a few seconds distinguishes this from the cases above.",
+]
+
 export interface WalletConfig {
   address: string
   chainId: string
@@ -519,6 +532,7 @@ export async function executeTool(
               chainId: "aptos",
               status: "not_found",
               note: "No Aptos user transaction exists at this version — or the fullnode could not be reached. Do not claim the transaction failed or was dropped; say it could not be found by this version number.",
+              aptosNotFoundCauses: APTOS_NOT_FOUND_CAUSES,
             }
       }
       const checkAptos = aptosInPlay && looksEvm
@@ -656,6 +670,9 @@ export async function executeTool(
         status: "not_found",
         checkedChains,
         note: `This transaction was not found on any of the chains checked (${checkedChains.join(", ")}). Do not claim it is on, or dropped from, a specific chain — state which chains were checked.`,
+        // Aptos was one of the chains searched, so the EVM default ("probably
+        // still pending in the mempool") may be the wrong explanation entirely.
+        ...(checkAptos ? { aptosNotFoundCauses: APTOS_NOT_FOUND_CAUSES } : {}),
       }
     }
 
