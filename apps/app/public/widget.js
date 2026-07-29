@@ -15,7 +15,11 @@
   // Avoid double-init
   if (document.getElementById("txid-widget-root")) return;
 
-  var PURPLE = "#6366f1";
+  // The launcher used to be hardcoded to TxID purple, which sat on a yellow
+  // branded widget and clashed badly. data-color themes it immediately with no
+  // extra request; the iframe also posts the project's real primary colour once
+  // it has loaded config, so embeds using an older snippet correct themselves.
+  var PURPLE = script.getAttribute("data-color") || "#6366f1";
   var SIZE = "56px";
 
   // ── Styles ──────────────────────────────────────────────────────────────────
@@ -378,6 +382,16 @@
 
     // Wallet messages are sensitive: only ever honour them from OUR own iframe.
     if (e.origin !== BASE || e.source !== iframe.contentWindow) return;
+
+    if (e.data && e.data.type === "txid-brand" && typeof e.data.primaryColor === "string") {
+      // Only accept a plain hex colour: this value goes straight into a style
+      // property, and the iframe is the one surface allowed to set it.
+      if (/^#[0-9a-fA-F]{3,8}$/.test(e.data.primaryColor)) {
+        btn.style.background = e.data.primaryColor;
+        btn.style.boxShadow = "0 4px 24px " + e.data.primaryColor + "55";
+      }
+      return;
+    }
 
     if (e.data && e.data.type === "txid-wallet-detect") {
       txidToFrame({

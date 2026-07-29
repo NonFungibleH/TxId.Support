@@ -80,6 +80,7 @@ interface BrandingConfig {
   backgroundColor: string
   textColor: string
   inputTextColor?: string | null
+  borderColor?: string | null
   font: string
   logoUrl: string | null
   theme: "dark" | "light"
@@ -697,6 +698,13 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
         if ("error" in data) setConfigError(data.error)
         else {
           setConfig(data)
+          // Tell the host loader what the brand colour is. The launcher button
+          // lives on the host page and has no other way to know it, so without
+          // this it stays TxID purple next to a differently-branded panel.
+          const brand = data.branding?.primaryColor
+          if (typeof window !== "undefined" && window.parent !== window && brand) {
+            try { window.parent.postMessage({ type: "txid-brand", primaryColor: brand }, "*") } catch { /* host gone */ }
+          }
           const isToken = data.mode === "token"
           setTab(isToken ? "trade" : "chat")
           if (!isToken) {
@@ -1633,7 +1641,18 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
   } as React.CSSProperties
 
   return (
-    <div className="txid-widget-root flex h-full flex-col overflow-hidden" style={cssVars}>
+    <div
+      className="txid-widget-root flex h-full flex-col overflow-hidden"
+      style={{
+        ...cssVars,
+        // Hairline edge. On a dark host page the panel background is often close
+        // to the site's own, leaving the widget with no readable boundary. An
+        // explicit border wins; otherwise a low-opacity tint of the brand colour
+        // defines the edge without introducing a second colour.
+        border: `1px solid ${b.borderColor?.trim() || `${b.primaryColor}33`}`,
+        borderRadius: "16px",
+      }}
+    >
       {/* Placeholders otherwise keep the browser's own grey, which disappears on
           a dark widget, and every control here sets outline-none, so keyboard
           focus was invisible. currentColor keeps both readable on any brand. */}

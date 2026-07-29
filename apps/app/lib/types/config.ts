@@ -115,6 +115,11 @@ export interface BrandingConfig {
   backgroundColor: string
   textColor: string
   inputTextColor?: string | null  // colour of what the user types; falls back to auto-contrast with the background
+  // Hairline around the widget panel. Without it the panel dissolves into a
+  // dark host page: the background colour is often close to the site's own,
+  // so there is no edge to read. Null falls back to a low-opacity tint of the
+  // primary colour, which suits most brands without needing to be set.
+  borderColor?: string | null
   font: SupportedFont
   logoUrl: string | null
   position: "bottom-right" | "bottom-left" | "inline"
