@@ -392,15 +392,28 @@ async function persistTelegramMessages(
     // (previously widget-only). Denormalised project_id, same as the chat route.
     if (usage && (usage.inputTokens > 0 || usage.outputTokens > 0)) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (supabase as any).from("token_usage").insert({
+      // Deploy-order safety. The cache columns arrive in a migration, and code
+      // ships before migrations are applied. PostgREST rejects the WHOLE row if
+      // a column is unknown, so writing them unconditionally means no usage is
+      // recorded at all in that window: the cost cockpit goes blank and
+      // daily_token_spend has nothing to count, which quietly disables the
+      // spend circuit breaker. Write the full row, and on failure fall back to
+      // the columns that have always existed.
+      const base = {
         project_id: projectId,
         conversation_id: conv.id,
         model: usage.model,
         input_tokens: usage.inputTokens,
         output_tokens: usage.outputTokens,
+      }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error: usageErr } = await (supabase as any).from("token_usage").insert({
+        ...base,
         cache_read_tokens: usage.cacheReadTokens,
         cache_write_tokens: usage.cacheWriteTokens,
       })
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      if (usageErr) await (supabase as any).from("token_usage").insert(base)
     }
   } catch {
     // Non-fatal

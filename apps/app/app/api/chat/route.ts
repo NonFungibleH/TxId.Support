@@ -626,7 +626,12 @@ export async function POST(request: Request) {
             configSnapshot.watchedContracts,
             800,
             actionsCtx,
-            buildDocsBlock(ragContext),
+            // Gate on MODE, not on whether retrieval returned anything. Support
+            // mode still wants the block when nothing matched: its empty state
+            // tells the model to fall back to general knowledge and point at the
+            // team's docs. Token mode never retrieves at all, so it should not
+            // gain a "no documentation matched" section it never had.
+            projectMode === "support" ? buildDocsBlock(ragContext) : undefined,
           )) {
             let data: string
             if (event.type === "tool_call") {
@@ -748,15 +753,28 @@ async function persistMessages(
     // Record token usage for the admin cost cockpit (denormalised project_id).
     if (usage && (usage.inputTokens > 0 || usage.outputTokens > 0 || usage.cacheReadTokens > 0 || usage.cacheWriteTokens > 0)) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (supabase as any).from("token_usage").insert({
+      // Deploy-order safety. The cache columns arrive in a migration, and code
+      // ships before migrations are applied. PostgREST rejects the WHOLE row if
+      // a column is unknown, so writing them unconditionally means no usage is
+      // recorded at all in that window: the cost cockpit goes blank and
+      // daily_token_spend has nothing to count, which quietly disables the
+      // spend circuit breaker. Write the full row, and on failure fall back to
+      // the columns that have always existed.
+      const base = {
         project_id: projectId,
         conversation_id: conv.id,
         model: usage.model,
         input_tokens: usage.inputTokens,
         output_tokens: usage.outputTokens,
+      }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error: usageErr } = await (supabase as any).from("token_usage").insert({
+        ...base,
         cache_read_tokens: usage.cacheReadTokens,
         cache_write_tokens: usage.cacheWriteTokens,
       })
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      if (usageErr) await (supabase as any).from("token_usage").insert(base)
     }
   } catch {
     // Non-fatal

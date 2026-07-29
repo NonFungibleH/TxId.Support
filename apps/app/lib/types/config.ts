@@ -39,7 +39,10 @@ export const PLAN_SESSION_MESSAGE_LIMITS: Record<Plan, number> = {
   pro:        20,
   enterprise: 40,
   custom:     40,
-  demo:       40,
+  // Unreachable in practice, and deliberately left at the strict value so it
+  // can't mislead: the chat route's isDemo check covers plan === "demo" and
+  // applies CHAT_LIMITS.demoSessionMessages before consulting this table.
+  demo:       8,
 }
 
 export const PLAN_LABELS: Record<Plan, string> = {
