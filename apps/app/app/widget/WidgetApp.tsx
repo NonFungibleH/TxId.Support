@@ -929,6 +929,21 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
       ? "aptos"
       : "evm"
 
+  /**
+   * One place that reports a failed connect. Each call site passes a distinct
+   * STAGE so the on-screen message identifies which branch failed: a single
+   * generic "could not connect" made every cause look identical and cost a lot
+   * of debugging time. The stage is shown to the user in brackets on purpose,
+   * so a screenshot alone is enough to diagnose it.
+   */
+  const failConnect = useCallback((stage: string, reason: string) => {
+    const msg = `${reason} You can paste your address in the box at the top instead, and I can still look up your balance and transactions. [${stage}]`
+    walletDiag("connect failed", { stage, reason })
+    setWalletError(msg)
+    setMessages(prev => [...prev, { id: `wallet-err-${Date.now()}`, role: "assistant", content: msg, local: true }])
+    setManualOpen(true)
+  }, [])
+
   const connectWallet = useCallback(async () => {
     if (typeof window === "undefined") return
     setWalletError(null)
@@ -973,7 +988,7 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
         )
         if (phantom) { const resp = await phantom.connect(); applyConn(resp.publicKey.toString(), "solana"); return }
         if (isEmbedded) { const res = await connectViaBridge("solana"); if (res) { applyConn(res.address, res.chainId || "solana"); return } }
-        setManualOpen(true)
+        failConnect("no-phantom", "No Solana wallet was detected.")
         return
       }
       if (walletTarget === "aptos") {
@@ -989,13 +1004,21 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
           const acct = await aptosProvider.connect()
           const addr = readAptosAddress(acct)
           if (addr) { applyConn(addr, "aptos"); return }
-          // Connected, but we could not read an address out of the response.
-          // Falling through is better than storing an empty address, which
-          // would silently leave the header looking unconnected.
+          // Connected, but no address we can read. Storing an empty one would
+          // leave the header looking unconnected with no explanation.
           walletDiag("aptos provider returned no usable address", acct)
+          failConnect("wallet-no-address", "Your wallet connected but did not return an address.")
+          return
         }
-        if (isEmbedded) { const res = await connectViaBridge("aptos"); if (res) { applyConn(res.address, res.chainId || "aptos"); return } }
-        setManualOpen(true)
+        if (isEmbedded) {
+          const res = await connectViaBridge("aptos")
+          if (res) { applyConn(res.address, res.chainId || "aptos"); return }
+          // The widget is a cross-origin iframe and no Aptos wallet was
+          // reachable through the host page either.
+          failConnect("bridge-no-wallet", "No Aptos wallet answered on this page.")
+          return
+        }
+        failConnect("no-provider", "No Aptos wallet extension was detected in this page.")
         return
       }
       // EVM - window.ethereum (MetaMask and other injected wallets)
@@ -1007,25 +1030,22 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
         return
       }
       if (isEmbedded) { const res = await connectViaBridge("evm"); if (res) { applyConn(res.address, res.chainId); return } }
-      setManualOpen(true)
+      failConnect("no-evm-provider", "No wallet extension was detected in this page.")
     } catch (err) {
       // NEVER swallow this. A silent catch here made every failure look like
       // "the button does nothing": the fallback below is after the throw
       // point, so it was never reached, and the user got no message at all.
-      const rejected = /reject|denied|cancel/i.test(err instanceof Error ? err.message : String(err))
+      const raw = err instanceof Error ? err.message : String(err)
+      const rejected = /reject|denied|cancel/i.test(raw)
       walletDiag(rejected ? "user rejected the connect request" : "connect threw", err)
-      const msg = rejected
-        ? "Wallet connection was cancelled. You can try again, or paste your address in the box at the top instead."
-        : "I could not open your wallet. Paste your address in the box at the top and I can still look up your balance and transactions."
-      setWalletError(msg)
-      // Say it where the user is actually looking. A header-only signal was
-      // easy to miss, which is how this read as "the button does nothing".
-      setMessages(prev => [...prev, { id: `wallet-err-${Date.now()}`, role: "assistant", content: msg, local: true }])
-      setManualOpen(true)
+      failConnect(
+        rejected ? "rejected" : "threw",
+        rejected ? "You dismissed the wallet request." : `Your wallet reported: ${raw.slice(0, 140)}`,
+      )
     } finally {
       setWalletConnecting(false)
     }
-  }, [apiKey, walletTarget, isEmbedded, connectViaBridge])
+  }, [apiKey, walletTarget, isEmbedded, connectViaBridge, failConnect])
 
   // ── Disconnect wallet ────────────────────────────────────────────────────
   const disconnectWallet = useCallback(() => {
