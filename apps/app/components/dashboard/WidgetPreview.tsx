@@ -86,6 +86,9 @@ export function WidgetPreview({
           backgroundColor: branding.backgroundColor,
           color: branding.textColor,
           fontFamily,
+          // Must mirror the live widget's panel edge, or the preview quietly
+          // stops predicting what the user will actually ship.
+          border: `1px solid ${branding.borderColor?.trim() || `${branding.primaryColor}33`}`,
         }}
       >
         {/* Header */}
