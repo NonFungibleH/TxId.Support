@@ -1004,23 +1004,41 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
         return
       }
       if (walletTarget === "aptos") {
-        // Prefer window.petra (Petra's dedicated namespace) over window.aptos:
-        // with several wallets installed, Phantom also claims window.aptos for
-        // its Aptos support, so the generic handle can be the wrong wallet.
-        type AptosProvider = { connect: () => Promise<{ address: string }> }
-        const aptosProvider =
-          (window as unknown as { petra?: AptosProvider }).petra ??
-          (window as unknown as { aptos?: AptosProvider }).aptos ??
-          (window as unknown as { martian?: AptosProvider }).martian
-        if (aptosProvider) {
-          const acct = await aptosProvider.connect()
-          const addr = readAptosAddress(acct)
-          if (addr) { applyConn(addr, "aptos"); return }
-          // Connected, but no address we can read. Storing an empty one would
-          // leave the header looking unconnected with no explanation.
-          walletDiag("aptos provider returned no usable address", acct)
-          failConnect("wallet-no-address", "Your wallet connected but did not return an address.")
-          return
+        /**
+         * Try every injected Aptos handle in turn rather than picking one.
+         *
+         * window.petra is DEPRECATED: current Petra builds throw
+         * "Direct usage of the PetraApiClient through window.petra is
+         * deprecated" the moment connect() is called, so preferring it made an
+         * installed, working wallet look broken. window.aptos is the handle
+         * Petra still serves for the wallet standard, so it goes first, and a
+         * throw from any single candidate falls through to the next instead of
+         * ending the attempt.
+         */
+        type AptosProvider = { connect: () => Promise<unknown> }
+        const candidates: { name: string; provider: AptosProvider | undefined }[] = [
+          { name: "window.aptos", provider: (window as unknown as { aptos?: AptosProvider }).aptos },
+          { name: "window.martian", provider: (window as unknown as { martian?: AptosProvider }).martian },
+          { name: "window.petra", provider: (window as unknown as { petra?: AptosProvider }).petra },
+        ]
+        let lastProviderError: string | null = null
+        for (const c of candidates) {
+          if (!c.provider || typeof c.provider.connect !== "function") continue
+          try {
+            walletDiag("trying provider", c.name)
+            const acct = await c.provider.connect()
+            const addr = readAptosAddress(acct)
+            if (addr) { walletDiag("connected via", c.name); applyConn(addr, "aptos"); return }
+            walletDiag("provider returned no usable address", { via: c.name, acct })
+            lastProviderError = "the wallet connected but returned no address"
+          } catch (e) {
+            const m = e instanceof Error ? e.message : String(e)
+            walletDiag("provider failed", { via: c.name, error: m })
+            // A deliberate dismissal should stop the loop: trying the next
+            // handle would just pop a second prompt at someone who said no.
+            if (/reject|denied|cancel/i.test(m)) throw e
+            lastProviderError = m
+          }
         }
         if (isEmbedded) {
           const res = await connectViaBridge("aptos")
@@ -1038,10 +1056,12 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
           if (accounts?.[0]) { applyConn(accounts[0], chain); return }
         }
         failConnect(
-          "no-aptos-provider",
-          isEmbedded
-            ? "No Aptos wallet answered. Wallet extensions often do not load inside an embedded panel."
-            : "No Aptos wallet extension was detected.",
+          lastProviderError ? "aptos-provider-failed" : "no-aptos-provider",
+          lastProviderError
+            ? `Your Aptos wallet did not complete the connection: ${lastProviderError.slice(0, 120)}`
+            : isEmbedded
+              ? "No Aptos wallet answered. Wallet extensions often do not load inside an embedded panel."
+              : "No Aptos wallet extension was detected.",
         )
         return
       }

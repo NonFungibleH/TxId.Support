@@ -217,7 +217,9 @@
   // Phantom) live in THIS host page, not the cross-origin widget iframe, so the
   // iframe can't reach them directly. Relay connect requests on its behalf.
   function txidProvider(kind) {
-    if (kind === "aptos")  return window.petra || window.aptos || window.martian || null;
+    // window.aptos first: window.petra is deprecated and current Petra builds
+    // throw on connect() through it, so preferring it broke a working wallet.
+    if (kind === "aptos")  return window.aptos || window.martian || window.petra || null;
     if (kind === "solana") return (window.phantom && window.phantom.solana) || window.solana || null;
     if (kind === "evm")    return window.ethereum || null;
     return null;
