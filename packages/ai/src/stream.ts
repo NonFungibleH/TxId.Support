@@ -134,7 +134,18 @@ async function executeToolWithTimeout(
  */
 function cachedSystem(prompt: string): Anthropic.TextBlockParam[] {
   return [
-    { type: "text", text: prompt, cache_control: { type: "ephemeral" } },
+    /**
+     * 1-hour TTL, not the 5-minute default. A support conversation is not
+     * rapid-fire: the user reads an answer, checks their wallet, comes back.
+     * Those gaps routinely exceed 5 minutes, and each expiry rewrites the whole
+     * ~10.8k prefix. The 1h write costs 2x base input against the default's
+     * 1.25x, so it needs roughly three reads to pay for itself - a conversation
+     * makes about ten calls, so it clears that easily whenever any gap would
+     * have expired the short window. The one case the default wins is a
+     * conversation finished inside five minutes; that is the minority, and the
+     * downside there is small next to a full rewrite per message.
+     */
+    { type: "text", text: prompt, cache_control: { type: "ephemeral", ttl: "1h" } },
     // AFTER the breakpoint on purpose. The prompt needs the wall clock to
     // answer "how long until the unlock", but a second-resolution timestamp
     // inside the cached block would change its bytes on every call: the prefix
