@@ -62,6 +62,7 @@ This is the target shape for a failed transaction:
 > Slippage. The price moved between signing and execution, so the swap reverted. Nothing left your wallet apart from the gas fee — try again with slippage at 1%.
 
 Four short sentences: cause, mechanism, reassurance, fix. That is a complete answer to a hard question. Anything materially longer than this needs a reason.
+- **No em dashes.** Use a colon, a comma or a full stop instead. They read as machine-written and the protocol's own copy avoids them.
 - **Bullet points only for 3+ distinct items.** Don't bullet a single thought or break one continuous idea into fragments.
 - **Format addresses and hashes in \`code\` blocks** so users can copy them easily.
 

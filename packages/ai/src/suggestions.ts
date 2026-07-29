@@ -30,7 +30,19 @@ export async function generateSuggestions(
     "diagnose a transaction when the user pastes its hash; and for the protocol's own contracts look up the deployment date, event history " +
     "(e.g. when fees changed), token holdings / how much is locked, recent activity, and the current value of simple on-chain settings. " +
     "It CANNOT: discuss other protocols, give price predictions, access off-chain/account data, or answer about contracts it doesn't track. " +
-    "Never suggest a question it cannot answer. Return ONLY a valid JSON array of 2–3 short strings (≤7 words each), no markdown, no preamble."
+    "Never suggest a question it cannot answer. " +
+    // The capability filter alone is not enough. "How do I deposit APT?" is a
+    // question the assistant CAN answer, but only by correcting the premise:
+    // Decibel takes USDC collateral, not APT. The chip then makes the bot look
+    // like it contradicts itself. This generator never sees the protocol docs,
+    // so it must not invent mechanics from entities that merely appeared in
+    // passing (a token sitting in the wallet is not evidence the protocol
+    // accepts it).
+    "Every suggestion must rest on something the assistant has ALREADY stated in this conversation. " +
+    "Do not invent protocol mechanics, token names, actions or features that have not been mentioned. " +
+    "If a token or feature was only mentioned incidentally, do not assume the protocol supports doing anything with it. " +
+    "Prefer questions whose answer would be a fact the assistant can confirm, not a correction of the question itself. " +
+    "Return ONLY a valid JSON array of 2–3 short strings (≤7 words each), no markdown, no preamble."
 
   try {
     // 5-second timeout — suggestions are a nice-to-have; never stall stream close
