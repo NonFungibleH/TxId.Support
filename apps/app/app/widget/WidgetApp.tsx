@@ -660,6 +660,8 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
   const [manualError, setManualError] = useState(false)
   // Surfaced in the header when a connect attempt fails, so a failure is never silent.
   const [walletError, setWalletError] = useState<string | null>(null)
+  // Guards against overlapping connect attempts (double click, or a re-render).
+  const connectingRef = useRef(false)
   // A pasted 66 char address would otherwise fill the header bar, so the field
   // shows a middle-truncated form whenever it is not being edited.
   const [manualFocused, setManualFocused] = useState(false)
@@ -878,19 +880,23 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
    */
   const readAptosAddress = (acct: unknown): string | null => {
     const pick = (v: unknown): string | null => {
-      if (typeof v === "string") return v
+      if (typeof v === "string") return v.startsWith("0x") ? v : null
       if (v && typeof v === "object") {
         const o = v as { toStringLong?: () => string; toString?: () => string }
-        if (typeof o.toStringLong === "function") { const r = o.toStringLong(); if (typeof r === "string") return r }
+        if (typeof o.toStringLong === "function") { const r = o.toStringLong(); if (typeof r === "string" && r.startsWith("0x")) return r }
         if (typeof o.toString === "function") { const r = o.toString(); if (typeof r === "string" && r.startsWith("0x")) return r }
       }
       return null
     }
-    const direct = pick(acct)
-    if (direct?.startsWith("0x")) return direct
-    const addr = (acct as { address?: unknown } | null)?.address
-    const nested = pick(addr)
-    return nested?.startsWith("0x") ? nested : null
+    // Look for an explicit address field FIRST, at either nesting level, before
+    // coercing the container. Coercing first risks picking up a sibling that
+    // also stringifies to 0x hex, notably publicKey, which is the same shape as
+    // an address and silently yields a plausible but WRONG account.
+    const container = acct as { address?: unknown; account?: { address?: unknown } } | null
+    const explicit = pick(container?.address) ?? pick(container?.account?.address)
+    if (explicit) return explicit
+    // Only a bare string is trusted as the address itself.
+    return typeof acct === "string" && acct.startsWith("0x") ? acct : null
   }
 
   // Injected-provider detection and the resulting connect target. Declared
@@ -1004,6 +1010,10 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
 
   const connectWallet = useCallback(async () => {
     if (typeof window === "undefined") return
+    // A second click while the first attempt is in flight produced a duplicate
+    // connect and a duplicate confirmation line in the transcript.
+    if (connectingRef.current) { walletDiag("connect already in progress, ignoring"); return }
+    connectingRef.current = true
     setWalletError(null)
     setWalletConnecting(true)
     walletDiag("connect requested", {
@@ -1119,6 +1129,10 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
             // Standard connect resolves { status, args: { address, ... } }.
             const payload = (res as { args?: unknown } | null)?.args ?? res
             const addr = readAptosAddress(payload)
+            walletDiag("address extracted", {
+              address: addr,
+              payloadKeys: payload && typeof payload === "object" ? Object.keys(payload as object) : typeof payload,
+            })
             if (addr) { walletDiag("connected via wallet standard", w.name ?? "unnamed"); applyConn(addr, "aptos"); return }
             walletDiag("wallet standard returned no address", res)
           } catch (e) {
@@ -1206,17 +1220,33 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
         rejected ? "You dismissed the wallet request." : `Your wallet reported: ${raw.slice(0, 140)}`,
       )
     } finally {
+      connectingRef.current = false
       setWalletConnecting(false)
     }
   }, [apiKey, walletTarget, isEmbedded, bridgeWallet, connectViaBridge, failConnect, evmFallbackAllowed, discoverStandardWallets])
 
   // ── Disconnect wallet ────────────────────────────────────────────────────
   const disconnectWallet = useCallback(() => {
+    walletDiag("disconnect requested")
     setWalletAddress(null)
     setChainId(null)
     setWalletSetup("prompt")
+    setManualOpen(false)
+    setManualValue("")
+    setWalletError(null)
     clearWalletSession(apiKey)
-  }, [apiKey])
+    // Also tell the wallet, otherwise it still considers the site connected and
+    // the next connect silently returns the same account with no prompt, which
+    // reads as "disconnect did nothing".
+    try {
+      for (const w of discoverStandardWallets()) {
+        const d = (w.features as Record<string, { disconnect?: () => Promise<unknown> }> | undefined)?.["aptos:disconnect"]
+        if (typeof d?.disconnect === "function") { void Promise.resolve(d.disconnect()).catch(() => {}) }
+      }
+      const legacy = (window as unknown as { aptos?: { disconnect?: () => Promise<unknown> } }).aptos
+      if (typeof legacy?.disconnect === "function") void Promise.resolve(legacy.disconnect()).catch(() => {})
+    } catch { /* best effort: local state is already cleared */ }
+  }, [apiKey, discoverStandardWallets])
 
   // ── Switch network (one-tap, EIP-3326) ────────────────────────────────────
   const [switching, setSwitching] = useState(false)
