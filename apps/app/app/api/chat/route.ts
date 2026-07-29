@@ -3,6 +3,7 @@ import { buildSystemPrompt, buildDocsBlock, retrieveContext, streamChatWithTools
 import type { ChatMessage, ProjectConfigSnapshot, ActionsContext } from "@txid/ai"
 import { actionsGate, effectiveMaxSwapUsd } from "@/lib/actions-gate"
 import type { ProjectConfig, Plan } from "@/lib/types/config"
+import { PLAN_SESSION_MESSAGE_LIMITS } from "@/lib/types/config"
 import type { Database } from "@/lib/supabase/types"
 import { verifyPreviewToken } from "@/lib/preview-token"
 import { rateLimit, clientIp } from "@/lib/rate-limit"
@@ -370,7 +371,12 @@ export async function POST(request: Request) {
     if (existingConv.data) {
       // Existing session - enforce the per-session message cap (stricter for
       // the public demo key).
-      const sessionCap = isDemo ? CHAT_LIMITS.demoSessionMessages : CHAT_LIMITS.sessionMessages
+      // The public demo key stays on the tightest cap; everyone else scales
+      // with their plan, so a hand-provisioned customer isn't cut off
+      // mid-diagnosis by a limit sized for anonymous traffic.
+      const sessionCap = isDemo
+        ? CHAT_LIMITS.demoSessionMessages
+        : (PLAN_SESSION_MESSAGE_LIMITS[plan] ?? CHAT_LIMITS.sessionMessages)
       const { count: msgCount } = await supabase
         .from("messages")
         .select("id", { count: "exact", head: true })

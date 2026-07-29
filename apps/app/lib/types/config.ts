@@ -20,6 +20,28 @@ export const PLAN_CONV_LIMITS: Record<Plan, number> = {
   demo:       Infinity,
 }
 
+/**
+ * User turns allowed in ONE conversation before the bot escalates to a human.
+ *
+ * The cap exists so a runaway or abusive session can't spend without bound, but
+ * a flat 10 is wrong for a hand-provisioned customer: a genuine diagnosis
+ * ("which transaction?", "what did it cost?", "why did it fail?", "what do I do
+ * now?") walks through several turns, and hitting the wall mid-conversation
+ * hands a real user to a human for no reason. Paid, hand-provisioned tiers get
+ * room; the free tier stays tight because it is the open abuse surface.
+ *
+ * The PUBLIC demo key is stricter still and is NOT covered here: it uses
+ * CHAT_LIMITS.demoSessionMessages, applied ahead of this table.
+ */
+export const PLAN_SESSION_MESSAGE_LIMITS: Record<Plan, number> = {
+  free:       10,
+  starter:    10,
+  pro:        20,
+  enterprise: 40,
+  custom:     40,
+  demo:       40,
+}
+
 export const PLAN_LABELS: Record<Plan, string> = {
   free:       "Free",
   starter:    "Starter",
