@@ -660,7 +660,7 @@ export async function POST(request: Request) {
           const hasCuratedChips = (config.suggestedQuestions ?? []).some(q => q.trim().length > 0)
           if (!wasEscalated && !hasCuratedChips && fullResponseText.length > 20) {
             try {
-              const items = await generateSuggestions(safeMessages, fullResponseText)
+              const items = await generateSuggestions(safeMessages, fullResponseText, ragContext)
               if (items.length > 0) {
                 controller.enqueue(
                   encoder.encode(`data: ${JSON.stringify({ suggestions: { items } })}\n\n`),

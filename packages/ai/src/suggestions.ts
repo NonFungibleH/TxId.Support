@@ -8,11 +8,29 @@ import { completeChat } from "./stream"
 export async function generateSuggestions(
   recentMessages: ChatMessage[],
   lastReply: string,
+  /**
+   * The documentation retrieved for this question. Without it the generator is
+   * guessing at what the protocol supports: it produced "How do I deposit APT?"
+   * for a venue that only takes USDC collateral, purely because APT appeared in
+   * the wallet balance. Prompt rules alone cannot fix that, because the model
+   * has no way to know the premise is false.
+   */
+  docsContext = "",
 ): Promise<string[]> {
   const ctx = recentMessages.slice(-4)
 
   const suggestionMessages: ChatMessage[] = [
     ...ctx,
+    ...(docsContext.trim()
+      ? [{
+          role: "user" as const,
+          content:
+            "For reference, here is what this protocol's own documentation says. " +
+            "Only suggest questions this supports; if a token or action does not appear here, " +
+            "do not assume the protocol does anything with it.\n\n" +
+            docsContext.trim().slice(0, 3000),
+        }]
+      : []),
     { role: "assistant", content: lastReply.slice(0, 600) },
     {
       role: "user",
