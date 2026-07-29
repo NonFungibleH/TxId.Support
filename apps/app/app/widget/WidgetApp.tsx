@@ -989,7 +989,13 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
    * so a screenshot alone is enough to diagnose it.
    */
   const failConnect = useCallback((stage: string, reason: string) => {
-    const msg = `${reason} You can paste your address in the box at the top instead, and I can still look up your balance and transactions. [${stage}]`
+    // Embedded, a wallet extension cannot show its approval popup, so no
+    // amount of retrying inside the panel will ever work. Offer the one thing
+    // that always does: the same widget opened as a normal page.
+    const topLevel = typeof window !== "undefined" && window.parent !== window
+      ? ` To connect a wallet, open this assistant in its own tab: ${window.location.href}`
+      : ""
+    const msg = `${reason} You can paste your address in the box at the top instead, and I can still look up your balance and transactions.${topLevel} [${stage}]`
     walletDiag("connect failed", { stage, reason })
     setWalletError(msg)
     setMessages(prev => [...prev, { id: `wallet-err-${Date.now()}`, role: "assistant", content: msg, local: true }])
@@ -1056,8 +1062,36 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
          * ending the attempt.
          */
         let lastProviderError: string | null = null
-        // AIP-62 first: this is the path Petra's own deprecation notice points
-        // at, and modern builds register here INSTEAD of exposing a global.
+
+        /**
+         * EMBEDDED FIRST, via the host page.
+         *
+         * A wallet extension cannot show its approval popup for a cross-origin
+         * iframe. Petra injects into the frame and registers there, so every
+         * in-frame path LOOKS available, but connect() then never settles: no
+         * popup, no resolve, no reject. That is the hang seen in the console
+         * ("trying wallet standard Petra" and then silence).
+         *
+         * The loader running on the host page IS top level, so it can talk to
+         * the wallet properly. Ask it first whenever we are embedded, and keep
+         * the in-frame attempts only as a fallback for hosts running an older
+         * loader without the bridge.
+         */
+        // Only ask the host if it ANSWERED the capability probe. A page that
+        // embedded us with a bare iframe (the preview bookmarklet does exactly
+        // that) has no loader listening, so asking it just burns the timeout.
+        if (isEmbedded && bridgeWallet) {
+          walletDiag("embedded: asking the host page first")
+          const viaHost = await connectViaBridge("aptos")
+          if (viaHost) { walletDiag("connected via host bridge"); applyConn(viaHost.address, viaHost.chainId || "aptos"); return }
+          walletDiag("host bridge did not connect, falling back to in-frame")
+          lastProviderError = "the page hosting this widget did not complete the wallet connection"
+        } else if (isEmbedded) {
+          walletDiag("embedded but host has no wallet bridge; in-frame attempts are unlikely to succeed")
+        }
+
+        // AIP-62: the path Petra's deprecation notice points at, and modern
+        // builds register here INSTEAD of exposing a global.
         const standardWallets = discoverStandardWallets()
         walletDiag("wallet-standard wallets discovered", standardWallets.map(w => w.name ?? "unnamed"))
         for (const w of standardWallets) {
@@ -1072,7 +1106,14 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
             // answers cannot wedge the UI forever.
             const res = await Promise.race([
               feature.connect(),
-              new Promise((_, rej) => setTimeout(() => rej(new Error("the wallet did not respond within 60 seconds")), 60_000)),
+              // Short when embedded: an extension that cannot show a popup for
+              // an iframe simply never answers, so waiting is pure dead air.
+              new Promise((_, rej) => setTimeout(
+                () => rej(new Error(isEmbedded
+                  ? "the wallet did not respond inside the embedded panel"
+                  : "the wallet did not respond within 60 seconds")),
+                isEmbedded ? 6_000 : 60_000,
+              )),
             ])
             walletDiag("wallet standard resolved", res)
             // Standard connect resolves { status, args: { address, ... } }.
@@ -1098,7 +1139,13 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
           if (!c.provider || typeof c.provider.connect !== "function") continue
           try {
             walletDiag("trying provider", c.name)
-            const acct = await c.provider.connect()
+            const acct = await Promise.race([
+              c.provider.connect(),
+              new Promise((_, rej) => setTimeout(
+                () => rej(new Error(isEmbedded ? "no response inside the embedded panel" : "no response")),
+                isEmbedded ? 6_000 : 60_000,
+              )),
+            ])
             const addr = readAptosAddress(acct)
             if (addr) { walletDiag("connected via", c.name); applyConn(addr, "aptos"); return }
             walletDiag("provider returned no usable address", { via: c.name, acct })
@@ -1161,7 +1208,7 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
     } finally {
       setWalletConnecting(false)
     }
-  }, [apiKey, walletTarget, isEmbedded, connectViaBridge, failConnect, evmFallbackAllowed, discoverStandardWallets])
+  }, [apiKey, walletTarget, isEmbedded, bridgeWallet, connectViaBridge, failConnect, evmFallbackAllowed, discoverStandardWallets])
 
   // ── Disconnect wallet ────────────────────────────────────────────────────
   const disconnectWallet = useCallback(() => {
