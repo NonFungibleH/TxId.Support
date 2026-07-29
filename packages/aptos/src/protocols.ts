@@ -47,11 +47,18 @@ export const PROTOCOL_ADAPTERS: Record<string, ProtocolAdapter> = {
       { label: "netAssetValue", fn: `${DECIBEL}::perp_engine::get_account_net_asset_value` },
       { label: "positions", fn: `${DECIBEL}::perp_engine::list_positions` },
       { label: "crossPositionStatus", fn: `${DECIBEL}::perp_engine::cross_position_status` },
+      // "Have I enabled trading?" is a real support question and Decibel
+      // answers it on chain: the app's "Establish connection" step delegates
+      // trading to a session key, and these two views expose the result.
+      // Without them the bot could only tell the user to go and look at the UI,
+      // which is precisely the deflection the prompt forbids.
+      { label: "delegatedPermissions", fn: `${DECIBEL}::dex_accounts::view_delegated_permissions` },
+      { label: "subaccountActive", fn: `${DECIBEL}::dex_accounts::view_is_subaccount_active` },
     ],
     listMarketsFn: `${DECIBEL}::perp_engine::list_markets`,
     marketNameFn: `${DECIBEL}::perp_engine::market_name`,
     note:
-      "On Decibel a trader's collateral and positions live in their subaccount object, NOT in their wallet. The wallet balance is only idle funds that have not been deposited. Always answer position and collateral questions from the subaccount figures below, and never present the wallet balance as the trading balance. IMPORTANT: crossCollateralValue covers CROSS margin only. Decibel also supports ISOLATED positions, whose collateral sits per market and is not included, so a zero cross figure does NOT mean the trader has no funds on the venue. If cross collateral is zero but the user believes they hold a position, say that you can see no cross-margin collateral and ask which market they traded, then read that market's isolated collateral rather than telling them they have nothing.",
+      "On Decibel a trader's collateral and positions live in their subaccount object, NOT in their wallet. The wallet balance is only idle funds that have not been deposited. Always answer position and collateral questions from the subaccount figures below, and never present the wallet balance as the trading balance. IMPORTANT: crossCollateralValue covers CROSS margin only. Decibel also supports ISOLATED positions, whose collateral sits per market and is not included, so a zero cross figure does NOT mean the trader has no funds on the venue. If cross collateral is zero but the user believes they hold a position, say that you can see no cross-margin collateral and ask which market they traded, then read that market's isolated collateral rather than telling them they have nothing. delegatedPermissions and subaccountActive answer \"have I enabled trading?\": Decibel's \"Establish connection\" step delegates trading to a session key so orders can be placed gas-free, and these views report whether that is in place. Note that primary_subaccount returns a DERIVED address, so it resolves even for a wallet that has never used the protocol; when the account views abort, the subaccount object does not exist yet, which means the user has not completed setup rather than that anything is wrong. Say that plainly and tell them the setup step is the connection prompt in the app, but never send them off to read their status from the UI when these views answered it.",
   },
 }
 
