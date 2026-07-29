@@ -411,11 +411,21 @@ export async function peekAptosModules(
 ): Promise<{ modules: AptosModulePeek[] } | { error: string }> {
   const clean = address.trim()
   if (!APTOS_ADDRESS_RE.test(clean)) return { error: "Enter a valid Aptos address" }
-  const modules = await getAptosModuleAbi(clean).catch(() => null)
+  // One retry. A single transient fullnode hiccup (a 429 while unauthenticated,
+  // or a cold-start timeout) otherwise shows the user "could not fetch modules"
+  // for an address that is perfectly fine: observed on PancakeSwap's package,
+  // which then fetched successfully on save moments later. Measured at 8/8
+  // successes in ~400ms each, so a failure is worth one more attempt before
+  // telling someone their address might be wrong.
+  let modules = await getAptosModuleAbi(clean).catch(() => null)
+  if (!modules) {
+    await new Promise(r => setTimeout(r, 600))
+    modules = await getAptosModuleAbi(clean).catch(() => null)
+  }
   // The fullnode client returns null for BOTH not-found and network failure,
   // so the error must stay honestly ambiguous - never a confident "no modules".
   if (!modules) {
-    return { error: "Could not fetch modules: the address may have no modules published, or the network request failed" }
+    return { error: "Could not reach the Aptos fullnode twice in a row. The address may have no modules published, or the network is momentarily unavailable. You can still add it and describe it manually." }
   }
   return {
     modules: modules.map(m => ({
