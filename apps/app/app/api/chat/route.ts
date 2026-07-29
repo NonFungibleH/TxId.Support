@@ -1,5 +1,5 @@
 import { createServiceClient } from "@/lib/supabase/server"
-import { buildSystemPrompt, retrieveContext, streamChatWithTools, generateSuggestions } from "@txid/ai"
+import { buildSystemPrompt, buildDocsBlock, retrieveContext, streamChatWithTools, generateSuggestions } from "@txid/ai"
 import type { ChatMessage, ProjectConfigSnapshot, ActionsContext } from "@txid/ai"
 import { actionsGate, effectiveMaxSwapUsd } from "@/lib/actions-gate"
 import type { ProjectConfig, Plan } from "@/lib/types/config"
@@ -552,6 +552,10 @@ export async function POST(request: Request) {
       config: configSnapshot,
       walletConfig,
       ragContext,
+      // Docs are emitted separately, after the prompt-cache breakpoint: they
+      // change with every question, so inline they would make the whole prefix
+      // per-question and defeat caching entirely.
+      docsSeparate: true,
       mode: projectMode as "support" | "token",
       tokenModeAsk: config.tokenModeAsk ?? undefined,
       persona: config.branding?.persona ?? "concise",
@@ -616,6 +620,7 @@ export async function POST(request: Request) {
             configSnapshot.watchedContracts,
             800,
             actionsCtx,
+            buildDocsBlock(ragContext),
           )) {
             let data: string
             if (event.type === "tool_call") {

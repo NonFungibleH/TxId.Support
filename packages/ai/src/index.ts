@@ -1,7 +1,7 @@
 export { embedText, embedBatch } from "./embed"
 export { chunkText } from "./chunk"
 export { retrieveContext } from "./rag"
-export { buildSystemPrompt } from "./prompt"
+export { buildSystemPrompt, buildDocsBlock } from "./prompt"
 export { streamChat, streamChatWithTools, completeChat, completeChatWithUsage } from "./stream"
 export type { StreamEvent } from "./stream"
 export { buildWalletTools, buildEscalationTool, executeTool, TOOL_LABELS } from "./tools"

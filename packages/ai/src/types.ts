@@ -69,4 +69,10 @@ export interface StreamChatParams {
   persona?: string | null
   language?: string | null
   customTone?: string | null
+  /**
+   * Omit the retrieved-docs section from the prompt so the caller can place it
+   * after the prompt-cache breakpoint. Docs change per question; leaving them
+   * inline makes the entire prefix per-question and defeats caching.
+   */
+  docsSeparate?: boolean
 }

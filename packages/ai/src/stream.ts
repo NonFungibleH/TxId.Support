@@ -121,10 +121,16 @@ async function executeToolWithTimeout(
  * the widget can show "Checking your transactions…" while Claude is working.
  */
 /**
- * The system prompt plus tool schemas is ~10.8k tokens and is byte-identical
- * across every call in a conversation, yet it was being resent at full input
- * price on each of up to MAX_ROUNDS rounds per user message. Marking it as a
- * cache breakpoint bills the first call at 1.25x and every later one at 0.1x.
+ * The system prompt plus tool schemas is ~9k tokens once the per-question docs
+ * are excluded, and is then byte-identical across every question and every user
+ * of a project - not merely within one conversation. It was being resent at
+ * full input price on each of up to MAX_ROUNDS rounds per user message. Marking
+ * it as a cache breakpoint bills a write at 1.25x and every later read at 0.1x.
+ *
+ * Keeping the retrieved docs OUT of this block is what makes it work at all:
+ * inline, they change with every question, so each message would rewrite the
+ * prefix instead of reading it - and a one-call question would pay the write
+ * premium and never read, costing MORE than no caching.
  *
  * Placement: tools render before system, so one breakpoint on the last system
  * block covers BOTH. The prefix must stay byte-stable to hit - anything
@@ -132,26 +138,28 @@ async function executeToolWithTimeout(
  * here. Haiku 4.5's minimum cacheable prefix is 4096 tokens; ours clears it
  * comfortably, and a shorter prompt simply misses rather than erroring.
  */
-function cachedSystem(prompt: string): Anthropic.TextBlockParam[] {
+function cachedSystem(prompt: string, docs?: string): Anthropic.TextBlockParam[] {
   return [
     /**
-     * 1-hour TTL, not the 5-minute default. A support conversation is not
-     * rapid-fire: the user reads an answer, checks their wallet, comes back.
-     * Those gaps routinely exceed 5 minutes, and each expiry rewrites the whole
-     * ~10.8k prefix. The 1h write costs 2x base input against the default's
-     * 1.25x, so it needs roughly three reads to pay for itself - a conversation
-     * makes about ten calls, so it clears that easily whenever any gap would
-     * have expired the short window. The one case the default wins is a
-     * conversation finished inside five minutes; that is the minority, and the
-     * downside there is small next to a full rewrite per message.
+     * Default 5-minute TTL rather than the 1h option. Now that the retrieved
+     * docs sit outside this block, the prefix is identical for every question
+     * AND every user of a project, so it is kept alive by the project's traffic
+     * rather than by one conversation's pace. The 1h write costs 2x base input
+     * against 1.25x, which only pays off once a project sustains roughly 1.6
+     * conversations per hour - above that, one hourly write serves everything;
+     * below it, the pricier write is charged nearly per conversation anyway.
+     * Trial-level traffic sits near that line, so take the cheaper write. Flip
+     * to `ttl: "1h"` once a project is reliably busier than that.
      */
-    { type: "text", text: prompt, cache_control: { type: "ephemeral", ttl: "1h" } },
+    { type: "text", text: prompt, cache_control: { type: "ephemeral" } },
     // AFTER the breakpoint on purpose. The prompt needs the wall clock to
     // answer "how long until the unlock", but a second-resolution timestamp
     // inside the cached block would change its bytes on every call: the prefix
     // would never match, and every request would pay the 1.25x write premium
     // with no read ever. Trailing blocks don't affect the prefix hash.
     { type: "text", text: `Current date/time: ${new Date().toUTCString()}.` },
+    // Also after the breakpoint: the retrieved documentation for THIS question.
+    ...(docs ? [{ type: "text" as const, text: docs }] : []),
   ]
 }
 
@@ -162,6 +170,7 @@ export async function* streamChatWithTools(
   watchedContracts: WatchedContractSnapshot[] = [],
   maxTokens = 800,
   actions: ActionsContext | null = null,
+  docsBlock?: string,
 ): AsyncGenerator<StreamEvent> {
   const anthropic = getAnthropicClient()
 
@@ -380,7 +389,7 @@ export async function* streamChatWithTools(
     const stream = anthropic.messages.stream({
       model: MODEL,
       max_tokens: maxTokens,
-      system: cachedSystem(systemPrompt),
+      system: cachedSystem(systemPrompt, docsBlock),
       messages: currentMessages,
       ...(tools.length > 0 ? { tools } : {}),
     })
@@ -487,7 +496,7 @@ export async function* streamChatWithTools(
         // it to the prompt string would change the cached prefix's bytes and
         // force a full re-read on the most expensive call of the turn.
         system: [
-          ...cachedSystem(systemPrompt),
+          ...cachedSystem(systemPrompt, docsBlock),
           { type: "text", text: "You have gathered tool results above. Give the user your best final answer now in plain English, using what you found. Do not call any more tools." },
         ],
         messages: currentMessages,
@@ -523,6 +532,7 @@ export async function* streamChat(
   systemPrompt: string,
   messages: ChatMessage[],
   maxTokens = 2048,
+  docsBlock?: string,
 ): AsyncGenerator<string> {
   const anthropic = getAnthropicClient()
 
@@ -530,7 +540,7 @@ export async function* streamChat(
     const stream = anthropic.messages.stream({
       model: "claude-haiku-4-5-20251001",
       max_tokens: maxTokens,
-      system: cachedSystem(systemPrompt),
+      system: cachedSystem(systemPrompt, docsBlock),
       messages: messages.map((m) => ({ role: m.role, content: m.content })),
     })
     for await (const event of stream) {
@@ -583,6 +593,7 @@ export async function completeChatWithUsage(
   systemPrompt: string,
   messages: ChatMessage[],
   maxTokens = 2048,
+  docsBlock?: string,
 ): Promise<{ text: string; usage: { inputTokens: number; outputTokens: number; cacheReadTokens: number; cacheWriteTokens: number; model: string } | null }> {
   const anthropic = getAnthropicClient()
   if (anthropic) {
@@ -590,7 +601,7 @@ export async function completeChatWithUsage(
     const stream = anthropic.messages.stream({
       model: MODEL,
       max_tokens: maxTokens,
-      system: cachedSystem(systemPrompt),
+      system: cachedSystem(systemPrompt, docsBlock),
       messages: messages.map((m) => ({ role: m.role, content: m.content })),
     })
     let text = ""

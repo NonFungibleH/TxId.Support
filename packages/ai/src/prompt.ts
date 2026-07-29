@@ -187,8 +187,26 @@ ${t.slice(0, 800)}
  * blockchain tools (get_wallet_balance, get_recent_transactions,
  * get_transaction_by_hash) — it decides what to fetch based on the question.
  */
+/**
+ * The retrieved-documentation section. Extracted so it can be placed AFTER the
+ * prompt-cache breakpoint: its content changes with every user question, which
+ * is exactly what must not sit inside a cached prefix.
+ */
+export function buildDocsBlock(ragContext: string | undefined): string {
+  if (ragContext && ragContext.trim().length > 0) {
+    return `## Protocol Documentation\n` +
+      `The following is drawn directly from this protocol's documentation. ` +
+      `Treat it as authoritative.\n\n` +
+      ragContext.trim()
+  }
+  return `## Documentation\n` +
+    `No documentation excerpts matched this specific query. ` +
+    `Answer from general DeFi knowledge and the protocol context above. ` +
+    `Point users to the team's official docs for anything you cannot confirm.`
+}
+
 export function buildSystemPrompt(params: StreamChatParams): string {
-  const { projectName, config, walletConfig, ragContext, mode, tokenModeAsk, persona, language, customTone } = params
+  const { projectName, config, walletConfig, ragContext, mode, tokenModeAsk, persona, language, customTone, docsSeparate } = params
   const parts: string[] = []
 
   if (mode === "token") {
@@ -486,21 +504,13 @@ export function buildSystemPrompt(params: StreamChatParams): string {
       )
     }
 
-    if (ragContext && ragContext.trim().length > 0) {
-      parts.push(
-        `## Protocol Documentation\n` +
-        `The following is drawn directly from this protocol's documentation. ` +
-        `Treat it as authoritative.\n\n` +
-        ragContext.trim()
-      )
-    } else {
-      parts.push(
-        `## Documentation\n` +
-        `No documentation excerpts matched this specific query. ` +
-        `Answer from general DeFi knowledge and the protocol context above. ` +
-        `Point users to the team's official docs for anything you cannot confirm.`
-      )
-    }
+    // Retrieved excerpts differ for EVERY question, so leaving them inline makes
+    // the whole system prompt per-question and defeats prompt caching: each
+    // message would rewrite the ~9k-token prefix instead of reading it. Callers
+    // that pass docsSeparate emit this block themselves, after the cache
+    // breakpoint, keeping the prefix identical across every question and every
+    // user of the project.
+    if (!docsSeparate) parts.push(buildDocsBlock(ragContext))
 
     // Documentation links — pages the protocol wants the bot to hand users for
     // self-serve detail. Distinct from the RAG excerpts above: these are exact
