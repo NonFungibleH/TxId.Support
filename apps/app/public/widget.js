@@ -93,7 +93,14 @@
   iframe.setAttribute("allow", "clipboard-write");
   iframe.setAttribute("title", "Support chat");
   // Eager-load: start loading immediately so widget is ready when first opened
-  iframe.src = BASE + "/widget?key=" + encodeURIComponent(key);
+  // The dashboard preview injects the loader (not a bare iframe) so that the
+  // wallet bridge below exists: a wallet extension cannot show its approval
+  // popup for a cross-origin iframe, so the connect has to run up here on the
+  // host page. These two carry the signed preview token through.
+  var previewToken = script.getAttribute("data-pt");
+  iframe.src = BASE + "/widget?key=" + encodeURIComponent(key) +
+    (script.getAttribute("data-preview") === "1" ? "&preview=1" : "") +
+    (previewToken ? "&pt=" + encodeURIComponent(previewToken) : "");
 
   wrap.appendChild(iframe);
   root.appendChild(btn);
@@ -224,6 +231,124 @@
     if (kind === "evm")    return window.ethereum || null;
     return null;
   }
+
+  // Current Petra exposes NO window global at all. Under the Aptos Wallet
+  // Standard (AIP-62) a wallet registers itself through an event handshake and
+  // the app connects through the wallet's own "aptos:connect" feature. Checking
+  // globals alone therefore reports "no Aptos wallet" on a page where Petra is
+  // installed and working.
+  function txidStandardWallets() {
+    var found = [];
+    function register(w) {
+      var list = Object.prototype.toString.call(w) === "[object Array]" ? w : [w];
+      for (var i = 0; i < list.length; i++) if (list[i]) found.push(list[i]);
+      return function () {};
+    }
+    try {
+      // Wallets that loaded first answer the register-wallet listener; wallets
+      // already registered push themselves when they see app-ready.
+      var onRegister = function (e) {
+        var cb = e.detail;
+        if (typeof cb === "function") {
+          try { cb({ register: register }); } catch (err) { /* one bad wallet must not stop the rest */ }
+        }
+      };
+      window.addEventListener("wallet-standard:register-wallet", onRegister);
+      window.dispatchEvent(new CustomEvent("wallet-standard:app-ready", { detail: { register: register } }));
+      window.removeEventListener("wallet-standard:register-wallet", onRegister);
+    } catch (err) { /* discovery unavailable */ }
+    var direct = window.aptosWallets;
+    if (Object.prototype.toString.call(direct) === "[object Array]") {
+      for (var j = 0; j < direct.length; j++) found.push(direct[j]);
+    }
+    return found;
+  }
+
+  function txidWalletFeature(w, name) {
+    return (w && w.features && w.features[name]) || null;
+  }
+
+  function txidHasAptos() {
+    if (txidProvider("aptos")) return true;
+    var ws = txidStandardWallets();
+    for (var i = 0; i < ws.length; i++) if (txidWalletFeature(ws[i], "aptos:connect")) return true;
+    return false;
+  }
+
+  // An Aptos public key is the same shape as an address (0x + hex), and wallets
+  // return both side by side, so an explicit address field must win over any
+  // coercion of the container. Getting this backwards yields a plausible but
+  // WRONG account. Mirrors readAptosAddress in the widget app.
+  function txidReadAptosAddress(acct) {
+    function pick(v) {
+      if (typeof v === "string") return v.indexOf("0x") === 0 ? v : null;
+      if (v && typeof v === "object") {
+        if (typeof v.toStringLong === "function") {
+          var a = v.toStringLong();
+          if (typeof a === "string" && a.indexOf("0x") === 0) return a;
+        }
+        if (typeof v.toString === "function") {
+          var b = v.toString();
+          if (typeof b === "string" && b.indexOf("0x") === 0) return b;
+        }
+      }
+      return null;
+    }
+    var c = acct || {};
+    var explicit = pick(c.address) || (c.account ? pick(c.account.address) : null);
+    if (explicit) return explicit;
+    return typeof acct === "string" && acct.indexOf("0x") === 0 ? acct : null;
+  }
+
+  function txidConnectAptos() {
+    var ws = txidStandardWallets();
+    var chain = [];
+    for (var i = 0; i < ws.length; i++) {
+      (function (w) {
+        var f = txidWalletFeature(w, "aptos:connect");
+        if (f && typeof f.connect === "function") {
+          // Called off the feature object: detaching it loses `this` and the
+          // returned promise then never settles.
+          chain.push(function () { return f.connect(); });
+        }
+      })(ws[i]);
+    }
+    var legacy = txidProvider("aptos");
+    if (legacy && typeof legacy.connect === "function") {
+      chain.push(function () { return legacy.connect(); });
+    }
+    // Try each candidate in turn: a deprecated handle can throw where the
+    // wallet-standard feature on the same extension succeeds.
+    return chain.reduce(function (prev, attempt) {
+      return prev.then(function (found) {
+        if (found) return found;
+        return Promise.resolve()
+          .then(attempt)
+          .then(function (res) {
+            var payload = (res && res.args) || res;
+            var addr = txidReadAptosAddress(payload);
+            return addr ? { address: addr, chainId: "aptos" } : null;
+          })
+          .catch(function () { return null; });
+      });
+    }, Promise.resolve(null));
+  }
+
+  function txidDisconnectAptos() {
+    try {
+      var ws = txidStandardWallets();
+      for (var i = 0; i < ws.length; i++) {
+        var f = txidWalletFeature(ws[i], "aptos:disconnect");
+        if (f && typeof f.disconnect === "function") {
+          try { Promise.resolve(f.disconnect())["catch"](function () {}); } catch (err) { /* ignore */ }
+        }
+      }
+      var legacy = txidProvider("aptos");
+      if (legacy && typeof legacy.disconnect === "function") {
+        Promise.resolve(legacy.disconnect())["catch"](function () {});
+      }
+    } catch (err) { /* best effort */ }
+  }
   function txidToFrame(msg) {
     try { iframe.contentWindow.postMessage(msg, BASE); } catch (err) { /* frame gone */ }
   }
@@ -257,18 +382,24 @@
     if (e.data && e.data.type === "txid-wallet-detect") {
       txidToFrame({
         type: "txid-wallet-available",
-        aptos: !!txidProvider("aptos"),
+        aptos: txidHasAptos(),
         evm: !!txidProvider("evm"),
         solana: !!txidProvider("solana"),
       });
       return;
     }
 
+    if (e.data && e.data.type === "txid-wallet-disconnect") {
+      txidDisconnectAptos();
+      return;
+    }
+
     if (e.data && e.data.type === "txid-wallet-connect") {
       var id = e.data.id;
       var kind = e.data.provider;
-      var p = txidProvider(kind);
-      if (!p) { txidToFrame({ type: "txid-wallet-result", id: id, ok: false, error: "no-provider" }); return; }
+      // Aptos is resolved separately: it may have no window global at all.
+      var p = kind === "aptos" ? null : txidProvider(kind);
+      if (kind !== "aptos" && !p) { txidToFrame({ type: "txid-wallet-result", id: id, ok: false, error: "no-provider" }); return; }
       Promise.resolve()
         .then(function () {
           if (kind === "solana") {
@@ -281,11 +412,14 @@
               });
             });
           }
-          // aptos (Petra / Martian)
-          return p.connect().then(function (acct) { return { address: acct.address, chainId: "aptos" }; });
+          return txidConnectAptos();
         })
         .then(function (res) {
-          txidToFrame({ type: "txid-wallet-result", id: id, ok: !!(res && res.address), address: res && res.address, chainId: res && res.chainId });
+          if (res && res.address) {
+            txidToFrame({ type: "txid-wallet-result", id: id, ok: true, address: res.address, chainId: res.chainId });
+          } else {
+            txidToFrame({ type: "txid-wallet-result", id: id, ok: false, error: "no-provider" });
+          }
         })
         .catch(function () {
           txidToFrame({ type: "txid-wallet-result", id: id, ok: false, error: "rejected" });

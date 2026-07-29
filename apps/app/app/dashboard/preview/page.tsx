@@ -21,7 +21,12 @@ export default async function PreviewPage() {
   const widgetBaseUrl = process.env.NEXT_PUBLIC_WIDGET_URL ?? "https://app.txid.support"
   const pt = generatePreviewToken(typedProject.id)
   const previewUrl = `${widgetBaseUrl}/preview?key=${typedProject.publishable_key}&preview=1&pt=${pt}`
-  const bookmarklet = `javascript:(function(){if(document.getElementById('txid-preview'))return;var f=document.createElement('iframe');f.id='txid-preview';f.src='${widgetBaseUrl}/widget?key=${typedProject.publishable_key}&preview=1&pt=${pt}';f.style.cssText='position:fixed;bottom:max(20px,env(safe-area-inset-bottom,0px));right:max(20px,env(safe-area-inset-right,0px));width:min(380px,calc(100vw - 32px));height:min(580px,calc(100vh - 80px));border:none;z-index:2147483647;border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,0.4)';document.body.appendChild(f);})();`
+  // Injects the real loader rather than a bare iframe. The loader runs on the
+  // host page, which is top level, so it can drive the wallet extension on the
+  // widget's behalf: an extension cannot show its approval popup for a
+  // cross-origin iframe, so a bare iframe leaves Connect wallet permanently
+  // dead. This also makes the preview behave exactly like a live install.
+  const bookmarklet = `javascript:(function(){if(document.getElementById('txid-widget-root')||document.getElementById('txid-widget-script'))return;var s=document.createElement('script');s.id='txid-widget-script';s.src='${widgetBaseUrl}/widget.js';s.setAttribute('data-key','${typedProject.publishable_key}');s.setAttribute('data-preview','1');s.setAttribute('data-pt','${pt}');document.body.appendChild(s);})();`
 
   return (
     <div className="space-y-6">

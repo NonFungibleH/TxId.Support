@@ -1245,8 +1245,12 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
       }
       const legacy = (window as unknown as { aptos?: { disconnect?: () => Promise<unknown> } }).aptos
       if (typeof legacy?.disconnect === "function") void Promise.resolve(legacy.disconnect()).catch(() => {})
+      // Embedded, the connection was made by the host page on our behalf, so
+      // the wallet is authorised against the HOST origin. Only the host can
+      // undo that.
+      if (isEmbedded) window.parent.postMessage({ type: "txid-wallet-disconnect" }, "*")
     } catch { /* best effort: local state is already cleared */ }
-  }, [apiKey, discoverStandardWallets])
+  }, [apiKey, discoverStandardWallets, isEmbedded])
 
   // ── Switch network (one-tap, EIP-3326) ────────────────────────────────────
   const [switching, setSwitching] = useState(false)
