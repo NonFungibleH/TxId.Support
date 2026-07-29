@@ -907,7 +907,6 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
   )
   const hasMartian = typeof window !== "undefined" && !!(window as unknown as { martian?: unknown }).martian
   const hasAptosWallet = hasPetraLike || hasMartian
-  const evmWalletUsable = hasEvmChain && hasMetaMask
   /**
    * ONE source of truth for which wallet family Connect will actually open,
    * used by the label, the enabled check and the click handler so they can
@@ -925,9 +924,22 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
   const evmProviderAvailable = hasMetaMask || (isEmbedded && !!bridgeWallet?.evm)
   const walletTarget: "solana" | "aptos" | "evm" = isSolanaProject
     ? "solana"
-    : isAptosProject && (aptosProviderAvailable || !evmWalletUsable)
+    : isAptosProject
       ? "aptos"
       : "evm"
+  /**
+   * An Aptos project ALWAYS attempts Aptos first, and only falls back to EVM
+   * from inside that branch if no Aptos path produced an address.
+   *
+   * The previous rule fell straight to EVM when an Aptos provider was not
+   * visible AND an EVM wallet was. Embedded, that is the normal situation:
+   * Petra does not inject into a cross-origin iframe, while MetaMask does. So
+   * an Aptos trader clicking "Connect" ran eth_requestAccounts inside an
+   * iframe, which MetaMask rejects immediately, producing an instant failure
+   * and no popup. Preferring the chain the project is actually about, and
+   * treating EVM as the fallback rather than the default, removes that.
+   */
+  const evmFallbackAllowed = hasEvmChain && evmProviderAvailable
 
   /**
    * One place that reports a failed connect. Each call site passes a distinct
@@ -1015,10 +1027,22 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
           if (res) { applyConn(res.address, res.chainId || "aptos"); return }
           // The widget is a cross-origin iframe and no Aptos wallet was
           // reachable through the host page either.
-          failConnect("bridge-no-wallet", "No Aptos wallet answered on this page.")
-          return
         }
-        failConnect("no-provider", "No Aptos wallet extension was detected in this page.")
+        // Nothing Aptos-shaped answered. Only now consider an EVM wallet, and
+        // only if the project actually watches an EVM chain.
+        if (evmFallbackAllowed && "ethereum" in window) {
+          walletDiag("no aptos path, falling back to EVM")
+          const eth = (window as unknown as { ethereum: { request: (a: { method: string }) => Promise<string[]> } }).ethereum
+          const accounts = await eth.request({ method: "eth_requestAccounts" })
+          const chain = await eth.request({ method: "eth_chainId" }) as unknown as string
+          if (accounts?.[0]) { applyConn(accounts[0], chain); return }
+        }
+        failConnect(
+          "no-aptos-provider",
+          isEmbedded
+            ? "No Aptos wallet answered. Wallet extensions often do not load inside an embedded panel."
+            : "No Aptos wallet extension was detected.",
+        )
         return
       }
       // EVM - window.ethereum (MetaMask and other injected wallets)
@@ -1045,7 +1069,7 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
     } finally {
       setWalletConnecting(false)
     }
-  }, [apiKey, walletTarget, isEmbedded, connectViaBridge, failConnect])
+  }, [apiKey, walletTarget, isEmbedded, connectViaBridge, failConnect, evmFallbackAllowed])
 
   // ── Disconnect wallet ────────────────────────────────────────────────────
   const disconnectWallet = useCallback(() => {
