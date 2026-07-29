@@ -267,6 +267,17 @@ const DECIBEL_ERRMAPS: AbortErrmap = {
         "This subaccount is not active, so it cannot place or cancel orders. In the app, check which subaccount you are trading from and switch to an active one.",
     },
   },
+  [`${DECIBEL}::bulk_order_utils`]: {
+    // Observed repeatedly on mainnet from
+    // dex_accounts_entry::place_bulk_orders_to_subaccount_with_repricing.
+    // The fullnode embeds the constant name, so the decoder already recovers
+    // EPRICE_CROSSING; this supplies the meaning a trader can act on.
+    1: {
+      name: "EPRICE_CROSSING",
+      reason:
+        "The bulk order was rejected because its buy and sell prices cross each other: at least one bid was priced at or above one of the asks in the same submission, which would have the order trade against itself. Nothing was placed and only gas was spent. Adjust the ladder so every bid sits strictly below every ask, then resubmit. If you are using automatic repricing, the quotes most likely moved between building the order and submitting it, so rebuild from a fresh mid price.",
+    },
+  },
   [`${DECIBEL}::perp_engine`]: {
     4: {
       name: "EMARKET_HALTED",
