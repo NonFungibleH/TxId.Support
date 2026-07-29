@@ -1062,11 +1062,19 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
         walletDiag("wallet-standard wallets discovered", standardWallets.map(w => w.name ?? "unnamed"))
         for (const w of standardWallets) {
           const feature = w.features?.["aptos:connect"]
-          const fn = feature?.connect
-          if (typeof fn !== "function") continue
+          if (typeof feature?.connect !== "function") continue
           try {
             walletDiag("trying wallet standard", w.name ?? "unnamed")
-            const res = await fn()
+            // Call it ON the feature object. Pulling `connect` out into a bare
+            // reference loses its `this`, and the wallet then never settles the
+            // promise, which presents as the button hanging with no error at
+            // all. Also raced against a timeout so a wallet that simply never
+            // answers cannot wedge the UI forever.
+            const res = await Promise.race([
+              feature.connect(),
+              new Promise((_, rej) => setTimeout(() => rej(new Error("the wallet did not respond within 60 seconds")), 60_000)),
+            ])
+            walletDiag("wallet standard resolved", res)
             // Standard connect resolves { status, args: { address, ... } }.
             const payload = (res as { args?: unknown } | null)?.args ?? res
             const addr = readAptosAddress(payload)
