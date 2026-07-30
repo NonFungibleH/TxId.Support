@@ -122,7 +122,11 @@ export function DemosManager({ initial }: { initial: DemoSummary[] }) {
           Select or create a demo.
         </div>
       ) : (
-        <div className="space-y-6">
+        // Keyed by demo id so switching demos remounts the whole editor.
+        // Without this, every defaultValue input (name, agent name, logo,
+        // welcome message, docs status) keeps showing the PREVIOUS demo's
+        // values, which reads as "my new demo inherited the old settings".
+        <div key={selected.id} className="space-y-6">
           {/* Name */}
           <div className="flex items-center gap-2">
             <input
