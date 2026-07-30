@@ -1,0 +1,19 @@
+import type { Metadata } from "next"
+
+// /check/aptos is a client component, so its metadata lives in this route layout.
+export const metadata: Metadata = {
+  title: "Try TxID on Aptos: Live Move Transaction Diagnosis | TxID Support",
+  description:
+    "Connect an Aptos wallet or paste an address and watch TxID diagnose real Move transactions live: abort codes decoded into plain English, balances and history read from Aptos-native infrastructure. Free, no sign-up.",
+  alternates: { canonical: "/check/aptos" },
+  openGraph: {
+    title: "Try TxID on Aptos | TxID Support",
+    description: "Live Move transaction diagnosis: abort codes decoded into plain English.",
+    url: "https://txid.support/check/aptos",
+    type: "website",
+  },
+}
+
+export default function AptosCheckLayout({ children }: { children: React.ReactNode }) {
+  return children
+}
