@@ -16,6 +16,10 @@ const API_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://app.txid.support"
 // contracts scope the bot, so no demoProtocol expansion happens server-side.
 const APTOS_DEMO_KEY = process.env.NEXT_PUBLIC_APTOS_DEMO_WIDGET_KEY ?? ""
 
+// The page is co-branded TxID × Aptos: Aptos teal accent (matches the
+// one-pager), official Aptos mark rendered white for the dark background.
+const APTOS_TEAL = "#2ED3B7"
+
 // The one live protocol on this page. Decibel joins once the subaccount
 // history merge ships; the array shape means adding it is one entry.
 const PROTOCOLS = [
@@ -159,8 +163,8 @@ export default function AptosCheckPage() {
   const protocol = PROTOCOLS[0]
   const demoKey = keyOverride || APTOS_DEMO_KEY
 
-  const themeStyle = accentVars(protocol.color) as React.CSSProperties
-  const ctaText = readableText(protocol.color)
+  const themeStyle = accentVars(APTOS_TEAL) as React.CSSProperties
+  const ctaText = readableText(APTOS_TEAL)
 
   useEffect(() => {
     const k = new URLSearchParams(window.location.search).get("key")
@@ -344,9 +348,21 @@ export default function AptosCheckPage() {
           <div className="max-w-xl mx-auto px-6">
 
             <div className="text-center mb-10">
+              {/* Co-brand lockup, mirroring the TxID × Aptos one-pager header */}
+              <div className="flex items-center justify-center gap-3 mb-6">
+                <span className="flex items-center gap-2">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src="/brand/txid-icon-64.png" alt="TxID" className="w-9 h-9 rounded-[10px]" />
+                  <span className="font-display text-2xl font-bold text-white tracking-tight">Tx<span className="text-[#818cf8]">ID</span></span>
+                </span>
+                <span className="text-muted/50 text-xl font-light">×</span>
+                <span className="flex items-center gap-2">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src="/chains/Aptos.png" alt="Aptos" className="w-9 h-9 object-contain invert" />
+                  <span className="font-display text-2xl font-bold text-white tracking-tight">Aptos</span>
+                </span>
+              </div>
               <span className="inline-flex items-center gap-1.5 rounded-full bg-accent/10 border border-accent/20 px-3 py-1 text-xs font-mono text-accent mb-5">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/chains/Aptos.png" alt="Aptos" className="w-3.5 h-3.5 object-contain rounded-full" />
                 Live on Aptos mainnet · A few free questions · No sign-up
               </span>
               <h1 className="font-display text-4xl font-bold text-white leading-tight mb-4">
@@ -459,7 +475,7 @@ export default function AptosCheckPage() {
               <span className="text-muted/40 hidden sm:inline">·</span>
               <span className="flex items-center gap-1.5 shrink-0">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/chains/Aptos.png" alt="Aptos" className="w-3.5 h-3.5 object-contain rounded-full" />
+                <img src="/chains/Aptos.png" alt="Aptos" className="w-3.5 h-3.5 object-contain invert" />
                 <span className="text-xs text-muted">Aptos</span>
               </span>
             </div>
