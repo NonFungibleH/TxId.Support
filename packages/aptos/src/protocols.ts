@@ -96,6 +96,23 @@ function isMissingResource(message: string): boolean {
 }
 
 /**
+ * Wallet -> protocol account ADDRESS alone, without reading any account state.
+ * Cheap enough for paths that only need the address (transaction history
+ * merging). "none" = the wallet has never created a protocol account, which is
+ * an answer; "failed" = the lookup itself failed, which is not.
+ */
+export async function resolveProtocolAccountAddress(
+  adapter: ProtocolAdapter,
+  walletAddress: string,
+): Promise<{ status: "ok"; address: string } | { status: "none" } | { status: "failed" }> {
+  const wallet = normalizeAptosAddress(walletAddress)
+  const resolved = await viewFunctionResult(adapter.resolveAccountFn, [], [wallet])
+  if (!resolved.ok) return resolved.kind === "aborted" ? { status: "none" } : { status: "failed" }
+  const accountAddress = String(firstValue(resolved.data) ?? "")
+  return accountAddress.startsWith("0x") ? { status: "ok", address: accountAddress } : { status: "failed" }
+}
+
+/**
  * Resolve a wallet to its protocol account and read that account's state.
  * Returns null only when the protocol account itself could not be resolved
  * (i.e. we genuinely do not know), never a fabricated empty portfolio.
@@ -104,26 +121,22 @@ export async function getProtocolAccount(
   adapter: ProtocolAdapter,
   walletAddress: string,
 ): Promise<ProtocolAccount | null> {
-  const wallet = normalizeAptosAddress(walletAddress)
-  const resolved = await viewFunctionResult(adapter.resolveAccountFn, [], [wallet])
+  const resolved = await resolveProtocolAccountAddress(adapter, walletAddress)
 
-  if (!resolved.ok) {
-    // Aborted here means this wallet has never created an account with the
-    // protocol - a real answer worth giving.
-    if (resolved.kind === "aborted") {
-      return {
-        protocol: adapter.name,
-        accountLabel: adapter.accountLabel,
-        accountAddress: null,
-        values: {},
-        note: `This wallet has no ${adapter.name} ${adapter.accountLabel} yet, so it has never deposited or traded there. ${adapter.note}`,
-      }
+  if (resolved.status === "none") {
+    // A real answer worth giving: this wallet has never created an account
+    // with the protocol.
+    return {
+      protocol: adapter.name,
+      accountLabel: adapter.accountLabel,
+      accountAddress: null,
+      values: {},
+      note: `This wallet has no ${adapter.name} ${adapter.accountLabel} yet, so it has never deposited or traded there. ${adapter.note}`,
     }
-    return null
   }
+  if (resolved.status === "failed") return null
 
-  const accountAddress = String(firstValue(resolved.data) ?? "")
-  if (!accountAddress.startsWith("0x")) return null
+  const accountAddress = resolved.address
 
   const results = await Promise.all(
     adapter.accountViews.map(async v => {

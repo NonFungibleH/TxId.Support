@@ -51,6 +51,7 @@ import {
   normalizeAptosAddress,
   getAptosWalletBalance,
   getAptosRecentTransactions,
+  getAptosRecentTransactionsMerged,
   getAptosTransactionByHash,
   getAptosAssetMetadata,
   getAptosModuleAbi,
@@ -61,6 +62,7 @@ import {
   adapterFor,
   getProtocolAccount,
   getProtocolMarkets,
+  resolveProtocolAccountAddress,
   getAptosDelegations,
   getAptosStakingActivity,
   getAptosPoolLockup,
@@ -464,7 +466,44 @@ export async function executeTool(
         return getSolanaRecentTransactions(wallet.address, programOrContract, limit)
       }
       if (aptos) {
-        const aptosTxs = await getAptosRecentTransactions(wallet.address, programOrContract, limit, errmapFor(watchedContracts))
+        const errmap = errmapFor(watchedContracts)
+        // Delegated-trading protocols (Decibel) place orders via a session key
+        // against the trader's subaccount OBJECT, so the wallet's own history
+        // is empty for exactly the users with the most activity. Whenever the
+        // watched protocol has a known adapter, resolve the protocol account
+        // and merge both histories into one timeline.
+        const adapter = adapterFor(watchedContracts)
+        if (adapter) {
+          const resolved = await resolveProtocolAccountAddress(adapter, wallet.address).catch(
+            () => ({ status: "failed" as const }),
+          )
+          if (resolved.status === "ok") {
+            const accountLabel = `${adapter.name} ${adapter.accountLabel}`
+            const merged = await getAptosRecentTransactionsMerged(
+              [
+                { address: wallet.address, label: "wallet" },
+                { address: resolved.address, label: accountLabel },
+              ],
+              programOrContract,
+              limit,
+              errmap,
+            )
+            if (!merged) return { error: APTOS_LOOKUP_FAILED }
+            return {
+              transactions: merged.transactions,
+              note: `This history covers the user's wallet AND their ${accountLabel} (${resolved.address}), merged into one timeline; each transaction's activityOn field says which account it touched. ${adapter.name} orders are placed by a delegated session key on the trader's behalf, so those transactions show a sender that is NOT the user's wallet address: they are still this user's own activity, never someone else's. Transactions sent by the protocol's own engine (entry functions like admin_apis or public_apis) touched this ${adapter.accountLabel} because they processed something for it, a fill, funding, or a triggered order: look at each one's events involving this ${adapter.accountLabel} to say what actually happened to the user, and never present the keeper's entry-function name alone as the user's action.`,
+              ...(merged.unavailable.length > 0
+                ? {
+                    unavailableAccounts: merged.unavailable,
+                    unavailableNote:
+                      "History for these accounts could not be fetched right now, so activity there is UNVERIFIED, not absent.",
+                  }
+                : {}),
+            }
+          }
+          // "none" / "failed": fall through to plain wallet history.
+        }
+        const aptosTxs = await getAptosRecentTransactions(wallet.address, programOrContract, limit, errmap)
         return aptosTxs ?? { error: APTOS_LOOKUP_FAILED }
       }
 
@@ -1153,8 +1192,21 @@ export async function executeTool(
       )
       const onProtocolChain = protocolChains.length === 0 || protocolChains.includes(chainId)
       if (aptos) {
+        // Include the protocol account (e.g. Decibel subaccount) in the
+        // recent-failure count: delegated trading keeps failures off the
+        // wallet's own history, so without this a failing trader diagnoses
+        // as "no recent failures".
+        const diagAdapter = adapterFor(watchedContracts)
+        const diagAccount = diagAdapter
+          ? await resolveProtocolAccountAddress(diagAdapter, wallet.address).catch(() => ({ status: "failed" as const }))
+          : null
         const [diag, authKey] = await Promise.all([
-          diagnoseAptosWallet(wallet.address),
+          diagnoseAptosWallet(
+            wallet.address,
+            diagAdapter && diagAccount?.status === "ok"
+              ? [{ address: diagAccount.address, label: `${diagAdapter.name} ${diagAdapter.accountLabel}` }]
+              : undefined,
+          ),
           // Aptos accounts can rotate their auth key while KEEPING their
           // address. Afterwards a wallet often derives a fresh address from the
           // new key, so the user sees an empty account and thinks their funds

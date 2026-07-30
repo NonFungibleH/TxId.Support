@@ -3,7 +3,7 @@ export { decodeAbort } from "./abort"
 export type { AbortErrmap } from "./abort"
 export { isAptosAddress, normalizeAptosAddress } from "./address"
 export { PROTOCOL_ERRMAPS, errmapFor } from "./errmap"
-export { PROTOCOL_ADAPTERS, adapterFor, getProtocolAccount, getProtocolMarkets } from "./protocols"
+export { PROTOCOL_ADAPTERS, adapterFor, getProtocolAccount, getProtocolMarkets, resolveProtocolAccountAddress } from "./protocols"
 export type { ProtocolAdapter, ProtocolAccount } from "./protocols"
 export {
   getLedgerInfo,
@@ -23,6 +23,7 @@ export {
   aptosGraphql,
   getAptosWalletBalance,
   getAptosRecentTransactions,
+  getAptosRecentTransactionsMerged,
   getAptosModuleEvents,
   getAptosAssetMetadata,
   getAptosAssetActivities,
@@ -33,6 +34,7 @@ export {
   diagnoseAptosWallet,
 } from "./indexer"
 export type {
+  AptosHistoryAccount,
   AptosAssetMetadata,
   AptosAssetActivity,
   AptosModuleEvent,

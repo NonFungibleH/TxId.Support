@@ -157,6 +157,66 @@ export async function getAptosRecentTransactions(
   return txs.slice(0, limit)
 }
 
+export interface AptosHistoryAccount {
+  address: string
+  /** How to present this account in prose, e.g. "wallet" or "Decibel subaccount". */
+  label: string
+}
+
+/**
+ * Recent transactions across SEVERAL related accounts, merged into one
+ * timeline. Exists for delegated-trading protocols: on Decibel, orders are
+ * signed by a session key and execute against the trader's subaccount OBJECT,
+ * so the wallet's own history is empty for exactly the users with the most
+ * activity. Querying wallet and subaccount together is the only way to show a
+ * trader their real activity.
+ *
+ * Returns null only when EVERY account's index lookup failed. Accounts whose
+ * lookup failed while others succeeded are listed in `unavailable` so the
+ * caller can say "unverified" instead of implying "no activity there".
+ */
+export async function getAptosRecentTransactionsMerged(
+  accounts: AptosHistoryAccount[],
+  moduleAddress?: string,
+  limit = 10,
+  errmap?: AbortErrmap
+): Promise<{ transactions: (AptosTransaction & { activityOn: string[] })[]; unavailable: string[] } | null> {
+  const lists = await Promise.all(
+    accounts.map(async account => ({
+      account,
+      rows: await aptosGraphql<{ account_transactions: { transaction_version: number | string }[] }>(
+        HISTORY_QUERY,
+        { addr: normalizeAptosAddress(account.address) }
+      ),
+    }))
+  )
+  if (lists.every(l => l.rows === null)) return null
+
+  const unavailable = lists.filter(l => l.rows === null).map(l => l.account.label)
+  // A single transaction can touch more than one of these accounts (e.g. a
+  // deposit moves funds wallet -> subaccount), so versions map to label LISTS.
+  const byVersion = new Map<string, string[]>()
+  for (const l of lists) {
+    for (const row of l.rows?.account_transactions ?? []) {
+      const v = String(row.transaction_version)
+      const labels = byVersion.get(v) ?? []
+      if (!labels.includes(l.account.label)) labels.push(l.account.label)
+      byVersion.set(v, labels)
+    }
+  }
+
+  const versions = Array.from(byVersion.keys()).sort((a, b) => Number(b) - Number(a))
+  let txs = await hydrateVersions(versions, moduleAddress ? undefined : limit, errmap)
+  if (moduleAddress) {
+    const target = normalizeAptosAddress(moduleAddress)
+    txs = txs.filter(tx => functionIdMatchesModule(tx.functionId, target))
+  }
+  return {
+    transactions: txs.slice(0, limit).map(tx => ({ ...tx, activityOn: byVersion.get(tx.version) ?? [] })),
+    unavailable,
+  }
+}
+
 export interface AptosModuleEvent {
   /** Fully qualified Move event type, e.g. 0x50ea...::order::OrderFilled. */
   type: string
@@ -913,12 +973,24 @@ export async function getAptosAssetMetadata(assetType: string): Promise<AptosAss
   }))
 }
 
-export async function diagnoseAptosWallet(address: string): Promise<AptosWalletDiagnosis> {
+export async function diagnoseAptosWallet(
+  address: string,
+  extraAccounts?: AptosHistoryAccount[]
+): Promise<AptosWalletDiagnosis> {
   const addr = normalizeAptosAddress(address)
+  // Delegated-trading protocols keep the user's activity on a protocol
+  // account, not the wallet, so the failure count must look at both or a
+  // failing trader would diagnose as "no recent failures".
+  const recentPromise =
+    extraAccounts && extraAccounts.length > 0
+      ? getAptosRecentTransactionsMerged([{ address: addr, label: "wallet" }, ...extraAccounts], undefined, 10).then(
+          r => (r ? r.transactions : null)
+        )
+      : getAptosRecentTransactions(addr, undefined, 10)
   const [account, balanceResult, recent] = await Promise.all([
     getAccount(addr),
     viewFunction("0x1::coin::balance", ["0x1::aptos_coin::AptosCoin"], [addr]),
-    getAptosRecentTransactions(addr, undefined, 10),
+    recentPromise,
   ])
   const octas = balanceResult?.[0]
   return {
