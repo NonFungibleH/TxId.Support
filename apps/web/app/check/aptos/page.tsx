@@ -348,21 +348,9 @@ export default function AptosCheckPage() {
           <div className="max-w-xl mx-auto px-6">
 
             <div className="text-center mb-10">
-              {/* Co-brand lockup, mirroring the TxID × Aptos one-pager header */}
-              <div className="flex items-center justify-center gap-3 mb-6">
-                <span className="flex items-center gap-2">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src="/brand/txid-icon-64.png" alt="TxID" className="w-9 h-9 rounded-[10px]" />
-                  <span className="font-display text-2xl font-bold text-white tracking-tight">Tx<span className="text-[#818cf8]">ID</span></span>
-                </span>
-                <span className="text-muted/50 text-xl font-light">×</span>
-                <span className="flex items-center gap-2">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src="/chains/Aptos.png" alt="Aptos" className="w-9 h-9 object-contain invert" />
-                  <span className="font-display text-2xl font-bold text-white tracking-tight">Aptos</span>
-                </span>
-              </div>
               <span className="inline-flex items-center gap-1.5 rounded-full bg-accent/10 border border-accent/20 px-3 py-1 text-xs font-mono text-accent mb-5">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/chains/Aptos.png" alt="Aptos" className="w-3.5 h-3.5 object-contain invert" />
                 Live on Aptos mainnet · A few free questions · No sign-up
               </span>
               <h1 className="font-display text-4xl font-bold text-white leading-tight mb-4">
