@@ -27,7 +27,7 @@ export function Hero() {
 
             <FadeIn delay={0.16}>
               <p className="text-lg text-muted leading-relaxed mb-8 max-w-lg">
-                TxID investigates every user question like a protocol engineer: live chain state, decoded errors, plain-English answers. Anything unresolved reaches your team with the investigation attached.
+                TxID investigates every user question like a protocol engineer: live chain state, decoded errors, plain-English answers. Every case is recorded as a defensible compliance trail, and anything unresolved reaches your team with the investigation attached.
               </p>
             </FadeIn>
 
@@ -54,7 +54,7 @@ export function Hero() {
               </p>
               <p className="text-xs text-muted/70 mb-6 inline-flex items-center gap-1.5">
                 <ShieldCheck className="w-3.5 h-3.5 text-accent/70 shrink-0" />
-                Read-only · No custody · No financial advice
+                Read-only · No custody · Audit-logged · No financial advice
               </p>
               <div className="flex flex-wrap items-center gap-x-2.5 gap-y-2">
                 <span className="text-xs text-muted/50 font-mono shrink-0">Available on</span>

@@ -4,9 +4,11 @@ import { useRef } from "react";
 import { motion, useScroll, useSpring, useTransform } from "framer-motion";
 
 /**
- * The tracing rail for /how-it-works: a vertical line down the page that
- * fills, with a glowing pulse riding it, as the visitor scrolls the stages.
- * Replaces the old section dividers - the line IS the process.
+ * The tracing rail for /how-it-works: a subtle vertical line that fills, with
+ * a soft pulse riding it, as the visitor scrolls the stages. Centred on the
+ * page on desktop (running down the gap between each stage's two columns) so
+ * it reads as the spine of the flow; on mobile it stays left of the single
+ * column. Replaces section dividers - the line IS the process.
  */
 export function FlowRail({ children }: { children: React.ReactNode }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -19,19 +21,19 @@ export function FlowRail({ children }: { children: React.ReactNode }) {
 
   return (
     <div ref={ref} className="relative">
-      {/* Base rail */}
-      <div className="pointer-events-none absolute left-5 lg:left-8 top-2 bottom-2 w-px bg-[var(--border)]" />
-      {/* Filled portion */}
+      {/* Base rail - faint */}
+      <div className="pointer-events-none absolute left-5 lg:left-1/2 top-2 bottom-2 w-px bg-[var(--border)] opacity-50" />
+      {/* Filled portion - quiet accent */}
       <motion.div
         style={{ height: fill }}
-        className="pointer-events-none absolute left-5 lg:left-8 top-2 w-px bg-gradient-to-b from-accent/30 via-accent to-accent"
+        className="pointer-events-none absolute left-5 lg:left-1/2 top-2 w-px bg-gradient-to-b from-accent/10 via-accent/40 to-accent/60"
       />
       {/* The pulse riding the fill line */}
       <motion.div
         style={{ top: fill }}
-        className="pointer-events-none absolute left-5 lg:left-8 -translate-x-1/2 -translate-y-1/2 z-10"
+        className="pointer-events-none absolute left-5 lg:left-1/2 -translate-x-1/2 -translate-y-1/2 z-10"
       >
-        <span className="block w-3 h-3 rounded-full bg-accent shadow-[0_0_18px_6px_rgba(99,102,241,0.55)]" />
+        <span className="block w-2 h-2 rounded-full bg-accent/90 shadow-[0_0_12px_3px_rgba(99,102,241,0.35)]" />
       </motion.div>
       {children}
     </div>
@@ -41,7 +43,7 @@ export function FlowRail({ children }: { children: React.ReactNode }) {
 /** A numbered node sitting ON the rail at each stage. */
 export function FlowNode({ n }: { n: string }) {
   return (
-    <span className="absolute left-5 lg:left-8 top-10 -translate-x-1/2 flex w-8 h-8 items-center justify-center rounded-full border border-accent/50 bg-[#0b0c14] font-mono text-[11px] text-accent z-10">
+    <span className="absolute left-5 lg:left-1/2 top-10 lg:top-1/2 -translate-x-1/2 lg:-translate-y-1/2 flex w-7 h-7 items-center justify-center rounded-full border border-accent/30 bg-[#0b0c14] font-mono text-[10px] text-accent/80 z-10">
       {n}
     </span>
   );

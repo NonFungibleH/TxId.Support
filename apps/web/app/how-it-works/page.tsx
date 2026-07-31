@@ -35,7 +35,7 @@ function Stage({
     // dividers. Content sits right of the rail.
     <section className="relative py-10 lg:py-0 lg:min-h-[560px] lg:flex lg:items-center">
       <FlowNode n={n} />
-      <div className="w-full max-w-6xl mx-auto pl-14 lg:pl-24 pr-6">
+      <div className="w-full max-w-6xl mx-auto pl-14 pr-6 lg:px-6">
         <div className={`grid lg:grid-cols-2 gap-10 items-center ${flip ? "lg:[direction:rtl]" : ""}`}>
           <FadeIn className="lg:[direction:ltr]">
             <p className="font-mono text-sm text-accent mb-2">
