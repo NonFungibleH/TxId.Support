@@ -94,7 +94,7 @@ function ProtocolBadge({ name, color, logo, size = 40 }: { name: string; color: 
   if (logo && !failed) {
     return (
       <span
-        className="inline-flex items-center justify-center shrink-0 overflow-hidden ring-1 ring-white/10"
+        className="inline-flex items-center justify-center shrink-0 overflow-hidden"
         style={{ width: size, height: size, borderRadius: radius }}
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -102,7 +102,7 @@ function ProtocolBadge({ name, color, logo, size = 40 }: { name: string; color: 
           src={logo}
           alt={name}
           onError={() => setFailed(true)}
-          style={{ width: "100%", height: "100%", objectFit: "cover" }}
+          style={{ width: "100%", height: "100%", objectFit: "contain" }}
         />
       </span>
     )

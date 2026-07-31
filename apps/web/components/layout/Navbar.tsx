@@ -13,7 +13,6 @@ const NAV_LINKS = [
   { label: "Chains", href: "/chains" },
   { label: "API", href: "/api" },
   { label: "Trust", href: "/security" },
-  { label: "Pricing", href: "/pricing" },
   { label: "Try it live", href: "/check", highlight: true },
 ];
 
