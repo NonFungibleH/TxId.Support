@@ -108,7 +108,10 @@ export function ApiCallMockup({ className }: { className?: string }) {
         <span className="ml-2 text-[10px] text-muted/60">diagnose.sh</span>
         <span className="ml-auto text-[10px] text-muted/50">{example === 0 ? "evm" : "aptos · move"}</span>
       </div>
-      <div className="p-4 space-y-3 min-h-[330px]">
+      {/* FIXED height: the response types in over time, and a growing card
+          shifts the hero text beside it on every loop. Sized to the tallest
+          example so the layout never moves. */}
+      <div className="p-4 space-y-3 h-[420px] overflow-hidden">
         <pre className="text-[#a5b4fc] whitespace-pre-wrap">{ex.request}</pre>
 
         <div className={clsx("space-y-1 transition-opacity duration-300", showWork ? "opacity-100" : "opacity-0")}>
