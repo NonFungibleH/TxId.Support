@@ -21,8 +21,7 @@ const RESPONSE = `{
   "case": { "id": "4821", "recorded": true }
 }`;
 
-const PHASES = ["request", "work", "respond", "hold"] as const;
-type Phase = (typeof PHASES)[number];
+type Phase = "request" | "work" | "respond" | "hold";
 
 export function ApiCallMockup({ className }: { className?: string }) {
   const [phase, setPhase] = useState<Phase>("request");
