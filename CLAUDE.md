@@ -299,6 +299,15 @@ Widget (`WidgetApp.tsx`): Petra/Martian connect (`window.aptos ?? window.martian
 ### Demo protocol
 Decibel (Aptos Labs' on-chain perpetuals DEX) is the flagship demo target — mainnet package `0x50ead22afd6ffd9769e3b3d6e0e64a2a350d68e8b102c4e72e33d0b8cfdfdb06`. Its app CSP blocks the bookmarklet, so demos run on the widget preview / share page. Errmap voiced in perp-trader language.
 
+### Delegated-trading history merge (Decibel session keys)
+Decibel orders are signed by a delegated session key and execute against the trader's subaccount OBJECT, so the wallet's indexer history is empty for active traders. `getAptosRecentTransactionsMerged(accounts, moduleAddr?, limit, errmap?)` (indexer.ts) queries `account_transactions` for wallet + protocol account, dedupes/merges by version, hydrates only the top N, and tags each tx with `activityOn` labels. `resolveProtocolAccountAddress(adapter, wallet)` (protocols.ts) is the lightweight wallet→account resolver (`ok`/`none`/`failed`). Wired in `packages/ai/src/tools.ts`: `get_recent_transactions` merges when `adapterFor(watchedContracts)` matches (with a model note covering session-key senders + keeper-batch fills), and `diagnose_wallet` passes the protocol account into `diagnoseAptosWallet(address, extraAccounts?)` so failure counts cover both. Subaccount history includes keeper/oracle txs that touched the subaccount (fills, funding) — annotated, not filtered.
+
+### Public Aptos demo page
+`apps/web/app/check/aptos` — Move-native /check variant (PancakeSwap-on-Aptos preset, Petra/Martian connect + address paste, Aptos teal accent, no Aptos logo lockup by choice: reads as a collaboration claim). Chats through the normal publicDemo path with `chainId: "aptos"`, key from `NEXT_PUBLIC_APTOS_DEMO_WIDGET_KEY` (web Vercel project) with a `?key=pk_…` override for smoke-testing. No API changes; the EVM-only inspect/Turnstile branch does not apply (session cap 8 + per-IP/key rate limits do). Kept OUT of the Aptos BD email deliberately.
+
+### Aptos Build → Geomi rename
+The developer API gateway rebranded: build.aptoslabs.com redirects to geomi.dev (beta). `APTOS_API_KEY` comes from there; anonymous fullnode/indexer access is limited to 40k compute units per 300s per IP (hit twice during dev), so the key is demo-critical in Vercel.
+
 ---
 
 ## apps/app
