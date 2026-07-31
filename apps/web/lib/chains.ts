@@ -43,7 +43,7 @@ export const CHAINS: ChainInfo[] = [
     color: "#627EEA",
     logo: "/chains/Ethereum.png",
     explorerName: "Etherscan",
-    tagline: "AI support that reads Ethereum, not just your docs.",
+    tagline: "Reads Ethereum itself, not just your docs.",
     intro:
       "Give your Ethereum users an assistant that looks up their actual transaction, decodes why it failed, and tells them the fix in plain English, right inside your product.",
     failures: [
@@ -63,7 +63,7 @@ export const CHAINS: ChainInfo[] = [
     logo: "/chains/Base.png",
     logoWhiteBg: true,
     explorerName: "BaseScan",
-    tagline: "AI support that speaks Base.",
+    tagline: "Native diagnosis for Base, fees to bridges.",
     intro:
       "Base users move fast and get stuck fast. TxID diagnoses the real cause of a failed Base transaction, and when someone is on the wrong network it offers a one-tap switch.",
     failures: [
@@ -82,7 +82,7 @@ export const CHAINS: ChainInfo[] = [
     color: "#F0B90B",
     logo: "/chains/BNB.png",
     explorerName: "BscScan",
-    tagline: "AI support built for BNB Chain's quirks.",
+    tagline: "Built for BNB Chain's quirks, gas spikes to token taxes.",
     intro:
       "Fee-on-transfer tokens, honeypots and slippage reverts make BNB support noisy. TxID screens the token and decodes the transaction so your team does not have to.",
     failures: [
@@ -102,7 +102,7 @@ export const CHAINS: ChainInfo[] = [
     logo: "/chains/Polygon.png",
     logoWhiteBg: true,
     explorerName: "PolygonScan",
-    tagline: "AI support that knows Polygon's gas floor.",
+    tagline: "Knows Polygon's gas floor and its failure modes.",
     intro:
       "Polygon's minimum-fee floor and RPC lag trip users up constantly. TxID gives them the current safe fee and confirms whether the problem is the network or their own wallet RPC.",
     failures: [
@@ -121,7 +121,7 @@ export const CHAINS: ChainInfo[] = [
     color: "#12AAFF",
     logo: "/chains/Arbitrum.png",
     explorerName: "Arbiscan",
-    tagline: "AI support tuned to Arbitrum's L2 model.",
+    tagline: "Tuned to Arbitrum's L2 fee and sequencing model.",
     intro:
       "Arbitrum's gas model and sequencer confuse users when things go wrong. TxID explains what actually happened and exactly what to do next.",
     failures: [
@@ -140,7 +140,7 @@ export const CHAINS: ChainInfo[] = [
     color: "#FF0420",
     logo: "/chains/Optimism.png",
     explorerName: "Optimistic Etherscan",
-    tagline: "AI support that speaks the OP Stack.",
+    tagline: "Fluent in the OP Stack, end to end.",
     intro:
       "From wrong-network mix-ups to a wallet with no ETH for gas, TxID gives Optimism users a straight answer instead of a support ticket.",
     failures: [
@@ -159,7 +159,7 @@ export const CHAINS: ChainInfo[] = [
     color: "#E84142",
     logo: "/chains/Avalanche.png",
     explorerName: "Snowtrace",
-    tagline: "AI support for the Avalanche C-Chain.",
+    tagline: "Native diagnosis on the Avalanche C-Chain.",
     intro:
       "TxID keeps Avalanche users on the C-Chain, gives them the right gas for a failed transaction, and decodes the real revert reason from any contract.",
     failures: [
@@ -179,7 +179,7 @@ export const CHAINS: ChainInfo[] = [
     color: "#38FF9C",
     logo: "/chains/Etherlink.png",
     explorerName: "Etherlink Explorer",
-    tagline: "AI support for Etherlink, the Tezos EVM Layer 2.",
+    tagline: "Covers Etherlink, the Tezos EVM Layer 2.",
     intro:
       "TxID reads Etherlink activity straight from its explorer and RPC, so users get their real transaction history, why a transfer failed, and the decoded revert on any contract, without leaving your app.",
     failures: [

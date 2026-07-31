@@ -1,10 +1,9 @@
 import { FadeIn } from "@/components/ui/FadeIn";
-import { APP_URL } from "@/lib/config";
 
 export const FAQS = [
   {
     q: "What exactly is TxID Support?",
-    a: "TxID Support is an AI support agent you embed in your DeFi protocol or token project site. It reads your user's connected wallet automatically, diagnoses failed transactions, answers questions from your documentation, and escalates to your team when it can't resolve something, all without leaving your site.",
+    a: "TxID Support is an agentic support layer you embed in your protocol's site or Telegram. It investigates every question the way a protocol engineer would: reading live chain state, diagnosing failed transactions against your contracts, and answering from your documentation. What it can't resolve escalates to your team with the investigation attached, and every case is recorded so support, product, and compliance can stand behind what was said.",
   },
   {
     q: "How does wallet detection work?",
@@ -114,10 +113,10 @@ export function FAQ() {
               message us on Telegram
             </a>
             , or{" "}
-            <a href={`${APP_URL}/sign-up`} className="text-accent hover:underline">
-              start for free
+            <a href="/check" className="text-accent hover:underline">
+              try it live
             </a>{" "}
-            and explore the dashboard.
+            on a protocol you already use.
           </p>
         </FadeIn>
       </div>

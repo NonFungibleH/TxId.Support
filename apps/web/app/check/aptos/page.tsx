@@ -528,7 +528,7 @@ export default function AptosCheckPage() {
             {limitReached ? (
               <div className="text-center py-2">
                 <p className="text-sm text-white font-medium mb-1">That&apos;s the end of your free test.</p>
-                <p className="text-xs text-muted mb-4">You just saw the support your users would get. Set it up for your own protocol in a couple of minutes, free.</p>
+                <p className="text-xs text-muted mb-4">You just saw the support your users would get. We&apos;re onboarding early teams personally: tell us about your protocol.</p>
                 <Link
                   href={`${APP_URL}/sign-up`}
                   style={{ color: ctaText }}
@@ -588,7 +588,7 @@ export default function AptosCheckPage() {
           <div className="max-w-3xl mx-auto px-6 py-5 flex flex-col sm:flex-row items-center justify-between gap-4">
             <div>
               <p className="text-sm font-semibold text-white">Building on Aptos?</p>
-              <p className="text-xs text-muted mt-0.5">This is a live test. Give your users the same support: one script tag, set up in minutes.</p>
+              <p className="text-xs text-muted mt-0.5">This is a live test. Want your users to get the same support? We&apos;ll set you up personally.</p>
             </div>
             <Link
               href={`${APP_URL}/sign-up`}

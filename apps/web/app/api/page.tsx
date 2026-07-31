@@ -142,8 +142,8 @@ export default function PlatformPage() {
                   Get early access
                   <ArrowRight className="w-4 h-4" />
                 </Button>
-                <Button href="/demo" variant="outline" size="lg">
-                  See the widget live
+                <Button href="/check" variant="outline" size="lg">
+                  Try it live
                 </Button>
               </div>
             </FadeIn>
