@@ -15,6 +15,14 @@ export const FAQS = [
     a: "Any stack. The agent is embedded with a single script tag before your closing body tag. It works with React, Next.js, Vue, Svelte, or plain HTML. There's no SDK to install and no build step required.",
   },
   {
+    q: "Do you support Aptos and Move?",
+    a: "Yes, natively. Rather than adapt the EVM engine, TxID runs a second engine built for Move: module ABIs are read live from the Aptos fullnode, failed transactions decode Move abort codes into plain English, and users connect with Petra or paste an address. Aptos-only behaviours are covered too, including sponsored transactions, auth key rotation, and protocols that keep user funds in subaccount objects with delegated session keys.",
+  },
+  {
+    q: "Is there a record of what the agent tells users?",
+    a: "Yes. Every conversation is recorded with the investigation behind it: what was checked on-chain, what was found, and how it resolved. Support teams use it to see what users struggle with, product teams to see what to fix, and compliance teams to evidence exactly what a client was told and why.",
+  },
+  {
     q: "What counts as a conversation?",
     a: "A conversation starts when a user opens the agent and sends their first message. It ends after 30 minutes of inactivity. All messages in the same session count as one conversation, so a user asking 5 follow-up questions still uses only one of your monthly allowance.",
   },

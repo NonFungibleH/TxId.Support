@@ -20,13 +20,30 @@ const APTOS_DEMO_KEY = process.env.NEXT_PUBLIC_APTOS_DEMO_WIDGET_KEY ?? ""
 // one-pager), official Aptos mark rendered white for the dark background.
 const APTOS_TEAL = "#2ED3B7"
 
-// The one live protocol on this page. Decibel joins once the subaccount
-// history merge ships; the array shape means adding it is one entry.
+// The most-used Aptos protocols, mirroring the EVM /check picker. All four
+// have per-protocol error maps in the engine; the demo project behind
+// NEXT_PUBLIC_APTOS_DEMO_WIDGET_KEY watches all four package addresses, so
+// the picker sets the framing while the bot is scoped server-side.
 const PROTOCOLS = [
   {
-    id: "pancakeswap", name: "PancakeSwap", color: "#1FC7D4", logo: "/protocols/pancakeswap.png",
+    id: "decibel", name: "Decibel", color: "#22D3EE", logo: undefined as string | undefined,
+    blurb: "Aptos Labs' on-chain perps DEX. Orders, collateral and subaccounts.",
+    suggestions: ["Why did my order fail?", "What's my collateral?", "Show my recent trades"],
+  },
+  {
+    id: "pancakeswap", name: "PancakeSwap", color: "#1FC7D4", logo: "/protocols/pancakeswap.png" as string | undefined,
     blurb: "The biggest DEX on Aptos. Swaps, LP and farms, all in Move.",
     suggestions: ["What was my last transaction?", "Why did my swap fail?", "What's in my wallet?"],
+  },
+  {
+    id: "thala", name: "Thala", color: "#A78BFA", logo: undefined as string | undefined,
+    blurb: "DEX and stablecoin protocol. Swaps, pools and Move Dollar.",
+    suggestions: ["Why did my swap fail?", "What was my last transaction?", "What's in my wallet?"],
+  },
+  {
+    id: "amnis", name: "Amnis", color: "#38BDF8", logo: undefined as string | undefined,
+    blurb: "Liquid staking on Aptos. Stake APT, hold amAPT and stAPT.",
+    suggestions: ["Show my staking positions", "Why did my transaction fail?", "What's in my wallet?"],
   },
 ]
 
@@ -145,6 +162,7 @@ function ChatMessage({ msg }: { msg: Message }) {
 
 export default function AptosCheckPage() {
   const [step, setStep] = useState<"connect" | "chat">("connect")
+  const [protocolId, setProtocolId] = useState("decibel")
   const [wallet, setWallet] = useState("")
   const [manualAddress, setManualAddress] = useState("")
   const [connectError, setConnectError] = useState("")
@@ -160,7 +178,7 @@ export default function AptosCheckPage() {
   const messagesEnd = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
 
-  const protocol = PROTOCOLS[0]
+  const protocol = PROTOCOLS.find(p => p.id === protocolId) ?? PROTOCOLS[0]
   const demoKey = keyOverride || APTOS_DEMO_KEY
 
   const themeStyle = accentVars(APTOS_TEAL) as React.CSSProperties
@@ -363,15 +381,26 @@ export default function AptosCheckPage() {
 
             <div className="rounded-2xl border border-[#1e1e3a] bg-[#0f0f1a] p-5 sm:p-8 space-y-6">
 
-              {/* Protocol context */}
+              {/* Protocol picker */}
               <div>
-                <p className="text-xs font-mono text-muted mb-2.5">1 · The demo protocol</p>
-                <div className="flex items-start gap-3 rounded-xl border border-accent bg-accent/5 p-3">
-                  <ProtocolBadge name={protocol.name} color={protocol.color} logo={protocol.logo} size={36} />
-                  <div className="min-w-0">
-                    <p className="text-sm font-semibold text-white">{protocol.name} on Aptos</p>
-                    <p className="text-[11px] text-muted leading-snug">{protocol.blurb}</p>
-                  </div>
+                <p className="text-xs font-mono text-muted mb-2.5">1 · Pick a protocol</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {PROTOCOLS.map(p => (
+                    <button
+                      key={p.id}
+                      onClick={() => { setProtocolId(p.id); setConnectError("") }}
+                      className={clsx(
+                        "flex items-start gap-3 rounded-xl border p-3 text-left transition-colors",
+                        p.id === protocolId ? "border-accent bg-accent/5" : "border-[#1e1e3a] hover:border-accent/40"
+                      )}
+                    >
+                      <ProtocolBadge name={p.name} color={p.color} logo={p.logo} size={36} />
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-white">{p.name}</p>
+                        <p className="text-[11px] text-muted leading-snug">{p.blurb}</p>
+                      </div>
+                    </button>
+                  ))}
                 </div>
               </div>
 

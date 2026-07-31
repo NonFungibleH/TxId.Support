@@ -22,13 +22,13 @@ export function Hero() {
               <h1 className="font-display text-5xl lg:text-6xl font-bold text-white leading-[1.1] tracking-tight mb-6">
                 Expert support for every user.
                 <br />
-                <span className="text-accent">No support team needed.</span>
+                <span className="text-accent">An investigation behind every answer.</span>
               </h1>
             </FadeIn>
 
             <FadeIn delay={0.16}>
               <p className="text-lg text-muted leading-relaxed mb-8 max-w-lg">
-                Support bot that knows your protocol inside out: docs and on-chain activity. Answers questions and resolves issues automatically, so your team can focus on building.
+                An agentic support layer that investigates every question the way a protocol engineer would: reading live chain state, decoding errors against your contracts, and resolving issues in plain English. What it can&apos;t resolve reaches your team with the investigation attached.
               </p>
             </FadeIn>
 

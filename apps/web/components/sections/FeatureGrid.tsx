@@ -10,6 +10,7 @@ import {
   Zap,
   Sparkles,
   Plug,
+  Send,
 } from "lucide-react";
 import { FadeIn } from "@/components/ui/FadeIn";
 
@@ -70,15 +71,21 @@ const FEATURES = [
   },
   {
     icon: Sparkles,
-    title: "Conversation Insights",
+    title: "Operational Record",
     description:
-      "Every chat gets an AI one-line summary and category, so your team can scan and triage instead of reading transcripts.",
+      "Every investigation is recorded and searchable: support sees what users struggle with, product sees what to fix, and compliance holds a record it can stand behind.",
   },
   {
     icon: Plug,
     title: "Team Integrations",
     description:
       "Send escalations where your team works: Slack, Discord, Telegram, and tracked issues in Linear, GitHub, or Jira.",
+  },
+  {
+    icon: Send,
+    title: "Telegram Support",
+    description:
+      "The same engine inside your community's Telegram: members paste a transaction hash or address and get a live diagnosis, with escalations routed to your team.",
   },
 ];
 

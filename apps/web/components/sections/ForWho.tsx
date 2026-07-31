@@ -55,8 +55,8 @@ export function ForWho() {
               Built for any crypto project
             </h2>
             <p className="text-muted max-w-xl mx-auto">
-              Whether you&apos;re running a live protocol or growing a token community,
-              one agent handles it all, embedded in your site and trained on your content.
+              From live protocols and token communities to institutions bringing assets on-chain:
+              one agent, embedded where your users are and trained on your content.
             </p>
           </div>
         </FadeIn>
@@ -100,6 +100,47 @@ export function ForWho() {
             </FadeIn>
           ))}
         </div>
+
+        {/* Institutions & issuers - full-width card. The audience the docs and
+            BD materials name (tokenization platforms, stablecoin issuers,
+            institutions) that the two community cards above don't speak to. */}
+        <FadeIn delay={0.2}>
+          <div className="mt-6 relative rounded-2xl border p-8 bg-[var(--bg-surface)] border-[var(--border)] hover:border-accent/50 transition-colors">
+            <div className="grid md:grid-cols-[1.2fr_1fr] gap-8 items-center">
+              <div>
+                <span className="inline-flex items-center gap-2 font-mono text-[10px] uppercase tracking-widest mb-5 text-accent">
+                  <span className="w-1.5 h-1.5 rounded-full shrink-0 bg-accent" />
+                  Institutions, issuers & tokenization platforms
+                </span>
+                <h3 className="font-display text-2xl font-bold text-white mb-1">
+                  Answer clients correctly, and defensibly
+                </h3>
+                <p className="text-sm mb-4 text-accent">
+                  When value moves on-chain, someone has to explain it
+                </p>
+                <p className="text-sm text-muted leading-relaxed">
+                  Stablecoin issuers, tokenization platforms, and operations teams inherit
+                  client-facing support obligations the moment assets move on-chain. TxID gives
+                  every answer a live on-chain investigation behind it, and keeps each one as a
+                  recorded, reportable case your compliance team can stand behind.
+                </p>
+              </div>
+              <ul className="space-y-3">
+                {[
+                  "Every claim backed by a live chain read, with its source",
+                  "Verified fact kept distinct from interpretation",
+                  "Recorded, searchable investigations for support, product and compliance",
+                  "Escalations into your existing tools with the case attached",
+                ].map((f) => (
+                  <li key={f} className="flex items-start gap-2.5 text-sm text-muted">
+                    <Check className="w-4 h-4 shrink-0 mt-0.5 text-accent" />
+                    <span>{f}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </FadeIn>
       </div>
     </section>
   );
