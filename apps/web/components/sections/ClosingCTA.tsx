@@ -21,9 +21,6 @@ export function ClosingCTA() {
             <Button href="mailto:team@txid.support" variant="outline" size="lg">
               Email us
             </Button>
-            <Button href="https://t.me/Non_Fungible_Howard" variant="outline" size="lg" external>
-              Message on Telegram
-            </Button>
           </div>
         </FadeIn>
       </div>

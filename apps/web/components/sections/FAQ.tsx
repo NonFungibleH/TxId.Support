@@ -103,16 +103,7 @@ export function FAQ() {
             >
               Email us
             </a>
-            ,{" "}
-            <a
-              href="https://t.me/Non_Fungible_Howard"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-accent hover:underline"
-            >
-              message us on Telegram
-            </a>
-            , or{" "}
+ or{" "}
             <a href="/check" className="text-accent hover:underline">
               try it live
             </a>{" "}

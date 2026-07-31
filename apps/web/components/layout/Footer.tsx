@@ -3,7 +3,7 @@ import { ExternalLink } from "lucide-react";
 import { APP_URL } from "@/lib/config";
 
 const NAV = [
-  { label: "Features", href: "/#features" },
+  { label: "Solutions", href: "/solutions" },
   { label: "API", href: "/api" },
   { label: "Pricing", href: "/pricing" },
   { label: "Docs", href: "/docs" },
@@ -13,7 +13,7 @@ const NAV = [
 
 const LEGAL = [
   { label: "Contact", href: "/contact" },
-  { label: "Telegram", href: "https://t.me/Non_Fungible_Howard", external: true },
+  { label: "Company", href: "/company" },
   { label: "Security", href: "/security" },
   { label: "Terms", href: "/terms" },
   { label: "Privacy", href: "/privacy" },

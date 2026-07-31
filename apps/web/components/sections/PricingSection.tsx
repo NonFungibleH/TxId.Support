@@ -4,28 +4,9 @@ import { FadeIn } from "@/components/ui/FadeIn";
 import { APP_URL } from "@/lib/config";
 import { clsx } from "clsx";
 
+// Enterprise-first ordering: platforms and institutions are the lead buyer,
+// the free tier is the evaluation lane.
 const PLANS = [
-  {
-    name: "Free",
-    price: "Free",
-    period: null,
-    badge: null,
-    description: "For token communities and early-stage protocols",
-    cta: "Coming soon",
-    // Sign-ups are paused while early teams are hand-onboarded; the app's
-    // sign-up page shows the same message with a request-access contact.
-    ctaHref: `${APP_URL}/sign-up`,
-    highlight: false,
-    features: [
-      { label: "150 conversations / month", soon: false },
-      { label: "1 blockchain", soon: false },
-      { label: "Custom branding", soon: false },
-      { label: "Wallet detection", soon: false },
-      { label: "Knowledge base Q&A", soon: false },
-      { label: "Script tag embed", soon: false },
-      { label: "Analytics dashboard", soon: false },
-    ],
-  },
   // Pro plan temporarily hidden pre-launch - pricing not yet finalised.
   // Restore this object (and the md:grid-cols-2 → md:grid-cols-3 below) once
   // a price is set.
@@ -51,23 +32,43 @@ const PLANS = [
   //   ],
   // },
   {
-    name: "Custom",
+    name: "Enterprise",
     price: "Let's talk",
     period: null,
-    badge: null,
-    description: "Everything, tailored to your protocol",
-    cta: "Book a demo",
+    badge: "For platforms & institutions",
+    description: "The full layer, priced to your protocol or platform",
+    cta: "Talk to us",
     ctaHref: "mailto:team@txid.support?subject=TxID Support demo",
     highlight: true,
     features: [
-      { label: "Everything in Free", soon: false },
-      { label: "Wallet & transaction lookups", soon: false },
-      { label: "Higher conversation volume", soon: false },
-      { label: "Multiple blockchains", soon: false },
+      { label: "Every surface: embedded, Telegram, API & MCP", soon: false },
+      { label: "Multiple blockchains, EVM + Aptos", soon: false },
+      { label: "The Case Record: recorded, reviewable investigations", soon: false },
+      { label: "Escalations into Slack, Linear, GitHub, Jira", soon: false },
+      { label: "Full white-label branding", soon: false },
       { label: "Actions: user-signed swaps, staking & claims (optional)", soon: false },
-      { label: "Full custom branding", soon: false },
-      { label: "Escalation webhooks + integrations", soon: false },
-      { label: "Priority support", soon: false },
+      { label: "Priority support and a named contact", soon: false },
+    ],
+  },
+  {
+    name: "Evaluation",
+    price: "Free",
+    period: null,
+    badge: null,
+    description: "Prove it on your own protocol before you commit",
+    cta: "Coming soon",
+    // Sign-ups are paused while early teams are hand-onboarded; the app's
+    // sign-up page shows the same message with a request-access contact.
+    ctaHref: `${APP_URL}/sign-up`,
+    highlight: false,
+    features: [
+      { label: "150 conversations / month", soon: false },
+      { label: "1 blockchain", soon: false },
+      { label: "Custom branding", soon: false },
+      { label: "Wallet detection & transaction diagnosis", soon: false },
+      { label: "Knowledge base Q&A", soon: false },
+      { label: "Script tag embed", soon: false },
+      { label: "Analytics dashboard", soon: false },
     ],
   },
 ];
@@ -84,7 +85,7 @@ export function PricingSection({ compact }: { compact?: boolean }) {
                 Simple, transparent pricing
               </h2>
               <p className="text-muted max-w-xl mx-auto">
-                Start free. Upgrade when you&apos;re ready.
+                Priced to your platform. Evaluate free.
               </p>
             </div>
           </FadeIn>

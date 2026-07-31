@@ -5,7 +5,7 @@ import { Hero } from "@/components/sections/Hero";
 import { CompanyFlow } from "@/components/sections/CompanyFlow";
 import { ForWho } from "@/components/sections/ForWho";
 import { HowItWorks } from "@/components/sections/HowItWorks";
-import { FeatureGrid } from "@/components/sections/FeatureGrid";
+import { Pillars } from "@/components/sections/Pillars";
 import { EmbedPreview } from "@/components/sections/EmbedPreview";
 import { ComplianceSection } from "@/components/sections/ComplianceSection";
 import { PlatformTeaser } from "@/components/sections/PlatformTeaser";
@@ -33,7 +33,7 @@ export default function HomePage() {
         <CompanyFlow />
         <ForWho />
         <HowItWorks />
-        <FeatureGrid />
+        <Pillars />
         <EmbedPreview />
         <ComplianceSection />
         <PlatformTeaser />

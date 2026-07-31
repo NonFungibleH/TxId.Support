@@ -10,7 +10,7 @@ import { Check, Minus } from "lucide-react";
 
 export const metadata: Metadata = {
   title: "Pricing | TxID Support",
-  description: "Start free. Upgrade when your protocol is ready.",
+  description: "The full layer priced to your platform, with a free evaluation tier.",
   alternates: { canonical: "/pricing" },
 };
 
@@ -129,7 +129,7 @@ export default function PricingPage() {
           <FadeIn>
             <p className="font-mono text-sm text-accent mb-3">{"Pricing"}</p>
             <h1 className="font-display text-5xl font-bold text-white mb-4">
-              Start free. Scale when ready.
+              Priced to your platform. Evaluate free.
             </h1>
             <p className="text-lg text-muted max-w-xl mx-auto">
               No credit card required. The free tier is genuinely useful,

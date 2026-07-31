@@ -80,10 +80,10 @@ export function EmbedPreview() {
           <div className="text-center mb-12">
             <p className="font-mono text-sm text-accent mb-3">{`Integration`}</p>
             <h2 className="font-display text-4xl font-bold text-white mb-4">
-              Embed in 30 seconds
+              Deploy anywhere in minutes
             </h2>
             <p className="text-muted max-w-xl mx-auto">
-              Two lines of code. Works on any stack, any framework.
+              Embedded in your product with two lines of code, in your Telegram with a bot token, or headless through the API.
             </p>
           </div>
         </FadeIn>
