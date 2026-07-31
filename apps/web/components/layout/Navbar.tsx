@@ -71,8 +71,8 @@ export function Navbar() {
           <Button href={`${APP_URL}/sign-in`} variant="ghost" size="sm">
             Sign In
           </Button>
-          <Button href={`${APP_URL}/sign-up`} variant="primary" size="sm">
-            Get Started Free
+          <Button href="mailto:team@txid.support?subject=TxID early access" variant="primary" size="sm">
+            Request Access
           </Button>
         </div>
 
@@ -103,8 +103,8 @@ export function Navbar() {
             <Button href={`${APP_URL}/sign-in`} variant="outline" size="sm" className="w-full justify-center">
               Sign In
             </Button>
-            <Button href={`${APP_URL}/sign-up`} variant="primary" size="sm" className="w-full justify-center">
-              Get Started Free
+            <Button href="mailto:team@txid.support?subject=TxID early access" variant="primary" size="sm" className="w-full justify-center">
+              Request Access
             </Button>
           </div>
         </div>

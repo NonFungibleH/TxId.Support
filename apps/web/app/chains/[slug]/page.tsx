@@ -117,9 +117,9 @@ export default function ChainPage({ params }: { params: { slug: string } }) {
               </div>
 
               <h1 className="font-display text-5xl font-bold text-white mb-4 leading-[1.1] tracking-tight">
-                AI support for
+                Expert support for every
                 <br />
-                <span style={{ color: chain.color }}>{chain.name}</span> protocols.
+                <span style={{ color: chain.color }}>{chain.name}</span> user.
               </h1>
               <p className="text-lg text-muted max-w-2xl mx-auto mb-8">{chain.tagline}</p>
 

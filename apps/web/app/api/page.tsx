@@ -127,10 +127,13 @@ export default function PlatformPage() {
                 <br />
                 <span className="text-accent">Without the widget.</span>
               </h1>
-              <p className="text-lg text-muted max-w-2xl mx-auto mb-8">
+              <p className="text-lg text-muted max-w-2xl mx-auto mb-4">
                 Everything TxID Support can diagnose, exposed as an API and an MCP
                 server: so your product, your support desk, and your AI tooling can
                 look up on-chain answers directly.
+              </p>
+              <p className="font-mono text-xs text-muted/70 mb-8">
+                One engine, three surfaces: the embedded widget, the Telegram bot, and this API. EVM chains and Move-native Aptos.
               </p>
               <div className="flex flex-wrap justify-center gap-3">
                 <Button href="/contact" variant="primary" size="lg">

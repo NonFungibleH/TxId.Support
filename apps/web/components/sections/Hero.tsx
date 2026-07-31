@@ -2,7 +2,6 @@ import { ArrowRight, Play, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { FadeIn } from "@/components/ui/FadeIn";
 import { WidgetMockup } from "./WidgetMockup";
-import { APP_URL } from "@/lib/config";
 
 export function Hero() {
   return (
@@ -28,30 +27,30 @@ export function Hero() {
 
             <FadeIn delay={0.16}>
               <p className="text-lg text-muted leading-relaxed mb-8 max-w-lg">
-                An agentic support layer that investigates every question the way a protocol engineer would: reading live chain state, decoding errors against your contracts, and resolving issues in plain English. What it can&apos;t resolve reaches your team with the investigation attached.
+                TxID investigates every user question like a protocol engineer: live chain state, decoded errors, plain-English answers. Anything unresolved reaches your team with the investigation attached.
               </p>
             </FadeIn>
 
             <FadeIn delay={0.24}>
               <div className="flex flex-wrap gap-3">
+                <Button href="/check" variant="primary" size="lg">
+                  <Play className="w-4 h-4" />
+                  Try it live
+                </Button>
                 <Button
-                  href={`${APP_URL}/sign-up`}
-                  variant="primary"
+                  href="mailto:team@txid.support?subject=TxID early access"
+                  variant="outline"
                   size="lg"
                 >
-                  Get started free
+                  Request access
                   <ArrowRight className="w-4 h-4" />
-                </Button>
-                <Button href="/demo" variant="outline" size="lg">
-                  <Play className="w-4 h-4" />
-                  See it live
                 </Button>
               </div>
             </FadeIn>
 
             <FadeIn delay={0.32}>
               <p className="text-xs text-muted mt-4 mb-2">
-                No credit card required · Free tier includes 150 conversations/mo
+                Early access: we onboard teams personally · Free tier opening soon
               </p>
               <p className="text-xs text-muted/70 mb-6 inline-flex items-center gap-1.5">
                 <ShieldCheck className="w-3.5 h-3.5 text-accent/70 shrink-0" />

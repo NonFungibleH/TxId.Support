@@ -50,8 +50,10 @@ function ChainCard({ chain }: { chain: ChainInfo }) {
 }
 
 export default function ChainsPage() {
-  const evm = VISIBLE_CHAINS.filter((c) => c.family === "evm");
-  const nonEvm = VISIBLE_CHAINS.filter((c) => c.family === "non-evm");
+  // Grouped by STATUS, not chain family: Aptos is live, and parking it under
+  // a "roadmap" heading because it isn't EVM undersells the integration.
+  const live = VISIBLE_CHAINS.filter((c) => c.status === "live");
+  const roadmap = VISIBLE_CHAINS.filter((c) => c.status !== "live");
 
   return (
     <>
@@ -84,12 +86,12 @@ export default function ChainsPage() {
           <div className="max-w-6xl mx-auto px-6">
             <FadeIn>
               <div className="flex items-baseline justify-between mb-6">
-                <h2 className="font-display text-2xl font-bold text-white">Live now: EVM</h2>
-                <p className="text-sm text-muted">{evm.length} chains</p>
+                <h2 className="font-display text-2xl font-bold text-white">Live now</h2>
+                <p className="text-sm text-muted">{live.length} chains</p>
               </div>
             </FadeIn>
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {evm.map((c, i) => (
+              {live.map((c, i) => (
                 <FadeIn key={c.slug} delay={(i % 3) * 0.05}>
                   <ChainCard chain={c} />
                 </FadeIn>
@@ -103,12 +105,12 @@ export default function ChainsPage() {
           <div className="max-w-6xl mx-auto px-6">
             <FadeIn>
               <div className="flex items-baseline justify-between mb-6">
-                <h2 className="font-display text-2xl font-bold text-white">On the roadmap: non-EVM</h2>
-                <p className="text-sm text-muted">{nonEvm.length} chains</p>
+                <h2 className="font-display text-2xl font-bold text-white">On the roadmap</h2>
+                <p className="text-sm text-muted">{roadmap.length} chains</p>
               </div>
             </FadeIn>
             <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              {nonEvm.map((c, i) => (
+              {roadmap.map((c, i) => (
                 <FadeIn key={c.slug} delay={(i % 4) * 0.05}>
                   <ChainCard chain={c} />
                 </FadeIn>

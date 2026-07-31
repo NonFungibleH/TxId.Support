@@ -1,7 +1,6 @@
 import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { FadeIn } from "@/components/ui/FadeIn";
-import { APP_URL } from "@/lib/config";
 
 export function ClosingCTA() {
   return (
@@ -12,11 +11,11 @@ export function ClosingCTA() {
             Ready to stop answering the same questions?
           </h2>
           <p className="text-muted mb-8 max-w-xl mx-auto">
-            Set up in under five minutes. Free to start, no credit card required.
+            Try it on a protocol you already use, or ask us for early access.
           </p>
           <div className="flex flex-wrap gap-3 justify-center">
-            <Button href={`${APP_URL}/sign-up`} variant="primary" size="lg">
-              Get started free
+            <Button href="/check" variant="primary" size="lg">
+              Try it live
               <ArrowRight className="w-4 h-4" />
             </Button>
             <Button href="mailto:team@txid.support" variant="outline" size="lg">

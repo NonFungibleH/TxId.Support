@@ -249,6 +249,19 @@ export function BrandingForm({ projectId, initial, onBrandingChange }: BrandingF
             </Select>
             <p className="text-xs text-muted-foreground">Scales the whole widget so it fits your site. Larger sizes grow the widget too.</p>
           </div>
+          <div className="space-y-2">
+            <h3 className="text-sm font-medium">Wallet connect</h3>
+            <Select value={branding.hideWallet ? "hidden" : "shown"} onValueChange={v => update("hideWallet", v === "hidden")}>
+              <SelectTrigger>
+                <SelectValue>{branding.hideWallet ? "Hidden" : "Shown"}</SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="shown">Shown</SelectItem>
+                <SelectItem value="hidden">Hidden</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">Hide the connect-wallet pill when wallet context adds nothing, e.g. a docs-only support bot.</p>
+          </div>
         </div>
       </div>
 

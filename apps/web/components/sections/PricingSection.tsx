@@ -11,7 +11,9 @@ const PLANS = [
     period: null,
     badge: null,
     description: "For token communities and early-stage protocols",
-    cta: "Get started free",
+    cta: "Coming soon",
+    // Sign-ups are paused while early teams are hand-onboarded; the app's
+    // sign-up page shows the same message with a request-access contact.
     ctaHref: `${APP_URL}/sign-up`,
     highlight: false,
     features: [

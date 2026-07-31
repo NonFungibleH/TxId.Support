@@ -3,20 +3,20 @@ import { FadeIn } from "@/components/ui/FadeIn";
 
 const STEPS = [
   {
-    icon: Code2,
+    icon: Settings,
     number: "01",
-    title: "Embed",
+    title: "Configure",
     description:
-      "Add one script tag to your site. Works with React, Next.js, or plain HTML. Takes under a minute.",
+      "Set your brand colours, paste your logo URL, and add your docs link. Preview updates in real time before you go live.",
     iconBg: "bg-accent-muted",
     iconColor: "text-accent",
   },
   {
-    icon: Settings,
+    icon: Code2,
     number: "02",
-    title: "Configure",
+    title: "Embed",
     description:
-      "Set your brand colours, paste your logo URL, and add your docs link. Preview updates in real time before you go live.",
+      "Add one script tag to your site. Works with React, Next.js, or plain HTML. Takes under a minute.",
     iconBg: "bg-accent-muted",
     iconColor: "text-accent",
   },

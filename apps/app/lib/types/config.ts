@@ -157,6 +157,10 @@ export interface BrandingConfig {
   welcomeMessage?: string | null
   language?: string | null
   fontScale?: FontScale
+  // Hide the wallet-connect pill in the widget header. For deployments where
+  // wallet context adds nothing (e.g. a product's own support bot answering
+  // docs questions). Undefined = shown (backward-compatible default).
+  hideWallet?: boolean
 }
 
 export interface TokenConfig {

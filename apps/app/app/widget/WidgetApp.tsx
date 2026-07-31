@@ -87,6 +87,7 @@ interface BrandingConfig {
   agentName?: string | null
   agentIconUrl?: string | null
   fontScale?: "sm" | "md" | "lg" | "xl"
+  hideWallet?: boolean
 }
 
 const FONT_SCALE_VALUE: Record<string, number> = { sm: 0.9, md: 1.0, lg: 1.12, xl: 1.25 }
@@ -1679,7 +1680,7 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
         <span className="min-w-0 flex-1 truncate text-sm font-semibold" style={{ color: onPrimary }}>
           {b.agentName?.trim() || config.projectName}
         </span>
-        {!isTokenMode && (
+        {!isTokenMode && !b.hideWallet && (
           walletAddress ? (
             <button
               onClick={disconnectWallet}
