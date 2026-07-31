@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { Hero } from "@/components/sections/Hero";
+import { CompanyFlow } from "@/components/sections/CompanyFlow";
 import { ForWho } from "@/components/sections/ForWho";
 import { HowItWorks } from "@/components/sections/HowItWorks";
 import { FeatureGrid } from "@/components/sections/FeatureGrid";
@@ -29,6 +30,7 @@ export default function HomePage() {
       <Navbar />
       <main>
         <Hero />
+        <CompanyFlow />
         <ForWho />
         <HowItWorks />
         <FeatureGrid />

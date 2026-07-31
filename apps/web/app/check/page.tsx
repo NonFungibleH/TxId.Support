@@ -340,6 +340,12 @@ export default function CheckPage() {
     setConnectError("")
     const eth = (window as unknown as { ethereum?: { request: (a: { method: string }) => Promise<string[]> } }).ethereum
     if (!eth) {
+      // Mobile browsers have no injected provider. Reopen this page inside
+      // MetaMask's in-app browser, where connect works natively.
+      if (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+        window.location.href = `https://metamask.app.link/dapp/${window.location.host}${window.location.pathname}`
+        return
+      }
       setConnectError("No wallet detected. Install MetaMask, or enter your address manually below.")
       return
     }

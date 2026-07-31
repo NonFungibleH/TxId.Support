@@ -307,6 +307,12 @@ export default function AptosCheckPage() {
     setConnectError("")
     const provider = window.aptos ?? window.martian
     if (!provider) {
+      // Mobile browsers have no injected provider. Reopen this page inside
+      // Petra's in-app browser via its explore deep link.
+      if (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+        window.location.href = `https://petra.app/explore?link=${encodeURIComponent(window.location.href)}`
+        return
+      }
       setConnectError("No Aptos wallet detected. Install Petra, or paste your address below.")
       return
     }

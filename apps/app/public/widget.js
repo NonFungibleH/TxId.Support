@@ -46,6 +46,10 @@
     "right:max(24px,env(safe-area-inset-right,0px));" +
     "z-index:2147483645;" +
     "width:380px;height:560px;max-height:calc(100vh - 152px);border-radius:16px;" +
+    /* dvh tracks the VISIBLE viewport on mobile; 100vh includes the area
+       behind browser chrome, which clipped the input off-screen. The vh line
+       above stays as the fallback for browsers without dvh. */
+    "max-height:calc(100dvh - 152px);" +
     "box-shadow:0 8px 48px rgba(0,0,0,.45);" +
     "overflow:hidden;display:none;background-color:#0a0a0f;" +
     "}" +
@@ -58,7 +62,11 @@
     "bottom:max(80px,calc(env(safe-area-inset-bottom,0px) + 56px));" +
     /* The sheet floats clear of the bottom edge, so it is rounded all round. */
     "width:100%;border-radius:16px;" +
-    "max-height:calc(100vh - max(100px,calc(env(safe-area-inset-bottom,0px) + 76px)))" +
+    "max-height:calc(100vh - max(100px,calc(env(safe-area-inset-bottom,0px) + 76px)));" +
+    "max-height:calc(100dvh - max(100px,calc(env(safe-area-inset-bottom,0px) + 76px)));" +
+    /* Cap the fixed 560px height too: keyboards + short phones otherwise
+       push the composer under the browser chrome. */
+    "height:min(560px,calc(100dvh - max(100px,calc(env(safe-area-inset-bottom,0px) + 76px))))" +
     "}" +
     "#txid-widget-btn{" +
     "bottom:max(16px,env(safe-area-inset-bottom,0px));" +

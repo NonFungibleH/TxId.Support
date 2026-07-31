@@ -1,7 +1,7 @@
 import { ArrowRight, Play, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { FadeIn } from "@/components/ui/FadeIn";
-import { WidgetMockup } from "./WidgetMockup";
+import { InvestigationMockup } from "./InvestigationMockup";
 
 export function Hero() {
   return (
@@ -96,7 +96,7 @@ export function Hero() {
                 className="absolute inset-0 rounded-2xl blur-3xl scale-95"
                 style={{ background: "rgba(99, 102, 241, 0.15)" }}
               />
-              <WidgetMockup className="relative" />
+              <InvestigationMockup className="relative" />
             </div>
           </FadeIn>
         </div>

@@ -8,6 +8,7 @@ import { clsx } from "clsx";
 import { APP_URL } from "@/lib/config";
 
 const NAV_LINKS = [
+  { label: "How it works", href: "/how-it-works" },
   { label: "Features", href: "/#features" },
   { label: "Chains", href: "/chains" },
   { label: "API", href: "/api" },
