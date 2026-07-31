@@ -14,8 +14,9 @@ const STEPS = [
   { label: "Checked wallet impact", detail: "no funds moved" },
 ];
 
-// idle → steps 1..4 light up → verdict → recorded → hold → loop
-const PHASES = ["idle", "s1", "s2", "s3", "s4", "verdict", "recorded"] as const;
+// The full lifecycle, looping: question → evidence steps → verdict →
+// answer delivered → filed to the case record for compliance.
+const PHASES = ["idle", "s1", "s2", "s3", "s4", "verdict", "delivered", "recorded"] as const;
 type Phase = (typeof PHASES)[number];
 const HOLDS: Record<Phase, number> = {
   idle: 1600,
@@ -23,7 +24,8 @@ const HOLDS: Record<Phase, number> = {
   s2: 1000,
   s3: 1000,
   s4: 900,
-  verdict: 1600,
+  verdict: 1500,
+  delivered: 1300,
   recorded: 5200,
 };
 
@@ -52,6 +54,7 @@ export function InvestigationMockup({ className }: { className?: string }) {
   const stepDone = (i: number) => at > i; // s1 done once past index 1, etc.
   const stepActive = (i: number) => at === i;
   const showVerdict = at >= PHASES.indexOf("verdict");
+  const showDelivered = at >= PHASES.indexOf("delivered");
   const showRecorded = at >= PHASES.indexOf("recorded");
 
   return (
@@ -142,15 +145,28 @@ export function InvestigationMockup({ className }: { className?: string }) {
           </p>
         </div>
 
-        {/* The record */}
-        <div
-          className={clsx(
-            "flex items-center justify-between text-[10px] font-mono transition-opacity duration-700",
-            showRecorded ? "opacity-100" : "opacity-0",
-          )}
-        >
-          <span className="text-muted/60">Evidence · reasoning · resolution</span>
-          <span className="text-accent">Recorded ✓</span>
+        {/* The lifecycle tail: answer delivered, then filed for compliance */}
+        <div className="space-y-1.5">
+          <div
+            className={clsx(
+              "flex items-center gap-2 text-[10px] font-mono transition-all duration-500",
+              showDelivered ? "opacity-100 translate-y-0" : "opacity-0 translate-y-0.5",
+            )}
+          >
+            <CheckCircle2 className="w-3 h-3 text-emerald-400 shrink-0" />
+            <span className="text-muted/80">Answer delivered to the user</span>
+          </div>
+          <div
+            className={clsx(
+              "flex items-center justify-between rounded-md border px-2.5 py-1.5 text-[10px] font-mono transition-all duration-700",
+              showRecorded
+                ? "border-accent/30 bg-accent/5 opacity-100 translate-y-0"
+                : "border-transparent opacity-0 translate-y-0.5",
+            )}
+          >
+            <span className="text-muted/80">Case #4821 filed: evidence · reasoning · resolution</span>
+            <span className="text-accent">Compliance-ready ✓</span>
+          </div>
         </div>
       </div>
     </div>

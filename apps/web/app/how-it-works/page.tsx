@@ -5,6 +5,7 @@ import { FadeIn } from "@/components/ui/FadeIn";
 import { Button } from "@/components/ui/Button";
 import { WidgetMockup } from "@/components/sections/WidgetMockup";
 import { InvestigationMockup } from "@/components/sections/InvestigationMockup";
+import { FlowRail, FlowNode } from "@/components/sections/FlowRail";
 import { ArrowRight, CheckCircle2, Hash, Archive } from "lucide-react";
 
 export const metadata: Metadata = {
@@ -30,8 +31,11 @@ function Stage({
   flip?: boolean;
 }) {
   return (
-    <section className="py-14 border-t border-[var(--border)] first:border-t-0">
-      <div className="max-w-6xl mx-auto px-6">
+    // Uniform stage height; the rail (FlowRail) signals progression, so no
+    // dividers. Content sits right of the rail.
+    <section className="relative py-10 lg:py-0 lg:min-h-[560px] lg:flex lg:items-center">
+      <FlowNode n={n} />
+      <div className="w-full max-w-6xl mx-auto pl-14 lg:pl-24 pr-6">
         <div className={`grid lg:grid-cols-2 gap-10 items-center ${flip ? "lg:[direction:rtl]" : ""}`}>
           <FadeIn className="lg:[direction:ltr]">
             <p className="font-mono text-sm text-accent mb-2">
@@ -70,11 +74,12 @@ export default function HowItWorksPage() {
           </div>
         </section>
 
+        <FlowRail>
         {/* 1 - the user asks (the widget animation lives here now) */}
         <Stage
           n="01"
           who="Your user"
-          title="A question, right where they're stuck"
+          title="Support, right where they're stuck"
           copy="A user hits a failed transaction and asks in the widget on your site, or in your Telegram group. They paste a hash or connect a wallet. No ticket form, no leaving the page, no waiting for a timezone to wake up."
         >
           <WidgetMockup className="relative" />
@@ -181,6 +186,7 @@ export default function HowItWorksPage() {
             </div>
           </div>
         </Stage>
+        </FlowRail>
 
         {/* CTA */}
         <section className="py-16 border-t border-[var(--border)]">

@@ -19,7 +19,7 @@ function ChainCard({ chain }: { chain: ChainInfo }) {
   return (
     <Link
       href={`/chains/${chain.slug}`}
-      className="group block bg-[var(--bg-surface)] border border-[var(--border)] rounded-xl p-5 transition-colors hover:border-[color:var(--hover)]"
+      className="group flex h-full flex-col bg-[var(--bg-surface)] border border-[var(--border)] rounded-xl p-5 transition-colors hover:border-[color:var(--hover)]"
       style={{ ["--hover" as string]: hexToRgba(chain.color, 0.4) }}
     >
       <div className="flex items-center gap-3 mb-3">
@@ -41,8 +41,9 @@ function ChainCard({ chain }: { chain: ChainInfo }) {
           <p className="text-[11px] text-muted font-mono">{chain.ticker}</p>
         </div>
       </div>
-      <p className="text-sm text-muted leading-relaxed mb-3">{chain.tagline}</p>
-      <span className="inline-flex items-center gap-1 text-xs font-medium" style={{ color: chain.color }}>
+      {/* Fixed two-line tagline zone so every card sits at the same height. */}
+      <p className="text-sm text-muted leading-relaxed mb-3 line-clamp-2 min-h-[2.9em] flex-1">{chain.tagline}</p>
+      <span className="inline-flex items-center gap-1 text-xs font-medium mt-auto" style={{ color: chain.color }}>
         View {chain.name} <ArrowRight className="w-3 h-3 transition-transform group-hover:translate-x-0.5" />
       </span>
     </Link>
@@ -50,10 +51,10 @@ function ChainCard({ chain }: { chain: ChainInfo }) {
 }
 
 export default function ChainsPage() {
-  // Grouped by STATUS, not chain family: Aptos is live, and parking it under
-  // a "roadmap" heading because it isn't EVM undersells the integration.
+  // Live chains only. The coming-soon entries keep their detail pages (deep
+  // links and SEO), but a three-card "roadmap" section under nine live chains
+  // read as filler, so the index doesn't advertise them.
   const live = VISIBLE_CHAINS.filter((c) => c.status === "live");
-  const roadmap = VISIBLE_CHAINS.filter((c) => c.status !== "live");
 
   return (
     <>
@@ -82,7 +83,7 @@ export default function ChainsPage() {
         </section>
 
         {/* EVM */}
-        <section className="py-10">
+        <section className="py-10 pb-24">
           <div className="max-w-6xl mx-auto px-6">
             <FadeIn>
               <div className="flex items-baseline justify-between mb-6">
@@ -100,24 +101,6 @@ export default function ChainsPage() {
           </div>
         </section>
 
-        {/* Non-EVM */}
-        <section className="py-10 pb-24">
-          <div className="max-w-6xl mx-auto px-6">
-            <FadeIn>
-              <div className="flex items-baseline justify-between mb-6">
-                <h2 className="font-display text-2xl font-bold text-white">On the roadmap</h2>
-                <p className="text-sm text-muted">{roadmap.length} chains</p>
-              </div>
-            </FadeIn>
-            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              {roadmap.map((c, i) => (
-                <FadeIn key={c.slug} delay={(i % 4) * 0.05}>
-                  <ChainCard chain={c} />
-                </FadeIn>
-              ))}
-            </div>
-          </div>
-        </section>
       </main>
       <Footer />
     </>

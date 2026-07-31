@@ -52,7 +52,7 @@ export function ForWho() {
           <div className="text-center mb-14">
             <p className="font-mono text-sm text-accent mb-3">{"Who it's for"}</p>
             <h2 className="font-display text-4xl font-bold text-white mb-4">
-              Built for any crypto project
+              Built for on-chain finance
             </h2>
             <p className="text-muted max-w-xl mx-auto">
               From live protocols and token communities to institutions bringing assets on-chain:

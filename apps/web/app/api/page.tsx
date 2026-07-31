@@ -3,6 +3,7 @@ import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { FadeIn } from "@/components/ui/FadeIn";
 import { Button } from "@/components/ui/Button";
+import { ApiCallMockup } from "@/components/sections/ApiCallMockup";
 import {
   ArrowRight,
   Braces,
@@ -113,9 +114,10 @@ export default function PlatformPage() {
                 "radial-gradient(ellipse at center, rgba(99, 102, 241, 0.15) 0%, transparent 70%)",
             }}
           />
-          <div className="max-w-6xl mx-auto px-6 pt-10 pb-16 text-center relative">
+          <div className="max-w-6xl mx-auto px-6 pt-10 pb-16 relative">
+            <div className="grid lg:grid-cols-2 gap-12 items-center">
             <FadeIn>
-              <div className="flex items-center justify-center gap-3 mb-4">
+              <div className="flex items-center gap-3 mb-4">
                 <p className="font-mono text-sm text-accent">{`API & MCP`}</p>
                 <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border border-accent/40 bg-accent/10 font-mono text-[11px] text-accent">
                   <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
@@ -127,7 +129,7 @@ export default function PlatformPage() {
                 <br />
                 <span className="text-accent">Without the widget.</span>
               </h1>
-              <p className="text-lg text-muted max-w-2xl mx-auto mb-4">
+              <p className="text-lg text-muted mb-4">
                 Everything TxID Support can diagnose, exposed as an API and an MCP
                 server: so your product, your support desk, and your AI tooling can
                 look up on-chain answers directly.
@@ -135,7 +137,7 @@ export default function PlatformPage() {
               <p className="font-mono text-xs text-muted/70 mb-8">
                 One engine, three surfaces: the embedded widget, the Telegram bot, and this API. EVM chains and Move-native Aptos.
               </p>
-              <div className="flex flex-wrap justify-center gap-3">
+              <div className="flex flex-wrap gap-3">
                 <Button href="/contact" variant="primary" size="lg">
                   Get early access
                   <ArrowRight className="w-4 h-4" />
@@ -145,6 +147,10 @@ export default function PlatformPage() {
                 </Button>
               </div>
             </FadeIn>
+            <FadeIn delay={0.12}>
+              <ApiCallMockup />
+            </FadeIn>
+            </div>
           </div>
         </section>
 
