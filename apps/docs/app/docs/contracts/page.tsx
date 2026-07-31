@@ -145,6 +145,46 @@ Description: This is Team Finance's token lock contract. Users lock
         <li><strong>Paste ABI:</strong> Copy the ABI JSON from your deployment artifacts or Hardhat/Foundry output and paste it into the text field. Only the error definitions are needed, but pasting the full ABI is fine.</li>
       </ul>
 
+      <h2>Aptos and Move contracts</h2>
+      <p>
+        Aptos contracts work the same way from the dashboard, with a few Move-specific differences
+        under the hood:
+      </p>
+      <ul>
+        <li>
+          <strong>Address</strong> — add the <em>package</em> address (0x…). Optionally scope the
+          contract to a single module: when you pick Aptos as the chain, the dialog reads the
+          package&apos;s modules live from the fullnode and lets you select one.
+        </li>
+        <li>
+          <strong>ABI</strong> — there is nothing to verify or upload. Move module ABIs are public
+          on-chain; TxID Support reads them directly from the Aptos fullnode, so the contract card
+          shows <em>Move module ABI (on-chain)</em> automatically.
+        </li>
+        <li>
+          <strong>Failed transactions</strong> — instead of Solidity reverts, Aptos transactions fail
+          with Move abort codes. TxID Support decodes them in layers: the standard error category,
+          the Aptos framework&apos;s own error tables, and per-protocol error maps, so users get a
+          plain-English reason rather than <code>0x10010</code>.
+        </li>
+        <li>
+          <strong>Wallets</strong> — users connect Petra or Martian in the widget, or paste an
+          address. Aptos-only behaviours are handled natively: expired transactions that leave no
+          on-chain record, sponsored (fee-payer) transactions, and auth-key rotation.
+        </li>
+        <li>
+          <strong>Protocol accounts</strong> — some Aptos protocols keep user funds in a
+          protocol-owned account object rather than the wallet (perps venues with subaccounts and
+          delegated session keys, for example). TxID Support resolves these automatically and merges
+          their activity into the user&apos;s answers, so a trader whose wallet looks empty still
+          gets their real balances and history.
+        </li>
+      </ul>
+      <p>
+        The error glossary below works for Move contracts too: entries match on the Move abort code
+        or error name instead of a Solidity error signature.
+      </p>
+
       <h2>Error glossary</h2>
       <p>
         The error glossary lets you define exactly what the AI says when a specific error occurs.
@@ -206,8 +246,9 @@ Description: This is Team Finance's token lock contract. Users lock
         <p className="text-xs font-semibold uppercase tracking-widest text-[#71717a] mb-2">Tip</p>
         <p className="text-sm text-[#a1a1aa]">
           Encourage users to connect their wallet in the widget&apos;s Wallet tab before asking contract
-          questions. With a wallet connected, the AI can look up their recent transactions and give
-          wallet-specific answers — including exactly why a specific transaction failed.
+          questions (MetaMask on EVM chains, Petra on Aptos). With a wallet connected, the AI can look
+          up their recent transactions and give wallet-specific answers — including exactly why a
+          specific transaction failed.
         </p>
       </div>
     </article>

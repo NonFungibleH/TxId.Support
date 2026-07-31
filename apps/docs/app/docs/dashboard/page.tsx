@@ -31,7 +31,7 @@ export default function DashboardPage() {
         Add your protocol&apos;s token address so the AI can answer questions about it with accurate on-chain context.
       </p>
       <ul>
-        <li><strong>Token address</strong> — the ERC-20 contract address.</li>
+        <li><strong>Token address</strong> — the ERC-20 contract address (or fungible-asset address on Aptos).</li>
         <li><strong>Chain</strong> — which network the token lives on.</li>
         <li><strong>DEX URL</strong> — a link to the token on Uniswap, PancakeSwap, etc. The AI will direct users here for price info.</li>
       </ul>
@@ -45,7 +45,27 @@ export default function DashboardPage() {
       <h2>Chains</h2>
       <p>
         Toggle which chains your protocol operates on. The AI will only attempt on-chain lookups
-        on enabled chains. Supported chains: Ethereum, Base, BNB Chain, Polygon, Arbitrum, Optimism, Avalanche.
+        on enabled chains. Supported chains: Ethereum, Base, BNB Chain, Polygon, Arbitrum, Optimism,
+        Avalanche, Etherlink, and Aptos.
+      </p>
+      <p>
+        Aptos is a first-class integration, not an EVM adaptation: contract reads use Move module ABIs
+        fetched live from the fullnode, failed transactions decode Move abort codes into plain English,
+        and users connect with Petra or Martian (or paste an address). See the{" "}
+        <a href="/docs/contracts">Smart Contracts guide</a> for Move-specific details.
+      </p>
+
+      <h2>Telegram</h2>
+      <p>
+        Connect a Telegram bot so your community gets the same AI support inside Telegram groups and
+        DMs. The bot runs the full on-chain engine: users paste a transaction hash or wallet address
+        and it diagnoses it live, exactly like the widget. Group replies include a &ldquo;Continue
+        privately&rdquo; button for longer investigations, and escalations notify your configured
+        integrations (Slack, Discord, issue trackers).
+      </p>
+      <p>
+        Privacy: in groups the bot only receives messages addressed to it (@mentions, replies to the
+        bot, and commands). General group conversation never reaches TxID and is never stored.
       </p>
 
       <h2>Actions (paid plans)</h2>
