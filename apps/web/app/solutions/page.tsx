@@ -8,7 +8,7 @@ import { ArrowRight, Blocks, Landmark, Building2 } from "lucide-react";
 export const metadata: Metadata = {
   title: "Solutions | TxID Support",
   description:
-    "One support and operations layer, three buyers: DeFi protocols, issuers and tokenization platforms, and institutions. The same investigation engine, seen through each one's eyes.",
+    "One support and operations layer for DeFi protocols, issuers and tokenization platforms, and institutions. The same investigation engine, seen through each team's eyes.",
   alternates: { canonical: "/solutions" },
 };
 
@@ -46,7 +46,7 @@ export default function SolutionsIndexPage() {
             <FadeIn>
               <p className="font-mono text-sm text-accent mb-3">Solutions</p>
               <h1 className="font-display text-5xl font-bold text-white leading-[1.1] tracking-tight mb-5">
-                One layer, three buyers.
+                One layer, three teams.
               </h1>
               <p className="text-lg text-muted leading-relaxed">
                 The same investigation engine and the same case record, seen through the eyes of the
