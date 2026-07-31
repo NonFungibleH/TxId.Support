@@ -98,7 +98,10 @@ export const SPEND_LIMITS = {
  */
 export const TELEGRAM_LIMITS = {
   perChatPerWindow: 20,
-  perUserPerWindow: 8,
+  /** Tighter than the widget: each Telegram message can now run the full
+   *  tool loop (up to 5 model rounds + on-chain reads), so one message costs
+   *  several times a plain completion. */
+  perUserPerWindow: 5,
   windowMs: 60_000,
 } as const
 

@@ -1,13 +1,18 @@
 import crypto from "crypto"
 import { createServiceClient } from "@/lib/supabase/server"
-import { buildSystemPrompt, completeChatWithUsage } from "@txid/ai"
-import type { ChatMessage, ProjectConfigSnapshot } from "@txid/ai"
+import { buildSystemPrompt, completeChatWithToolsUsage } from "@txid/ai"
+import type { ChatMessage, ProjectConfigSnapshot, WalletConfig, WatchedContractSnapshot } from "@txid/ai"
 import type { ProjectConfig, Plan } from "@/lib/types/config"
 import { PLAN_CONV_LIMITS } from "@/lib/types/config"
 import type { Database } from "@/lib/supabase/types"
 import { log } from "@/lib/logger"
 import { rateLimit } from "@/lib/rate-limit"
 import { TELEGRAM_LIMITS } from "@/lib/limits"
+import { dispatchEscalation } from "@/lib/integrations/escalation"
+
+// The tool loop makes real on-chain reads across up to 5 rounds, so a reply
+// can legitimately take longer than the default function window.
+export const maxDuration = 60
 
 // Constant-time compare of the webhook secret token. A plain !== leaks the
 // secret_key through timing (audit H1); secret_key also gates the AI pipeline,
@@ -145,6 +150,7 @@ async function sendTelegramMessage(
   chatId: number,
   text: string,
   replyToMessageId: number,
+  replyMarkup?: { inline_keyboard: { text: string; url: string }[][] },
 ): Promise<void> {
   const html = markdownToHtml(text)
   await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
@@ -155,8 +161,50 @@ async function sendTelegramMessage(
       text: html,
       parse_mode: "HTML",
       reply_to_message_id: replyToMessageId,
+      ...(replyMarkup ? { reply_markup: replyMarkup } : {}),
     }),
   })
+}
+
+// "typing…" indicator while the tool loop runs. On-chain reads can take tens
+// of seconds; without this the group just sees silence and re-asks.
+function sendTypingAction(token: string, chatId: number): void {
+  void fetch(`https://api.telegram.org/bot${token}/sendChatAction`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ chat_id: chatId, action: "typing" }),
+  }).catch(() => {})
+}
+
+/**
+ * Detect a pasted wallet address in the conversation and turn it into the
+ * same WalletConfig the widget builds on connect, so the wallet tools
+ * (balances, history, diagnosis, protocol accounts) work from a paste.
+ *
+ * Rules, most recent mention wins:
+ * - 40-hex 0x is an EVM ADDRESS (a 64-hex on EVM is a tx hash, never a wallet)
+ *   → first configured EVM chain.
+ * - On projects watching Aptos, any other 1-64-hex 0x could be an Aptos
+ *   address (or a tx hash: both are 64-hex there). Pass it as the wallet
+ *   anyway and let the model pick the right tool; a hash misread as a wallet
+ *   reads as an empty account, never as wrong data.
+ */
+function detectWalletConfig(texts: string[], config: ProjectConfig): WalletConfig | null {
+  const chains = new Set<string>([
+    ...(config.watchedContracts ?? []).map(c => c.chain),
+    ...(config.chains ?? []),
+  ])
+  const hasAptos = chains.has("aptos")
+  const evmChain = [...chains].find(c => c.startsWith("0x"))
+
+  const tokens = texts.join("\n").match(/0x[0-9a-fA-F]{1,64}/g) ?? []
+  for (const t of tokens.reverse()) {
+    const hexLen = t.length - 2
+    if (hexLen === 40 && evmChain) return { address: t, chainId: evmChain }
+    if (hexLen === 40 && !evmChain && hasAptos) return { address: t, chainId: "aptos" }
+    if (hexLen !== 40 && hasAptos) return { address: t, chainId: "aptos" }
+  }
+  return null
 }
 
 // ── Route handler ──────────────────────────────────────────────────────────────
@@ -211,16 +259,17 @@ export async function POST(
   }
 
   const userText = cleanText(message)
-  if (!userText) {
-    // Bare command with no question (/start, /help, /ask) - answer with a
-    // canned reply instead of dropping it silently. No AI call, so this
-    // doesn't consume quota or create a conversation row.
-    const command = leadingCommand(message)
-    if (command) {
-      const reply = commandReply(command, project.name, message.chat.type === "private")
-      if (reply) {
-        await sendTelegramMessage(botToken, message.chat.id, reply, message.message_id)
-      }
+  const command = leadingCommand(message)
+
+  // /start and /help always get the canned reply, even with a payload: the
+  // group reply's "Continue privately" button deep-links to "/start support",
+  // which must greet, not send the word "support" to the model. /ask with a
+  // question falls through to the AI. No AI call here, so no quota or
+  // conversation row is consumed.
+  if (command === "/start" || command === "/help" || !userText) {
+    const reply = command ? commandReply(command, project.name, message.chat.type === "private") : null
+    if (reply) {
+      await sendTelegramMessage(botToken, message.chat.id, reply, message.message_id)
     }
     return new Response("OK", { status: 200 })
   }
@@ -304,6 +353,21 @@ export async function POST(
     })
     .slice(0, 20)
 
+  // Same snapshot the widget chat route builds: abi + errorGlossary included,
+  // or the contract-read tools are never offered and the team's custom error
+  // wording never reaches the prompt.
+  const watchedContracts: WatchedContractSnapshot[] = (config.watchedContracts ?? []).map(c => ({
+    id: c.id,
+    name: c.name,
+    address: c.address,
+    chain: c.chain,
+    description: c.description,
+    ...(c.moduleName ? { moduleName: c.moduleName } : {}),
+    ...(c.errorGlossary ? { errorGlossary: c.errorGlossary } : {}),
+    ...(c.abi ? { abi: c.abi } : {}),
+    ...(c.abiSource ? { abiSource: c.abiSource } : {}),
+  }))
+
   const configSnapshot: ProjectConfigSnapshot = {
     token: config.token
       ? {
@@ -314,22 +378,23 @@ export async function POST(
           dexUrl: config.token.dexUrl,
         }
       : null,
-    watchedContracts: (config.watchedContracts ?? []).map(c => ({
-      id: c.id,
-      name: c.name,
-      address: c.address,
-      chain: c.chain,
-      description: c.description,
-      ...(c.moduleName ? { moduleName: c.moduleName } : {}),
-    })),
+    watchedContracts,
     docsUrl: config.docsUrl,
     ...(tgDocLinks.length > 0 ? { docLinks: tgDocLinks } : {}),
   }
 
+  // A pasted address unlocks the wallet toolset, exactly like connecting in
+  // the widget. Scan the current message first, then recent history, so a
+  // follow-up question keeps the wallet from two messages ago.
+  const walletConfig = detectWalletConfig(
+    [...historyMessages.filter(m => m.role === "user").map(m => m.content), userText],
+    config,
+  )
+
   const systemPrompt = buildSystemPrompt({
     projectName: project.name,
     config: configSnapshot,
-    walletConfig: null,
+    walletConfig,
     ragContext: "",
     mode: "support",
     persona: config.branding?.persona ?? "concise",
@@ -337,12 +402,16 @@ export async function POST(
     ...(config.branding?.language ? { language: config.branding.language } : {}),
   })
 
+  sendTypingAction(botToken, message.chat.id)
+
   let reply: string
   let usage: { inputTokens: number; outputTokens: number; cacheReadTokens: number; cacheWriteTokens: number; model: string } | null = null
+  let escalation: { summary: string; reason: string } | null = null
   try {
-    const res = await completeChatWithUsage(systemPrompt, messages, 800)
+    const res = await completeChatWithToolsUsage(systemPrompt, messages, walletConfig, watchedContracts, 800)
     reply = res.text
     usage = res.usage
+    escalation = res.escalation
   } catch (err) {
     log.error("Telegram AI completion failed", err, {
       event: "telegram.webhook.ai_error",
@@ -352,7 +421,54 @@ export async function POST(
     return new Response("OK", { status: 200 })
   }
 
-  await sendTelegramMessage(botToken, message.chat.id, reply, message.message_id)
+  if (!reply.trim()) {
+    // The model went straight to escalation (or produced nothing). Never send
+    // an empty Telegram message: it 400s and the user sees silence.
+    reply = escalation
+      ? "This needs a human from the team to look at."
+      : "Sorry, I couldn't work that one out. Could you rephrase, or share a transaction hash?"
+  }
+
+  // Escalation in a chat channel: notify the team's configured integrations
+  // (Slack/Discord/issue trackers) with the summary and recent context, and
+  // tell the user honestly what happened. No ticket form exists here, so
+  // WITHOUT integrations nothing is recorded server-side and the reply must
+  // not pretend otherwise.
+  const integrations = config.integrations
+  const integrationsConfigured = !!integrations && Object.values(integrations).some(v => !!v)
+  if (escalation) {
+    if (integrationsConfigured) {
+      const ref = `TG-${Date.now().toString(36).toUpperCase()}`
+      void dispatchEscalation(
+        supabase,
+        project.id,
+        null,
+        {
+          ref,
+          projectName: project.name,
+          summary: escalation.summary,
+          reason: escalation.reason,
+          userName: message.from.username ? `@${message.from.username}` : message.from.first_name,
+          conversation: [...messages.slice(-6), { role: "assistant", content: reply }],
+        },
+        integrations,
+        botToken,
+      )
+      reply += `\n\nI've flagged this to the team (ref ${ref}). They can see this conversation and will follow up.`
+    } else {
+      reply += "\n\nThis needs someone from the team: please reach them through their official channels and share this conversation."
+    }
+  }
+
+  // In groups, offer to continue one-on-one: keeps long investigations out of
+  // the channel, and the DM session is recorded separately per user.
+  const botUsername = config.telegramBotUsername
+  const dmButton =
+    message.chat.type !== "private" && botUsername
+      ? { inline_keyboard: [[{ text: "💬 Continue privately", url: `https://t.me/${botUsername}?start=support` }]] }
+      : undefined
+
+  await sendTelegramMessage(botToken, message.chat.id, reply, message.message_id, dmButton)
 
   // Persist to Supabase
   void persistTelegramMessages(supabase, project.id, sessionId, userText, reply, usage)

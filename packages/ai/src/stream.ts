@@ -621,3 +621,43 @@ export async function completeChatWithUsage(
   for await (const chunk of streamChat(systemPrompt, messages, maxTokens)) text += chunk
   return { text, usage: null }
 }
+
+/**
+ * The full agentic tool loop, collected into a single reply for channels that
+ * deliver one message rather than a stream (Telegram). Same engine as the
+ * widget: tx-hash diagnosis, contract reads, and, when the caller detected a
+ * pasted address, the wallet tools too. Escalation is surfaced as data, not
+ * rendered: the widget shows a ticket form, but a chat channel has to decide
+ * for itself what "escalate" means (notify integrations, point at the team).
+ */
+export async function completeChatWithToolsUsage(
+  systemPrompt: string,
+  messages: ChatMessage[],
+  walletConfig: WalletConfig | null,
+  watchedContracts: WatchedContractSnapshot[] = [],
+  maxTokens = 800,
+): Promise<{
+  text: string
+  usage: { inputTokens: number; outputTokens: number; cacheReadTokens: number; cacheWriteTokens: number; model: string } | null
+  escalation: { summary: string; reason: string } | null
+  toolsUsed: string[]
+}> {
+  let text = ""
+  let usage: { inputTokens: number; outputTokens: number; cacheReadTokens: number; cacheWriteTokens: number; model: string } | null = null
+  let escalation: { summary: string; reason: string } | null = null
+  const toolsUsed: string[] = []
+  for await (const event of streamChatWithTools(systemPrompt, messages, walletConfig, watchedContracts, maxTokens)) {
+    if (event.type === "text") text += event.text
+    else if (event.type === "usage") {
+      usage = {
+        inputTokens: event.inputTokens,
+        outputTokens: event.outputTokens,
+        cacheReadTokens: event.cacheReadTokens,
+        cacheWriteTokens: event.cacheWriteTokens,
+        model: event.model,
+      }
+    } else if (event.type === "escalate") escalation = { summary: event.summary, reason: event.reason }
+    else if (event.type === "tool_call" && !toolsUsed.includes(event.tool)) toolsUsed.push(event.tool)
+  }
+  return { text, usage, escalation, toolsUsed }
+}

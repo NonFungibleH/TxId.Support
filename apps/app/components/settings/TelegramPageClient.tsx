@@ -274,10 +274,14 @@ export function TelegramPageClient({
           <p className="text-xs font-semibold text-muted-foreground">What Telegram can and cannot do</p>
           <ul className="space-y-1 text-xs text-muted-foreground">
             <li className="flex items-start gap-2"><span className="mt-0.5 text-emerald-500">✓</span>Full docs, contracts, and language support: same knowledge base as the web widget</li>
-            <li className="flex items-start gap-2"><span className="mt-0.5 text-emerald-500">✓</span>Conversation history per user per group</li>
-            <li className="flex items-start gap-2"><span className="mt-0.5 text-amber-500">~</span>Escalation prompts are included, but users must follow up via your support channel manually. Telegram cannot open in-widget tickets</li>
-            <li className="flex items-start gap-2"><span className="mt-0.5 text-amber-500">~</span>Wallet tools are not available: Telegram users cannot connect a wallet for on-chain lookups</li>
+            <li className="flex items-start gap-2"><span className="mt-0.5 text-emerald-500">✓</span>Live on-chain diagnosis: users paste a transaction hash or wallet address and the bot investigates it, same engine as the widget</li>
+            <li className="flex items-start gap-2"><span className="mt-0.5 text-emerald-500">✓</span>Conversation history per user per group, plus a &quot;Continue privately&quot; button on group replies for longer investigations</li>
+            <li className="flex items-start gap-2"><span className="mt-0.5 text-emerald-500">✓</span>Escalations notify your configured integrations (Slack, Discord, issue trackers) with the conversation summary</li>
+            <li className="flex items-start gap-2"><span className="mt-0.5 text-amber-500">~</span>No wallet connect: on-chain lookups work from pasted addresses and hashes only</li>
           </ul>
+          <p className="text-xs text-muted-foreground pt-1">
+            <span className="font-medium text-foreground">Privacy:</span> in groups the bot only ever receives messages addressed to it (@mentions, replies, and commands). General group conversation never reaches TxID and is never stored.
+          </p>
         </div>
 
       </div>
