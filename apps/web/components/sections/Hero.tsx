@@ -19,15 +19,15 @@ export function Hero() {
           <div>
             <FadeIn delay={0.08}>
               <h1 className="font-display text-5xl lg:text-6xl font-bold text-white leading-[1.1] tracking-tight mb-6">
-                Expert support for every user.
+                The support layer for
                 <br />
-                <span className="text-accent">An investigation behind every answer.</span>
+                <span className="text-accent">on-chain finance.</span>
               </h1>
             </FadeIn>
 
             <FadeIn delay={0.16}>
               <p className="text-lg text-muted leading-relaxed mb-8 max-w-lg">
-                TxID investigates every user question like a protocol engineer: live chain state, decoded errors, plain-English answers. Every case is recorded as a defensible compliance trail, and anything unresolved reaches your team with the investigation attached.
+                TxID investigates every question on live chain data, answers in plain English, and records every case for compliance.
               </p>
             </FadeIn>
 
