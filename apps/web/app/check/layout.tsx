@@ -6,7 +6,7 @@ import { transactionGlossarySchema } from "@/lib/seo"
 export const metadata: Metadata = {
   title: "Why Did My Transaction Fail? Free Transaction Checker | TxID Support",
   description:
-    "Pick a protocol, connect a wallet or paste an address, and find out why a transaction failed: out of gas, reverted, or a custom contract error, explained in plain English. Free, no wallet connection needed.",
+    "Pick a protocol, connect your wallet, and find out why a transaction failed: out of gas, reverted, or a custom contract error, explained in plain English. Free.",
   alternates: { canonical: "/check" },
   openGraph: {
     title: "Free Transaction Checker | TxID Support",

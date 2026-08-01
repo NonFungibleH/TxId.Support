@@ -4,7 +4,7 @@ import type { Metadata } from "next"
 export const metadata: Metadata = {
   title: "Try TxID on Aptos: Live Move Transaction Diagnosis | TxID Support",
   description:
-    "Connect an Aptos wallet or paste an address and watch TxID diagnose real Move transactions live: abort codes decoded into plain English, balances and history read from Aptos-native infrastructure. Free, no sign-up.",
+    "Connect your Aptos wallet and watch TxID diagnose your real Move transactions live: abort codes decoded into plain English, balances and history read from Aptos-native infrastructure. Free, no sign-up.",
   alternates: { canonical: "/check/aptos" },
   // Private for now: shared by direct link with the Aptos ecosystem, never
   // indexed or linked from the site until we decide to launch it publicly.

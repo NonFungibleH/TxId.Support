@@ -85,7 +85,7 @@ const FEATURES = [
     icon: Send,
     title: "Telegram Support",
     description:
-      "The same engine inside your community's Telegram: members paste a transaction hash or address and get a live diagnosis, with escalations routed to your team.",
+      "The same engine inside your community's Telegram: members get live diagnosis of their transactions and wallets, with escalations routed to your team.",
   },
 ];
 

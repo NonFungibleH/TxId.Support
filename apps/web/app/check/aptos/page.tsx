@@ -381,7 +381,7 @@ export default function AptosCheckPage() {
                 Test-drive TxID on Aptos
               </h1>
               <p className="text-muted text-base leading-relaxed">
-                Connect an Aptos wallet or paste an address, and watch TxID diagnose real Move transactions live: abort codes decoded, balances read from the fullnode, answers in plain English.
+                Connect your Aptos wallet and watch TxID diagnose your real Move transactions live: abort codes decoded, balances read from the fullnode, answers in plain English.
               </p>
             </div>
 

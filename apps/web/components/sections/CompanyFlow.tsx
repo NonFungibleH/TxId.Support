@@ -14,7 +14,7 @@ const STAGES = [
     icon: MessageCircle,
     who: "Your user",
     title: "Asks anywhere",
-    detail: "On your site or in Telegram. Pastes a hash or connects a wallet.",
+    detail: "On your site or in Telegram. Connects their wallet in one tap.",
     chip: "“Why did my swap fail?”",
   },
   {
