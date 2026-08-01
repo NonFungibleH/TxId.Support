@@ -46,7 +46,7 @@ const PRODUCTS = [
     label: "HEADLESS",
     title: "Support answers, anywhere",
     description:
-      "The same protocol-aware answers the widget gives, delivered as an API response. Power your own in-app help, Discord bot, or support desk with it.",
+      "The same protocol-aware answers your users get in-product, delivered as an API response. Power your own in-app help, Discord bot, or support desk with it.",
   },
 ];
 
@@ -127,7 +127,7 @@ export default function PlatformPage() {
               <h1 className="font-display text-5xl font-bold text-white mb-4 leading-[1.1] tracking-tight">
                 The diagnostic engine.
                 <br />
-                <span className="text-accent">Without the widget.</span>
+                <span className="text-accent">Headless.</span>
               </h1>
               <p className="text-lg text-muted mb-4">
                 Everything TxID Support can diagnose, exposed as an API and an MCP
@@ -135,7 +135,7 @@ export default function PlatformPage() {
                 look up on-chain answers directly.
               </p>
               <p className="font-mono text-xs text-muted/70 mb-8">
-                One engine, three surfaces: the embedded widget, the Telegram bot, and this API. EVM chains and Move-native Aptos.
+                One engine, three surfaces: embedded in your product, in your Telegram, and this API. EVM chains and Move-native Aptos.
               </p>
               <div className="flex flex-wrap gap-3">
                 <Button href="/contact" variant="primary" size="lg">
@@ -223,7 +223,7 @@ export default function PlatformPage() {
               <div className="text-center mb-12">
                 <p className="font-mono text-sm text-accent mb-3">{`Capabilities`}</p>
                 <h2 className="font-display text-4xl font-bold text-white mb-4">
-                  The same tools the widget uses
+                  The same tools embedded support uses
                 </h2>
                 <p className="text-muted max-w-xl mx-auto">
                   Every diagnostic the embedded product runs is a tool the API

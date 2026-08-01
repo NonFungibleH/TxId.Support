@@ -48,7 +48,7 @@ export default function DocsPage() {
               TxID Support docs
             </h1>
             <p className="text-[var(--text-muted)] text-base max-w-xl">
-              Everything you need to configure, embed, and get the most out of your AI support widget.
+              Everything you need to configure, embed, and get the most out of TxID support.
             </p>
           </FadeIn>
 

@@ -37,7 +37,7 @@ export function PlatformTeaser() {
                   The same engine, as an API and MCP server
                 </h2>
                 <p className="text-muted max-w-xl text-sm leading-relaxed">
-                  Everything the widget can diagnose, available headless: for your
+                  Everything TxID support can diagnose, available headless: for your
                   support desk, your own product, or any MCP-compatible AI tooling.
                 </p>
               </div>

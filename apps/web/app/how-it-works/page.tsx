@@ -11,7 +11,7 @@ import { ArrowRight, CheckCircle2, Hash, Archive } from "lucide-react";
 export const metadata: Metadata = {
   title: "How It Works: From Question to Compliance Record | TxID Support",
   description:
-    "Follow one support case end to end: a user asks in the widget, TxID investigates live on-chain, the user gets unblocked, your team receives the case, and compliance keeps the record.",
+    "Follow one support case end to end: a user asks in your product, TxID investigates live on-chain, the user gets unblocked, your team receives the case, and compliance keeps the record.",
   alternates: { canonical: "/how-it-works" },
 };
 
@@ -79,7 +79,7 @@ export default function HowItWorksPage() {
           n="01"
           who="Your user"
           title="Support, right where they're stuck"
-          copy="A user hits a failed transaction and asks in the widget on your site, or in your Telegram group. They paste a hash or connect a wallet. No ticket form, no leaving the page, no waiting for a timezone to wake up."
+          copy="A user hits a failed transaction and asks right on your site, or in your Telegram group. They paste a hash or connect a wallet. No ticket form, no leaving the page, no waiting for a timezone to wake up."
         >
           <WidgetMockup className="relative" />
         </Stage>

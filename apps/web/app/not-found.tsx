@@ -27,7 +27,7 @@ const DESTINATIONS = [
   {
     icon: BookOpen,
     title: "Documentation",
-    description: "Install the widget and configure your project.",
+    description: "Embed TxID support and configure your project.",
     href: "/docs",
   },
   {

@@ -66,7 +66,7 @@ const COMPARISON = [
 const FAQ = [
   {
     q: "What does the free trial include?",
-    a: "The Free plan lets you evaluate the product with no credit card: you get 150 conversations/month, the full feature set (wallet detection, transaction diagnostics, knowledge base Q&A, token widget), and a full analytics dashboard. It is enough to test on your own site and validate it with real users before you move to a paid plan.",
+    a: "The Free plan lets you evaluate the product with no credit card: you get 150 conversations/month, the full feature set (wallet detection, transaction diagnostics, knowledge base Q&A, token panel), and a full analytics dashboard. It is enough to test on your own site and validate it with real users before you move to a paid plan.",
   },
   {
     q: "What counts as a conversation?",

@@ -14,7 +14,7 @@ export const metadata: Metadata = {
 };
 
 const CASE_FIELDS = [
-  { field: "The question", detail: "What the user asked, in their words, on which surface (widget, Telegram, API)." },
+  { field: "The question", detail: "What the user asked, in their words, on whichever surface they used: your product, Telegram, or the API." },
   { field: "The evidence", detail: "Every on-chain read the investigation made: transactions fetched, state checked, sources cited." },
   { field: "The reasoning", detail: "How the engine got from evidence to answer, with verified fact kept distinct from interpretation." },
   { field: "The resolution", detail: "What the user was told, whether it resolved, and any escalation with its outcome." },

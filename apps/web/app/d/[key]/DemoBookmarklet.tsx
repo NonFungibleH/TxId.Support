@@ -14,7 +14,7 @@ export function DemoBookmarklet({ appUrl, demoKey, name, accent }: { appUrl: str
       `s.src='${appUrl}/widget.js';s.setAttribute('data-key','${demoKey}');` +
       "document.body.appendChild(s);" +
       "setTimeout(function(){if(!document.getElementById('txid-widget-root')){" +
-      "alert('This site blocks embedded widgets via its security policy (Content-Security-Policy) \\u2014 common on hardened apps like Uniswap. Try it on a site that allows it.')" +
+      "alert('This site blocks third-party embeds via its security policy (Content-Security-Policy) \\u2014 common on hardened apps like Uniswap. Try it on a site that allows it.')" +
       "}},2500);})();void%200"
     ref.current.setAttribute("href", href)
   }, [appUrl, demoKey])
