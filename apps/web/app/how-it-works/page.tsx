@@ -79,7 +79,7 @@ export default function HowItWorksPage() {
           n="01"
           who="Your user"
           title="Support, right where they're stuck"
-          copy="A user hits a failed transaction and asks right on your site, or in your Telegram group. They connect their wallet and TxID already sees what happened. No ticket form, no leaving the page, no waiting for a timezone to wake up."
+          copy="A user hits a failed transaction and asks right on your site, or in your Telegram group. They connect their wallet and TxID already sees what happened. There is no ticket form, and no waiting for another timezone to wake up."
         >
           <WidgetMockup className="relative" />
         </Stage>
@@ -89,7 +89,7 @@ export default function HowItWorksPage() {
           n="02"
           who="TxID"
           title="A live on-chain investigation"
-          copy="The engine works the question like a protocol engineer: fetches the transaction, replays it against chain state, decodes the failure against your contracts and error maps, and verifies what actually moved. Every claim is backed by a live read, and verified fact is kept distinct from interpretation."
+          copy="The engine treats the question as an engineering problem. It fetches the transaction, replays it against chain state, and decodes the failure using your contracts and error maps. Verified fact is kept distinct from interpretation, always."
           flip
         >
           <InvestigationMockup />
@@ -100,7 +100,7 @@ export default function HowItWorksPage() {
           n="03"
           who="Your user"
           title="Unblocked in seconds"
-          copy="Most questions end here: a plain-English answer with the exact fix, in your brand, in the user's language. Users succeed more often, and the repeat questions never reach your team."
+          copy="Most questions end here. The user gets the answer and the exact fix, in your brand and their language, and the repeat questions never reach your team."
         >
           <div className="max-w-md mx-auto space-y-3">
             <div className="rounded-2xl rounded-bl-sm border border-[var(--border)] bg-[#0d0d18] px-4 py-3.5">
@@ -121,7 +121,7 @@ export default function HowItWorksPage() {
           n="04"
           who="Your team"
           title="Escalation with the investigation attached"
-          copy="When a human is genuinely needed, the case reaches your team where they already work: Slack, Discord, Linear, GitHub or Jira. Not a bare ticket - the completed investigation: what was checked, what was found, what remains to be decided."
+          copy="When a human is genuinely needed, the case lands where your team already works, whether that is Slack, Discord, Linear, GitHub or Jira, with the full investigation attached. Nobody starts from zero."
           flip
         >
           <div className="max-w-md mx-auto rounded-2xl border border-[var(--border)] bg-[#0d0d18] overflow-hidden">
@@ -157,7 +157,7 @@ export default function HowItWorksPage() {
           n="05"
           who="Compliance & product"
           title="A record you can stand behind"
-          copy="Every investigation is stored and searchable: the question, the on-chain evidence, the reasoning, and the resolution. Support sees what users struggle with. Product sees what to fix. Compliance can evidence exactly what a client was told, and why it was correct."
+          copy="Every investigation is stored and searchable. Support learns what users struggle with. Product sees what keeps breaking. And when compliance needs to show exactly what a client was told, it is all there."
         >
           <div className="max-w-md mx-auto rounded-2xl border border-[var(--border)] bg-[#0d0d18] overflow-hidden">
             <div className="flex items-center gap-2 px-4 py-2.5 border-b border-[var(--border)] bg-[#10101d]">

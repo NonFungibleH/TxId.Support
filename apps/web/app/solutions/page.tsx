@@ -49,8 +49,7 @@ export default function SolutionsIndexPage() {
                 One layer, three teams.
               </h1>
               <p className="text-lg text-muted leading-relaxed">
-                The same investigation engine and the same case record, seen through the eyes of the
-                team that needs it.
+                Start with the page that sounds like your desk.
               </p>
             </FadeIn>
           </div>

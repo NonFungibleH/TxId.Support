@@ -29,7 +29,7 @@ const COMPARISON = [
     category: "Branding",
     rows: [
       { feature: "TxID Support branding", starter: true, pro: false, enterprise: false },
-      { feature: "Custom colours + font", starter: false, pro: true, enterprise: true },
+      { feature: "Custom colors + font", starter: false, pro: true, enterprise: true },
       { feature: "Custom logo", starter: false, pro: true, enterprise: true },
       { feature: "Custom agent name + avatar", starter: false, pro: true, enterprise: true },
       { feature: "Token price + chart", starter: false, pro: true, enterprise: true },
@@ -86,7 +86,7 @@ const FAQ = [
   },
   {
     q: "Can I use my own branding?",
-    a: "Yes. Set your colours, font, and logo URL in the dashboard. The free tier includes a small 'Powered by TxID Support' footer note. Removing that is a Pro plan feature.",
+    a: "Yes. Set your colors, font, and logo URL in the dashboard. The free tier includes a small 'Powered by TxID Support' footer note. Removing that is a Pro plan feature.",
   },
 ];
 

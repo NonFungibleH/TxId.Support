@@ -7,7 +7,7 @@ const STEPS = [
     number: "01",
     title: "Configure",
     description:
-      "Set your brand colours, paste your logo URL, and add your docs link. Preview updates in real time before you go live.",
+      "Set your brand colors, paste your logo URL, and add your docs link. Preview updates in real time before you go live.",
     iconBg: "bg-accent-muted",
     iconColor: "text-accent",
   },

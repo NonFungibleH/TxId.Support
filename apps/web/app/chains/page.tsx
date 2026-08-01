@@ -80,8 +80,8 @@ export default function ChainsPage() {
                 <span className="text-accent">Every chain your users are on.</span>
               </h1>
               <p className="text-lg text-muted max-w-2xl mx-auto">
-                TxID diagnoses failed transactions natively on each chain, decoding the real cause and the fix, not a
-                generic FAQ. Live across the major EVM networks and Move-native on Aptos.
+                TxID diagnoses failed transactions natively on each chain, on that chain&apos;s own terms. Nine chains live,
+                led by Move-native Aptos.
               </p>
             </FadeIn>
           </div>

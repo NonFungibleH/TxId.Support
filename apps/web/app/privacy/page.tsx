@@ -37,7 +37,7 @@ export default function PrivacyPage() {
             <section>
               <h2 className="font-display text-lg font-semibold text-white mb-3">Wallet addresses</h2>
               <p>
-                The agent reads the public wallet address of connected wallets to provide personalised support. We store wallet addresses only as part of conversation records. We never request private keys, seed phrases, or signing permission beyond what the user&apos;s own site already has.
+                The agent reads the public wallet address of connected wallets to provide personalized support. We store wallet addresses only as part of conversation records. We never request private keys, seed phrases, or signing permission beyond what the user&apos;s own site already has.
               </p>
             </section>
 

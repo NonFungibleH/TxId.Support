@@ -17,75 +17,75 @@ import { FadeIn } from "@/components/ui/FadeIn";
 const FEATURES = [
   {
     icon: Wallet,
-    title: "Auto Wallet Detection",
+    title: "Auto wallet detection",
     description:
-      "Silently reads the connected wallet the moment the agent loads. Users get personalised answers without lifting a finger.",
+      "Reads the connected wallet the moment support opens. Personalized answers, zero effort from the user.",
   },
   {
     icon: Activity,
-    title: "Transaction Diagnostics",
+    title: "Transaction diagnostics",
     description:
-      "Any failed transaction explained in plain English: cause, consequence, and the exact step to fix it, before they open a ticket.",
+      "Failed transactions explained with the cause and the fix, before anyone opens a ticket.",
   },
   {
     icon: Zap,
-    title: "Actions (Optional)",
+    title: "Actions (optional)",
     description:
-      "On paid plans, users can ask the agent to prepare swaps, staking, locks or claims: it builds the transaction, they sign it in their own wallet. Off by default.",
+      "Users ask for a swap, stake or claim; TxID prepares it and they sign in their own wallet. Paid plans, off by default.",
   },
   {
     icon: BookOpen,
     title: "Docs Q&A",
     description:
-      "Paste your docs URL. The agent indexes it and answers questions grounded in your own documentation, not hallucinated.",
+      "Point it at your docs. Answers come from your documentation, nowhere else.",
   },
   {
     icon: TrendingUp,
-    title: "Live Token Context",
+    title: "Live token context",
     description:
-      "Set your token address. Users see price, DEX link, and contract info inline. No leaving your site to look it up.",
+      "Price, DEX link and contract info for your token, inline.",
   },
   {
     icon: Palette,
-    title: "Fully White-Label",
+    title: "Fully white-label",
     description:
-      "Your colours, font, and logo. The agent is invisible as a third-party tool. It looks and feels like part of your product.",
+      "Your colors, font and logo. It reads as part of your product.",
   },
   {
     icon: Code2,
-    title: "Simple Embed",
+    title: "Simple embed",
     description:
-      "Add one script tag before your closing body tag. Works with any stack: React, Next.js, Vue, or plain HTML.",
+      "One script tag. Any stack.",
   },
   {
     icon: Globe2,
-    title: "Multi-Chain",
+    title: "Multi-chain",
     description:
-      "Ethereum, Base, BNB Chain, Polygon, Arbitrum, Optimism, Avalanche, and Aptos. Wallet detection and transaction data across all of them, including Move-based Aptos.",
+      "Nine chains live, led by Move-native Aptos alongside every major EVM network.",
   },
   {
     icon: BarChart3,
-    title: "Analytics Dashboard",
+    title: "Analytics dashboard",
     description:
-      "See how many users you're helping: conversations over time, satisfaction ratings, and what they're asking about.",
+      "Conversations, satisfaction and question themes over time.",
   },
   {
     icon: Sparkles,
-    title: "Operational Record",
+    title: "Operational record",
     description:
-      "Every investigation is recorded and searchable: support sees what users struggle with, product sees what to fix, and compliance holds a record it can stand behind.",
+      "Every investigation stored and reviewable, for support, product and compliance.",
   },
   {
     icon: Plug,
-    title: "Team Integrations",
+    title: "Team integrations",
     description:
-      "Send escalations where your team works: Slack, Discord, Telegram, and tracked issues in Linear, GitHub, or Jira.",
+      "Escalations go to Slack, Discord or Telegram, and become tracked issues in Linear, GitHub or Jira.",
   },
   {
     icon: Send,
-    title: "Telegram Support",
+    title: "Telegram support",
     description:
-      "The same engine inside your community's Telegram: members get live diagnosis of their transactions and wallets, with escalations routed to your team.",
+      "The same engine in your community's Telegram, diagnosing members' transactions and wallets live.",
   },
 ];
 
@@ -100,7 +100,7 @@ export function FeatureGrid() {
               Everything your protocol needs to stop firefighting support
             </h2>
             <p className="text-muted max-w-xl mx-auto">
-              Built for Web3 from the ground up, not a generic chatbot bolted on.
+              Built for on-chain products from the ground up.
             </p>
           </div>
         </FadeIn>

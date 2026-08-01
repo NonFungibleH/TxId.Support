@@ -28,7 +28,7 @@ const STAGES = [
     icon: CheckCircle2,
     who: "Your user",
     title: "Gets unblocked",
-    detail: "Plain-English answer with the fix, in seconds.",
+    detail: "The answer and the fix, in seconds.",
     chip: "Fix: raise slippage to 0.5%",
   },
   {

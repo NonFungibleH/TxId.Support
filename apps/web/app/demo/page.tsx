@@ -374,7 +374,7 @@ export default function DemoPage() {
               <p className="hidden lg:block text-xs font-semibold text-muted uppercase tracking-wider mb-4">About TxID Support</p>
               <div className="space-y-3">
                 {[
-                  { title: "Fully white-label", body: "Your colours, font, and logo. Users never know it's TxID Support." },
+                  { title: "Fully white-label", body: "Your colors, font, and logo. Users never know it's TxID Support." },
                   { title: "Live in under 5 minutes", body: "Configure branding, paste your docs URL, copy one script tag." },
                   { title: "Free to try", body: "150 conversations/month free to evaluate. No credit card required." },
                 ].map((item) => (

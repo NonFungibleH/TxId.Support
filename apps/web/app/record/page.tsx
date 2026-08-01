@@ -14,27 +14,27 @@ export const metadata: Metadata = {
 };
 
 const CASE_FIELDS = [
-  { field: "The question", detail: "What the user asked, in their words, on whichever surface they used: your product, Telegram, or the API." },
-  { field: "The evidence", detail: "Every on-chain read the investigation made: transactions fetched, state checked, sources cited." },
-  { field: "The reasoning", detail: "How the engine got from evidence to answer, with verified fact kept distinct from interpretation." },
-  { field: "The resolution", detail: "What the user was told, whether it resolved, and any escalation with its outcome." },
+  { field: "The question", detail: "What the user asked, in their words, wherever they asked it." },
+  { field: "The evidence", detail: "Every on-chain read the investigation made, with its source." },
+  { field: "The reasoning", detail: "How the engine got from evidence to answer. Facts and interpretation are never blurred." },
+  { field: "The resolution", detail: "What the user was told, and how the case ended." },
 ];
 
 const CONSUMERS = [
   {
     icon: Headset,
     who: "Support",
-    what: "Sees what users actually struggle with: every case summarised, categorised, and searchable instead of buried in transcripts.",
+    what: "Stops re-reading transcripts. Every case arrives summarized and categorized, so the team can see what users actually struggle with.",
   },
   {
     icon: Wrench,
     who: "Product & engineering",
-    what: "Sees which failures repeat, which flows confuse users, and which contract errors drive tickets: a prioritisation signal straight from production.",
+    what: "Learns which failures repeat and which flows confuse people. It is a prioritization signal straight from production.",
   },
   {
     icon: Scale,
     who: "Compliance & operations",
-    what: "Can evidence exactly what a client was told, on what basis, and why it was correct: every answer traceable to its on-chain source.",
+    what: "Can show exactly what a client was told and the on-chain evidence it rested on. No reconstruction, no guesswork.",
   },
 ];
 
@@ -55,9 +55,9 @@ export default function RecordPage() {
                   <span className="text-accent">on the record.</span>
                 </h1>
                 <p className="text-lg text-muted leading-relaxed mb-4">
-                  Support tools log conversations. TxID files investigations: the question, the
-                  on-chain evidence, the reasoning, and the resolution, kept as one case your whole
-                  company can rely on.
+                  Support tools log chat transcripts. TxID files the whole investigation, from the
+                  user&apos;s question to the on-chain evidence behind the answer. One case, kept
+                  properly, that your whole company can rely on.
                 </p>
                 <p className="font-mono text-xs text-muted/70 mb-8">
                   The chat is how cases get created. The record is what you keep.
@@ -138,7 +138,7 @@ export default function RecordPage() {
                 <ul className="space-y-3 text-sm text-muted leading-relaxed">
                   <li>
                     <span className="text-[#c8c8d8] font-medium">Today:</span> every conversation stored with its
-                    investigation, summarised and categorised automatically, reviewable by your team in the dashboard.
+                    investigation, summarized and categorized automatically, reviewable by your team in the dashboard.
                   </li>
                   <li>
                     <span className="text-[#c8c8d8] font-medium">Read-only by design:</span> TxID holds no keys, moves no
@@ -166,7 +166,7 @@ export default function RecordPage() {
               </h2>
               <div className="flex flex-wrap gap-3 justify-center mt-6">
                 <Button href="mailto:team@txid.support?subject=TxID Case Record" variant="primary" size="lg">
-                  Talk to us
+                  Email the team
                   <ArrowRight className="w-4 h-4" />
                 </Button>
                 <Button href="/solutions/institutions" variant="outline" size="lg">

@@ -1,4 +1,4 @@
-import { ArrowRight, Play, ShieldCheck } from "lucide-react";
+import { ArrowRight, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { FadeIn } from "@/components/ui/FadeIn";
 import { InvestigationMockup } from "./InvestigationMockup";
@@ -34,7 +34,6 @@ export function Hero() {
             <FadeIn delay={0.24}>
               <div className="flex flex-wrap gap-3">
                 <Button href="/check" variant="primary" size="lg">
-                  <Play className="w-4 h-4" />
                   Try it live
                 </Button>
                 <Button

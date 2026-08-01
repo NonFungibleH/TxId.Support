@@ -1,7 +1,6 @@
 import { Check } from "lucide-react";
 import { FadeIn } from "@/components/ui/FadeIn";
 import { Button } from "@/components/ui/Button";
-import { APP_URL } from "@/lib/config";
 
 const SEGMENTS = [
   {
@@ -9,15 +8,15 @@ const SEGMENTS = [
     heading: "Support your users on-chain",
     subheading: "When things go wrong, your agent already knows why",
     description:
-      "Failed swaps, wrong-network errors, reverted transactions: your agent reads the wallet context and explains what happened in plain English. No ticket queues, no copy-pasting hashes.",
+      "Your agent reads the wallet, sees the failed swap or the wrong network, and explains what happened. No ticket queue in sight.",
     features: [
       "Transaction diagnostics: failed swaps explained in plain English",
       "Wallet-aware: the agent already knows what the user's wallet did",
       "Knowledge base Q&A: trained on your protocol documentation",
       "Escalation tickets with clean hand-off when the agent can't resolve",
     ],
-    cta: "Get started free",
-    ctaHref: `${APP_URL}/sign-up`,
+    cta: "Try it live",
+    ctaHref: "/check",
     dotColor: "bg-accent",
     textColor: "text-accent",
     cardClass: "bg-[var(--bg-surface)] border-[var(--border)] hover:border-accent/50 transition-colors",
@@ -35,8 +34,8 @@ const SEGMENTS = [
       "Staking and rewards: how to participate, what to expect",
       "Community links: Discord, Telegram, Twitter and whitepaper",
     ],
-    cta: "Get started free",
-    ctaHref: `${APP_URL}/sign-up`,
+    cta: "Request access",
+    ctaHref: "mailto:team@txid.support?subject=TxID early access",
     dotColor: "bg-[var(--yellow)]",
     textColor: "text-[var(--yellow)]",
     cardClass: "bg-[var(--bg-surface)] border-[var(--border)] hover:border-[var(--yellow)]/50 transition-colors",
