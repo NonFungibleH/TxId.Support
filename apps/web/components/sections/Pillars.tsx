@@ -45,7 +45,7 @@ export function Pillars() {
               Investigate. Resolve. Record.
             </h2>
             <p className="text-muted max-w-xl mx-auto">
-              Three jobs, one engine. Everything else is a capability in service of these.
+              Everything TxID does comes down to these three.
             </p>
           </div>
         </FadeIn>
