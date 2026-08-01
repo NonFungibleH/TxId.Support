@@ -164,7 +164,7 @@ export function InvestigationMockup({ className }: { className?: string }) {
                 : "border-transparent opacity-0 translate-y-0.5",
             )}
           >
-            <span className="text-muted/80">Case #4821 filed: evidence · reasoning · resolution</span>
+            <span className="text-muted/80">Case #4821 filed</span>
             <span className="text-accent">Compliance-ready ✓</span>
           </div>
         </div>

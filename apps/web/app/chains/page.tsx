@@ -10,7 +10,7 @@ import { ArrowRight } from "lucide-react";
 export const metadata: Metadata = {
   title: "Supported Chains | TxID Support",
   description:
-    "TxID Support diagnoses failed transactions across every major EVM chain (Ethereum, Base, BNB Chain, Polygon, Arbitrum, Optimism, Avalanche) and Move-native Aptos, with Solana, Stellar and TON on the way.",
+    "TxID Support diagnoses failed transactions across every major EVM chain (Ethereum, Base, BNB Chain, Polygon, Arbitrum, Optimism, Avalanche) and Move-native Aptos.",
   alternates: { canonical: "/chains" },
 };
 
@@ -76,7 +76,7 @@ export default function ChainsPage() {
               </h1>
               <p className="text-lg text-muted max-w-2xl mx-auto">
                 TxID diagnoses failed transactions natively on each chain, decoding the real cause and the fix, not a
-                generic FAQ. Live across the major EVM networks and Move-native on Aptos, with more non-EVM ecosystems on the way.
+                generic FAQ. Live across the major EVM networks and Move-native on Aptos.
               </p>
             </FadeIn>
           </div>
