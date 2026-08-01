@@ -54,7 +54,12 @@ export default function ChainsPage() {
   // Live chains only. The coming-soon entries keep their detail pages (deep
   // links and SEO), but a three-card "roadmap" section under nine live chains
   // read as filler, so the index doesn't advertise them.
-  const live = VISIBLE_CHAINS.filter((c) => c.status === "live");
+  const liveChains = VISIBLE_CHAINS.filter((c) => c.status === "live");
+  // Aptos leads: it's the partnership chain and the deepest integration.
+  const live = [
+    ...liveChains.filter((c) => c.slug === "aptos"),
+    ...liveChains.filter((c) => c.slug !== "aptos"),
+  ];
 
   return (
     <>

@@ -59,6 +59,7 @@ export function Hero() {
               <div className="flex flex-wrap items-center gap-x-2.5 gap-y-2">
                 <span className="text-xs text-muted/50 font-mono shrink-0">Available on</span>
                 {[
+                  { name: "Aptos",    file: "Aptos.png",    whiteBg: true  },
                   { name: "Ethereum", file: "Ethereum.png", whiteBg: false },
                   { name: "Base",     file: "Base.png",     whiteBg: true  },
                   { name: "Arbitrum", file: "Arbitrum.png", whiteBg: false },
@@ -66,7 +67,6 @@ export function Hero() {
                   { name: "Optimism", file: "Optimism.png", whiteBg: false },
                   { name: "Avalanche", file: "Avalanche.png", whiteBg: false },
                   { name: "BNB",      file: "BNB.png",      whiteBg: false },
-                  { name: "Aptos",    file: "Aptos.png",    whiteBg: true  },
                 ].map(({ name, file, whiteBg }) => (
                   <div
                     key={name}
