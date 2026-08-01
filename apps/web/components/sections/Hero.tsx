@@ -27,7 +27,7 @@ export function Hero() {
 
             <FadeIn delay={0.16}>
               <p className="text-lg text-muted leading-relaxed mb-8 max-w-lg">
-                TxID investigates every question on live chain data, answers in plain English, and records every case for compliance.
+                TxID investigates every user question like a protocol engineer, answers in seconds, and records every case for compliance.
               </p>
             </FadeIn>
 
