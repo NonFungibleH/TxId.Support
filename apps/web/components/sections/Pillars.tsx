@@ -73,8 +73,8 @@ export function Pillars() {
         <FadeIn delay={0.2}>
           <p className="text-center mt-8 text-sm text-muted">
             Want the full list?{" "}
-            <Link href="/capabilities" className="text-accent hover:underline">
-              Every capability, in one place →
+            <Link href="/features" className="text-accent hover:underline">
+              See all features →
             </Link>
           </p>
         </FadeIn>

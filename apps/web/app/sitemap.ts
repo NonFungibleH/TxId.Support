@@ -41,7 +41,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${BASE}/solutions/issuers`, lastModified: new Date(), changeFrequency: "monthly", priority: 0.7 },
     { url: `${BASE}/solutions/institutions`, lastModified: new Date(), changeFrequency: "monthly", priority: 0.7 },
     { url: `${BASE}/record`, lastModified: new Date(), changeFrequency: "monthly", priority: 0.8 },
-    { url: `${BASE}/capabilities`, lastModified: new Date(), changeFrequency: "monthly", priority: 0.6 },
+    { url: `${BASE}/features`, lastModified: new Date(), changeFrequency: "monthly", priority: 0.6 },
     { url: `${BASE}/company`, lastModified: new Date(), changeFrequency: "monthly", priority: 0.5 },
     { url: `${BASE}/security`, lastModified: new Date(), changeFrequency: "monthly", priority: 0.6 },
     ...chains,
