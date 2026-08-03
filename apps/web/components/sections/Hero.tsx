@@ -32,7 +32,7 @@ export function Hero() {
 
             <FadeIn delay={0.16}>
               <p className="text-lg text-muted leading-relaxed mb-8 max-w-lg">
-                Users get answers backed by live on-chain data. Your support team handles fewer tickets, and your compliance team has a complete audit trail of every interaction.
+                Users get guided support backed by live on-chain data. Your support team handles fewer tickets, while your compliance team has a complete audit trail of every interaction.
               </p>
             </FadeIn>
 
