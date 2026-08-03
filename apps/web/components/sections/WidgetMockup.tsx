@@ -9,7 +9,7 @@ export type MockActivity = { status: "success" | "failed"; label: string; time: 
 export type MockExchange = { q: string; thinking: string; a: string };
 
 // Defaults are the failed-swap conversation used on the homepage and
-// /solutions/protocols. /how-it-works runs the same widget on a liquidation
+// /solutions. /how-it-works runs the same widget on a liquidation
 // case, so the whole conversation is a prop.
 const DEFAULT_ACTIVITY: MockActivity[] = [
   { status: "success", label: "Swap ETH → USDC", time: "2m ago" },
