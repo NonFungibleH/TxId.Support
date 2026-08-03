@@ -27,11 +27,11 @@ export const FAQS = [
   },
   {
     q: "Can I try it before committing?",
-    a: "Yes, the Free plan has no credit card required. You get 150 conversations per month, wallet detection, transaction diagnostics, and docs Q&A. It is enough to evaluate the product on your own site; when you are ready to run it in production, talk to us about a Custom plan.",
+    a: "Yes. The Evaluation tier gives you 150 conversations a month with wallet detection, transaction diagnostics, and docs Q&A, so you can prove TxID on your own protocol first. When you are ready to run it in production, we move you onto an Enterprise plan priced to your platform.",
   },
   {
-    q: "Is it really white-label on the free plan?",
-    a: "Yes. The free plan includes custom colors, font, and logo. Our Custom plan goes further with a custom agent name, avatar, and priority support.",
+    q: "Is it really white-label while we evaluate?",
+    a: "Yes. Evaluation includes custom colours, font, and logo. Enterprise goes further with a full white-label experience, a custom agent name and avatar, and priority support.",
   },
   {
     q: "Which blockchains does TxID Support work with?",

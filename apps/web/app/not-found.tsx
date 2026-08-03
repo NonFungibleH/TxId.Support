@@ -33,7 +33,7 @@ const DESTINATIONS = [
   {
     icon: Tag,
     title: "Pricing",
-    description: "Plans, limits, and what the free tier includes.",
+    description: "Plans, limits, and what each tier includes.",
     href: "/pricing",
   },
   {

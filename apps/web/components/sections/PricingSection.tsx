@@ -4,70 +4,48 @@ import { FadeIn } from "@/components/ui/FadeIn";
 import { APP_URL } from "@/lib/config";
 import { clsx } from "clsx";
 
-// Enterprise-first ordering: platforms and institutions are the lead buyer,
-// the free tier is the evaluation lane.
+// Enterprise-first ordering: platforms and institutions are the lead buyer.
+// Evaluation is for testing the intelligence, Enterprise is the deployment.
 const PLANS = [
-  // Pro plan temporarily hidden pre-launch - pricing not yet finalised.
-  // Restore this object (and the md:grid-cols-2 → md:grid-cols-3 below) once
-  // a price is set.
-  // {
-  //   name: "Pro",
-  //   price: "$999",
-  //   period: "/mo",
-  //   badge: "Most Popular",
-  //   description: "For protocols with active on-chain users",
-  //   cta: "Get Pro",
-  //   ctaHref: "mailto:team@txid.support?subject=Upgrade to Pro",
-  //   highlight: true,
-  //   features: [
-  //     { label: "2,500 conversations / month", soon: false },
-  //     { label: "1 blockchain", soon: false },
-  //     { label: "Wallet & transaction lookups", soon: false },
-  //     { label: "Custom branding (colours, font, logo)", soon: false },
-  //     { label: "Custom agent name + avatar", soon: false },
-  //     { label: "Token price + chart", soon: false },
-  //     { label: "Escalation webhooks", soon: false },
-  //     { label: "Priority support", soon: false },
-  //     { label: "CSV export", soon: false },
-  //   ],
-  // },
   {
     name: "Enterprise",
-    price: "Let's talk",
+    price: "Custom",
     period: null,
-    badge: "For platforms & institutions",
-    description: "The full layer, priced to your protocol or platform",
-    cta: "Talk to us",
+    badge: "For protocols, platforms & institutions",
+    description: "The complete on-chain support layer, tailored to your organisation",
+    cta: "Talk to our team",
     ctaHref: "mailto:team@txid.support?subject=TxID Support demo",
     highlight: true,
     features: [
-      { label: "Every surface: embedded, Telegram, API & MCP", soon: false },
-      { label: "Multiple blockchains, EVM + Aptos", soon: false },
-      { label: "The Case Record: recorded, reviewable investigations", soon: false },
-      { label: "Escalations into Slack, Linear, GitHub, Jira", soon: false },
-      { label: "Full white-label branding", soon: false },
-      { label: "Actions: user-signed swaps, staking & claims (optional)", soon: false },
-      { label: "Priority support and a named contact", soon: false },
+      { label: "All deployment surfaces: embedded widget, Telegram, API & MCP agent access", soon: false },
+      { label: "Multi-chain support across EVM and Aptos", soon: false },
+      { label: "The Case Record: searchable, reviewable investigations", soon: false },
+      { label: "Escalations into Slack, Linear, GitHub, and Jira", soon: false },
+      { label: "Full white-label experience", soon: false },
+      { label: "Optional user-authorised on-chain actions", soon: false },
+      { label: "Priority support with a dedicated contact", soon: false },
     ],
   },
   {
     name: "Evaluation",
-    price: "Free",
-    period: null,
+    // No "Free": for an institutional buyer the word cheapens the tier. The
+    // allowance carries the headline instead.
+    price: "150 conversations",
+    period: "/ month",
     badge: null,
-    description: "Prove it on your own protocol before you commit",
+    description: "Prove TxID on your own protocol before committing",
     cta: "Coming soon",
     // Sign-ups are paused while early teams are hand-onboarded; the app's
     // sign-up page shows the same message with a request-access contact.
     ctaHref: `${APP_URL}/sign-up`,
     highlight: false,
     features: [
-      { label: "150 conversations / month", soon: false },
       { label: "1 blockchain", soon: false },
       { label: "Custom branding", soon: false },
-      { label: "Wallet detection & transaction diagnosis", soon: false },
+      { label: "Wallet detection", soon: false },
+      { label: "Transaction diagnosis", soon: false },
       { label: "Knowledge base Q&A", soon: false },
-      { label: "Script tag embed", soon: false },
+      { label: "Script-tag embed", soon: false },
       { label: "Analytics dashboard", soon: false },
     ],
   },
@@ -85,7 +63,7 @@ export function PricingSection({ compact }: { compact?: boolean }) {
                 Simple, transparent pricing
               </h2>
               <p className="text-muted max-w-xl mx-auto">
-                We price to your platform. You can evaluate free first.
+                Test the intelligence, then deploy it as infrastructure.
               </p>
             </div>
           </FadeIn>
@@ -118,7 +96,7 @@ export function PricingSection({ compact }: { compact?: boolean }) {
                   </div>
                   <p className="text-xs text-muted mb-3">{plan.description}</p>
                   <div className="flex items-baseline gap-1">
-                    <span className="font-display text-3xl font-bold text-white">
+                    <span className="font-display text-2xl sm:text-3xl font-bold text-white">
                       {plan.price}
                     </span>
                     {plan.period && (
@@ -158,9 +136,9 @@ export function PricingSection({ compact }: { compact?: boolean }) {
         {compact && (
           <FadeIn delay={0.25}>
             <p className="text-center text-sm text-muted mt-8">
-              Need to compare plans?{" "}
+              Want the detail?{" "}
               <a href="/pricing" className="text-accent hover:underline underline-offset-2">
-                See the full feature breakdown →
+                See pricing in full →
               </a>
             </p>
           </FadeIn>

@@ -41,7 +41,7 @@ export const softwareApplicationSchema = {
     price: "0",
     priceCurrency: "USD",
     description:
-      "Free plan: 150 conversations per month to evaluate the product, with wallet detection, transaction diagnostics, and docs Q&A. No credit card required.",
+      "Evaluation tier: 150 conversations per month to prove TxID on your own protocol, with wallet detection, transaction diagnostics, and docs Q&A. Enterprise is priced to your platform.",
   },
   featureList: [
     "Automatic wallet detection (MetaMask, WalletConnect, Coinbase Wallet, Phantom)",
