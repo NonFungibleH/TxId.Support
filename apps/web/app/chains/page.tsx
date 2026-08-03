@@ -10,7 +10,7 @@ import { ArrowRight } from "lucide-react";
 export const metadata: Metadata = {
   title: "Supported Chains | TxID",
   description:
-    "TxID diagnoses failed transactions across every major EVM chain (Ethereum, Base, BNB Chain, Polygon, Arbitrum, Optimism, Avalanche) and Move-native Aptos.",
+    "TxID diagnoses failed transactions natively across each supported network, understanding the execution model, contract behaviour, and failure patterns unique to each ecosystem. 9 chains live, including Move-native Aptos.",
   alternates: { canonical: "/chains" },
 };
 
@@ -42,7 +42,7 @@ function ChainCard({ chain }: { chain: ChainInfo }) {
         </div>
       </div>
       {/* Fixed two-line tagline zone so every card sits at the same height. */}
-      <p className="text-sm text-muted leading-relaxed mb-3 line-clamp-2 min-h-[2.9em] flex-1">{chain.tagline}</p>
+      <p className="text-sm text-muted leading-relaxed mb-3 line-clamp-3 min-h-[4.35em] flex-1">{chain.tagline}</p>
       <span className="inline-flex items-center gap-1 text-xs font-medium mt-auto" style={{ color: chain.color }}>
         View {chain.name} <ArrowRight className="w-3 h-3 transition-transform group-hover:translate-x-0.5" />
       </span>
@@ -75,13 +75,17 @@ export default function ChainsPage() {
             <FadeIn>
               <p className="font-mono text-sm text-accent mb-4">Chains</p>
               <h1 className="font-display text-5xl font-bold text-white mb-4 leading-[1.1] tracking-tight">
-                One support agent.
+                One intelligence layer.
                 <br />
                 <span className="text-accent">Every chain your users are on.</span>
               </h1>
+              <p className="text-lg text-muted max-w-2xl mx-auto mb-3">
+                TxID diagnoses failed transactions natively across each supported network,
+                understanding the execution model, contract behaviour, and failure patterns
+                unique to each ecosystem.
+              </p>
               <p className="text-lg text-muted max-w-2xl mx-auto">
-                TxID diagnoses failed transactions natively on each chain, on that chain&apos;s own terms. Nine chains live,
-                led by Move-native Aptos.
+                9 chains live, including Move-native Aptos.
               </p>
             </FadeIn>
           </div>

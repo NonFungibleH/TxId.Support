@@ -10,7 +10,7 @@ import { ArrowRight, Check, Archive, Blocks, Landmark, Building2 } from "lucide-
 export const metadata: Metadata = {
   title: "Solutions | TxID",
   description:
-    "One support and operations layer for DeFi protocols, issuers and tokenisation platforms, and institutions. The same investigation engine, seen through each team's eyes.",
+    "One support and operations layer for DeFi protocols, issuers and tokenisation platforms, and institutions. The same investigation engine, adapted for the teams responsible for on-chain users, assets, and operations.",
   alternates: { canonical: "/solutions" },
 };
 
@@ -19,13 +19,13 @@ function RecordVisual() {
     <div className="max-w-md mx-auto rounded-2xl border border-[var(--border)] bg-[#0d0d18] overflow-hidden">
       <div className="flex items-center gap-2 px-4 py-2.5 border-b border-[var(--border)] bg-[#10101d]">
         <Archive className="w-3.5 h-3.5 text-accent" />
-        <p className="text-xs font-semibold text-white">Case record</p>
+        <p className="text-xs font-semibold text-white">The Case Record</p>
       </div>
       <div className="divide-y divide-[var(--border)]">
         {[
-          ["#4822", "Stuck withdrawal · timelock", "Escalated", "text-amber-400"],
-          ["#4821", "Failed swap · slippage", "Resolved", "text-emerald-400"],
-          ["#4820", "Wrong network · bridge", "Resolved", "text-emerald-400"],
+          ["#4822", "Liquidation dispute", "Escalated", "text-amber-400"],
+          ["#4821", "Failed swap · Slippage", "Resolved", "text-emerald-400"],
+          ["#4820", "Wrong network · Bridge", "Resolved", "text-emerald-400"],
           ["#4819", "Approval question", "Resolved", "text-emerald-400"],
         ].map(([id, label, status, color]) => (
           <div key={id} className="flex items-center gap-3 px-4 py-2.5">
@@ -37,7 +37,7 @@ function RecordVisual() {
       </div>
       <div className="px-4 py-2.5 border-t border-[var(--border)] bg-[#10101d]">
         <p className="text-[10px] font-mono text-muted/60">
-          Searchable · exportable · every answer traceable to its evidence
+          Searchable · Exportable · Traceable to evidence
         </p>
       </div>
     </div>
@@ -46,17 +46,25 @@ function RecordVisual() {
 
 // One page rather than three thin ones: the same skeleton per audience, so the
 // set reads as one platform seen through three buyers' eyes.
+interface Pain {
+  title: string;
+  paras: string[];
+  bullets?: string[];
+  tail?: string;
+}
+
 interface Audience {
   id: string;
   icon: React.ElementType;
   badge: string;
-  nav: string;
   headline: React.ReactNode;
-  sub: string;
-  pains: { title: string; detail: string }[];
+  subParas: string[];
+  pains: Pain[];
   delivers: string[];
+  // The record card carries its own header and footer, so it takes neither.
+  visualLabel?: string;
   visual: React.ReactNode;
-  visualCaption: string;
+  visualCaption?: string[];
   cta?: { label: string; href: string };
 }
 
@@ -65,116 +73,154 @@ const AUDIENCES: Audience[] = [
     id: "protocols",
     icon: Blocks,
     badge: "Protocols",
-    nav: "Protocols",
     headline: (
       <>
-        Your users&apos; questions,{" "}
-        <span className="text-accent">answered like an engineer would.</span>
+        Give users answers that{" "}
+        <span className="text-accent">normally require an engineer</span>
       </>
     ),
-    sub: "Failed swaps, stuck orders, wrong networks: every on-chain product generates questions only someone who can read the chain can answer. TxID answers them in your product and your community, around the clock.",
+    subParas: [
+      "Failed swaps, stuck transactions, wrong networks, and contract errors create support questions that only someone who understands the chain can resolve.",
+      "TxID brings that expertise directly into your product and community, 24/7.",
+    ],
     pains: [
       {
-        title: "Questions overspill to specialists",
-        detail:
-          "Most users and most support staff can't read a transaction. The same issues repeat across Discord, Telegram and tickets until an engineer steps in.",
+        title: "Support shouldn't depend on the person who understands the chain",
+        paras: [
+          "Most users cannot read transactions. Most support teams cannot either.",
+          "The same issues repeat across Discord, Telegram, and tickets until an engineer investigates manually.",
+        ],
       },
       {
-        title: "Every answer is an investigation",
-        detail:
-          "Knowing where to look, reading the transaction, checking balances and approvals, sometimes tracing across other protocols. That expertise doesn't scale.",
-      },
-      {
-        title: "Users give up before you reply",
-        detail:
-          "By the time a human answers a 2am question, the user has already abandoned the transaction, or the protocol.",
+        title: "Every answer becomes an investigation",
+        paras: [
+          "TxID checks the transaction, reads contract state, verifies balances and approvals, and explains what happened.",
+          "The expertise that previously lived with a handful of engineers becomes available instantly.",
+        ],
       },
     ],
     delivers: [
-      "A user with a failed swap at 2am has the diagnosis and the fix thirty seconds later",
-      "Answers grounded in your docs, your contracts, and your own error maps",
-      "Escalations land in Slack or your tracker with the work already done, so engineers stop re-checking what was already checked",
-      "Support history becomes a record of what users actually struggle with",
-      "Live on 9 chains, including Move-native Aptos, and it understands subaccounts and delegated session keys",
+      "Failed transactions diagnosed in seconds",
+      "Answers grounded in your documentation, contracts, and error mappings",
+      "Escalations delivered with investigation context already attached",
+      "Support data transformed into product insights",
+      "Multi-chain support, including Move-native Aptos",
     ],
+    visualLabel: "Embedded experience",
     visual: <WidgetMockup className="relative" />,
-    visualCaption: "The embedded surface: your brand, your docs, live chain reads",
+    visualCaption: ["Your brand.", "Your documentation.", "Live blockchain intelligence."],
   },
   {
     id: "issuers",
     icon: Landmark,
     badge: "Issuers & tokenisation platforms",
-    nav: "Issuers",
     headline: (
       <>
-        Assets on-chain means <span className="text-accent">questions on-chain.</span>
+        When assets move on-chain, <span className="text-accent">questions follow</span>
       </>
     ),
-    sub: "Stablecoin issuers, tokenisation platforms, neobanks and wallet providers inherit client-facing support obligations the moment value moves on-chain. Your clients' users have no chain knowledge at all, and their questions still have to be answered correctly.",
+    subParas: [
+      "Stablecoins, tokenised assets, and digital financial products create new client support responsibilities.",
+      "Your users may not understand the blockchain, but their questions still need accurate answers.",
+    ],
     pains: [
       {
-        title: "Mainstream users, on-chain problems",
-        detail:
-          "\"Where is my money?\" now has an on-chain answer: a pending settlement, a sponsored transaction, an address that rotated. Your support stack can't see any of it.",
+        title: "Traditional support cannot see the full picture",
+        paras: ["“Where is my money?” might mean:"],
+        bullets: [
+          "A pending settlement",
+          "A delayed transaction",
+          "A wallet change",
+          "A contract state issue",
+        ],
+        tail: "The answer exists on-chain, but traditional support tools cannot access it.",
       },
       {
-        title: "Every tenant multiplies the load",
-        detail:
-          "Each client you onboard brings their own users, their own assets, and their own stream of questions your team is expected to field.",
-      },
-      {
-        title: "Wrong answers are expensive",
-        detail:
-          "A client-facing answer about on-chain assets has to be correct, and it has to be defensible after the fact. Guesswork is a liability.",
+        title: "Every client increases operational complexity",
+        paras: [
+          "Each platform, tenant, or asset introduces new users, new workflows, and new support requirements.",
+          "TxID provides a scalable support layer without adding more manual investigation.",
+        ],
       },
     ],
     delivers: [
-      "White-label support inside your product, or one deployment per tenant",
-      "When a client asks where their money is, the answer comes from the chain, with the source",
-      "Fluent in what confuses mainstream users most: settlement timing, sponsored gas, changed addresses",
-      "Every case filed, so operations can show what was said and why it was right",
-      "Runs on 9 chains today, including Aptos, where tokenised assets are heading",
+      "White-label support embedded into your product",
+      "Answers based on live blockchain data and verified sources",
+      "Clear explanations for settlement, transfers, and asset activity",
+      "Complete case records for operations and review",
+      "Support across EVM and Move-native environments",
     ],
-    visual: <InvestigationMockup />,
-    visualCaption: "Every answer is an investigation with evidence, not a guess",
+    visualLabel: "Example investigation",
+    visual: (
+      <InvestigationMockup
+        steps={[
+          { label: "Transaction identified" },
+          { label: "Error decoded" },
+          { label: "Wallet impact checked" },
+        ]}
+        verdict={
+          <span className="space-y-1.5 block">
+            <span className="block">
+              <span className="text-white font-medium">Finding:</span> the swap failed because
+              the price moved beyond the user&apos;s slippage tolerance.
+            </span>
+            <span className="block">
+              <span className="text-white font-medium">Resolution:</span> retry with slippage
+              increased to 0.5%.
+            </span>
+          </span>
+        }
+        showLifecycleTail={false}
+      />
+    ),
+    visualCaption: ["Evidence-backed answer delivered ✓"],
   },
   {
     id: "institutions",
     icon: Building2,
     badge: "Institutions",
-    nav: "Institutions",
     headline: (
       <>
-        Answer clients correctly, <span className="text-accent">and defensibly.</span>
+        Answer clients correctly. <span className="text-accent">Defend every answer.</span>
       </>
     ),
-    sub: "When an institution's clients hold on-chain assets, operations and compliance teams must answer questions about them without in-house chain expertise, and stand behind every answer afterwards.",
+    subParas: [
+      "When clients hold assets on-chain, operations teams become responsible for explaining what happened.",
+      "Those answers need to be accurate, verifiable, and reviewable.",
+    ],
     pains: [
       {
-        title: "Client questions, chain answers",
-        detail:
-          "Settlement status, asset movements, failed transactions: the correct answer lives on-chain, where your client-service tooling can't reach.",
+        title: "Client questions require blockchain expertise",
+        paras: [
+          "Settlement status. Asset movements. Failed transactions.",
+          "The answer exists on-chain, but most client service tooling cannot access it.",
+        ],
       },
       {
-        title: "Expertise doesn't scale",
-        detail:
-          "The few people who can read a chain become the bottleneck for every client query, at any hour, in any market condition.",
+        title: "Expertise becomes a bottleneck",
+        paras: [
+          "The few people who understand blockchain activity become responsible for every investigation.",
+          "That does not scale across clients, markets, or time zones.",
+        ],
       },
       {
-        title: "Answers must be evidenced",
-        detail:
-          "What was the client told, on what basis, and was it correct? Without a record, every answer is an unmanaged risk.",
+        title: "Every answer needs evidence",
+        paras: [
+          "What was the client told?",
+          "What data supported it?",
+          "Could the decision be reviewed later?",
+        ],
+        tail: "TxID creates the record automatically.",
       },
     ],
     delivers: [
-      "Every claim comes from a live chain read, with the source cited",
-      "Each case is filed with its evidence and resolution, ready for review",
-      "OFAC sanctions screening and contract verification on request, against the on-chain oracle",
-      "Escalations reach your existing tools with the work already done",
-      "Read-only. No custody, no keys, no advice.",
+      "Every response backed by live blockchain data",
+      "Evidence attached to every case",
+      "Contract verification and sanctions checks where required",
+      "Escalations delivered into existing workflows",
+      "Read-only by design: no custody, no keys, no financial advice",
     ],
     visual: <RecordVisual />,
-    visualCaption: "The record: what compliance actually buys",
     cta: { label: "See the case record", href: "/record" },
   },
 ];
@@ -193,8 +239,8 @@ export default function SolutionsPage() {
                 One layer, three teams.
               </h1>
               <p className="text-lg text-muted leading-relaxed mb-10">
-                The same investigation engine, seen through the eyes of the team that relies
-                on it.
+                The same investigation engine, adapted for the teams responsible for on-chain
+                users, assets, and operations.
               </p>
               <div className="flex flex-wrap gap-2.5 justify-center">
                 {AUDIENCES.map((a) => (
@@ -204,7 +250,7 @@ export default function SolutionsPage() {
                     className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--bg-surface)] px-4 py-2 text-sm text-muted hover:border-accent/50 hover:text-white transition-colors"
                   >
                     <a.icon className="w-4 h-4 text-accent" />
-                    {a.nav}
+                    {a.badge}
                   </a>
                 ))}
               </div>
@@ -227,16 +273,50 @@ export default function SolutionsPage() {
                   <h2 className="font-display text-4xl font-bold text-white leading-[1.15] tracking-tight mb-4">
                     {a.headline}
                   </h2>
-                  <p className="text-muted leading-relaxed">{a.sub}</p>
+                  <div className="space-y-3">
+                    {a.subParas.map((p) => (
+                      <p key={p} className="text-muted leading-relaxed">
+                        {p}
+                      </p>
+                    ))}
+                  </div>
                 </div>
               </FadeIn>
 
-              <div className="grid md:grid-cols-3 gap-5 mb-16">
+              {/* Two or three pains depending on the audience, so the row always
+                  fills rather than leaving an orphan card. */}
+              <div
+                className={`grid gap-5 mb-16 ${
+                  a.pains.length === 2 ? "md:grid-cols-2" : "md:grid-cols-3"
+                }`}
+              >
                 {a.pains.map((p, i) => (
                   <FadeIn key={p.title} delay={i * 0.08}>
                     <div className="h-full rounded-xl border border-[var(--border)] bg-[var(--bg-surface)] p-7">
-                      <h3 className="font-display font-semibold text-white mb-2.5">{p.title}</h3>
-                      <p className="text-sm text-muted leading-relaxed">{p.detail}</p>
+                      <h3 className="font-display font-semibold text-white mb-3">{p.title}</h3>
+                      <div className="space-y-2.5">
+                        {p.paras.map((t) => (
+                          <p key={t} className="text-sm text-muted leading-relaxed">
+                            {t}
+                          </p>
+                        ))}
+                      </div>
+                      {p.bullets && (
+                        <ul className="mt-3 space-y-1.5">
+                          {p.bullets.map((b) => (
+                            <li
+                              key={b}
+                              className="flex items-start gap-2.5 text-sm text-muted"
+                            >
+                              <span className="mt-1.5 w-1 h-1 rounded-full bg-accent shrink-0" />
+                              <span>{b}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                      {p.tail && (
+                        <p className="mt-3 text-sm text-muted leading-relaxed">{p.tail}</p>
+                      )}
                     </div>
                   </FadeIn>
                 ))}
@@ -267,8 +347,21 @@ export default function SolutionsPage() {
                   )}
                 </FadeIn>
                 <FadeIn delay={0.1} className="lg:[direction:ltr]">
+                  {a.visualLabel && (
+                    <p className="font-mono text-[11px] uppercase tracking-widest text-muted/60 mb-4 text-center">
+                      {a.visualLabel}
+                    </p>
+                  )}
                   {a.visual}
-                  <p className="text-center text-xs text-muted/60 mt-5">{a.visualCaption}</p>
+                  {a.visualCaption && (
+                    <div className="mt-5 text-center space-y-0.5">
+                      {a.visualCaption.map((c) => (
+                        <p key={c} className="text-xs text-muted/60">
+                          {c}
+                        </p>
+                      ))}
+                    </div>
+                  )}
                 </FadeIn>
               </div>
             </div>
@@ -280,7 +373,7 @@ export default function SolutionsPage() {
           <div className="max-w-3xl mx-auto px-6 text-center">
             <FadeIn>
               <h2 className="font-display text-3xl font-bold text-white mb-4">
-                One layer, whichever team you sit on
+                One layer. Every team.
               </h2>
               <p className="text-muted mb-8">
                 See how TxID works with your protocol, or request early access.

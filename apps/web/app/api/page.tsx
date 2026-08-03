@@ -23,7 +23,7 @@ import {
 export const metadata: Metadata = {
   title: "API & MCP | TxID",
   description:
-    "Access the same on-chain intelligence that powers TxID through API and MCP. Give your products, support teams, and AI agents the ability to understand transactions and explain failures from live blockchain data.",
+    "Access the same investigation engine that powers TxID through API and MCP. Give your products, support teams, and AI agents the ability to understand transactions, explain failures, and deliver evidence-backed answers from live blockchain data.",
   alternates: { canonical: "/api" },
 };
 
@@ -53,7 +53,7 @@ const CAPABILITIES = [
     title: "Transaction diagnosis",
     lead: "Understand:",
     items: [
-      "Why a transaction failed",
+      "Failed transactions",
       "Decoded errors",
       "Token transfers",
       "Gas outcomes",
@@ -102,15 +102,15 @@ const USE_CASES = [
     icon: MessagesSquare,
     title: "Support platforms",
     paras: [
-      "Give support agents the diagnosis before they respond.",
-      "Connect TxID to Zendesk, Intercom, or internal tooling so teams understand the root cause instantly.",
+      "Give support teams the diagnosis before they respond.",
+      "Connect TxID to Zendesk, Intercom, or internal tooling so agents understand the root cause immediately.",
     ],
   },
   {
     icon: Bot,
     title: "AI agents & copilots",
     paras: [
-      "Give AI systems access to real blockchain intelligence.",
+      "Give AI systems access to real blockchain reasoning.",
       "Answer questions like “Why did this transaction fail?” with verified on-chain evidence.",
     ],
   },
@@ -118,16 +118,16 @@ const USE_CASES = [
     icon: Blocks,
     title: "Wallets & applications",
     paras: [
-      "Explain failed transactions directly inside your product.",
-      "Help users recover faster without leaving the experience.",
+      "Explain failed transactions inside your product.",
+      "Help users recover without leaving the experience.",
     ],
   },
   {
     icon: ShieldCheck,
     title: "Compliance & operations teams",
     paras: [
-      "Add blockchain intelligence to existing workflows.",
-      "Verify activity, understand transactions, and maintain a complete record.",
+      "Bring blockchain intelligence into existing workflows.",
+      "Verify activity, understand transactions, and maintain complete case records.",
     ],
   },
 ];
@@ -197,13 +197,13 @@ export default function PlatformPage() {
                 <span className="text-accent">wherever you need it</span>
               </h1>
               <p className="text-lg text-muted mb-3">
-                Access the same on-chain intelligence that powers TxID through API
+                Access the same investigation engine that powers TxID through API
                 and MCP.
               </p>
               <p className="text-lg text-muted mb-8">
                 Give your products, support teams, and AI agents the ability to understand
-                transactions, explain failures, and provide verified answers from live
-                blockchain data.
+                transactions, explain failures, and deliver evidence-backed answers from
+                live blockchain data.
               </p>
               <div className="flex flex-wrap gap-3">
                 <Button href="/contact" variant="primary" size="lg">
@@ -258,12 +258,12 @@ export default function PlatformPage() {
                   <p className="text-muted leading-relaxed mb-5">
                     Receive a complete diagnosis, not raw traces or blockchain data dumps.
                   </p>
-                  <p className="text-sm font-semibold text-white mb-2.5">TxID returns:</p>
+                  <p className="text-sm font-semibold text-white mb-2.5">TxID explains:</p>
                   <Bullets
                     items={[
                       "What happened",
                       "Why it happened",
-                      "What the user should do next",
+                      "What should happen next",
                     ]}
                   />
                 </FadeIn>
@@ -311,14 +311,14 @@ export default function PlatformPage() {
                 />
                 <p className="text-muted leading-relaxed mb-5">
                   Connect TxID to MCP-compatible AI tools and give agents access to real
-                  on-chain diagnostics.
+                  transaction intelligence.
                 </p>
                 <p className="text-sm font-semibold text-white mb-2.5">Agents can:</p>
                 <Bullets
                   items={[
-                    "Investigate failed transactions",
+                    "Diagnose failed transactions",
                     "Read contract state",
-                    "Check wallet activity",
+                    "Understand wallet activity",
                     "Verify blockchain data",
                     "Provide evidence-backed answers",
                   ]}
@@ -338,22 +338,23 @@ export default function PlatformPage() {
                 <SurfaceHeading
                   icon={Bot}
                   label="Headless support"
-                  title="Bring TxID intelligence into your own experience"
+                  title="Bring TxID into your own experience"
                 />
                 <p className="text-muted leading-relaxed mb-5">
-                  Use the same diagnostic engine behind your own:
+                  Use the same diagnostic engine behind:
                 </p>
                 <Bullets
                   items={[
                     "In-app support",
                     "Discord bots",
-                    "Customer support tooling",
+                    "Customer service platforms",
                     "AI assistants",
                     "Internal workflows",
                   ]}
                 />
                 <p className="mt-5 text-sm text-[#c8c8d8] border-l-2 border-accent/50 pl-4">
-                  Your users see your experience. TxID provides the intelligence underneath.
+                  Your users interact with your product. TxID provides the intelligence
+                  underneath.
                 </p>
               </div>
             </FadeIn>
@@ -370,8 +371,8 @@ export default function PlatformPage() {
                   The same tools used by TxID
                 </h2>
                 <p className="text-muted max-w-xl mx-auto">
-                  Every diagnostic capability available in the embedded experience can be
-                  accessed programmatically.
+                  Every investigation capability available in the embedded experience can
+                  be accessed programmatically.
                 </p>
               </div>
             </FadeIn>
