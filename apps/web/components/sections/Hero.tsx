@@ -15,13 +15,18 @@ export function Hero() {
       />
 
       <div className="max-w-6xl mx-auto px-6 w-full">
-        <div className="grid lg:grid-cols-2 gap-12 items-center">
+        {/* Text column runs wider than the visual: the mockup is capped at
+            max-w-md anyway, and the headline needs the room to sit on two
+            lines instead of three. */}
+        <div className="grid lg:grid-cols-[1.3fr_1fr] gap-12 items-center">
           <div>
             <FadeIn delay={0.08}>
-              <h1 className="font-display text-5xl lg:text-6xl font-bold text-white leading-[1.1] tracking-tight mb-6">
-                The support layer for
-                <br />
-                <span className="text-accent">on-chain finance.</span>
+              <h1 className="font-display text-4xl sm:text-5xl xl:text-[52px] font-bold text-white leading-[1.1] tracking-tight mb-6">
+                The support layer
+                {/* Forced two-line break on desktop only; small screens wrap
+                    naturally rather than stacking four short lines. */}
+                <br className="hidden lg:block" />{" "}
+                for <span className="text-accent">on-chain finance.</span>
               </h1>
             </FadeIn>
 
