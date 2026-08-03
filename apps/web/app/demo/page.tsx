@@ -241,7 +241,7 @@ function WidgetDemo({ scenario }: { scenario: (typeof SCENARIOS)[number] }) {
           </div>
         </div>
         <div className="flex items-center justify-between mt-2">
-          <p className="text-[10px] text-muted font-mono">Powered by TxID Support</p>
+          <p className="text-[10px] text-muted font-mono">Powered by TxID</p>
           {done && (
             <button onClick={startAnimation} className="text-[10px] text-accent hover:underline font-mono">
               ↺ replay
@@ -266,7 +266,7 @@ function LiveWidget() {
         width={340}
         height={520}
         style={{ border: "none", borderRadius: "1rem" }}
-        title="TxID Support: live demo"
+        title="TxID: live demo"
         allow="clipboard-write"
       />
     </div>
@@ -371,10 +371,10 @@ export default function DemoPage() {
 
             {/* Right: about this product - clearly NOT interactive */}
             <div className="lg:w-56 w-full shrink-0">
-              <p className="hidden lg:block text-xs font-semibold text-muted uppercase tracking-wider mb-4">About TxID Support</p>
+              <p className="hidden lg:block text-xs font-semibold text-muted uppercase tracking-wider mb-4">About TxID</p>
               <div className="space-y-3">
                 {[
-                  { title: "Fully white-label", body: "Your colors, font, and logo. Users never know it's TxID Support." },
+                  { title: "Fully white-label", body: "Your colors, font, and logo. Users never know it's TxID." },
                   { title: "Live in under 5 minutes", body: "Configure branding, paste your docs URL, copy one script tag." },
                   { title: "Evaluate it first", body: "150 conversations a month to prove it on your own protocol before you commit." },
                 ].map((item) => (

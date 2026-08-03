@@ -193,7 +193,7 @@ export async function POST(request: Request) {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          from: "TxID Support <noreply@txid.support>",
+          from: "TxID <noreply@txid.support>",
           to: [notificationEmail],
           subject: `[${ref}] New support ticket: ${safeSummary.slice(0, 60)}`,
           text: emailBody,

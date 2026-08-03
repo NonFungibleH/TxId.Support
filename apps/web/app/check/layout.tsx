@@ -4,12 +4,12 @@ import { transactionGlossarySchema } from "@/lib/seo"
 
 // /check is a client component, so its metadata lives in this route layout.
 export const metadata: Metadata = {
-  title: "Why Did My Transaction Fail? Free Transaction Checker | TxID Support",
+  title: "Why Did My Transaction Fail? Free Transaction Checker | TxID",
   description:
     "Pick a protocol, connect your wallet, and find out why a transaction failed: out of gas, reverted, or a custom contract error, explained in plain English. Free.",
   alternates: { canonical: "/check" },
   openGraph: {
-    title: "Free Transaction Checker | TxID Support",
+    title: "Free Transaction Checker | TxID",
     description: "Find out why a transaction failed, explained in plain English.",
     url: "https://txid.support/check",
     type: "website",

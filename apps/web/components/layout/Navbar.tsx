@@ -40,9 +40,9 @@ export function Navbar() {
       <nav className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-2">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/brand/txid-icon-64.png" alt="TxID Support" className="h-7 w-7" />
+          <img src="/brand/txid-icon-64.png" alt="TxID" className="h-7 w-7" />
           <span className="font-display font-semibold text-white text-sm tracking-tight">
-            TxID Support
+            TxID
           </span>
         </Link>
 

@@ -8,7 +8,7 @@ export default function NotFound() {
     <div className="flex min-h-screen items-center justify-center bg-background p-6">
       <div className="w-full max-w-md rounded-2xl border border-border bg-card p-8 text-center shadow-sm">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/brand/txid-icon-64.png" alt="TxID Support" className="mx-auto h-10 w-10" />
+        <img src="/brand/txid-icon-64.png" alt="TxID" className="mx-auto h-10 w-10" />
 
         <p className="mt-6 text-5xl font-bold tracking-tight">404</p>
         <h1 className="mt-2 text-lg font-semibold">This page isn&apos;t available</h1>

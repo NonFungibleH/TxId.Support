@@ -11,7 +11,7 @@ export default function SignUpPage() {
     return (
       <div className="flex min-h-screen items-center justify-center px-6">
         <div className="w-full max-w-md rounded-2xl border border-border bg-card p-8 text-center space-y-4">
-          <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground">TxID Support</p>
+          <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground">TxID</p>
           <h1 className="text-2xl font-bold">Free plan coming soon</h1>
           <p className="text-sm text-muted-foreground leading-relaxed">
             We&apos;re onboarding early teams by hand while we scale up. Tell us about

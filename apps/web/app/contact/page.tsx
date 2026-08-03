@@ -4,8 +4,8 @@ import { Footer } from "@/components/layout/Footer";
 import { ContactCard } from "@/components/sections/ContactCard";
 
 export const metadata: Metadata = {
-  title: "Contact | TxID Support",
-  description: "Get in touch with the TxID Support team by email or Telegram.",
+  title: "Contact | TxID",
+  description: "Get in touch with the TxID team by email or Telegram.",
   alternates: { canonical: "/contact" },
 };
 

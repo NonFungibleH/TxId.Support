@@ -8,9 +8,9 @@ import { VISIBLE_CHAINS, hexToRgba, type ChainInfo } from "@/lib/chains";
 import { ArrowRight } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "Supported Chains | TxID Support",
+  title: "Supported Chains | TxID",
   description:
-    "TxID Support diagnoses failed transactions across every major EVM chain (Ethereum, Base, BNB Chain, Polygon, Arbitrum, Optimism, Avalanche) and Move-native Aptos.",
+    "TxID diagnoses failed transactions across every major EVM chain (Ethereum, Base, BNB Chain, Polygon, Arbitrum, Optimism, Avalanche) and Move-native Aptos.",
   alternates: { canonical: "/chains" },
 };
 

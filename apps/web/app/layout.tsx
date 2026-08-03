@@ -24,20 +24,20 @@ const spaceMono = Space_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "TxID Support: The Support & Operations Layer for On-Chain Finance",
+  title: "TxID: The Support & Operations Layer for On-Chain Finance",
   description:
     "An investigation behind every answer: TxID reads live chain state, diagnoses failed transactions, and keeps a reportable record of every case. EVM and Move-native Aptos.",
   metadataBase: new URL("https://txid.support"),
   openGraph: {
-    title: "TxID Support: The Support & Operations Layer for On-Chain Finance",
+    title: "TxID: The Support & Operations Layer for On-Chain Finance",
     description: "Expert support for every user, an investigation behind every answer. EVM and Aptos.",
     type: "website",
     url: "https://txid.support",
-    siteName: "TxID Support",
+    siteName: "TxID",
   },
   twitter: {
     card: "summary_large_image",
-    title: "TxID Support: The Support & Operations Layer for On-Chain Finance",
+    title: "TxID: The Support & Operations Layer for On-Chain Finance",
     description: "Expert support for every user, an investigation behind every answer. EVM and Aptos.",
   },
 };

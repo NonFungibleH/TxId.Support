@@ -45,9 +45,9 @@ export function Footer() {
           {/* Brand */}
           <Link href="/" className="flex items-center gap-2 shrink-0">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/brand/txid-icon-64.png" alt="TxID Support" className="h-5 w-5" />
+            <img src="/brand/txid-icon-64.png" alt="TxID" className="h-5 w-5" />
             <span className="font-display font-semibold text-white text-sm tracking-tight">
-              TxID Support
+              TxID
             </span>
           </Link>
 
@@ -59,7 +59,7 @@ export function Footer() {
 
         {/* Bottom strip: contact + legal */}
         <div className="mt-6 pt-5 border-t border-[var(--border)] flex flex-col sm:flex-row items-center justify-between gap-3">
-          <p className="text-xs text-muted/50">© {year} TxID Support. All rights reserved.</p>
+          <p className="text-xs text-muted/50">© {year} TxID. All rights reserved.</p>
           <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
             {LEGAL.map((l) => <NavLink key={l.label} {...l} small />)}
             <div className="w-px h-3 bg-[var(--border)] hidden sm:block" />

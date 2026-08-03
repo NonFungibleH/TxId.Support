@@ -147,7 +147,7 @@ export function ChainDemo({
           </div>
         </div>
         <div className="flex items-center justify-between mt-2">
-          <p className="text-[10px] text-muted font-mono">Powered by TxID Support</p>
+          <p className="text-[10px] text-muted font-mono">Powered by TxID</p>
           {done && (
             <button onClick={startAnimation} className="text-[10px] text-accent hover:underline font-mono">
               ↺ replay

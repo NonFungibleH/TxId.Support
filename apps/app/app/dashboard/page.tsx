@@ -227,7 +227,7 @@ export default async function DashboardPage() {
           <div className="min-w-0">
             <p className="text-sm font-semibold">You&apos;re on the Free trial</p>
             <p className="text-sm text-muted-foreground mt-1 max-w-xl">
-              Free covers {convLimitLabel ?? "a limited number of"} conversations a month to evaluate TxID Support.
+              Free covers {convLimitLabel ?? "a limited number of"} conversations a month to evaluate TxID.
               Ready to run it for real users? Talk to us to unlock higher volume, multiple chains, and to remove
               the &quot;Powered by TxID&quot; badge.
             </p>

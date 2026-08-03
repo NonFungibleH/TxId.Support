@@ -129,7 +129,7 @@ interface WidgetConfig {
   /** Team-curated starter chips. Non-empty overrides AI-generated follow-ups. */
   suggestedQuestions?: string[]
   contentBlocks?: ContentBlockData[]
-  /** Paid/hand-provisioned plans hide the "Powered by TxID Support" badge. */
+  /** Paid/hand-provisioned plans hide the "Powered by TxID" badge. */
   hidePoweredBy?: boolean
   /** Actions: AI-prepared, user-signed transactions (opt-in, paid plans). */
   actions?: { enabled: boolean }
@@ -2596,7 +2596,7 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
 
             {!config.hidePoweredBy && (
               <div className="pt-2 text-center">
-                <p className="text-[9px] opacity-30">Powered by TxID Support</p>
+                <p className="text-[9px] opacity-30">Powered by TxID</p>
               </div>
             )}
           </div>

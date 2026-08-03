@@ -21,9 +21,9 @@ import {
 } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "API & MCP | TxID Support",
+  title: "API & MCP | TxID",
   description:
-    "Access the same on-chain intelligence that powers TxID Support through API and MCP. Give your products, support teams, and AI agents the ability to understand transactions and explain failures from live blockchain data.",
+    "Access the same on-chain intelligence that powers TxID through API and MCP. Give your products, support teams, and AI agents the ability to understand transactions and explain failures from live blockchain data.",
   alternates: { canonical: "/api" },
 };
 
@@ -197,7 +197,7 @@ export default function PlatformPage() {
                 <span className="text-accent">wherever you need it</span>
               </h1>
               <p className="text-lg text-muted mb-3">
-                Access the same on-chain intelligence that powers TxID Support through API
+                Access the same on-chain intelligence that powers TxID through API
                 and MCP.
               </p>
               <p className="text-lg text-muted mb-8">
@@ -367,7 +367,7 @@ export default function PlatformPage() {
               <div className="text-center mb-12">
                 <p className="font-mono text-sm text-accent mb-3">{`Capabilities`}</p>
                 <h2 className="font-display text-4xl font-bold text-white mb-4">
-                  The same tools used by TxID Support
+                  The same tools used by TxID
                 </h2>
                 <p className="text-muted max-w-xl mx-auto">
                   Every diagnostic capability available in the embedded experience can be

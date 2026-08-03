@@ -3,7 +3,7 @@
 import { useEffect } from "react"
 
 /**
- * Injects the TxID Support widget script into the marketing site.
+ * Injects the TxID widget script into the marketing site.
  *
  * Set NEXT_PUBLIC_DEMO_WIDGET_KEY to a publishable key in .env.local to
  * activate the live widget. When the key is absent nothing is rendered.

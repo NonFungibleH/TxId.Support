@@ -32,11 +32,11 @@ export const DOCS: Doc[] = [
   {
     slug: "introduction",
     title: "Introduction",
-    description: "What TxID Support is and how it works",
+    description: "What TxID is and how it works",
     category: "getting-started",
     order: 0,
     content: [
-      { type: "p", text: "TxID Support gives your DeFi protocol an AI-powered support agent embedded directly in your app. Users get instant, on-chain-aware answers about their transactions, token locks, staking positions, and vesting schedules, without leaving your interface, without Discord, and without waiting for a human to respond." },
+      { type: "p", text: "TxID gives your DeFi protocol an AI-powered support agent embedded directly in your app. Users get instant, on-chain-aware answers about their transactions, token locks, staking positions, and vesting schedules, without leaving your interface, without Discord, and without waiting for a human to respond." },
       { type: "h2", text: "How it works" },
       { type: "p", text: "The widget sits in the corner of your app as a floating chat button. When a user opens it and asks a question, the AI:" },
       { type: "ul", items: [
@@ -48,7 +48,7 @@ export const DOCS: Doc[] = [
       ]},
       { type: "h2", text: "Key concepts" },
       { type: "grid", items: [
-        { title: "Project", description: "Your TxID Support workspace. One project per protocol or app." },
+        { title: "Project", description: "Your TxID workspace. One project per protocol or app." },
         { title: "Widget", description: "The chat interface embedded in your app via a script tag. Fully styled to match your branding." },
         { title: "Knowledge Base", description: "URLs from your documentation that the AI indexes and searches when answering questions." },
         { title: "Content Blocks", description: "Custom cards shown in the widget's Info tab: FAQs, videos, announcements, and more." },
@@ -56,8 +56,8 @@ export const DOCS: Doc[] = [
         { title: "Tickets", description: "Escalations created when a user marks an AI response as unhelpful. Routed to your team with full context." },
       ]},
       { type: "h2", text: "Who is it for?" },
-      { type: "p", text: "TxID Support is built for DeFi protocols whose users regularly have questions about on-chain state: lock expiry, failed transactions, staking rewards, vesting cliffs. It's especially valuable for protocols using Team Finance, Unicrypt, or similar locking mechanisms, where users frequently ask 'when does my lock expire?'" },
-      { type: "callout", variant: "tip", title: "Not just a chatbot", text: "Unlike a generic AI assistant, TxID Support reads live blockchain data on behalf of the user. It doesn't guess: it looks up the answer on-chain and cites the source." },
+      { type: "p", text: "TxID is built for DeFi protocols whose users regularly have questions about on-chain state: lock expiry, failed transactions, staking rewards, vesting cliffs. It's especially valuable for protocols using Team Finance, Unicrypt, or similar locking mechanisms, where users frequently ask 'when does my lock expire?'" },
+      { type: "callout", variant: "tip", title: "Not just a chatbot", text: "Unlike a generic AI assistant, TxID reads live blockchain data on behalf of the user. It doesn't guess: it looks up the answer on-chain and cites the source." },
     ],
   },
 
@@ -132,7 +132,7 @@ export const DOCS: Doc[] = [
     category: "configuration",
     order: 1,
     content: [
-      { type: "p", text: "Smart contracts are what make TxID Support different from a generic chatbot. When you add your contracts, the AI can read live on-chain data, answering questions like 'is my token locked?', 'when does my vesting cliff end?', and 'what's my pending staking reward?' with real blockchain data rather than approximations." },
+      { type: "p", text: "Smart contracts are what make TxID different from a generic chatbot. When you add your contracts, the AI can read live on-chain data, answering questions like 'is my token locked?', 'when does my vesting cliff end?', and 'what's my pending staking reward?' with real blockchain data rather than approximations." },
       { type: "h2", text: "What the AI can do with contracts" },
       { type: "ul", items: [
         "Look up token lock amounts and expiry dates (Team Finance, Unicrypt, UNCX, custom lock contracts)",
@@ -168,9 +168,9 @@ export const DOCS: Doc[] = [
     category: "configuration",
     order: 2,
     content: [
-      { type: "p", text: "The Knowledge Base is a list of URLs that TxID Support indexes and searches when answering questions. When a user asks something the AI can't answer from on-chain data alone, such as how your governance works, what your tokenomics are, or how to bridge, it searches your indexed pages to find the answer." },
+      { type: "p", text: "The Knowledge Base is a list of URLs that TxID indexes and searches when answering questions. When a user asks something the AI can't answer from on-chain data alone, such as how your governance works, what your tokenomics are, or how to bridge, it searches your indexed pages to find the answer." },
       { type: "h2", text: "How indexing works" },
-      { type: "p", text: "When you add a URL, TxID Support crawls that page, extracts the main text content, and splits it into searchable chunks. When a user asks a question, the AI retrieves the most relevant chunks and uses them to compose a response. It can also cite the source page so users can read more." },
+      { type: "p", text: "When you add a URL, TxID crawls that page, extracts the main text content, and splits it into searchable chunks. When a user asks a question, the AI retrieves the most relevant chunks and uses them to compose a response. It can also cite the source page so users can read more." },
       { type: "h2", text: "What to index" },
       { type: "p", text: "Index any public page that answers questions your users are likely to ask:" },
       { type: "ul", items: [
@@ -186,7 +186,7 @@ export const DOCS: Doc[] = [
       { type: "steps", items: [
         { title: "Go to Docs & KB", description: "Click Docs & KB in the dashboard sidebar." },
         { title: "Paste a URL", description: "Enter the full URL of the page you want indexed (e.g. https://docs.yourprotocol.io/staking)." },
-        { title: "Click Index", description: "TxID Support crawls the page and adds the chunks to your knowledge base. Most pages index in under 30 seconds." },
+        { title: "Click Index", description: "TxID crawls the page and adds the chunks to your knowledge base. Most pages index in under 30 seconds." },
         { title: "Repeat for each page", description: "Add all the key pages from your documentation. The indexed chunk count on your dashboard overview shows the running total." },
       ]},
       { type: "h2", text: "Re-indexing" },

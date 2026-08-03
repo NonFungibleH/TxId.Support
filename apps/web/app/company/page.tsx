@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { ArrowRight } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "Company | TxID Support",
+  title: "Company | TxID",
   description:
     "TxID is building the support and operations layer for on-chain finance: an investigation behind every answer, and a record behind every case. Built by the former Product Lead of Team Finance.",
   alternates: { canonical: "/company" },

@@ -37,7 +37,7 @@ export function Sidebar() {
           <div className="flex size-6 items-center justify-center rounded bg-accent text-[10px] font-bold text-white">
             TX
           </div>
-          <span className="text-sm font-semibold text-white">TxID Support</span>
+          <span className="text-sm font-semibold text-white">TxID</span>
         </Link>
       </div>
 

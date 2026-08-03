@@ -8,7 +8,7 @@ import { InvestigationMockup } from "@/components/sections/InvestigationMockup";
 import { ArrowRight, Check, Archive, Blocks, Landmark, Building2 } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "Solutions | TxID Support",
+  title: "Solutions | TxID",
   description:
     "One support and operations layer for DeFi protocols, issuers and tokenisation platforms, and institutions. The same investigation engine, seen through each team's eyes.",
   alternates: { canonical: "/solutions" },

@@ -72,7 +72,7 @@ export default function ContractsPage() {
       </ul>
 
       <p>
-        When you paste a verified contract address, TxID Support reads the ABI from the block explorer
+        When you paste a verified contract address, TxID reads the ABI from the block explorer
         and shows the contract&apos;s public function names as hints. These tell you exactly what actions
         users can perform on the contract, making it much easier to write a useful description.
       </p>
@@ -113,7 +113,7 @@ Description: This is Team Finance's token lock contract. Users lock
         Without it, custom errors appear as raw hex and the AI can only give a generic response.
       </p>
 
-      <p>When you add a contract, TxID Support automatically checks the block explorer for a verified ABI.
+      <p>When you add a contract, TxID automatically checks the block explorer for a verified ABI.
         The contract card will show one of three states:</p>
 
       <div className="not-prose overflow-x-auto my-4">
@@ -158,12 +158,12 @@ Description: This is Team Finance's token lock contract. Users lock
         </li>
         <li>
           <strong>ABI</strong> — there is nothing to verify or upload. Move module ABIs are public
-          on-chain; TxID Support reads them directly from the Aptos fullnode, so the contract card
+          on-chain; TxID reads them directly from the Aptos fullnode, so the contract card
           shows <em>Move module ABI (on-chain)</em> automatically.
         </li>
         <li>
           <strong>Failed transactions</strong> — instead of Solidity reverts, Aptos transactions fail
-          with Move abort codes. TxID Support decodes them in layers: the standard error category,
+          with Move abort codes. TxID decodes them in layers: the standard error category,
           the Aptos framework&apos;s own error tables, and per-protocol error maps, so users get a
           plain-English reason rather than <code>0x10010</code>.
         </li>
@@ -175,7 +175,7 @@ Description: This is Team Finance's token lock contract. Users lock
         <li>
           <strong>Protocol accounts</strong> — some Aptos protocols keep user funds in a
           protocol-owned account object rather than the wallet (perps venues with subaccounts and
-          delegated session keys, for example). TxID Support resolves these automatically and merges
+          delegated session keys, for example). TxID resolves these automatically and merges
           their activity into the user&apos;s answers, so a trader whose wallet looks empty still
           gets their real balances and history.
         </li>
@@ -192,7 +192,7 @@ Description: This is Team Finance's token lock contract. Users lock
         step-by-step guidance tailored to your protocol.
       </p>
       <p>
-        If the contract has an ABI, TxID Support reads the custom error definitions from it and
+        If the contract has an ABI, TxID reads the custom error definitions from it and
         shows you a list of errors that don&apos;t have explanations yet. Click any error to expand
         it and write a plain-English explanation. You only need to write the explanation itself
         — the error name is pre-filled from the ABI, so there is no chance of a typo.

@@ -55,7 +55,7 @@ export const PLAN_LABELS: Record<Plan, string> = {
 }
 
 // Every plan that is NOT the free trial. Used to gate paid-only behaviour
-// such as hiding the "Powered by TxID Support" badge and suppressing upsell.
+// such as hiding the "Powered by TxID" badge and suppressing upsell.
 export const PAID_PLANS: Plan[] = ["starter", "pro", "enterprise", "custom", "demo"]
 
 /** True for any paid/hand-provisioned plan (i.e. not the free trial). */

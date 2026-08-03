@@ -76,7 +76,7 @@ export default function PreviewPage() {
               <div className="w-5 h-5 rounded-md bg-indigo-500 flex items-center justify-center">
                 <Zap className="w-3 h-3 text-white" />
               </div>
-              <span className="text-sm font-semibold text-indigo-500">TxID Support</span>
+              <span className="text-sm font-semibold text-indigo-500">TxID</span>
               <span className={`text-xs rounded-full px-2.5 py-0.5 ml-1 ${isDark ? "text-white/40 bg-white/5 border border-white/10" : "text-gray-400 bg-gray-100 border border-gray-200"}`}>
                 Preview mode
               </span>

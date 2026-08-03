@@ -6,7 +6,7 @@ import { FeatureGrid } from "@/components/sections/FeatureGrid";
 import { ClosingCTA } from "@/components/sections/ClosingCTA";
 
 export const metadata: Metadata = {
-  title: "Features | TxID Support",
+  title: "Features | TxID",
   description:
     "Every TxID feature: wallet detection, transaction diagnostics, docs Q&A, Telegram support, team integrations, the operational record, and more, across EVM chains and Aptos.",
   alternates: { canonical: "/features" },

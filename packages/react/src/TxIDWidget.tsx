@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useId } from "react"
 
 export interface TxIDWidgetProps {
-  /** Your pk_... publishable key from the TxID Support dashboard */
+  /** Your pk_... publishable key from the TxID dashboard */
   apiKey: string
   /** Widget position. Default: "bottom-right" */
   position?: "bottom-right" | "bottom-left"
@@ -93,7 +93,7 @@ export function TxIDWidget({
         src={widgetUrl}
         allow="clipboard-write"
         style={iframeStyle}
-        title="TxID Support"
+        title="TxID"
         aria-labelledby={titleId}
         aria-hidden={!open}
       />

@@ -6,7 +6,7 @@ import { ClosingCTA } from "@/components/sections/ClosingCTA";
 import { FadeIn } from "@/components/ui/FadeIn";
 
 export const metadata: Metadata = {
-  title: "Pricing | TxID Support",
+  title: "Pricing | TxID",
   description:
     "Prove TxID on your own protocol with the Evaluation tier, then deploy it as infrastructure on an Enterprise plan priced to your platform.",
   alternates: { canonical: "/pricing" },

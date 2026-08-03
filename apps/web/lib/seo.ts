@@ -5,7 +5,7 @@
 //     machine-readable description they can cite accurately.
 
 export const SITE_URL = "https://txid.support"
-export const SITE_NAME = "TxID Support"
+export const SITE_NAME = "TxID"
 
 const DESCRIPTION =
   "White-label AI support agent for DeFi protocols and Web3 token projects. Auto-detects the user's connected wallet, diagnoses failed transactions, answers questions from your docs, and escalates to your team. Embed with one script tag."
@@ -76,7 +76,7 @@ export const howToEmbedSchema = {
   "@type": "HowTo",
   name: "How to add an AI support agent to a Web3 protocol",
   description:
-    "Embed the TxID Support AI agent on your DeFi protocol or token project site in three steps.",
+    "Embed the TxID AI agent on your DeFi protocol or token project site in three steps.",
   totalTime: "PT5M",
   step: [
     {

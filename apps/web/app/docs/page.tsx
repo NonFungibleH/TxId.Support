@@ -7,8 +7,8 @@ import { getDocsByCategory } from "@/lib/docs"
 import { ArrowRight, BookOpen, Zap, Paintbrush, FileCode2, BookMarked, Link2, LayoutList, Eye, Code2, MessagesSquare, Ticket, BarChart3 } from "lucide-react"
 
 export const metadata: Metadata = {
-  title: "Documentation | TxID Support",
-  description: "Guides and reference for every TxID Support feature: branding, smart contracts, knowledge base, content blocks, and more.",
+  title: "Documentation | TxID",
+  description: "Guides and reference for every TxID feature: branding, smart contracts, knowledge base, content blocks, and more.",
   alternates: { canonical: "/docs" },
 }
 
@@ -45,7 +45,7 @@ export default function DocsPage() {
           <FadeIn>
             <p className="font-mono text-sm text-accent mb-3">{"Documentation"}</p>
             <h1 className="font-display text-4xl font-bold text-white mb-4">
-              TxID Support docs
+              TxID docs
             </h1>
             <p className="text-[var(--text-muted)] text-base max-w-xl">
               Everything you need to configure, embed, and get the most out of TxID support.

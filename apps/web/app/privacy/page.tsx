@@ -3,7 +3,7 @@ import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 
 export const metadata: Metadata = {
-  title: "Privacy Policy | TxID Support",
+  title: "Privacy Policy | TxID",
   alternates: { canonical: "/privacy" },
 };
 

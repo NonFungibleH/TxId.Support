@@ -14,7 +14,7 @@ const PLANS = [
     badge: "For protocols, platforms & institutions",
     description: "The complete on-chain support layer, tailored to your organisation",
     cta: "Talk to our team",
-    ctaHref: "mailto:team@txid.support?subject=TxID Support demo",
+    ctaHref: "mailto:team@txid.support?subject=TxID demo",
     highlight: true,
     features: [
       { label: "All deployment surfaces: embedded widget, Telegram, API & MCP agent access", soon: false },

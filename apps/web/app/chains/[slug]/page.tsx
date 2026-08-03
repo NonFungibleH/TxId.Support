@@ -17,7 +17,7 @@ export function generateStaticParams() {
 export function generateMetadata({ params }: { params: { slug: string } }): Metadata {
   const chain = getChain(params.slug);
   if (!chain || chain.hidden) return {};
-  const title = `AI Transaction Support for ${chain.name} | TxID Support`;
+  const title = `AI Transaction Support for ${chain.name} | TxID`;
   const description = `${chain.intro} Diagnoses failed ${chain.name} transactions and gives users the fix, embedded in your product.`;
   return {
     title,
@@ -76,7 +76,7 @@ export default function ChainPage({ params }: { params: { slug: string } }) {
   const appLd = {
     "@context": "https://schema.org",
     "@type": "SoftwareApplication",
-    name: `TxID Support for ${chain.name}`,
+    name: `TxID for ${chain.name}`,
     applicationCategory: "BusinessApplication",
     operatingSystem: "Web",
     description: `AI-powered transaction support and diagnosis for ${chain.name} protocols.`,

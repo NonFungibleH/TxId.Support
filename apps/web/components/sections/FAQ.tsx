@@ -2,7 +2,7 @@ import { FadeIn } from "@/components/ui/FadeIn";
 
 export const FAQS = [
   {
-    q: "What exactly is TxID Support?",
+    q: "What exactly is TxID?",
     a: "It's a support layer you embed in your site or your Telegram. When a user asks a question, TxID reads the chain, works out what actually happened, and answers. If it can't resolve something, it hands your team the case with the work already done. And everything gets recorded, which matters more than you'd think once compliance starts asking.",
   },
   {
@@ -34,8 +34,8 @@ export const FAQS = [
     a: "Yes. Evaluation includes custom colours, font, and logo. Enterprise goes further with a full white-label experience, a custom agent name and avatar, and priority support.",
   },
   {
-    q: "Which blockchains does TxID Support work with?",
-    a: "TxID Support works across Ethereum, Base, BNB Chain, Polygon, Arbitrum, Optimism, and Avalanche, plus Aptos (the Move-based L1). It detects the connected wallet on any of these and looks up balances and transactions on the relevant chain.",
+    q: "Which blockchains does TxID work with?",
+    a: "TxID works across Ethereum, Base, BNB Chain, Polygon, Arbitrum, Optimism, and Avalanche, plus Aptos (the Move-based L1). It detects the connected wallet on any of these and looks up balances and transactions on the relevant chain.",
   },
   {
     q: "Can it explain why a transaction failed?",
@@ -46,7 +46,7 @@ export const FAQS = [
     a: "Yes. The agent only reads the public wallet address and public on-chain data. It never asks the user to sign a transaction, share a seed phrase, or grant any permission. There is nothing it can do to move or access funds.",
   },
   {
-    q: "How do I add TxID Support to my site?",
+    q: "How do I add TxID to my site?",
     a: "Add one script tag before the closing body tag, then configure your branding, docs link, and contract addresses in the dashboard. It works with React, Next.js, Vue, Svelte, or plain HTML, with no SDK and no build step. Most protocols are live in under five minutes.",
   },
 ];

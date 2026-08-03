@@ -8,7 +8,7 @@ export default function DashboardPage() {
       <div className="mb-8 not-prose">
         <p className="text-xs font-semibold uppercase tracking-widest text-accent mb-2">Getting Started</p>
         <h1 className="text-3xl font-bold text-white">Dashboard Setup</h1>
-        <p className="mt-2 text-[#a1a1aa]">A guide to every setting in the TxID Support dashboard.</p>
+        <p className="mt-2 text-[#a1a1aa]">A guide to every setting in the TxID dashboard.</p>
       </div>
 
       <h2>Branding</h2>

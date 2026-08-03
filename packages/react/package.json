@@ -2,7 +2,7 @@
   "name": "@txid/react",
   "version": "0.1.0",
   "private": false,
-  "description": "React component for the TxID Support AI agent",
+  "description": "React component for the TxID AI agent",
   "license": "MIT",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",

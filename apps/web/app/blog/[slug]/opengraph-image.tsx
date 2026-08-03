@@ -11,7 +11,7 @@ export async function generateStaticParams() {
 
 export default function Image({ params }: { params: { slug: string } }) {
   const post = getPost(params.slug)
-  const title = post?.title ?? "TxID Support Blog"
+  const title = post?.title ?? "TxID Blog"
   const tag = post?.tags[0] ?? "Web3 Support"
 
   return new ImageResponse(
@@ -86,7 +86,7 @@ export default function Image({ params }: { params: { slug: string } }) {
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <div style={{ width: 6, height: 6, borderRadius: 3, background: "#6366f1" }} />
           <span style={{ color: "#6b7280", fontSize: 16, fontWeight: 500 }}>
-            TxID Support · txid.support/blog
+            TxID · txid.support/blog
           </span>
         </div>
       </div>

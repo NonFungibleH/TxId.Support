@@ -5,7 +5,7 @@ import { APP_URL } from "@/lib/config"
 import { DemoBookmarklet } from "./DemoBookmarklet"
 
 export const metadata: Metadata = {
-  title: "Try TxID Support on your site",
+  title: "Try TxID on your site",
   robots: { index: false, follow: false }, // demo share pages aren't for SEO
 }
 

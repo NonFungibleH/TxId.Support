@@ -2,7 +2,7 @@ import type { MetadataRoute } from "next"
 
 // AI answer-engine crawlers we explicitly welcome - for GEO we WANT these
 // indexing the marketing site so ChatGPT, Perplexity, Claude, and Google AI
-// Overviews can cite TxID Support accurately. Listed alongside the catch-all
+// Overviews can cite TxID accurately. Listed alongside the catch-all
 // so the intent is unambiguous to crawlers that look for a named rule.
 const AI_CRAWLERS = [
   "GPTBot",            // OpenAI / ChatGPT

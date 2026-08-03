@@ -84,7 +84,7 @@ function AgentAvatar() {
   return (
     <div className="w-7 h-7 rounded-full bg-accent/20 border border-accent/30 shrink-0 mt-0.5 overflow-hidden">
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src="/brand/txid-icon-64.png" alt="TxID Support" className="w-full h-full object-cover" />
+      <img src="/brand/txid-icon-64.png" alt="TxID" className="w-full h-full object-cover" />
     </div>
   )
 }
@@ -470,7 +470,7 @@ export default function AptosCheckPage() {
 
             <p className="text-center text-xs text-muted/50 mt-8">
               Reads on-chain data only · Private keys never required · Powered by{" "}
-              <span className="text-accent font-mono">TxID Support</span>
+              <span className="text-accent font-mono">TxID</span>
             </p>
           </div>
         </main>

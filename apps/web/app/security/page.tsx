@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/Button";
 import { TrustMockup } from "@/components/sections/TrustMockup";
 
 export const metadata: Metadata = {
-  title: "Trust | TxID Support",
+  title: "Trust | TxID",
   description:
     "Read-only by design, verifiable on request, recorded by default. How TxID keeps on-chain support safe for protocols, platforms, and institutions.",
   alternates: { canonical: "/security" },

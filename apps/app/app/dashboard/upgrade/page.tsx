@@ -70,7 +70,7 @@ const PLANS: PlanDef[] = [
       "Priority support",
     ],
     cta: "Book a demo",
-    ctaHref: "mailto:team@txid.support?subject=TxID Support demo",
+    ctaHref: "mailto:team@txid.support?subject=TxID demo",
     highlight: true,
   },
 ]

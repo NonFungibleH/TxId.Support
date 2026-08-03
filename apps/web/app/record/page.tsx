@@ -7,7 +7,7 @@ import { InvestigationMockup } from "@/components/sections/InvestigationMockup";
 import { ArrowRight, Scale, Wrench, Headset, FileDown } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "The Case Record: Every Answer Backed by Evidence | TxID Support",
+  title: "The Case Record: Every Answer Backed by Evidence | TxID",
   description:
     "Most support tools keep a chat history. TxID keeps the investigation: what was asked, what the chain showed, how the issue was resolved, and why the answer was given.",
   alternates: { canonical: "/record" },

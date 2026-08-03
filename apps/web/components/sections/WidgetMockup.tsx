@@ -158,9 +158,9 @@ export function WidgetMockup({
       <div className="bg-[#252540] px-4 pt-3 pb-0">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
-            <Image src="/brand/txid-icon-64.png" alt="TxID Support" width={20} height={20} className="rounded-md" />
+            <Image src="/brand/txid-icon-64.png" alt="TxID" width={20} height={20} className="rounded-md" />
             <span className="font-display font-semibold text-white text-xs">
-              TxID Support
+              TxID
             </span>
           </div>
           <div className="w-1.5 h-1.5 rounded-full bg-green-400 shadow-sm shadow-green-400/60 animate-pulse" />

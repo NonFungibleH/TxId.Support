@@ -111,7 +111,7 @@ export async function GET(
     projectId: typedProject.id,
     projectName: typedProject.name,
     mode: (typedProject as unknown as { mode?: string }).mode ?? "support",
-    // Paid/hand-provisioned plans hide the "Powered by TxID Support" badge;
+    // Paid/hand-provisioned plans hide the "Powered by TxID" badge;
     // the free trial always shows it. Derived server-side from the plan.
     hidePoweredBy: isPaidPlan((config.plan ?? "free") as Plan),
     branding: config.branding,
