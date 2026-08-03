@@ -26,7 +26,10 @@ const PROTOCOLS = [
   {
     id: "decibel", name: "Decibel", color: "#22D3EE", logo: undefined as string | undefined,
     blurb: "Aptos Labs' on-chain perps DEX. Orders, collateral and subaccounts.",
-    suggestions: ["Why did my order fail?", "What's my collateral?", "Show my recent trades"],
+    // Ordered by how well they land for someone who may never have traded
+    // here: "have I enabled trading?" reads the delegation views and gives a
+    // specific answer either way, so it never dead-ends on an empty account.
+    suggestions: ["Have I enabled trading?", "What's my collateral?", "Show my recent trades"],
   },
   {
     id: "pancakeswap", name: "PancakeSwap", color: "#1FC7D4", logo: "/protocols/pancakeswap.png" as string | undefined,
