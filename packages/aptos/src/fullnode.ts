@@ -376,7 +376,15 @@ export async function viewFunctionResult(fn: string, typeArgs: string[], args: u
   if (!res) return { ok: false, kind: "unreachable" }
   if (!res.ok) {
     // 4xx = the VM/API rejected this specific call; 5xx = the node is unwell.
-    if (res.status >= 500) return { ok: false, kind: "unreachable" }
+    //
+    // EXCEPT the throttling and timeout codes. Those say nothing about the
+    // call, and callers read "aborted" as a statement of fact about the
+    // account: resolveProtocolAccountAddress turns it into "this wallet has no
+    // subaccount", which would tell an active trader they have never traded
+    // here simply because we were rate limited.
+    if (res.status >= 500 || res.status === 429 || res.status === 408 || res.status === 425) {
+      return { ok: false, kind: "unreachable" }
+    }
     let message = `view call rejected (HTTP ${res.status})`
     try {
       const body = (await res.json()) as { message?: string }
