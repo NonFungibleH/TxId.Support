@@ -23,9 +23,11 @@ export type PostSection =
 export const POSTS: Post[] = [
   {
     slug: "what-does-out-of-gas-mean",
-    title: "What does 'out of gas' actually mean? (and how to fix it)",
+    // Title carries the search intent people actually type: "out of gas
+    // meaning crypto", "ethereum out of gas error", "transaction failed".
+    title: "What does 'out of gas' mean in crypto? Why transactions fail and how to fix it",
     description:
-      "Out of gas is the most misunderstood transaction error in crypto. It is not about your ETH balance. Here is what it really means, why it happens, and exactly how to fix it.",
+      "Out of gas is one of the most misunderstood transaction errors in crypto. It does not mean your wallet ran out of ETH. Here is what causes it, how to fix it, and how to tell when it is hiding a different problem.",
     publishedAt: "2026-07-05",
     readingMinutes: 6,
     tags: ["Transaction diagnostics", "Gas", "Web3 support"],
@@ -34,12 +36,16 @@ export const POSTS: Post[] = [
     content: [
       {
         type: "p",
-        text: "Your transaction failed with 'out of gas', and you are staring at a wallet that clearly has ETH in it. So how can you be out of gas? This is the single most misunderstood error in crypto, and the confusion comes down to one word doing two jobs.",
+        text: "Out of gas is one of the most misunderstood transaction errors in crypto. It does not mean your wallet ran out of ETH. It means the transaction used more computational resources than the gas limit allowed before the smart contract could finish execution.",
+      },
+      {
+        type: "p",
+        text: "Here is what causes it, how to fix it, and how to tell when 'out of gas' is hiding a different problem.",
       },
       {
         type: "callout",
         label: "The short answer",
-        text: "Out of gas does not mean you ran out of ETH. It means the transaction hit the gas LIMIT you set for it (the maximum amount of computation you authorised) before the smart contract finished. The fix is almost always to raise the gas limit and resubmit, not to add more ETH.",
+        text: "An 'out of gas' error usually means the gas limit was too low for the transaction to complete. The fix is usually to retry with a higher gas limit, not to add more ETH. However, some failed transactions are incorrectly diagnosed as 'out of gas' when the real issue is a contract revert. The only way to know what happened is to inspect the transaction execution itself. This is exactly the type of problem TxID is built to diagnose: understanding what happened on-chain, explaining why, and showing the fix.",
       },
       {
         type: "h2",
@@ -47,66 +53,218 @@ export const POSTS: Post[] = [
       },
       {
         type: "p",
-        text: "Three different things get tangled together whenever people talk about gas. Keeping them separate is the whole trick to understanding this error.",
+        text: "Three different things get mixed together whenever people talk about gas. Keeping them separate is the key to understanding this error.",
+      },
+      {
+        type: "h3",
+        text: "Gas limit",
+      },
+      {
+        type: "p",
+        text: "The gas limit is the maximum amount of computation you allow your transaction to use. If the transaction needs more gas than the limit provides, execution stops and the transaction fails with an out-of-gas error.",
+      },
+      {
+        type: "p",
+        text: "This is the setting that matters when you see 'out of gas'.",
+      },
+      {
+        type: "h3",
+        text: "Gas price (or gas fee)",
+      },
+      {
+        type: "p",
+        text: "The gas price is how much you pay per unit of gas. It affects:",
       },
       {
         type: "ul",
         items: [
-          "Gas limit: the maximum units of computation you allow the transaction to use. This is the one that causes an 'out of gas' failure when it is too low.",
-          "Gas price (or gas fee): how much you pay per unit of gas. This affects how fast your transaction is mined and how much it costs, not whether it runs out.",
-          "ETH balance: the coins in your wallet. You need enough to pay the fee, but having plenty of ETH does not prevent an out-of-gas failure if the limit itself is too low.",
+          "How much the transaction costs",
+          "How quickly it may be included by validators",
         ],
       },
       {
         type: "p",
-        text: "Think of gas limit as the size of the fuel tank you agreed to fill, and gas price as the price per litre. Running out of gas means the tank you authorised was too small for the journey, not that your bank account was empty.",
+        text: "It does not determine whether your transaction has enough computation available. Increasing the gas price will not fix an out-of-gas failure.",
       },
       {
-        type: "h2",
-        text: "Why it happens",
+        type: "h3",
+        text: "ETH balance",
       },
       {
         type: "p",
-        text: "Wallets estimate the gas limit automatically before you sign. Most of the time that estimate is correct. It goes wrong in a few predictable situations:",
+        text: "Your ETH balance is what you use to pay the transaction fee. You need enough ETH to cover the cost of the transaction, but having plenty of ETH does not prevent an out-of-gas error.",
+      },
+      {
+        type: "p",
+        text: "A wallet with 10 ETH can still fail with 'out of gas' if the transaction's gas limit is too low.",
+      },
+      {
+        type: "h3",
+        text: "A simple analogy",
+      },
+      {
+        type: "p",
+        text: "Think of the gas limit as the size of a fuel tank you provide for a journey. The gas price is the cost of the fuel. Running out of gas means the tank you allowed was too small, not that you could not afford the fuel.",
+      },
+      {
+        type: "p",
+        text: "Increasing the tank size does not mean you automatically spend more. You only pay for the fuel actually used.",
+      },
+      {
+        type: "h2",
+        text: "Why does it happen?",
+      },
+      {
+        type: "p",
+        text: "Wallets estimate gas automatically before you sign a transaction. Most of the time, the estimate is accurate. It can fail in a few predictable situations.",
+      },
+      {
+        type: "h3",
+        text: "The transaction is more complex than expected",
+      },
+      {
+        type: "p",
+        text: "Some transactions require more computation than a wallet can accurately estimate. Examples:",
       },
       {
         type: "ul",
         items: [
-          "The contract call is more complex than the wallet predicted, for example a swap that routes through several pools, or a claim that loops over many positions.",
-          "The state of the contract changed between the estimate and the moment your transaction was mined, so the real execution needed more gas than estimated.",
-          "You manually lowered the gas limit to save money, and set it below what the transaction actually needs.",
-          "The contract itself reverts late in execution in a way that consumes almost all the gas provided.",
+          "A swap routing through multiple liquidity pools",
+          "A claim involving many positions",
+          "A contract interaction with multiple internal calls",
         ],
       },
       {
-        type: "h2",
-        text: "How to fix it",
+        type: "h3",
+        text: "The blockchain state changed",
+      },
+      {
+        type: "p",
+        text: "Gas estimation happens before your transaction is executed. Between signing and confirmation, the state of the contract may change. For example:",
       },
       {
         type: "ul",
         items: [
-          "Resubmit the transaction and let the wallet re-estimate. A fresh estimate often succeeds if the earlier one was made against stale state.",
-          "If it fails again, open the advanced or edit gas settings in your wallet and raise the gas limit by 20 to 50 percent above the estimate. Unused gas is refunded, so a higher limit does not cost more when the transaction succeeds.",
-          "Do not raise the gas price to fix this; that only changes speed and cost, not whether the transaction runs out.",
-          "If raising the limit still fails, the transaction is probably reverting for a different reason and only looks like out of gas because the revert burned the gas. At that point you need the real revert reason.",
+          "A liquidity pool changes",
+          "Another user interacts with the same contract",
+          "A position changes state",
         ],
       },
       {
-        type: "h2",
-        text: "How to confirm it really was out of gas",
+        type: "p",
+        text: "The actual execution may require more gas than the original estimate.",
+      },
+      {
+        type: "h3",
+        text: "The gas limit was manually lowered",
       },
       {
         type: "p",
-        text: "On a block explorer, open the failed transaction and compare gas used to gas limit. If the transaction used close to 100 percent of the limit, it genuinely ran out of gas. If it used only a fraction of the limit and still failed, it did not run out; it reverted for another reason, such as a failed require() check, a custom contract error, or slippage. Those are covered in our companion guide on why transactions fail.",
+        text: "Some wallets allow advanced users to edit gas settings. If the limit is reduced below what the transaction requires, execution will stop before completion.",
+      },
+      {
+        type: "h3",
+        text: "The transaction failed late during execution",
+      },
+      {
+        type: "p",
+        text: "Sometimes a contract begins execution normally but fails near the end. The transaction may consume most of the available gas before reverting, creating an error that looks like an out-of-gas failure.",
+      },
+      {
+        type: "p",
+        text: "In these cases, increasing the gas limit will not solve the real problem. The transaction is failing for another reason.",
+      },
+      {
+        type: "h2",
+        text: "How to fix an out-of-gas error",
+      },
+      {
+        type: "h3",
+        text: "1. Retry the transaction",
+      },
+      {
+        type: "p",
+        text: "Start by resubmitting the transaction and allowing your wallet to estimate gas again. A fresh estimate may succeed if the previous attempt was based on outdated blockchain state.",
+      },
+      {
+        type: "h3",
+        text: "2. Increase the gas limit",
+      },
+      {
+        type: "p",
+        text: "If the transaction fails again, open your wallet's advanced gas settings and increase the gas limit. A common approach is increasing it by around 20 to 50% above the previous estimate.",
+      },
+      {
+        type: "p",
+        text: "Remember: a higher gas limit does not mean you automatically pay more. You only pay for the gas actually consumed if the transaction succeeds.",
+      },
+      {
+        type: "h3",
+        text: "3. Do not increase the gas price",
+      },
+      {
+        type: "p",
+        text: "This is one of the most common mistakes. Increasing the gas price may make a transaction process faster, but it does not give the transaction more computational capacity. It will not fix an out-of-gas failure.",
+      },
+      {
+        type: "h3",
+        text: "4. Check whether it is actually a different error",
+      },
+      {
+        type: "p",
+        text: "If increasing the gas limit still fails, the transaction may not have been out of gas at all. The real issue could be:",
+      },
+      {
+        type: "ul",
+        items: [
+          "A failed contract condition",
+          "A custom contract error",
+          "Insufficient balance",
+          "Slippage protection",
+          "Expired transaction parameters",
+        ],
+      },
+      {
+        type: "p",
+        text: "At that point, you need the actual revert reason.",
+      },
+      {
+        type: "h2",
+        text: "How to confirm it was really out of gas",
+      },
+      {
+        type: "p",
+        text: "The easiest way is to inspect the transaction on a block explorer, and compare the gas used against the gas limit.",
+      },
+      {
+        type: "p",
+        text: "If the transaction consumed almost all of the available gas, it likely genuinely ran out of gas.",
+      },
+      {
+        type: "p",
+        text: "If it used only part of the limit and still failed, it probably did not run out of gas. Instead, the contract rejected the transaction for another reason. Common examples include:",
+      },
+      {
+        type: "ul",
+        items: [
+          "Failed require() checks",
+          "Custom contract errors",
+          "Slippage limits being exceeded",
+          "Invalid transaction parameters",
+        ],
       },
       {
         type: "callout",
         label: "Get the answer instantly",
-        text: "Open the free TxID transaction checker at txid.support/check, pick the protocol you were using, and paste your wallet address. It finds the transaction, replays it, and tells you whether it was truly out of gas or reverting for another reason, in plain English, with no wallet connection required.",
+        text: "Instead of guessing from a wallet error message, TxID analyses what actually happened. Paste your transaction details at txid.support/check and TxID identifies whether the transaction truly ran out of gas, the actual revert reason, whether funds moved, and the recommended fix in plain English. No wallet connection required.",
       },
       {
         type: "p",
-        text: "Once you separate the gas limit from your ETH balance, out of gas stops being mysterious. In the large majority of cases the fix is a single click: raise the limit and resubmit. If that does not work, the transaction is telling you something else went wrong, and the next step is to read the real revert reason rather than keep adding gas.",
+        text: "Once you separate gas limit from ETH balance, 'out of gas' stops being mysterious. In many cases, the fix is simple: increase the gas limit and retry.",
+      },
+      {
+        type: "p",
+        text: "But when that does not work, the transaction is telling you something else went wrong, and the next step is not adding more gas. It is understanding the real reason the blockchain rejected it.",
       },
     ],
   },
