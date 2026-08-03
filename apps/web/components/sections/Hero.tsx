@@ -26,7 +26,7 @@ export function Hero() {
                 {/* Forced two-line break on desktop only; small screens wrap
                     naturally rather than stacking four short lines. */}
                 <br className="hidden lg:block" />{" "}
-                for <span className="text-accent">on-chain finance.</span>
+                for <span className="text-accent">on-chain finance</span>
               </h1>
             </FadeIn>
 
