@@ -26,6 +26,13 @@ export interface ProtocolAdapter {
   resolveAccountFn: string
   /** views taking the resolved account address. */
   accountViews: { label: string; fn: string }[]
+  /**
+   * views taking the WALLET address, not the protocol account. Withdrawal
+   * queues are keyed by the owner, so reading them with the subaccount
+   * silently returns an empty queue and "where is my withdrawal?" gets a
+   * confidently wrong "there isn't one".
+   */
+  walletViews?: { label: string; fn: string }[]
   /** view() -> list of market objects, when the protocol has named markets. */
   listMarketsFn?: string
   /** view(marketObject) -> human name. */
@@ -46,6 +53,8 @@ export interface ProtocolAdapter {
     liquidatableFn?: string
     /** view(marketObject) -> value. Order-constraint parameters. */
     paramFns?: { label: string; fn: string }[]
+    /** view(account, marketObject) -> value. Per-position reads. */
+    accountFns?: { label: string; fn: string }[]
   }
   /** Explains the account model, injected verbatim into the tool result. */
   note: string
@@ -68,6 +77,8 @@ export interface MarketLive {
   oraclePrice?: number
   liquidatable?: boolean
   params?: Record<string, unknown>
+  /** Reads scoped to this trader in this market. */
+  account?: Record<string, unknown>
 }
 
 const num = (v: unknown): number | null => {
@@ -134,6 +145,7 @@ function humanizeDecibel(
         leverage: pos.user_leverage != null ? `${pos.user_leverage}x` : null,
         unrealisedFunding: usd(pos.unrealized_funding_amount_before_last_update, DECIBEL_SCALE),
         ...pnlOf(pos, now, size, px, sizeScale),
+        ...positionExtrasOf(now),
         // Straight from the contract's own liquidation check, not a threshold
         // guessed here.
         liquidatable: now?.liquidatable ?? null,
@@ -141,6 +153,17 @@ function humanizeDecibel(
       }
     })
   }
+
+  if (Array.isArray(out.positions) && out.positions.length > MAX_ENRICHED_MARKETS) {
+    out.enrichmentNote = `Live price, PnL, funding and liquidation checks were read for the first ${MAX_ENRICHED_MARKETS} markets in this list only, to stay within the node's rate limits. Where those fields are absent it means NOT READ, never zero and never "no position". If the user asks about one of the others, read that market on demand with get_contract_data.`
+  }
+
+  const margin = usd(values.availableOrderMargin, DECIBEL_SCALE)
+  if (margin) out.availableOrderMargin = margin
+  if (typeof values.hasPositionsOrOrders === "boolean") {
+    out.hasPositionsOrOrders = values.hasPositionsOrOrders
+  }
+  out.pendingWithdrawals = withdrawalsOf(values)
 
   const status = values.crossPositionStatus
   if (status && typeof status === "object") {
@@ -211,6 +234,54 @@ function orderConstraintsOf(
   }
 }
 
+// A Move Option comes back as { vec: [] } for none and { vec: [value] } for
+// some. Reported as a plain "not set" rather than leaking the wrapper.
+function optionValue(v: unknown): unknown {
+  if (v && typeof v === "object" && "vec" in v) {
+    const vec = (v as { vec?: unknown }).vec
+    return Array.isArray(vec) && vec.length > 0 ? vec[0] : null
+  }
+  return v ?? null
+}
+
+function positionExtrasOf(now: MarketLive | null): Record<string, unknown> {
+  const a = now?.account
+  const out: Record<string, unknown> = {}
+  if (a) {
+    const funding = usd(a.fundingCost, DECIBEL_SCALE)
+    if (funding) {
+      out.fundingCostTotal = funding
+      out.fundingNote = "The complete unrealised funding cost for this position. Quote this rather than unrealisedFunding, which only covers what accrued before the last funding update."
+    }
+    out.stopLoss = optionValue(a.stopLoss) === null ? "not set" : optionValue(a.stopLoss)
+    out.takeProfit = optionValue(a.takeProfit) === null ? "not set" : optionValue(a.takeProfit)
+  }
+  const bidAsk = now?.params?.bestBidAsk
+  if (Array.isArray(bidAsk)) {
+    const bid = optionValue(bidAsk[0])
+    const ask = optionValue(bidAsk[1])
+    out.book = {
+      bestBid: bid === null ? "no resting bid" : usd(bid, DECIBEL_SCALE),
+      bestAsk: ask === null ? "no resting ask" : usd(ask, DECIBEL_SCALE),
+      note: "Where the order book is right now. A limit order rests unfilled when it is priced through this spread on the wrong side.",
+    }
+  }
+  return out
+}
+
+// "Where is my withdrawal?" is a top support question, and the honest answer
+// distinguishes an empty queue from a queue we could not read.
+function withdrawalsOf(values: Record<string, unknown>): unknown {
+  const raw = values.pendingWithdrawals
+  if (typeof raw === "string") return raw
+  const count = values.pendingWithdrawalCount
+  if (Array.isArray(raw) && raw.length === 0) {
+    return "none pending: nothing is queued for withdrawal, so a missing withdrawal was never submitted or has already settled"
+  }
+  if (Array.isArray(raw)) return { queued: raw, count: count ?? raw.length }
+  return "not read"
+}
+
 export const PROTOCOL_ADAPTERS: Record<string, ProtocolAdapter> = {
   [DECIBEL]: {
     name: "Decibel",
@@ -231,6 +302,15 @@ export const PROTOCOL_ADAPTERS: Record<string, ProtocolAdapter> = {
       // which is precisely the deflection the prompt forbids.
       { label: "delegatedPermissions", fn: `${DECIBEL}::dex_accounts::view_delegated_permissions` },
       { label: "subaccountActive", fn: `${DECIBEL}::dex_accounts::view_is_subaccount_active` },
+      // "Why can't I open another position?" is margin, not a bug.
+      { label: "availableOrderMargin", fn: `${DECIBEL}::accounts_collateral::available_order_margin` },
+      // A clean zero-state signal that does not depend on reading every market.
+      { label: "hasPositionsOrOrders", fn: `${DECIBEL}::perp_engine::account_has_any_positions_or_orders` },
+    ],
+    // Withdrawals queue against the owner, so these take the wallet.
+    walletViews: [
+      { label: "pendingWithdrawals", fn: `${DECIBEL}::async_withdraw_queue::get_pending_withdrawals` },
+      { label: "pendingWithdrawalCount", fn: `${DECIBEL}::async_withdraw_queue::get_pending_withdrawal_count` },
     ],
     listMarketsFn: `${DECIBEL}::perp_engine::list_markets`,
     marketNameFn: `${DECIBEL}::perp_engine::market_name`,
@@ -244,6 +324,15 @@ export const PROTOCOL_ADAPTERS: Record<string, ProtocolAdapter> = {
         { label: "maxLeverage", fn: `${DECIBEL}::perp_engine::market_max_leverage` },
         { label: "isOpen", fn: `${DECIBEL}::perp_engine::is_market_open` },
         { label: "isolatedOnly", fn: `${DECIBEL}::perp_engine::market_is_isolated_only` },
+        // "Why didn't my limit order fill?" is answered by where the book is.
+        { label: "bestBidAsk", fn: `${DECIBEL}::perp_market::get_best_bid_and_ask_price` },
+      ],
+      accountFns: [
+        // The COMPLETE funding cost. The position struct only carries what
+        // accrued before the last funding update, which reads as near zero.
+        { label: "fundingCost", fn: `${DECIBEL}::perp_engine::get_position_unrealized_funding_cost` },
+        { label: "stopLoss", fn: `${DECIBEL}::position_tp_sl::get_sl_order` },
+        { label: "takeProfit", fn: `${DECIBEL}::position_tp_sl::get_tp_order` },
       ],
     },
     humanize: humanizeDecibel,
@@ -342,7 +431,16 @@ export async function getProtocolAccount(
     }),
   )
 
-  const values = Object.fromEntries(results)
+  const walletResults = await Promise.all(
+    (adapter.walletViews ?? []).map(async v => {
+      const r = await viewFunctionResult(v.fn, [], [normalizeAptosAddress(walletAddress)])
+      if (r.ok) return [v.label, firstValue(r.data)] as const
+      if (r.kind === "aborted") return [v.label, `unavailable: ${r.message}`] as const
+      return [v.label, "lookup failed: could not reach the Aptos fullnode, this is NOT a statement about the account"] as const
+    }),
+  )
+
+  const values = { ...Object.fromEntries(results), ...Object.fromEntries(walletResults) }
 
   // Name the markets a position points at, so the readable block can say
   // "GOLD/USD" instead of an object address. Cached, and a failure here only
@@ -356,18 +454,28 @@ export async function getProtocolAccount(
     // Live reads for the markets this trader actually holds. Bounded by the
     // size of the book, so a 60-market venue still costs only a handful of
     // calls, and a failure here degrades the extras rather than the answer.
+    // A big book multiplies these reads: 8 markets by 11 views is 88 calls for
+    // one question, which throttles even with an API key. Enrich the first few
+    // positions properly, and the order-constraint reads (6 views each) fewer
+    // still, since they are usually asked about one market at a time.
     const held = heldMarketObjects(values.positions)
     const liveByObject = new Map<string, MarketLive>()
     if (adapter.perMarket && held.length > 0) {
       const { oraclePriceFn, liquidatableFn, paramFns } = adapter.perMarket
       await Promise.all(
-        held.slice(0, 8).map(async object => {
-          const [price, liq, params] = await Promise.all([
+        held.slice(0, MAX_ENRICHED_MARKETS).map(async (object, marketIndex) => {
+          const [price, liq, params, accountScoped] = await Promise.all([
             oraclePriceFn ? viewFunctionResult(oraclePriceFn, [], [object]) : null,
             liquidatableFn ? viewFunctionResult(liquidatableFn, [], [accountAddress, object]) : null,
             Promise.all(
-              (paramFns ?? []).map(async p => {
+              (marketIndex < MAX_CONSTRAINT_MARKETS ? (paramFns ?? []) : []).map(async p => {
                 const r = await viewFunctionResult(p.fn, [], [object])
+                return [p.label, r.ok ? firstValue(r.data) : null] as const
+              }),
+            ),
+            Promise.all(
+              (adapter.perMarket?.accountFns ?? []).map(async p => {
+                const r = await viewFunctionResult(p.fn, [], [accountAddress, object])
                 return [p.label, r.ok ? firstValue(r.data) : null] as const
               }),
             ),
@@ -378,6 +486,8 @@ export async function getProtocolAccount(
           if (liq?.ok) entry.liquidatable = firstValue(liq.data) === true
           const kept = params.filter(([, v]) => v !== null)
           if (kept.length > 0) entry.params = Object.fromEntries(kept)
+          const keptAccount = accountScoped.filter(([, v]) => v !== null)
+          if (keptAccount.length > 0) entry.account = Object.fromEntries(keptAccount)
           liveByObject.set(normalizeAptosAddress(object), entry)
         }),
       ).catch(() => undefined)
@@ -411,6 +521,11 @@ export interface ProtocolMarket {
   /** Decimals for this market's size field. Decibel sets these per market. */
   szDecimals?: number
 }
+
+/** How many held markets get live price, liquidation and funding reads. */
+const MAX_ENRICHED_MARKETS = 5
+/** How many get the heavier order-constraint reads on top. */
+const MAX_CONSTRAINT_MARKETS = 2
 
 const marketCache = new Map<string, { at: number; markets: ProtocolMarket[] }>()
 const MARKET_TTL_MS = 10 * 60_000
