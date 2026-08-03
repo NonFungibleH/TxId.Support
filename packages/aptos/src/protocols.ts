@@ -158,6 +158,8 @@ function humanizeDecibel(
     out.enrichmentNote = `Live price, PnL, funding and liquidation checks were read for the first ${MAX_ENRICHED_MARKETS} markets in this list only, to stay within the node's rate limits. Where those fields are absent it means NOT READ, never zero and never "no position". If the user asks about one of the others, read that market on demand with get_contract_data.`
   }
 
+  out.pendingOrders = pendingOrdersOf(values.pendingOrders)
+
   const margin = usd(values.availableOrderMargin, DECIBEL_SCALE)
   if (margin) out.availableOrderMargin = margin
   if (typeof values.hasPositionsOrOrders === "boolean") {
@@ -177,6 +179,11 @@ function humanizeDecibel(
         equity === null || threshold === null ? null : usd(equity - threshold, DECIBEL_SCALE),
       totalNotional: usd(s.total_notional_value, DECIBEL_SCALE),
       freeCollateral: usd(s.margin_for_free_collateral, DECIBEL_SCALE),
+      // The closest honest answer to "what is my liquidation price?". Decibel
+      // exposes no per-position trigger price, and deriving one across a cross
+      // book would be invention, but the uniform adverse move that closes the
+      // gap between equity and the threshold is arithmetic.
+      ...adverseMoveOf(equity, threshold, num(s.total_notional_value)),
       note: "Cross-margin only. Liquidation becomes possible when accountEquity falls to liquidationThreshold, so bufferAboveLiquidation is the cushion left. State these figures; do not invent a risk rating or a percentage the contract did not give you.",
     }
   }
@@ -244,6 +251,40 @@ function optionValue(v: unknown): unknown {
   return v ?? null
 }
 
+function adverseMoveOf(
+  equity: number | null,
+  threshold: number | null,
+  notional: number | null,
+): Record<string, unknown> {
+  if (equity === null || threshold === null || notional === null || notional <= 0) return {}
+  const pct = ((equity - threshold) / notional) * 100
+  return {
+    adverseMoveToLiquidation: `${pct.toFixed(1)}%`,
+    adverseMoveNote:
+      "The uniform adverse price move across the whole book that would bring equity down to the liquidation threshold. It is NOT a per-position liquidation price: Decibel publishes none, and a single position moving alone would reach the threshold at a different point. Present it as an approximate cushion, not a trigger price.",
+  }
+}
+
+// Orders that are queued but not yet matched, per market.
+function pendingOrdersOf(raw: unknown): unknown {
+  if (typeof raw === "string") return raw
+  const markets = (raw as { markets?: unknown[] } | null)?.markets
+  if (!Array.isArray(markets)) return "not read"
+  const rows = markets.flatMap(m => {
+    const entry = (m ?? {}) as Record<string, any>
+    const longs = num(entry.pending_bulk_longs?.size_sum) ?? 0
+    const shorts = num(entry.pending_bulk_shorts?.size_sum) ?? 0
+    if (longs === 0 && shorts === 0) return []
+    return [{ market: entry.name ?? "unknown market", pendingLongSize: longs, pendingShortSize: shorts }]
+  })
+  return rows.length === 0
+    ? "no orders queued: nothing of this account's is waiting to be matched, so an order the user cannot see was either filled or cancelled"
+    : {
+        queued: rows,
+        note: "Sizes are raw for the market and still need that market's size decimals applied. These orders are accepted but not yet matched.",
+      }
+}
+
 function positionExtrasOf(now: MarketLive | null): Record<string, unknown> {
   const a = now?.account
   const out: Record<string, unknown> = {}
@@ -306,6 +347,8 @@ export const PROTOCOL_ADAPTERS: Record<string, ProtocolAdapter> = {
       { label: "availableOrderMargin", fn: `${DECIBEL}::accounts_collateral::available_order_margin` },
       // A clean zero-state signal that does not depend on reading every market.
       { label: "hasPositionsOrOrders", fn: `${DECIBEL}::perp_engine::account_has_any_positions_or_orders` },
+      // "Is my order still queued?" across every market, in one call.
+      { label: "pendingOrders", fn: `${DECIBEL}::pending_order_tracker::view_account_summary` },
     ],
     // Withdrawals queue against the owner, so these take the wallet.
     walletViews: [
@@ -337,7 +380,7 @@ export const PROTOCOL_ADAPTERS: Record<string, ProtocolAdapter> = {
     },
     humanize: humanizeDecibel,
     note:
-      "On Decibel a trader's collateral and positions live in their subaccount object, NOT in their wallet. The wallet balance is only idle funds that have not been deposited. Always answer position and collateral questions from the subaccount figures below, and never present the wallet balance as the trading balance. IMPORTANT: crossCollateralValue covers CROSS margin only. Decibel also supports ISOLATED positions, whose collateral sits per market and is not included, so a zero cross figure does NOT mean the trader has no funds on the venue. If cross collateral is zero but the user believes they hold a position, say that you can see no cross-margin collateral and ask which market they traded, then read that market's isolated collateral rather than telling them they have nothing. Those reads are PER MARKET, so they cannot be listed above with the account-level views: call get_contract_data with function_name \"perp_engine::get_isolated_position_total_collateral_value\" and args [subaccount, market], and \"perp_engine::is_position_isolated\" with the same args to confirm the position is isolated at all. \"perp_engine::market_is_isolated_only\" takes just the market and tells you whether that venue only supports isolated margin, which explains a zero cross figure on its own. delegatedPermissions and subaccountActive answer \"have I enabled trading?\": Decibel's \"Establish connection\" step delegates trading to a session key so orders can be placed gas-free, and these views report whether that is in place. Note that primary_subaccount returns a DERIVED address, so it resolves even for a wallet that has never used the protocol; when the account views abort, the subaccount object does not exist yet, which means the user has not completed setup rather than that anything is wrong. Say that plainly and tell them the setup step is the connection prompt in the app, but never send them off to read their status from the UI when these views answered it.",
+      "On Decibel a trader's collateral and positions live in their subaccount object, NOT in their wallet. The wallet balance is only idle funds that have not been deposited. Always answer position and collateral questions from the subaccount figures below, and never present the wallet balance as the trading balance. IMPORTANT: crossCollateralValue covers CROSS margin only. Decibel also supports ISOLATED positions, whose collateral sits per market and is not included, so a zero cross figure does NOT mean the trader has no funds on the venue. If cross collateral is zero but the user believes they hold a position, say that you can see no cross-margin collateral and ask which market they traded, then read that market's isolated collateral rather than telling them they have nothing. Those reads are PER MARKET, so they cannot be listed above with the account-level views: call get_contract_data with function_name \"perp_engine::get_isolated_position_total_collateral_value\" and args [subaccount, market], and \"perp_engine::is_position_isolated\" with the same args to confirm the position is isolated at all. \"perp_engine::market_is_isolated_only\" takes just the market and tells you whether that venue only supports isolated margin, which explains a zero cross figure on its own. delegatedPermissions and subaccountActive answer \"have I enabled trading?\": Decibel's \"Establish connection\" step delegates trading to a session key so orders can be placed gas-free, and these views report whether that is in place. Note that primary_subaccount returns a DERIVED address, so it resolves even for a wallet that has never used the protocol; when the account views abort, the subaccount object does not exist yet, which means the user has not completed setup rather than that anything is wrong. Say that plainly and tell them the setup step is the connection prompt in the app, but never send them off to read their status from the UI when these views answered it. WHY WAS I LIQUIDATED: Decibel publishes no liquidation-history view, but a liquidation is a transaction against the subaccount, so it appears in the merged history that get_recent_transactions returns. It is a keeper-sent call to public_apis::liquidate_position, public_apis::liquidate_positions or public_apis::backstop_liquidate_no_positions. Find it there and diagnose that transaction rather than saying you cannot see liquidations. If none appears in the window that was searched, say how far back you looked instead of concluding it never happened.",
   },
 }
 
