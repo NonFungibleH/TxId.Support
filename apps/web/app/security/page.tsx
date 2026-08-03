@@ -58,12 +58,13 @@ export default function SecurityPage() {
               <FadeIn>
                 <p className="font-mono text-sm text-accent mb-3">Trust</p>
                 <h1 className="font-display text-5xl font-bold text-white leading-[1.1] tracking-tight mb-5">
-                  Built to be
+                  Read-only. Verifiable.
                   <br />
-                  <span className="text-accent">taken at its word.</span>
+                  <span className="text-accent">Recorded.</span>
                 </h1>
                 <p className="text-lg text-muted leading-relaxed">
-                  Read-only by design. Verifiable on request. Recorded by default.
+                  TxID can&apos;t touch funds, proves its answers on request, and keeps a record
+                  of everything it says.
                 </p>
               </FadeIn>
               <FadeIn delay={0.1}>

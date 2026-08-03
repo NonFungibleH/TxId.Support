@@ -10,10 +10,10 @@ const SEGMENTS = [
     description:
       "Your agent reads the wallet, sees the failed swap or the wrong network, and explains what happened. No ticket queue in sight.",
     features: [
-      "Transaction diagnostics: failed swaps explained in plain English",
-      "Wallet-aware: the agent already knows what the user's wallet did",
-      "Knowledge base Q&A: trained on your protocol documentation",
-      "Escalation tickets with clean hand-off when the agent can't resolve",
+      "Failed transactions explained, with the fix",
+      "It already knows what the user's wallet did",
+      "Answers come from your documentation",
+      "Clean hand-off to your team when it can't resolve",
     ],
     cta: "Try it live",
     ctaHref: "/check",
@@ -54,8 +54,8 @@ export function ForWho() {
               Built for on-chain finance
             </h2>
             <p className="text-muted max-w-xl mx-auto">
-              From live protocols and token communities to institutions bringing assets on-chain:
-              one agent, embedded where your users are and trained on your content.
+              Protocols, token communities, and the institutions bringing real money on-chain.
+              Same product, different jobs.
             </p>
           </div>
         </FadeIn>
@@ -118,10 +118,10 @@ export function ForWho() {
                   When value moves on-chain, someone has to explain it
                 </p>
                 <p className="text-sm text-muted leading-relaxed">
-                  Stablecoin issuers, tokenization platforms, and operations teams inherit
-                  client-facing support obligations the moment assets move on-chain. TxID gives
-                  every answer a live on-chain investigation behind it, and keeps each one as a
-                  recorded, reportable case your compliance team can stand behind.
+                  The moment your clients hold assets on-chain, their questions become your
+                  support load, and your answers become something you may have to defend later.
+                  TxID backs every answer with a live on-chain investigation and files it as a
+                  case your compliance team can pull up whenever they need to.
                 </p>
               </div>
               <ul className="space-y-3">

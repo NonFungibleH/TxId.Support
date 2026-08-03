@@ -66,8 +66,8 @@ export default function HowItWorksPage() {
                 One case, end to end.
               </h1>
               <p className="text-lg text-muted leading-relaxed">
-                Follow a single support question through the whole company: from the user who asks it
-                to the compliance team that keeps the record.
+                Here&apos;s what happens when a user asks a question, from the moment they ask to
+                the record you keep.
               </p>
             </FadeIn>
           </div>
@@ -79,7 +79,7 @@ export default function HowItWorksPage() {
           n="01"
           who="Your user"
           title="Support, right where they're stuck"
-          copy="A user hits a failed transaction and asks right on your site, or in your Telegram group. They connect their wallet and TxID already sees what happened. There is no ticket form, and no waiting for another timezone to wake up."
+          copy="Your user hits a failed transaction. They ask right there on your site or in your Telegram group, connect their wallet, and TxID can already see what happened. Nobody fills in a ticket form."
         >
           <WidgetMockup className="relative" />
         </Stage>
@@ -89,7 +89,7 @@ export default function HowItWorksPage() {
           n="02"
           who="TxID"
           title="A live on-chain investigation"
-          copy="The engine treats the question as an engineering problem. It fetches the transaction, replays it against chain state, and decodes the failure using your contracts and error maps. Verified fact is kept distinct from interpretation, always."
+          copy="TxID pulls the transaction and replays it against the chain. It decodes the failure using your contracts and your error maps. And if something can't be verified, it says so instead of guessing."
           flip
         >
           <InvestigationMockup />
@@ -100,7 +100,7 @@ export default function HowItWorksPage() {
           n="03"
           who="Your user"
           title="Unblocked in seconds"
-          copy="Most questions end here. The user gets the answer and the exact fix, in your brand and their language, and the repeat questions never reach your team."
+          copy="Most questions end here. The user gets the answer and the fix in about thirty seconds, in your brand and their language, and your team never hears about it."
         >
           <div className="max-w-md mx-auto space-y-3">
             <div className="rounded-2xl rounded-bl-sm border border-[var(--border)] bg-[#0d0d18] px-4 py-3.5">
@@ -121,7 +121,7 @@ export default function HowItWorksPage() {
           n="04"
           who="Your team"
           title="Escalation with the investigation attached"
-          copy="When a human is genuinely needed, the case lands where your team already works, whether that is Slack, Discord, Linear, GitHub or Jira, with the full investigation attached. Nobody starts from zero."
+          copy="Some questions do need a human. Those land in Slack, Discord, Linear, GitHub or Jira with the investigation already done, so whoever picks one up isn't starting from zero."
           flip
         >
           <div className="max-w-md mx-auto rounded-2xl border border-[var(--border)] bg-[#0d0d18] overflow-hidden">

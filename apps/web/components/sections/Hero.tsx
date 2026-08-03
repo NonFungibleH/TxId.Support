@@ -27,7 +27,7 @@ export function Hero() {
 
             <FadeIn delay={0.16}>
               <p className="text-lg text-muted leading-relaxed mb-8 max-w-lg">
-                TxID investigates every user question like a protocol engineer, answers in seconds, and records every case for compliance.
+                Your users get answers backed by a live read of the chain. Your team gets fewer tickets. Compliance gets a record of all of it.
               </p>
             </FadeIn>
 

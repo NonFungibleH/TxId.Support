@@ -49,7 +49,7 @@ export default function SolutionsIndexPage() {
                 One layer, three teams.
               </h1>
               <p className="text-lg text-muted leading-relaxed">
-                Start with the page that sounds like your desk.
+                Pick the page that matches your team.
               </p>
             </FadeIn>
           </div>

@@ -129,7 +129,7 @@ export default function PricingPage() {
           <FadeIn>
             <p className="font-mono text-sm text-accent mb-3">{"Pricing"}</p>
             <h1 className="font-display text-5xl font-bold text-white mb-4">
-              Priced to your platform. Evaluate free.
+              We price to your platform. You can evaluate free first.
             </h1>
             <p className="text-lg text-muted max-w-xl mx-auto">
               No credit card required. The free tier is genuinely useful,

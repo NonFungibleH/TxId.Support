@@ -74,10 +74,10 @@ export function CompanyFlow() {
           <div className="text-center mb-14">
             <p className="font-mono text-sm text-accent mb-3">The flow</p>
             <h2 className="font-display text-4xl font-bold text-white mb-4">
-              One investigation, used by the whole company
+              Follow one case through your company
             </h2>
             <p className="text-muted max-w-2xl mx-auto">
-              Watch a single case travel from the user&apos;s question to the compliance record.
+              Tap a stage to see who gets what.
             </p>
           </div>
         </FadeIn>

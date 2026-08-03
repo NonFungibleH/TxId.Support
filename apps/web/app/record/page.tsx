@@ -55,9 +55,8 @@ export default function RecordPage() {
                   <span className="text-accent">on the record.</span>
                 </h1>
                 <p className="text-lg text-muted leading-relaxed mb-4">
-                  Support tools log chat transcripts. TxID files the whole investigation, from the
-                  user&apos;s question to the on-chain evidence behind the answer. One case, kept
-                  properly, that your whole company can rely on.
+                  Most support tools keep a chat log. TxID keeps the whole investigation: what was
+                  asked, what the chain showed, and how it was resolved.
                 </p>
                 <p className="font-mono text-xs text-muted/70 mb-8">
                   The chat is how cases get created. The record is what you keep.
@@ -145,9 +144,9 @@ export default function RecordPage() {
                     funds, and gives no financial advice. Cases contain public on-chain data and the conversation itself.
                   </li>
                   <li>
-                    <span className="text-[#c8c8d8] font-medium">On the roadmap:</span> full-text case search, exports,
-                    data-retention controls, and SOC 2: the operational-intelligence layer we&apos;re building next.
-                    We tell you what exists and what&apos;s coming, plainly.
+                    <span className="text-[#c8c8d8] font-medium">Next, and funded:</span> full-text case search, exports,
+                    data-retention controls, and SOC 2. We&apos;d rather tell you what exists and
+                    what&apos;s coming than blur the two.
                   </li>
                 </ul>
               </div>

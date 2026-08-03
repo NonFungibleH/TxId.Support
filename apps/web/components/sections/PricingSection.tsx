@@ -85,7 +85,7 @@ export function PricingSection({ compact }: { compact?: boolean }) {
                 Simple, transparent pricing
               </h2>
               <p className="text-muted max-w-xl mx-auto">
-                Priced to your platform. Evaluate free.
+                We price to your platform. You can evaluate free first.
               </p>
             </div>
           </FadeIn>

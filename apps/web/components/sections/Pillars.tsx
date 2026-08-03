@@ -8,27 +8,27 @@ const PILLARS = [
   {
     icon: Search,
     name: "Investigate",
-    line: "Every question worked like a protocol engineer would",
+    line: "It reads the chain before it answers",
     detail:
-      "Live chain reads, transactions replayed, errors decoded against your contracts and error maps. Every claim has a source, and verified fact is kept distinct from interpretation.",
+      "TxID pulls the transaction, replays it, and decodes the failure using your contracts and error maps. If it can't verify something, it says so instead of guessing.",
     href: "/how-it-works",
     linkLabel: "See the flow",
   },
   {
     icon: MessageCircle,
     name: "Resolve",
-    line: "Plain-English answers where your users already are",
+    line: "Answers where your users already are",
     detail:
-      "Embedded in your product, inside your Telegram groups, or through the API. Most questions end resolved in seconds; the rest reach your team with the investigation attached.",
+      "In your product, in your Telegram groups, or through the API. Most questions get resolved in seconds. The rest go to your team with the work already done.",
     href: "/api",
     linkLabel: "The three surfaces",
   },
   {
     icon: Archive,
     name: "Record",
-    line: "A defensible case file behind every answer",
+    line: "It keeps the case file",
     detail:
-      "The question, the evidence, the reasoning, and the resolution, filed automatically. Support learns, product prioritises, and compliance can stand behind what was said.",
+      "Every question is filed with its evidence and its outcome, automatically. Support learns from it, product prioritizes with it, and compliance can point to it.",
     href: "/record",
     linkLabel: "The Case Record",
   },

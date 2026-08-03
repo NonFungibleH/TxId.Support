@@ -3,7 +3,7 @@ import { FadeIn } from "@/components/ui/FadeIn";
 export const FAQS = [
   {
     q: "What exactly is TxID Support?",
-    a: "TxID Support is an agentic support layer you embed in your protocol's site or Telegram. It investigates every question the way a protocol engineer would: reading live chain state, diagnosing failed transactions against your contracts, and answering from your documentation. What it can't resolve escalates to your team with the investigation attached, and every case is recorded so support, product, and compliance can stand behind what was said.",
+    a: "It's a support layer you embed in your site or your Telegram. When a user asks a question, TxID reads the chain, works out what actually happened, and answers. If it can't resolve something, it hands your team the case with the work already done. And everything gets recorded, which matters more than you'd think once compliance starts asking.",
   },
   {
     q: "How does wallet detection work?",
@@ -15,7 +15,7 @@ export const FAQS = [
   },
   {
     q: "Do you support Aptos and Move?",
-    a: "Yes, natively. Rather than adapt the EVM engine, TxID runs a second engine built for Move: module ABIs are read live from the Aptos fullnode, failed transactions decode Move abort codes into plain English, and users connect with Petra or paste an address. Aptos-only behaviours are covered too, including sponsored transactions, auth key rotation, and protocols that keep user funds in subaccount objects with delegated session keys.",
+    a: "Yes, natively. Rather than adapt the EVM engine, TxID runs a second engine built for Move: module ABIs are read live from the Aptos fullnode, failed transactions decode Move abort codes into plain English, and users connect with Petra or paste an address. Aptos-only behaviors are covered too, including sponsored transactions, auth key rotation, and protocols that keep user funds in subaccount objects with delegated session keys.",
   },
   {
     q: "Is there a record of what the agent tells users?",
@@ -31,7 +31,7 @@ export const FAQS = [
   },
   {
     q: "Is it really white-label on the free plan?",
-    a: "Yes. The free plan includes custom colours, font, and logo. Our Custom plan goes further with a custom agent name, avatar, and priority support.",
+    a: "Yes. The free plan includes custom colors, font, and logo. Our Custom plan goes further with a custom agent name, avatar, and priority support.",
   },
   {
     q: "Which blockchains does TxID Support work with?",
