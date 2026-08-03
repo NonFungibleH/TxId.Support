@@ -1,6 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk"
 import OpenAI from "openai"
 import type { ChatMessage, WatchedContractSnapshot } from "./types"
+import { toolEvidenceFrom, type ToolEvidence } from "./evidence"
 import { buildWalletTools, buildTxLookupTool, buildContractTxsTool, buildContractEventsTool, buildContractDeploymentTool, buildContractHoldingsTool, buildContractStateTool, buildContractDataTool, buildContractInfoTool, buildContractFunctionsTool, buildUpgradeHistoryTool, buildTokenTools, buildNetworkTool, buildWalletDiagnosisTool, buildNativePriceTool, buildSanctionsTool, buildTokenSafetyTool, buildEnsTool, buildEstimateActionTool, buildEscalationTool, executeTool } from "./tools"
 import type { WalletConfig } from "./tools"
 import { buildPrepareContractActionTool, buildPrepareSwapTool, executeActionTool } from "./actions"
@@ -33,6 +34,10 @@ function getGroqClient(): OpenAI {
 // ── Stream event types ───────────────────────────────────────────────────────
 
 export type StreamEvent =
+  // Compact facts about what the investigation actually read: which tools ran,
+  // which lookups failed, and the prices the answer rested on. Consumed by the
+  // case record, never shown to the user.
+  | { type: "tool_evidence"; items: ToolEvidence[] }
   | { type: "text"; text: string }
   | { type: "tool_call"; tool: string }
   | { type: "escalate"; summary: string; reason: string }
@@ -278,6 +283,11 @@ export async function* streamChatWithTools(
             }),
           )
 
+          yield {
+            type: "tool_evidence",
+            items: executed.map(e => toolEvidenceFrom(e.name, e.result, e.error != null)),
+          }
+
           // Surface any client-side actions a tool asked for (e.g. switch network).
           for (const ev of clientActionsFrom(executed)) yield ev
 
@@ -460,6 +470,11 @@ export async function* streamChatWithTools(
 
     // Surface any client-side actions a tool asked for (e.g. switch network).
     for (const ev of clientActionsFrom(executed)) yield ev
+
+    yield {
+      type: "tool_evidence",
+      items: executed.map(e => toolEvidenceFrom(e.name, e.result, e.error != null)),
+    }
 
     const toolResults = executed.map(({ id, result, error }) =>
       error

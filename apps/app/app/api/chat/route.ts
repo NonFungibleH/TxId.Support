@@ -1,5 +1,6 @@
 import { createServiceClient } from "@/lib/supabase/server"
 import { answerFingerprint, chainStateAt, coarseDevice, requestGeo, type AnswerEvidence } from "@/lib/evidence"
+import { mergeToolEvidence, type ToolEvidence } from "@txid/ai"
 import { buildSystemPrompt, buildDocsBlock, retrieveContext, streamChatWithTools, generateSuggestions } from "@txid/ai"
 import type { ChatMessage, ProjectConfigSnapshot, ActionsContext } from "@txid/ai"
 import { actionsGate, effectiveMaxSwapUsd } from "@/lib/actions-gate"
@@ -616,6 +617,7 @@ export async function POST(request: Request) {
           let fullResponseText = ""
           let wasEscalated = false
           let usage: { inputTokens: number; outputTokens: number; cacheReadTokens: number; cacheWriteTokens: number; model: string } | null = null
+          const toolEvidence: ToolEvidence[] = []
 
           const streamMessages = validActionResult
             ? [
@@ -652,6 +654,11 @@ export async function POST(request: Request) {
             let data: string
             if (event.type === "tool_call") {
               data = `data: ${JSON.stringify({ tool_call: event.tool })}\n\n`
+            } else if (event.type === "tool_evidence") {
+              // Case-record only: never sent to the client, and never allowed
+              // to interrupt the stream.
+              toolEvidence.push(...event.items)
+              continue
             } else if (event.type === "escalate") {
               wasEscalated = true
               data = `data: ${JSON.stringify({ escalate: { summary: event.summary, reason: event.reason } })}\n\n`
@@ -695,6 +702,7 @@ export async function POST(request: Request) {
           // against the per-session user-message cap on subsequent requests.
           void persistMessages(supabase, typedProject.id, sessionId, validActionResult ? [...safeMessages, { role: "assistant" as const, content: `⚙️ Action update: ${validActionResult.row.summary ?? "transaction"} ${validActionResult.confirmed ? "confirmed" : "failed"} (${validActionResult.txHash})` }] : safeMessages, walletAddress, chainId, fullResponseText || undefined, usage, {
             ...requestEvidence,
+            investigation: mergeToolEvidence(toolEvidence),
             ...(chainId ? { chainId } : {}),
             surface: "widget",
             ...(config.branding?.language ? { language: config.branding.language } : {}),
@@ -738,6 +746,7 @@ interface EvidenceContext {
   surface?: string
   language?: string
   startedAt?: number
+  investigation?: { toolsUsed: string[]; failedLookups: string[]; prices: Record<string, string> }
 }
 
 async function persistMessages(
@@ -793,6 +802,23 @@ async function persistMessages(
             ...(evidenceContext?.language ? { language: evidenceContext.language } : {}),
           },
           ...(usage?.model ? { model: { name: usage.model } } : {}),
+          ...(evidenceContext?.investigation
+            ? {
+                investigation: {
+                  ...(evidenceContext.investigation.toolsUsed.length > 0
+                    ? { toolsUsed: evidenceContext.investigation.toolsUsed }
+                    : {}),
+                  ...(evidenceContext.investigation.failedLookups.length > 0
+                    ? { failedLookups: evidenceContext.investigation.failedLookups }
+                    : {}),
+                },
+                // The prices an answer rested on: "you were down $312" is
+                // unverifiable later without the price that produced it.
+                ...(Object.keys(evidenceContext.investigation.prices).length > 0
+                  ? { pricesAtRead: evidenceContext.investigation.prices }
+                  : {}),
+              }
+            : {}),
           answer: answerFingerprint(assistantResponse),
           ...(evidenceContext?.startedAt ? { latencyMs: Date.now() - evidenceContext.startedAt } : {}),
         }
