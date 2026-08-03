@@ -15,31 +15,19 @@ export const metadata: Metadata = {
 };
 
 function ChainCard({ chain }: { chain: ChainInfo }) {
-  const live = chain.status === "live";
   return (
     <Link
       href={`/chains/${chain.slug}`}
       className="group flex h-full flex-col bg-[var(--bg-surface)] border border-[var(--border)] rounded-xl p-5 transition-colors hover:border-[color:var(--hover)]"
       style={{ ["--hover" as string]: hexToRgba(chain.color, 0.4) }}
     >
+      {/* No status pill: the section heading already says these are live, and a
+          per-card pill inherits each chain's brand colour, so the row reads as
+          nine different colours rather than one state. No ticker either: the
+          name carries the card. */}
       <div className="flex items-center gap-3 mb-3">
         <ChainLogo src={chain.logo} name={chain.name} color={chain.color} size={36} whiteBg={chain.logoWhiteBg} />
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <h3 className="font-display font-semibold text-white truncate">{chain.name}</h3>
-            <span
-              className="shrink-0 text-[10px] font-mono px-1.5 py-0.5 rounded-full"
-              style={{
-                border: `1px solid ${hexToRgba(chain.color, live ? 0.4 : 0.25)}`,
-                background: hexToRgba(chain.color, 0.1),
-                color: chain.color,
-              }}
-            >
-              {live ? "Live" : "Soon"}
-            </span>
-          </div>
-          <p className="text-[11px] text-muted font-mono">{chain.ticker}</p>
-        </div>
+        <h3 className="font-display font-semibold text-white truncate">{chain.name}</h3>
       </div>
       {/* Fixed two-line tagline zone so every card sits at the same height. */}
       <p className="text-sm text-muted leading-relaxed mb-3 line-clamp-3 min-h-[4.35em] flex-1">{chain.tagline}</p>

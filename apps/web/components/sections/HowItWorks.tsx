@@ -73,15 +73,16 @@ export function HowItWorks() {
                 <p className="text-sm text-muted leading-relaxed">
                   {step.description}
                 </p>
-                {/* The middle step carries a note instead of bullets, so it runs
-                    short. Sink it to the bottom of the stretched card and give it
-                    an accent rule, so the card reads as designed, not unfinished. */}
+                {/* The middle step has no bullets of its own, so its note takes
+                    the same checked-bullet form the other two cards use rather
+                    than a treatment that appears nowhere else. */}
                 {step.note && (
-                  <div className="mt-5 flex flex-1 items-end">
-                    <p className="text-sm text-muted leading-relaxed rounded-lg border-l-2 border-accent/50 bg-accent/[0.04] py-3 pl-4 pr-3">
-                      {step.note}
-                    </p>
-                  </div>
+                  <ul className="space-y-2 mt-5">
+                    <li className="flex items-start gap-2.5 text-sm text-muted">
+                      <Check className="w-4 h-4 shrink-0 mt-0.5 text-accent" />
+                      <span>{step.note}</span>
+                    </li>
+                  </ul>
                 )}
                 {step.bullets.length > 0 && (
                   <ul className="space-y-2 mt-5">

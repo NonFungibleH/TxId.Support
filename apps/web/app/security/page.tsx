@@ -295,15 +295,16 @@ export default function SecurityPage() {
                 <div className="flex items-center gap-3 mb-4">
                   <Milestone className="w-5 h-5 text-accent" />
                   <h2 className="font-display text-xl font-bold text-white">
-                    Built for long-term trust
+                    What we have not built yet
                   </h2>
                 </div>
                 <p className="text-sm text-muted leading-relaxed mb-2.5">
-                  SOC 2 readiness and additional data-retention controls are part of the product
-                  roadmap.
+                  SOC 2 readiness and configurable data retention are on the roadmap. Neither is
+                  in place today.
                 </p>
                 <p className="text-sm text-[#c8c8d8] leading-relaxed">
-                  We clearly separate what exists today from what is being built next.
+                  Nothing else on this page implies otherwise. If a control is not listed above
+                  as available today, assume we do not have it and ask us.
                 </p>
               </div>
             </FadeIn>

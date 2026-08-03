@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
-import { ChevronDown, ChevronUp, ThumbsUp, ThumbsDown, Wallet, Download, Globe, MessageSquare, Bot, Ticket, Loader2, CheckCircle2 } from "lucide-react"
+import { ChevronDown, ChevronUp, ThumbsUp, ThumbsDown, Wallet, Download, Globe, MessageSquare, Bot, Ticket, Loader2, CheckCircle2, ShieldCheck } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import type { ConversationWithMessages } from "@/app/dashboard/conversations/page"
 import { summarizeStaleConversations, type ConvSummary } from "@/lib/actions/summarize"
@@ -79,6 +79,97 @@ function FeedbackIcon({ feedback }: { feedback: number }) {
 }
 
 type TicketStatus = "idle" | "loading" | "done" | "error"
+
+function Field({ label, value }: { label: string; value: React.ReactNode }) {
+  return (
+    <div className="flex items-baseline gap-2">
+      <span className="shrink-0 text-[10px] uppercase tracking-wider text-muted-foreground">{label}</span>
+      <span className="font-mono text-[11px] text-foreground break-all">{value}</span>
+    </div>
+  )
+}
+
+/**
+ * What an answer rested on. This is the part a compliance reviewer opens: the
+ * transcript says what was said, the record says under what conditions and
+ * whether it can be reproduced.
+ */
+function EvidenceBadge({ evidence }: { evidence: NonNullable<ConversationWithMessages["messages"][number]["evidence"]> }) {
+  const [open, setOpen] = useState(false)
+  const chain = evidence.chain
+  const req = evidence.request
+  const inv = evidence.investigation
+  const prices = (evidence as { pricesAtRead?: Record<string, string> }).pricesAtRead
+
+  return (
+    <div className="mt-1 shrink-0">
+      <button
+        onClick={() => setOpen(o => !o)}
+        title="What this answer rested on"
+        className="flex h-5 w-5 items-center justify-center rounded-full border border-border text-muted-foreground transition-colors hover:border-primary hover:text-primary"
+      >
+        <ShieldCheck className="h-3 w-3" />
+      </button>
+      {open && (
+        <div className="absolute right-4 z-20 mt-1 w-[22rem] space-y-2.5 rounded-xl border border-border bg-background p-3 shadow-lg">
+          <p className="text-[11px] font-semibold text-foreground">Case record</p>
+
+          {chain && (
+            <div className="space-y-1">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-primary">Chain state</p>
+              <Field label="Chain" value={chain.chainId} />
+              {chain.ledgerVersion && <Field label="Ledger" value={chain.ledgerVersion} />}
+              <Field label="Read at" value={new Date(chain.readAt).toLocaleString()} />
+            </div>
+          )}
+
+          {prices && Object.keys(prices).length > 0 && (
+            <div className="space-y-1">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-primary">Prices quoted</p>
+              {Object.entries(prices).slice(0, 6).map(([k, v]) => <Field key={k} label={k} value={v} />)}
+            </div>
+          )}
+
+          {inv?.toolsUsed && inv.toolsUsed.length > 0 && (
+            <div className="space-y-1">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-primary">Checked</p>
+              <p className="font-mono text-[11px] text-foreground">{inv.toolsUsed.join(", ")}</p>
+            </div>
+          )}
+
+          {inv?.failedLookups && inv.failedLookups.length > 0 && (
+            <div className="space-y-1">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-amber-600">Failed lookups</p>
+              {inv.failedLookups.slice(0, 3).map(fl => (
+                <p key={fl} className="text-[11px] text-muted-foreground">{fl}</p>
+              ))}
+            </div>
+          )}
+
+          {req && (
+            <div className="space-y-1">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-primary">Context</p>
+              {req.country && <Field label="Country" value={req.country} />}
+              {req.deviceType && <Field label="Device" value={[req.deviceType, req.platform, req.browser].filter(Boolean).join(" · ")} />}
+              {req.surface && <Field label="Surface" value={req.surface} />}
+              {req.language && <Field label="Language" value={req.language} />}
+            </div>
+          )}
+
+          <div className="space-y-1 border-t border-border pt-2">
+            {evidence.model?.name && <Field label="Model" value={evidence.model.name} />}
+            {typeof evidence.latencyMs === "number" && <Field label="Latency" value={`${evidence.latencyMs} ms`} />}
+            {evidence.answer && <Field label="SHA-256" value={`${evidence.answer.sha256.slice(0, 24)}…`} />}
+          </div>
+
+          <p className="text-[10px] leading-relaxed text-muted-foreground">
+            No IP address is stored. Country is resolved at the edge and the address discarded.
+          </p>
+        </div>
+      )}
+    </div>
+  )
+}
 
 export function ConversationList({
   conversations,
@@ -302,7 +393,7 @@ export function ConversationList({
                   {conv.messages.map((msg, i) => (
                     <div
                       key={i}
-                      className={`flex gap-2 ${msg.role === "user" ? "justify-end" : "justify-start"}`}
+                      className={`relative flex gap-2 ${msg.role === "user" ? "justify-end" : "justify-start"}`}
                     >
                       {msg.role === "assistant" && (
                         <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[9px] font-bold text-primary mt-0.5">AI</div>
@@ -316,6 +407,9 @@ export function ConversationList({
                       >
                         {msg.content}
                       </div>
+                      {msg.role === "assistant" && msg.evidence && (
+                        <EvidenceBadge evidence={msg.evidence} />
+                      )}
                       {msg.role === "assistant" && msg.feedback !== 0 && (
                         <div className="mt-1 shrink-0">
                           <FeedbackIcon feedback={msg.feedback} />

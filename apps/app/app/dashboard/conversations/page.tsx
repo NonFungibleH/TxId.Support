@@ -7,6 +7,8 @@ import type { Database } from "@/lib/supabase/types"
 
 type ProjectRow = Database["public"]["Tables"]["projects"]["Row"]
 
+import type { AnswerEvidence } from "@/lib/evidence"
+
 export interface ConversationWithMessages {
   id: string
   session_id: string
@@ -16,7 +18,14 @@ export interface ConversationWithMessages {
   summary?: string | null
   category?: string | null
   sentiment?: string | null
-  messages: Array<{ role: string; content: string; feedback: number; created_at: string }>
+  messages: Array<{
+    role: string
+    content: string
+    feedback: number
+    created_at: string
+    /** Conditions this answer was produced under. Assistant rows only. */
+    evidence?: AnswerEvidence | null
+  }>
 }
 
 interface SearchParams {
@@ -137,11 +146,25 @@ export default async function ConversationsPage({
   } catch { /* migration not applied yet - summaries are optional */ }
 
   const [{ data: messages }, { data: tickets }] = await Promise.all([
-    supabase
+    // `evidence` post-dates the generated types, and on a deployment that has
+    // not run the migration the column does not exist at all, so ask for it
+    // untyped and fall back rather than 500 the whole page.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (supabase as any)
       .from("messages")
-      .select("id, conversation_id, role, content, feedback, created_at")
+      .select("id, conversation_id, role, content, feedback, created_at, evidence")
       .in("conversation_id", convIds)
-      .order("created_at", { ascending: true }),
+      .order("created_at", { ascending: true })
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .then((res: any) =>
+        res.error
+          ? supabase
+              .from("messages")
+              .select("id, conversation_id, role, content, feedback, created_at")
+              .in("conversation_id", convIds)
+              .order("created_at", { ascending: true })
+          : res,
+      ),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (supabase as any)
       .from("tickets")
@@ -167,11 +190,14 @@ export default async function ConversationsPage({
       summary: summaryById.get(c.id)?.summary ?? null,
       category: summaryById.get(c.id)?.category ?? null,
       sentiment: summaryById.get(c.id)?.sentiment ?? null,
-      messages: (msgByConv.get(c.id) ?? []).map((m) => ({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      messages: (msgByConv.get(c.id) ?? []).map((m: any) => ({
         role: m.role,
         content: m.content,
         feedback: m.feedback,
         created_at: m.created_at,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        evidence: ((m as any).evidence ?? null) as AnswerEvidence | null,
       })),
     }))
     .filter((c: ConversationWithMessages) => c.messages.length > 0)
