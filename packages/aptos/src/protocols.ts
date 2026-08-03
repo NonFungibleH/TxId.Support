@@ -30,6 +30,8 @@ export interface ProtocolAdapter {
   listMarketsFn?: string
   /** view(marketObject) -> human name. */
   marketNameFn?: string
+  /** view(marketObject) -> decimals for that market's size field. */
+  marketSizeDecimalsFn?: string
   /** Explains the account model, injected verbatim into the tool result. */
   note: string
   /**
@@ -41,7 +43,7 @@ export interface ProtocolAdapter {
    */
   humanize?: (
     values: Record<string, unknown>,
-    marketName: (object: string) => string | null,
+    market: (object: string) => ProtocolMarket | null,
   ) => Record<string, unknown>
 }
 
@@ -69,7 +71,7 @@ const DECIBEL_SCALE = 1_000_000
 
 function humanizeDecibel(
   values: Record<string, unknown>,
-  marketName: (object: string) => string | null,
+  market: (object: string) => ProtocolMarket | null,
 ): Record<string, unknown> {
   const out: Record<string, unknown> = {}
 
@@ -85,16 +87,25 @@ function humanizeDecibel(
     out.positions = list.map(p => {
       const pos = (p ?? {}) as Record<string, unknown>
       const object = unwrapObject((pos as { market?: unknown }).market)
+      const info = object ? market(object) : null
+      // Size decimals are set PER MARKET (BTC 8, TSLA 7, MEGA 4), so a flat
+      // scale misreports size, and notional with it, by orders of magnitude.
+      // Without the market's own figure, do not guess: say so instead.
+      const sizeScale = info?.szDecimals != null ? 10 ** info.szDecimals : null
       const size = num(pos.size)
       const px = num(pos.avg_acquire_entry_px)
       const notional = num(pos.entry_px_times_size_sum)
+      const unknownScale = "unknown: this market's size decimals could not be read, so the size cannot be stated"
       return {
-        market: (object && marketName(object)) || object || "unknown market",
+        market: info?.name || object || "unknown market",
         side: pos.is_long === true ? "long" : pos.is_long === false ? "short" : "unknown",
         margin: pos.is_isolated === true ? "isolated" : "cross",
-        size: size === null ? null : size / DECIBEL_SCALE,
+        size: size === null ? null : sizeScale === null ? unknownScale : size / sizeScale,
         entryPrice: usd(px, DECIBEL_SCALE),
-        notionalAtEntry: notional === null ? null : usd(notional, DECIBEL_SCALE * DECIBEL_SCALE),
+        notionalAtEntry:
+          notional === null ? null
+          : sizeScale === null ? unknownScale
+          : usd(notional, DECIBEL_SCALE * sizeScale),
         leverage: pos.user_leverage != null ? `${pos.user_leverage}x` : null,
         unrealisedFunding: usd(pos.unrealized_funding_amount_before_last_update, DECIBEL_SCALE),
       }
@@ -102,7 +113,7 @@ function humanizeDecibel(
   }
 
   out.note =
-    "These are the same figures as the raw values above, converted out of Decibel's 1e6 fixed point into dollars and units. QUOTE THESE, never the raw integers. Size is in contract units of the market's base asset, and notionalAtEntry is size multiplied by entry price, not current value. unrealisedFunding is only the amount accrued before the last funding update, so it is not the position's full funding cost."
+    "These are the same figures as the raw values above, converted into dollars and units. QUOTE THESE, never the raw integers. Prices are 1e6 fixed point; SIZE decimals are set per market (BTC 8, TSLA 7, MEGA 4), which is why size must come from here rather than from the raw value. notionalAtEntry is size multiplied by entry price, so it is the value at entry, NOT the current value: do not present it as a position's worth today. unrealisedFunding is only the amount accrued before the last funding update, so it is not the position's full funding cost."
   return out
 }
 
@@ -129,6 +140,7 @@ export const PROTOCOL_ADAPTERS: Record<string, ProtocolAdapter> = {
     ],
     listMarketsFn: `${DECIBEL}::perp_engine::list_markets`,
     marketNameFn: `${DECIBEL}::perp_engine::market_name`,
+    marketSizeDecimalsFn: `${DECIBEL}::perp_engine::market_sz_decimals`,
     humanize: humanizeDecibel,
     note:
       "On Decibel a trader's collateral and positions live in their subaccount object, NOT in their wallet. The wallet balance is only idle funds that have not been deposited. Always answer position and collateral questions from the subaccount figures below, and never present the wallet balance as the trading balance. IMPORTANT: crossCollateralValue covers CROSS margin only. Decibel also supports ISOLATED positions, whose collateral sits per market and is not included, so a zero cross figure does NOT mean the trader has no funds on the venue. If cross collateral is zero but the user believes they hold a position, say that you can see no cross-margin collateral and ask which market they traded, then read that market's isolated collateral rather than telling them they have nothing. Those reads are PER MARKET, so they cannot be listed above with the account-level views: call get_contract_data with function_name \"perp_engine::get_isolated_position_total_collateral_value\" and args [subaccount, market], and \"perp_engine::is_position_isolated\" with the same args to confirm the position is isolated at all. \"perp_engine::market_is_isolated_only\" takes just the market and tells you whether that venue only supports isolated margin, which explains a zero cross figure on its own. delegatedPermissions and subaccountActive answer \"have I enabled trading?\": Decibel's \"Establish connection\" step delegates trading to a session key so orders can be placed gas-free, and these views report whether that is in place. Note that primary_subaccount returns a DERIVED address, so it resolves even for a wallet that has never used the protocol; when the account views abort, the subaccount object does not exist yet, which means the user has not completed setup rather than that anything is wrong. Say that plainly and tell them the setup step is the connection prompt in the app, but never send them off to read their status from the UI when these views answered it.",
@@ -233,7 +245,7 @@ export async function getProtocolAccount(
   let readable: Record<string, unknown> | undefined
   if (adapter.humanize) {
     const markets = await getProtocolMarkets(adapter).catch(() => null)
-    const byObject = new Map((markets ?? []).map(m => [normalizeAptosAddress(m.object), m.name]))
+    const byObject = new Map((markets ?? []).map(m => [normalizeAptosAddress(m.object), m]))
     const nameOf = (object: string) => byObject.get(normalizeAptosAddress(object)) ?? null
     try {
       readable = adapter.humanize(values, nameOf)
@@ -256,7 +268,14 @@ export async function getProtocolAccount(
 // Market lists are static enough to cache for the life of a warm lambda, and
 // resolving them costs 1 + N view calls, which would otherwise blow the model's
 // tool-round budget (Decibel has 60 markets).
-const marketCache = new Map<string, { at: number; markets: { name: string; object: string }[] }>()
+export interface ProtocolMarket {
+  name: string
+  object: string
+  /** Decimals for this market's size field. Decibel sets these per market. */
+  szDecimals?: number
+}
+
+const marketCache = new Map<string, { at: number; markets: ProtocolMarket[] }>()
 const MARKET_TTL_MS = 10 * 60_000
 
 function unwrapObject(v: unknown): string | null {
@@ -279,7 +298,7 @@ function unwrapObject(v: unknown): string | null {
  */
 export async function getProtocolMarkets(
   adapter: ProtocolAdapter,
-): Promise<{ name: string; object: string }[] | null> {
+): Promise<ProtocolMarket[] | null> {
   if (!adapter.listMarketsFn || !adapter.marketNameFn) return null
 
   const cached = marketCache.get(adapter.name)
@@ -293,14 +312,20 @@ export async function getProtocolMarkets(
   if (objects.length === 0) return null
 
   const nameFn = adapter.marketNameFn
+  const szFn = adapter.marketSizeDecimalsFn
   const named = await Promise.all(
     objects.slice(0, 120).map(async object => {
-      const r = await viewFunctionResult(nameFn, [], [object])
+      const [r, sz] = await Promise.all([
+        viewFunctionResult(nameFn, [], [object]),
+        szFn ? viewFunctionResult(szFn, [], [object]) : Promise.resolve(null),
+      ])
       const name = r.ok ? String(firstValue(r.data) ?? "") : ""
-      return name ? { name, object } : null
+      if (!name) return null
+      const dec = sz?.ok ? Number(firstValue(sz.data)) : NaN
+      return { name, object, ...(Number.isFinite(dec) ? { szDecimals: dec } : {}) }
     }),
   )
-  const markets = named.filter((m): m is { name: string; object: string } => m !== null)
+  const markets = named.filter((m): m is ProtocolMarket => m !== null)
   if (markets.length === 0) return null
 
   markets.sort((a, b) => a.name.localeCompare(b.name))
