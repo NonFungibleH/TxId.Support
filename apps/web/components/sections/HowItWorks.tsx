@@ -73,8 +73,15 @@ export function HowItWorks() {
                 <p className="text-sm text-muted leading-relaxed">
                   {step.description}
                 </p>
+                {/* The middle step carries a note instead of bullets, so it runs
+                    short. Sink it to the bottom of the stretched card and give it
+                    an accent rule, so the card reads as designed, not unfinished. */}
                 {step.note && (
-                  <p className="text-sm text-muted leading-relaxed mt-3">{step.note}</p>
+                  <div className="mt-5 flex flex-1 items-end">
+                    <p className="text-sm text-muted leading-relaxed rounded-lg border-l-2 border-accent/50 bg-accent/[0.04] py-3 pl-4 pr-3">
+                      {step.note}
+                    </p>
+                  </div>
                 )}
                 {step.bullets.length > 0 && (
                   <ul className="space-y-2 mt-5">

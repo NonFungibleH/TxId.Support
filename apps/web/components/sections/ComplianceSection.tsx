@@ -2,6 +2,7 @@ import {
   ShieldCheck, ScanSearch, FileCheck2, ScrollText, Ban, BookLock, Eye, ArrowRight,
 } from "lucide-react";
 import Link from "next/link";
+import { clsx } from "clsx";
 import { FadeIn } from "@/components/ui/FadeIn";
 
 // One flat set of seven. The old two-group split used "Safe by design" as a
@@ -87,8 +88,13 @@ export function ComplianceSection() {
         </FadeIn>
 
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {/* A 7th card orphans hard-left on the last row of a 3-up grid; centre it. */}
           {ITEMS.map((item, i) => (
-            <FadeIn key={item.title} delay={(i % 3) * 0.06}>
+            <FadeIn
+              key={item.title}
+              delay={(i % 3) * 0.06}
+              className={clsx(i === ITEMS.length - 1 && ITEMS.length % 3 === 1 && "lg:col-start-2")}
+            >
               <div className="bg-[var(--bg-surface)] border border-[var(--border)] rounded-xl p-5 hover:border-[var(--border-accent)] transition-colors group h-full">
                 <div className="w-9 h-9 rounded-lg bg-accent-muted flex items-center justify-center mb-3 group-hover:bg-accent/20 transition-colors">
                   <item.icon className="w-[1.125rem] h-[1.125rem] text-accent" />

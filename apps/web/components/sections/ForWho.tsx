@@ -110,7 +110,7 @@ export function ForWho() {
               <div
                 className={`relative rounded-2xl border p-8 bg-[var(--bg-surface)] border-[var(--border)] transition-colors ${seg.hover}`}
               >
-                <div className="grid md:grid-cols-[1.15fr_1fr] gap-8 lg:gap-12">
+                <div className="grid md:grid-cols-[1.15fr_1fr] gap-8 lg:gap-12 items-center">
                   <div>
                     <span
                       className={`inline-flex items-center gap-2 font-mono text-[10px] uppercase tracking-widest mb-5 ${seg.accent}`}
