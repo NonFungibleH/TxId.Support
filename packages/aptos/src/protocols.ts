@@ -32,6 +32,78 @@ export interface ProtocolAdapter {
   marketNameFn?: string
   /** Explains the account model, injected verbatim into the tool result. */
   note: string
+  /**
+   * Move views return fixed-point integers with no units attached, so a raw
+   * result reads as a wildly wrong number: Decibel reports a $322.76 TSLA entry
+   * as 322760000. Left to interpret those alone the model invents a scale and
+   * states a confidently wrong price, which is worse than declining. This turns
+   * the raw values into figures already in dollars and units.
+   */
+  humanize?: (
+    values: Record<string, unknown>,
+    marketName: (object: string) => string | null,
+  ) => Record<string, unknown>
+}
+
+const num = (v: unknown): number | null => {
+  const n = typeof v === "string" || typeof v === "number" ? Number(v) : NaN
+  return Number.isFinite(n) ? n : null
+}
+// Two decimal places is wrong for the small-cap markets Decibel lists: a
+// $0.0371 entry rounds to "$0.04", which a trader reads as a different price.
+// Scale the precision to the magnitude, and keep the minus outside the sign.
+const usd = (v: unknown, scale: number): string | null => {
+  const n = num(v)
+  if (n === null) return null
+  const x = n / scale
+  const abs = Math.abs(x)
+  const dp = abs === 0 ? 2 : abs >= 1 ? 2 : abs >= 0.01 ? 4 : 6
+  const body = abs.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: dp })
+  return `${x < 0 ? "-" : ""}$${body}`
+}
+
+// Decibel quotes prices, sizes and USD amounts in 1e6 fixed point. Leverage is
+// a plain integer. Verified against live mainnet positions: TSLA/USD entry
+// 322760000 = $322.76, GOLD/USD 4038600000 = $4,038.60.
+const DECIBEL_SCALE = 1_000_000
+
+function humanizeDecibel(
+  values: Record<string, unknown>,
+  marketName: (object: string) => string | null,
+): Record<string, unknown> {
+  const out: Record<string, unknown> = {}
+
+  const coll = usd(values.crossCollateralValue, DECIBEL_SCALE)
+  if (coll) out.crossCollateral = coll
+  const nav = usd(values.netAssetValue, DECIBEL_SCALE)
+  if (nav) out.netAssetValue = nav
+
+  const raw = values.positions
+  const list = Array.isArray(raw) ? raw : []
+  if (list.length === 0 && Array.isArray(raw)) out.positions = "no open positions"
+  if (list.length > 0) {
+    out.positions = list.map(p => {
+      const pos = (p ?? {}) as Record<string, unknown>
+      const object = unwrapObject((pos as { market?: unknown }).market)
+      const size = num(pos.size)
+      const px = num(pos.avg_acquire_entry_px)
+      const notional = num(pos.entry_px_times_size_sum)
+      return {
+        market: (object && marketName(object)) || object || "unknown market",
+        side: pos.is_long === true ? "long" : pos.is_long === false ? "short" : "unknown",
+        margin: pos.is_isolated === true ? "isolated" : "cross",
+        size: size === null ? null : size / DECIBEL_SCALE,
+        entryPrice: usd(px, DECIBEL_SCALE),
+        notionalAtEntry: notional === null ? null : usd(notional, DECIBEL_SCALE * DECIBEL_SCALE),
+        leverage: pos.user_leverage != null ? `${pos.user_leverage}x` : null,
+        unrealisedFunding: usd(pos.unrealized_funding_amount_before_last_update, DECIBEL_SCALE),
+      }
+    })
+  }
+
+  out.note =
+    "These are the same figures as the raw values above, converted out of Decibel's 1e6 fixed point into dollars and units. QUOTE THESE, never the raw integers. Size is in contract units of the market's base asset, and notionalAtEntry is size multiplied by entry price, not current value. unrealisedFunding is only the amount accrued before the last funding update, so it is not the position's full funding cost."
+  return out
 }
 
 export const PROTOCOL_ADAPTERS: Record<string, ProtocolAdapter> = {
@@ -57,6 +129,7 @@ export const PROTOCOL_ADAPTERS: Record<string, ProtocolAdapter> = {
     ],
     listMarketsFn: `${DECIBEL}::perp_engine::list_markets`,
     marketNameFn: `${DECIBEL}::perp_engine::market_name`,
+    humanize: humanizeDecibel,
     note:
       "On Decibel a trader's collateral and positions live in their subaccount object, NOT in their wallet. The wallet balance is only idle funds that have not been deposited. Always answer position and collateral questions from the subaccount figures below, and never present the wallet balance as the trading balance. IMPORTANT: crossCollateralValue covers CROSS margin only. Decibel also supports ISOLATED positions, whose collateral sits per market and is not included, so a zero cross figure does NOT mean the trader has no funds on the venue. If cross collateral is zero but the user believes they hold a position, say that you can see no cross-margin collateral and ask which market they traded, then read that market's isolated collateral rather than telling them they have nothing. Those reads are PER MARKET, so they cannot be listed above with the account-level views: call get_contract_data with function_name \"perp_engine::get_isolated_position_total_collateral_value\" and args [subaccount, market], and \"perp_engine::is_position_isolated\" with the same args to confirm the position is isolated at all. \"perp_engine::market_is_isolated_only\" takes just the market and tells you whether that venue only supports isolated margin, which explains a zero cross figure on its own. delegatedPermissions and subaccountActive answer \"have I enabled trading?\": Decibel's \"Establish connection\" step delegates trading to a session key so orders can be placed gas-free, and these views report whether that is in place. Note that primary_subaccount returns a DERIVED address, so it resolves even for a wallet that has never used the protocol; when the account views abort, the subaccount object does not exist yet, which means the user has not completed setup rather than that anything is wrong. Say that plainly and tell them the setup step is the connection prompt in the app, but never send them off to read their status from the UI when these views answered it.",
   },
@@ -81,6 +154,8 @@ export interface ProtocolAccount {
   accountAddress: string | null
   /** label -> value, or an explanation when that particular view had nothing. */
   values: Record<string, unknown>
+  /** The same figures with fixed-point scaling applied. Quote these. */
+  readable?: Record<string, unknown>
   note: string
 }
 
@@ -150,11 +225,30 @@ export async function getProtocolAccount(
     }),
   )
 
+  const values = Object.fromEntries(results)
+
+  // Name the markets a position points at, so the readable block can say
+  // "GOLD/USD" instead of an object address. Cached, and a failure here only
+  // costs the names.
+  let readable: Record<string, unknown> | undefined
+  if (adapter.humanize) {
+    const markets = await getProtocolMarkets(adapter).catch(() => null)
+    const byObject = new Map((markets ?? []).map(m => [normalizeAptosAddress(m.object), m.name]))
+    const nameOf = (object: string) => byObject.get(normalizeAptosAddress(object)) ?? null
+    try {
+      readable = adapter.humanize(values, nameOf)
+    } catch {
+      // Never let formatting take down the answer: the raw values still stand.
+      readable = undefined
+    }
+  }
+
   return {
     protocol: adapter.name,
     accountLabel: adapter.accountLabel,
     accountAddress,
-    values: Object.fromEntries(results),
+    values,
+    ...(readable ? { readable } : {}),
     note: adapter.note,
   }
 }
