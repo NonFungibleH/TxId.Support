@@ -1,11 +1,9 @@
 "use client"
 
 import { useState, useRef, useEffect, useCallback } from "react"
-import Link from "next/link"
 import { Navbar } from "@/components/layout/Navbar"
 import { Footer } from "@/components/layout/Footer"
 import { ArrowRight, Wallet, RotateCcw, Send, AlertCircle, Loader2 } from "lucide-react"
-import { APP_URL } from "@/lib/config"
 import { accentVars, readableText } from "@/lib/chains"
 import { clsx } from "clsx"
 
@@ -245,7 +243,12 @@ export default function AptosCheckPage() {
               text?: string
               tool_call?: string
               error?: string
+              escalate?: { reason?: string }
             }
+            // The per-session message cap arrives as an `escalate` event (the
+            // widget renders a ticket form for it; here it just means "this
+            // chat is full"), so surface the start-a-new-chat card.
+            if (parsed.escalate?.reason === "message_limit") setLimitReached(true)
             if (parsed.error) {
               setMessages(prev => {
                 const next = [...prev]
@@ -527,16 +530,25 @@ export default function AptosCheckPage() {
           <div className="max-w-3xl mx-auto px-6 py-4">
             {limitReached ? (
               <div className="text-center py-2">
-                <p className="text-sm text-white font-medium mb-1">That&apos;s the end of your free test.</p>
-                <p className="text-xs text-muted mb-4">You just saw the support your users would get. We&apos;re onboarding early teams personally: tell us about your protocol.</p>
-                <Link
-                  href={`${APP_URL}/sign-up`}
-                  style={{ color: ctaText }}
-                  className="inline-flex items-center gap-2 rounded-xl bg-accent text-sm font-semibold px-5 py-2.5 hover:bg-accent/90 transition-colors"
-                >
-                  Add TxID to your protocol
-                  <ArrowRight className="w-4 h-4" />
-                </Link>
+                <p className="text-sm text-white font-medium mb-1">That&apos;s the limit for one chat.</p>
+                <p className="text-xs text-muted mb-4">Start a new one to keep going, or tell us what you&apos;d like to see next.</p>
+                <div className="flex flex-wrap items-center justify-center gap-2">
+                  <button
+                    onClick={reset}
+                    style={{ color: ctaText }}
+                    className="inline-flex items-center gap-2 rounded-xl bg-accent text-sm font-semibold px-5 py-2.5 hover:bg-accent/90 transition-colors"
+                  >
+                    <RotateCcw className="w-4 h-4" />
+                    Start a new chat
+                  </button>
+                  <a
+                    href="mailto:team@txid.support?subject=TxID on Aptos"
+                    className="inline-flex items-center gap-2 rounded-xl border border-[#1e1e3a] text-sm font-semibold px-5 py-2.5 text-white hover:border-accent/50 transition-colors"
+                  >
+                    Email the team
+                    <ArrowRight className="w-4 h-4" />
+                  </a>
+                </div>
               </div>
             ) : (
               <>
@@ -590,14 +602,14 @@ export default function AptosCheckPage() {
               <p className="text-sm font-semibold text-white">Building on Aptos?</p>
               <p className="text-xs text-muted mt-0.5">This is a live test. Want your users to get the same support? We&apos;ll set you up personally.</p>
             </div>
-            <Link
-              href={`${APP_URL}/sign-up`}
+            <a
+              href="mailto:team@txid.support?subject=TxID on Aptos"
               style={{ color: ctaText }}
               className="flex items-center gap-2 rounded-full bg-accent hover:bg-accent/90 text-sm font-semibold px-5 py-2.5 transition-colors whitespace-nowrap shrink-0"
             >
-              Add to your protocol
+              Talk to us
               <ArrowRight className="w-4 h-4" />
-            </Link>
+            </a>
           </div>
         </div>
       </main>

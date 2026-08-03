@@ -13,6 +13,13 @@ import { CHAT_LIMITS, conversationLimitsFor } from "@/lib/limits"
 import { fetchAbiWithProxy, fetchAbiFromExplorer } from "@txid/blockchain"
 import { demoContractsFor, demoContractDescription, DEMO_PROTOCOLS } from "@/lib/demo-protocols"
 
+// An agentic answer runs up to 5 model rounds with live chain reads in
+// between, and protocol-account questions (Decibel resolves a subaccount,
+// then reads collateral, positions and history) sit at the heavy end. The
+// platform default cuts that off mid-answer, so raise it: streaming keeps
+// the connection open but the function still has to be allowed to live.
+export const maxDuration = 60
+
 // The public demo key. Checks BOTH env names so the exemption works whether
 // Vercel has DEMO_WIDGET_KEY, NEXT_PUBLIC_DEMO_WIDGET_KEY, or both set to it.
 function isDemoKey(key: string): boolean {
