@@ -1,4 +1,5 @@
 import { createServiceClient } from "@/lib/supabase/server"
+import { answerFingerprint, chainStateAt, coarseDevice, requestGeo, type AnswerEvidence } from "@/lib/evidence"
 import { buildSystemPrompt, buildDocsBlock, retrieveContext, streamChatWithTools, generateSuggestions } from "@txid/ai"
 import type { ChatMessage, ProjectConfigSnapshot, ActionsContext } from "@txid/ai"
 import { actionsGate, effectiveMaxSwapUsd } from "@/lib/actions-gate"
@@ -83,8 +84,16 @@ export async function OPTIONS() {
 }
 
 export async function POST(request: Request) {
+  const turnStartedAt = Date.now()
   try {
     const ip = clientIp(request)
+    // Country resolved at the edge; the IP above is used only for rate
+    // limiting and is never persisted. See lib/evidence.ts.
+    const requestEvidence = {
+      geo: requestGeo(request.headers),
+      device: coarseDevice(request.headers.get("user-agent")),
+      startedAt: turnStartedAt,
+    }
 
     const { allowed } = await rateLimit(`chat:${ip}`, CHAT_LIMITS.ratePerWindow, CHAT_LIMITS.windowMs, {
       degradedLimit: CHAT_LIMITS.degradedRatePerWindow,
@@ -684,7 +693,12 @@ export async function POST(request: Request) {
           // The action-update marker is a system-generated status note, not a
           // user turn - persist it as an assistant-side row so it never counts
           // against the per-session user-message cap on subsequent requests.
-          void persistMessages(supabase, typedProject.id, sessionId, validActionResult ? [...safeMessages, { role: "assistant" as const, content: `⚙️ Action update: ${validActionResult.row.summary ?? "transaction"} ${validActionResult.confirmed ? "confirmed" : "failed"} (${validActionResult.txHash})` }] : safeMessages, walletAddress, chainId, fullResponseText || undefined, usage)
+          void persistMessages(supabase, typedProject.id, sessionId, validActionResult ? [...safeMessages, { role: "assistant" as const, content: `⚙️ Action update: ${validActionResult.row.summary ?? "transaction"} ${validActionResult.confirmed ? "confirmed" : "failed"} (${validActionResult.txHash})` }] : safeMessages, walletAddress, chainId, fullResponseText || undefined, usage, {
+            ...requestEvidence,
+            ...(chainId ? { chainId } : {}),
+            surface: "widget",
+            ...(config.branding?.language ? { language: config.branding.language } : {}),
+          })
         } catch (err) {
           log.error("Chat stream error", err, { event: "chat.stream_error", projectId: typedProject.id })
           // For our own demo/publicDemo projects, surface the real reason to make
@@ -716,6 +730,16 @@ export async function POST(request: Request) {
   }
 }
 
+/** Request-side facts gathered before the answer, for the case record. */
+interface EvidenceContext {
+  chainId?: string
+  geo?: { country?: string; region?: string }
+  device?: ReturnType<typeof coarseDevice>
+  surface?: string
+  language?: string
+  startedAt?: number
+}
+
 async function persistMessages(
   supabase: ReturnType<typeof createServiceClient>,
   projectId: string,
@@ -725,6 +749,7 @@ async function persistMessages(
   chainId?: string,
   assistantResponse?: string,
   usage?: { inputTokens: number; outputTokens: number; cacheReadTokens: number; cacheWriteTokens: number; model: string } | null,
+  evidenceContext?: EvidenceContext,
 ) {
   try {
     const { data: conv } = await supabase
@@ -738,7 +763,12 @@ async function persistMessages(
 
     if (!conv) return
 
-    const toInsert: { conversation_id: string; role: "user" | "assistant"; content: string }[] = []
+    const toInsert: {
+      conversation_id: string
+      role: "user" | "assistant"
+      content: string
+      evidence?: AnswerEvidence
+    }[] = []
 
     // Persist the turn-opening message: a real user turn on the normal path, or
     // an assistant-side action-update marker on the post-transaction follow-up.
@@ -748,7 +778,33 @@ async function persistMessages(
       toInsert.push({ conversation_id: conv.id, role: latest.role, content: latest.content })
     }
     if (assistantResponse) {
-      toInsert.push({ conversation_id: conv.id, role: "assistant", content: assistantResponse })
+      // Evidence rides on the assistant row: it describes the conditions that
+      // answer was produced under. Built after the response has already been
+      // streamed, so the chain read costs the user no latency, and never
+      // allowed to block the write.
+      let evidence: AnswerEvidence | undefined
+      try {
+        evidence = {
+          ...(evidenceContext?.chainId ? { chain: await chainStateAt(evidenceContext.chainId) } : {}),
+          request: {
+            ...(evidenceContext?.geo ?? {}),
+            ...(evidenceContext?.device ?? {}),
+            ...(evidenceContext?.surface ? { surface: evidenceContext.surface } : {}),
+            ...(evidenceContext?.language ? { language: evidenceContext.language } : {}),
+          },
+          ...(usage?.model ? { model: { name: usage.model } } : {}),
+          answer: answerFingerprint(assistantResponse),
+          ...(evidenceContext?.startedAt ? { latencyMs: Date.now() - evidenceContext.startedAt } : {}),
+        }
+      } catch {
+        evidence = undefined
+      }
+      toInsert.push({
+        conversation_id: conv.id,
+        role: "assistant",
+        content: assistantResponse,
+        ...(evidence ? { evidence } : {}),
+      })
     }
     if (toInsert.length > 0) {
       await supabase.from("messages").insert(toInsert)
