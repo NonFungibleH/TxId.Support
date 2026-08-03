@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ShieldCheck, ScanSearch, Archive, ArrowRight } from "lucide-react";
+import {
+  ShieldCheck, ScanSearch, Archive, ArrowRight, KeyRound, Eye,
+  BadgeCheck, PenLine, Database, Milestone, Check,
+} from "lucide-react";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { FadeIn } from "@/components/ui/FadeIn";
@@ -10,38 +13,44 @@ import { TrustMockup } from "@/components/sections/TrustMockup";
 export const metadata: Metadata = {
   title: "Trust | TxID",
   description:
-    "Read-only by design, verifiable on request, recorded by default. How TxID keeps on-chain support safe for protocols, platforms, and institutions.",
+    "TxID is designed to operate safely alongside your protocol. It cannot move funds, it explains where its answers come from, and every interaction creates a reviewable record.",
   alternates: { canonical: "/security" },
 };
 
-// Three quiet pillars instead of six defensive cards. The page states the
-// posture; the product proves it.
-const PILLARS = [
+// The three layers every answer passes through. Numbered and stacked so the
+// page reads as a posture rather than a list of reassurances.
+const LAYERS = [
   {
-    icon: ShieldCheck,
-    title: "Read-only by design",
-    points: [
-      "No custody, no keys, no signing: nothing can move funds",
-      "Reads the same public data any block explorer can",
-      "Nothing to integrate: no contract permissions, nothing deployed",
-    ],
+    n: "01",
+    icon: KeyRound,
+    title: "Read-only access",
+    tagline: "No keys. No signing. No custody.",
+    intro: "TxID only reads public blockchain data.",
+    listLabel: "It never requires:",
+    items: ["Private keys", "Seed phrases", "Signing permissions", "Contract permissions"],
+    outro: "No assets are held. No transactions are executed.",
   },
   {
-    icon: ScanSearch,
-    title: "Verifiable on request",
-    points: [
-      "Every claim backed by a live chain read, with its source",
-      "OFAC sanctions screening via the on-chain Chainalysis oracle",
-      "Contract verification and your audits, cited when users ask",
-    ],
+    n: "02",
+    icon: Eye,
+    title: "Verified answers",
+    tagline: "Evidence behind every claim.",
+    intro: "When TxID provides an answer, it can show the underlying source:",
+    items: ["Live on-chain reads", "Transaction data", "Contract state", "Protocol documentation"],
+    outro: "Users and teams can verify what happened instead of trusting a black box.",
   },
   {
+    n: "03",
     icon: Archive,
     title: "Recorded by default",
-    points: [
-      "Every conversation stored with the investigation behind it",
-      "Reviewable by your team; deletable on request",
-      "Conversation data retained for 12 months",
+    tagline: "Every interaction becomes a case record.",
+    intro: "TxID stores the conversation, investigation, evidence, and outcome.",
+    listLabel: "Teams can review:",
+    items: [
+      "What was asked",
+      "What data was checked",
+      "What answer was provided",
+      "How the case was resolved",
     ],
   },
 ];
@@ -50,9 +59,9 @@ export default function SecurityPage() {
   return (
     <>
       <Navbar />
-      <main className="pt-28 pb-20">
+      <main className="pt-28">
         {/* Hero */}
-        <section className="pb-14">
+        <section className="pb-16">
           <div className="max-w-6xl mx-auto px-6">
             <div className="grid lg:grid-cols-2 gap-12 items-center">
               <FadeIn>
@@ -62,9 +71,12 @@ export default function SecurityPage() {
                   <br />
                   <span className="text-accent">Recorded.</span>
                 </h1>
+                <p className="text-lg text-muted leading-relaxed mb-3">
+                  TxID is designed to operate safely alongside your protocol.
+                </p>
                 <p className="text-lg text-muted leading-relaxed">
-                  TxID can&apos;t touch funds, proves its answers on request, and keeps a record
-                  of everything it says.
+                  It cannot move funds, it explains where its answers come from, and every
+                  interaction creates a reviewable record.
                 </p>
               </FadeIn>
               <FadeIn delay={0.1}>
@@ -74,24 +86,46 @@ export default function SecurityPage() {
           </div>
         </section>
 
-        {/* Pillars */}
-        <section className="py-14 border-t border-[var(--border)]">
+        {/* The three layers */}
+        <section className="py-20 border-t border-[var(--border)]">
           <div className="max-w-6xl mx-auto px-6">
-            <div className="grid md:grid-cols-3 gap-4">
-              {PILLARS.map((p, i) => (
-                <FadeIn key={p.title} delay={i * 0.08}>
-                  <div className="h-full rounded-2xl border border-[var(--border)] bg-[var(--bg-surface)] p-7">
+            <FadeIn>
+              <h2 className="font-display text-4xl font-bold text-white text-center mb-14">
+                Every answer has three layers
+              </h2>
+            </FadeIn>
+            <div className="grid md:grid-cols-3 gap-5">
+              {LAYERS.map((l, i) => (
+                <FadeIn key={l.title} delay={i * 0.08}>
+                  <div className="group relative flex h-full flex-col overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--bg-surface)] p-7 transition-colors hover:border-[var(--border-accent)]">
+                    <span
+                      aria-hidden="true"
+                      className="pointer-events-none absolute right-5 top-4 font-mono text-5xl font-bold text-white/[0.04] transition-colors group-hover:text-white/[0.07] select-none"
+                    >
+                      {l.n}
+                    </span>
                     <div className="w-10 h-10 rounded-lg bg-accent-muted flex items-center justify-center mb-4">
-                      <p.icon className="w-5 h-5 text-accent" />
+                      <l.icon className="w-5 h-5 text-accent" />
                     </div>
-                    <h2 className="font-display text-lg font-bold text-white mb-4">{p.title}</h2>
-                    <ul className="space-y-2.5">
-                      {p.points.map((pt) => (
-                        <li key={pt} className="text-sm text-muted leading-relaxed">
-                          {pt}
+                    <h3 className="font-display text-lg font-bold text-white mb-1">{l.title}</h3>
+                    <p className="text-sm text-accent mb-4">{l.tagline}</p>
+                    <p className="text-sm text-muted leading-relaxed">{l.intro}</p>
+                    {l.listLabel && (
+                      <p className="text-sm text-muted leading-relaxed mt-3">{l.listLabel}</p>
+                    )}
+                    <ul className="mt-3 space-y-2">
+                      {l.items.map((it) => (
+                        <li key={it} className="flex items-start gap-2.5 text-sm text-muted">
+                          <span className="mt-[0.45rem] w-1 h-1 rounded-full bg-accent shrink-0" />
+                          <span>{it}</span>
                         </li>
                       ))}
                     </ul>
+                    {l.outro && (
+                      <p className="mt-4 text-sm text-[#c8c8d8] leading-relaxed border-l-2 border-accent/50 pl-4">
+                        {l.outro}
+                      </p>
+                    )}
                   </div>
                 </FadeIn>
               ))}
@@ -99,43 +133,185 @@ export default function SecurityPage() {
           </div>
         </section>
 
-        {/* The fine print, briefly */}
-        <section className="py-14 border-t border-[var(--border)]">
+        {/* The detail a reviewer actually asks for */}
+        <section className="py-20 border-t border-[var(--border)]">
+          <div className="max-w-6xl mx-auto px-6 grid md:grid-cols-2 gap-5">
+            <FadeIn>
+              <div className="h-full rounded-2xl border border-[var(--border)] bg-[var(--bg-surface)] p-8">
+                <div className="w-10 h-10 rounded-lg bg-accent-muted flex items-center justify-center mb-4">
+                  <ShieldCheck className="w-5 h-5 text-accent" />
+                </div>
+                <p className="font-mono text-[11px] uppercase tracking-widest text-accent mb-2">
+                  Read-only by design
+                </p>
+                <h2 className="font-display text-xl font-bold text-white mb-4">
+                  Built with clear boundaries
+                </h2>
+                <p className="text-sm text-muted mb-3">TxID:</p>
+                <ul className="space-y-2.5">
+                  {[
+                    "Reads the same public data available through blockchain explorers",
+                    "Requires no contract deployment or permissions",
+                    "Cannot access funds or sign transactions",
+                  ].map((t) => (
+                    <li key={t} className="flex items-start gap-2.5 text-sm text-muted">
+                      <Check className="w-4 h-4 shrink-0 mt-0.5 text-accent" />
+                      <span>{t}</span>
+                    </li>
+                  ))}
+                </ul>
+                <p className="mt-5 text-sm text-[#c8c8d8] leading-relaxed border-l-2 border-accent/50 pl-4">
+                  The safest integration is the one that never has access.
+                </p>
+              </div>
+            </FadeIn>
+
+            <FadeIn delay={0.06}>
+              <div className="h-full rounded-2xl border border-[var(--border)] bg-[var(--bg-surface)] p-8">
+                <div className="w-10 h-10 rounded-lg bg-accent-muted flex items-center justify-center mb-4">
+                  <BadgeCheck className="w-5 h-5 text-accent" />
+                </div>
+                <p className="font-mono text-[11px] uppercase tracking-widest text-accent mb-2">
+                  Verification tools
+                </p>
+                <h2 className="font-display text-xl font-bold text-white mb-4">
+                  Ask it to prove the answer
+                </h2>
+                <p className="text-sm text-muted mb-3">
+                  TxID can support verification workflows including:
+                </p>
+                <ul className="space-y-2.5">
+                  {[
+                    "Live on-chain evidence behind responses",
+                    "Address screening where supported",
+                    "Contract verification",
+                    "Protocol audit references",
+                  ].map((t) => (
+                    <li key={t} className="flex items-start gap-2.5 text-sm text-muted">
+                      <ScanSearch className="w-4 h-4 shrink-0 mt-0.5 text-accent" />
+                      <span>{t}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </FadeIn>
+
+            <FadeIn delay={0.12}>
+              <div className="h-full rounded-2xl border border-[var(--border)] bg-[var(--bg-surface)] p-8">
+                <div className="w-10 h-10 rounded-lg bg-accent-muted flex items-center justify-center mb-4">
+                  <PenLine className="w-5 h-5 text-accent" />
+                </div>
+                <p className="font-mono text-[11px] uppercase tracking-widest text-accent mb-2">
+                  Actions (optional)
+                </p>
+                <h2 className="font-display text-xl font-bold text-white mb-4">
+                  User-authorised actions, when enabled
+                </h2>
+                <p className="text-sm text-muted leading-relaxed mb-2.5">
+                  Actions are disabled by default.
+                </p>
+                <p className="text-sm text-muted leading-relaxed mb-4">
+                  When a protocol enables them, TxID prepares transactions that users review and
+                  sign through their own wallet.
+                </p>
+                <p className="text-sm text-muted mb-3">Users remain in control:</p>
+                <ul className="space-y-2.5">
+                  {[
+                    "Explicit user request required",
+                    "User reviews exact transaction details",
+                    "User signs in their own wallet",
+                  ].map((t) => (
+                    <li key={t} className="flex items-start gap-2.5 text-sm text-muted">
+                      <Check className="w-4 h-4 shrink-0 mt-0.5 text-accent" />
+                      <span>{t}</span>
+                    </li>
+                  ))}
+                </ul>
+                <p className="mt-5 text-sm text-[#c8c8d8] leading-relaxed border-l-2 border-accent/50 pl-4">
+                  Read-only mode remains the default.
+                </p>
+              </div>
+            </FadeIn>
+
+            <FadeIn delay={0.18}>
+              <div className="h-full rounded-2xl border border-[var(--border)] bg-[var(--bg-surface)] p-8">
+                <div className="w-10 h-10 rounded-lg bg-accent-muted flex items-center justify-center mb-4">
+                  <Database className="w-5 h-5 text-accent" />
+                </div>
+                <p className="font-mono text-[11px] uppercase tracking-widest text-accent mb-2">
+                  {`Data & privacy`}
+                </p>
+                <h2 className="font-display text-xl font-bold text-white mb-4">
+                  What TxID stores
+                </h2>
+                <div className="grid sm:grid-cols-2 gap-5">
+                  <div>
+                    <p className="text-sm font-semibold text-white mb-2.5">TxID stores:</p>
+                    <ul className="space-y-2">
+                      {[
+                        "Conversations",
+                        "Wallet addresses included in conversations",
+                        "Project configuration",
+                        "Usage metrics",
+                      ].map((t) => (
+                        <li key={t} className="flex items-start gap-2.5 text-sm text-muted">
+                          <span className="mt-[0.45rem] w-1 h-1 rounded-full bg-accent shrink-0" />
+                          <span>{t}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-white mb-2.5">TxID never stores:</p>
+                    <ul className="space-y-2">
+                      {["Private keys", "Seed phrases", "Signing permissions"].map((t) => (
+                        <li key={t} className="flex items-start gap-2.5 text-sm text-muted">
+                          <span className="mt-[0.45rem] w-1 h-1 rounded-full bg-[#f87171] shrink-0" />
+                          <span>{t}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+                <p className="mt-5 text-sm text-[#c8c8d8] leading-relaxed border-l-2 border-accent/50 pl-4">
+                  There is no mechanism for the assistant to request them.
+                </p>
+                {/* Per-project retention is not configurable yet: that lands with
+                    the roadmap item below. State the policy figure instead. */}
+                <p className="mt-4 text-sm text-muted leading-relaxed">
+                  Conversation data is retained for 12 months, as set out in our{" "}
+                  <Link href="/privacy" className="text-accent hover:underline">privacy policy</Link>.
+                </p>
+              </div>
+            </FadeIn>
+          </div>
+        </section>
+
+        {/* Roadmap honesty */}
+        <section className="py-20 border-t border-[var(--border)]">
           <div className="max-w-3xl mx-auto px-6">
             <FadeIn>
-              <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-surface)] p-8 space-y-4">
-                <div>
-                  <h2 className="font-display font-semibold text-white mb-1.5">What we store</h2>
-                  <p className="text-sm text-muted leading-relaxed">
-                    Conversations, the wallet addresses inside them, your project configuration, and
-                    usage counts. No private keys, seed phrases, or signing permission, ever: there is
-                    no path for the assistant to request any of them.
-                  </p>
+              <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-surface)] p-8">
+                <div className="flex items-center gap-3 mb-4">
+                  <Milestone className="w-5 h-5 text-accent" />
+                  <h2 className="font-display text-xl font-bold text-white">
+                    Built for long-term trust
+                  </h2>
                 </div>
-                <div>
-                  <h2 className="font-display font-semibold text-white mb-1.5">Actions, if you enable them</h2>
-                  <p className="text-sm text-muted leading-relaxed">
-                    Off by default. When a protocol opts in, the assistant prepares transactions that
-                    users review and sign in their own wallet: explicit requests only, exact-amount
-                    approvals, OFAC-screened, geo-restricted, and no fee taken. Everyone else stays
-                    fully read-only.
-                  </p>
-                </div>
-                <div>
-                  <h2 className="font-display font-semibold text-white mb-1.5">What&apos;s next</h2>
-                  <p className="text-sm text-muted leading-relaxed">
-                    SOC 2 and data-retention controls are on the funded roadmap. We say plainly what
-                    exists and what&apos;s coming, here and on{" "}
-                    <Link href="/record" className="text-accent hover:underline">the Case Record</Link>.
-                  </p>
-                </div>
+                <p className="text-sm text-muted leading-relaxed mb-2.5">
+                  SOC 2 readiness and additional data-retention controls are part of the product
+                  roadmap.
+                </p>
+                <p className="text-sm text-[#c8c8d8] leading-relaxed">
+                  We clearly separate what exists today from what is being built next.
+                </p>
               </div>
             </FadeIn>
           </div>
         </section>
 
         {/* CTA */}
-        <section className="py-14 border-t border-[var(--border)]">
+        <section className="py-20 border-t border-[var(--border)]">
           <div className="max-w-3xl mx-auto px-6 text-center">
             <FadeIn>
               <h2 className="font-display text-2xl font-bold text-white mb-3">
