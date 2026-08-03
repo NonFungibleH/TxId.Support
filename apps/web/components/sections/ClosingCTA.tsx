@@ -8,10 +8,10 @@ export function ClosingCTA() {
       <div className="max-w-3xl mx-auto px-6 text-center">
         <FadeIn>
           <h2 className="font-display text-4xl font-bold text-white mb-4">
-            Ready to stop answering the same questions?
+            Ready to transform on-chain support?
           </h2>
           <p className="text-muted mb-8 max-w-xl mx-auto">
-            Try it on a protocol you already use, or ask us for early access.
+            See how TxID works with your protocol, or request early access.
           </p>
           <div className="flex flex-wrap gap-3 justify-center">
             <Button href="/check" variant="primary" size="lg">

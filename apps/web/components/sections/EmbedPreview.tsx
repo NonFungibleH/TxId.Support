@@ -83,7 +83,7 @@ export function EmbedPreview() {
               Deploy anywhere in minutes
             </h2>
             <p className="text-muted max-w-xl mx-auto">
-              Embedded in your product with two lines of code, in your Telegram with a bot token, or headless through the API.
+              Embed TxID directly into your product, connect it to Telegram, or integrate through the API. Flexible deployment without rebuilding your support stack.
             </p>
           </div>
         </FadeIn>

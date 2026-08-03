@@ -1,56 +1,70 @@
-import { ShieldCheck, ScanSearch, FileCheck2, ScrollText, Ban, BookLock, ArrowRight } from "lucide-react";
+import {
+  ShieldCheck, ScanSearch, FileCheck2, ScrollText, Ban, BookLock, Eye, ArrowRight,
+} from "lucide-react";
 import Link from "next/link";
 import { FadeIn } from "@/components/ui/FadeIn";
 
-const GROUPS = [
+// One flat set of seven. The old two-group split used "Safe by design" as a
+// group label; it now reads better as a card in its own right.
+const ITEMS = [
   {
-    label: "Safe by design",
-    blurb:
-      "Structural guarantees. Nothing to configure, and nothing that can go wrong.",
-    items: [
-      {
-        icon: Ban,
-        title: "No custody, no advice",
-        description:
-          "The assistant never touches funds, never asks for keys, and never tells users what to buy. Read-only by design.",
-      },
-      {
-        icon: BookLock,
-        title: "Grounded, bounded answers",
-        description:
-          "Scoped to your protocol and your documentation. It reads real chain state instead of guessing, and declines what it cannot verify.",
-      },
-      {
-        icon: ScrollText,
-        title: "Audit-logged support",
-        description:
-          "Every conversation is stored with a full record of what was asked and answered: a reviewable support trail for your team.",
-      },
+    icon: Ban,
+    title: "Safe by design",
+    tagline: "Built with clear boundaries",
+    paras: [
+      "TxID cannot move funds, access private keys, or take actions on behalf of users.",
+      "No custody. No transactions. No financial advice.",
     ],
   },
   {
-    label: "Ask and verify",
-    blurb:
-      "Users never have to take the bot's word for it. They can ask it to prove things, live on-chain, with the source cited.",
-    items: [
-      {
-        icon: ScanSearch,
-        title: "OFAC sanctions screening, on demand",
-        description:
-          "On EVM chains, ask whether an address or counterparty is flagged and the assistant screens it live against the on-chain Chainalysis sanctions oracle (OFAC SDN list), then cites the source.",
-      },
-      {
-        icon: ShieldCheck,
-        title: "Contract verification, on request",
-        description:
-          "Ask “is this the real contract?” and on EVM chains it confirms source-verified status from the block explorer, with proxy transparency and upgrade history. On Aptos, modules publish their ABI on-chain, so it reads them directly.",
-      },
-      {
-        icon: FileCheck2,
-        title: "Audits, cited with sources",
-        description:
-          "List your audits in the dashboard and the assistant cites them by auditor, with a link to the report, whenever users ask if the protocol is safe.",
-      },
+    icon: BookLock,
+    title: "Grounded, verified answers",
+    tagline: "No guessing. No hallucinations.",
+    paras: [
+      "TxID combines your documentation with live on-chain data to understand what happened.",
+      "If something cannot be verified, it says so.",
+    ],
+  },
+  {
+    icon: ScrollText,
+    title: "Complete audit trail",
+    tagline: "Every interaction becomes a case record",
+    paras: [
+      "Every conversation is logged with the question, evidence, response, and outcome.",
+      "Support teams can review cases. Product teams can identify trends. Compliance teams have a searchable record.",
+    ],
+  },
+  {
+    icon: Eye,
+    title: "Verify everything",
+    tagline: "Let users validate the answer themselves",
+    paras: [
+      "TxID can provide supporting evidence behind its responses, including live blockchain data and referenced sources.",
+    ],
+  },
+  {
+    icon: ScanSearch,
+    title: "Compliance checks",
+    tagline: "Screen addresses when needed",
+    paras: [
+      "On supported EVM networks, TxID can check whether addresses are flagged against sanctions data sources and provide the relevant reference.",
+    ],
+  },
+  {
+    icon: ShieldCheck,
+    title: "Contract verification",
+    tagline: "Confirm users are interacting with the right contracts",
+    paras: [
+      "TxID can verify source-verified contracts, proxy configurations, and upgrade history through blockchain explorers.",
+      "On Aptos, it reads published modules and available on-chain metadata.",
+    ],
+  },
+  {
+    icon: FileCheck2,
+    title: "Audit transparency",
+    tagline: "Make security information accessible",
+    paras: [
+      "Add your protocol audits to TxID and let users retrieve auditor information and supporting reports when they ask about security.",
     ],
   },
 ];
@@ -63,40 +77,33 @@ export function ComplianceSection() {
           <div className="text-center mb-14">
             <p className="font-mono text-sm text-accent mb-3">{`Trust & compliance`}</p>
             <h2 className="font-display text-4xl font-bold text-white mb-4">
-              Add an AI to your protocol without adding risk
+              Add intelligent support without adding risk
             </h2>
-            <p className="text-muted max-w-xl mx-auto">
-              Read-only by design, and able to prove what it tells your users:
-              screened, verified, logged, and never in custody of anything.
+            <p className="text-muted max-w-2xl mx-auto">
+              TxID is designed to operate safely alongside your protocol.
+              Read-only by design, grounded in verified data, and fully auditable.
             </p>
           </div>
         </FadeIn>
 
-        <div className="space-y-10">
-          {GROUPS.map((grp) => (
-            <div key={grp.label}>
-              <FadeIn>
-                <div className="mb-4">
-                  <h3 className="font-display text-lg font-semibold text-white">{grp.label}</h3>
-                  <p className="text-sm text-muted mt-1 max-w-2xl">{grp.blurb}</p>
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {ITEMS.map((item, i) => (
+            <FadeIn key={item.title} delay={(i % 3) * 0.06}>
+              <div className="bg-[var(--bg-surface)] border border-[var(--border)] rounded-xl p-5 hover:border-[var(--border-accent)] transition-colors group h-full">
+                <div className="w-9 h-9 rounded-lg bg-accent-muted flex items-center justify-center mb-3 group-hover:bg-accent/20 transition-colors">
+                  <item.icon className="w-[1.125rem] h-[1.125rem] text-accent" />
                 </div>
-              </FadeIn>
-              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {grp.items.map((item, i) => (
-                  <FadeIn key={item.title} delay={(i % 3) * 0.06}>
-                    <div className="bg-[var(--bg-surface)] border border-[var(--border)] rounded-xl p-5 hover:border-[var(--border-accent)] transition-colors group h-full">
-                      <div className="w-9 h-9 rounded-lg bg-accent-muted flex items-center justify-center mb-3 group-hover:bg-accent/20 transition-colors">
-                        <item.icon className="w-[1.125rem] h-[1.125rem] text-accent" />
-                      </div>
-                      <h4 className="font-display font-semibold text-white text-sm mb-1.5">
-                        {item.title}
-                      </h4>
-                      <p className="text-xs text-muted leading-relaxed">{item.description}</p>
-                    </div>
-                  </FadeIn>
-                ))}
+                <h3 className="font-display font-semibold text-white text-sm mb-1">
+                  {item.title}
+                </h3>
+                <p className="text-xs text-accent mb-2">{item.tagline}</p>
+                <div className="space-y-2">
+                  {item.paras.map(p => (
+                    <p key={p} className="text-xs text-muted leading-relaxed">{p}</p>
+                  ))}
+                </div>
               </div>
-            </div>
+            </FadeIn>
           ))}
         </div>
 

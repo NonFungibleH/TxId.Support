@@ -8,27 +8,33 @@ const PILLARS = [
   {
     icon: Search,
     name: "Investigate",
-    line: "It reads the chain before it answers",
-    detail:
-      "TxID pulls the transaction, replays it, and decodes the failure using your contracts and error maps. If it can't verify something, it says so instead of guessing.",
+    line: "Understand what happened before responding",
+    paras: [
+      "TxID analyses the transaction, reads relevant on-chain data, and identifies the cause of failure using your contracts, documentation, and error mappings.",
+      "When something cannot be verified, TxID says so. It never invents an answer.",
+    ],
     href: "/how-it-works",
     linkLabel: "See the flow",
   },
   {
     icon: MessageCircle,
     name: "Resolve",
-    line: "Answers where your users already are",
-    detail:
-      "In your product, in your Telegram groups, or through the API. Most questions get resolved in seconds. The rest go to your team with the work already done.",
+    line: "Help users where they already are",
+    paras: [
+      "TxID delivers support inside your product, Telegram, or through your API.",
+      "Most issues are resolved instantly. When human support is required, your team receives the full context instead of another unanswered ticket.",
+    ],
     href: "/api",
     linkLabel: "The three surfaces",
   },
   {
     icon: Archive,
     name: "Record",
-    line: "It keeps the case file",
-    detail:
-      "Every question is filed with its evidence and its outcome, automatically. Support learns from it, product prioritizes with it, and compliance can point to it.",
+    line: "Create a complete case history automatically",
+    paras: [
+      "Every interaction is captured with its evidence, analysis, and outcome.",
+      "Support teams understand recurring issues. Product teams identify opportunities. Compliance teams have a searchable record they can rely on.",
+    ],
     href: "/record",
     linkLabel: "The Case Record",
   },
@@ -40,12 +46,12 @@ export function Pillars() {
       <div className="max-w-6xl mx-auto px-6">
         <FadeIn>
           <div className="text-center mb-12">
-            <p className="font-mono text-sm text-accent mb-3">The layer</p>
+            <p className="font-mono text-sm text-accent mb-3">The intelligence layer</p>
             <h2 className="font-display text-4xl font-bold text-white mb-4">
               Investigate. Resolve. Record.
             </h2>
             <p className="text-muted max-w-xl mx-auto">
-              Everything TxID does comes down to these three.
+              Everything TxID does comes down to three things.
             </p>
           </div>
         </FadeIn>
@@ -58,7 +64,11 @@ export function Pillars() {
                 </div>
                 <h3 className="font-display text-2xl font-bold text-white mb-1">{p.name}</h3>
                 <p className="text-sm text-accent mb-3">{p.line}</p>
-                <p className="text-sm text-muted leading-relaxed flex-1">{p.detail}</p>
+                <div className="space-y-3 flex-1">
+                  {p.paras.map(para => (
+                    <p key={para} className="text-sm text-muted leading-relaxed">{para}</p>
+                  ))}
+                </div>
                 <Link
                   href={p.href}
                   className="mt-5 inline-flex items-center gap-1.5 text-sm font-medium text-accent hover:underline"
