@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from "react"
 import { Navbar } from "@/components/layout/Navbar"
 import { Footer } from "@/components/layout/Footer"
-import { ArrowRight, Wallet, RotateCcw, Send, AlertCircle, Loader2 } from "lucide-react"
+import { ArrowRight, Wallet, RotateCcw, Send, AlertCircle, Loader2, Users } from "lucide-react"
 import { accentVars, readableText } from "@/lib/chains"
 import { clsx } from "clsx"
 
@@ -29,7 +29,12 @@ const PROTOCOLS = [
     // Ordered by how well they land for someone who may never have traded
     // here: "have I enabled trading?" reads the delegation views and gives a
     // specific answer either way, so it never dead-ends on an empty account.
-    suggestions: ["Have I enabled trading?", "What's my collateral?", "Show my recent trades"],
+    suggestions: [
+      "How are my positions doing?",
+      "Am I close to liquidation?",
+      "Why was my order rejected?",
+      "Have I enabled trading?",
+    ],
   },
   {
     id: "pancakeswap", name: "PancakeSwap", color: "#1FC7D4", logo: "/protocols/pancakeswap.png" as string | undefined,
@@ -170,6 +175,7 @@ export default function AptosCheckPage() {
   const [limitReached, setLimitReached] = useState(false)
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState("")
+  const [loadingTrader, setLoadingTrader] = useState(false)
   const [loading, setLoading] = useState(false)
   // ?key=pk_… lets us smoke-test against a different demo project before the
   // env var is set. Read once on mount (client component, no SSR window).
@@ -332,6 +338,26 @@ export default function AptosCheckPage() {
     }
   }
 
+  // Drops the reviewer straight into a wallet that currently holds a Decibel
+  // book, so an empty position list never becomes the first impression.
+  async function useLiveTrader() {
+    setConnectError("")
+    setLoadingTrader(true)
+    try {
+      const r = await fetch("/api/aptos/sample-trader")
+      const j = (await r.json()) as { address?: string; error?: string }
+      if (!r.ok || !j.address) {
+        setConnectError(j.error ?? "Could not find a live trader just now. Paste an address instead.")
+        return
+      }
+      enterChat(j.address)
+    } catch {
+      setConnectError("Could not reach the network. Paste an address instead.")
+    } finally {
+      setLoadingTrader(false)
+    }
+  }
+
   function goWithManual() {
     setConnectError("")
     const addr = manualAddress.trim()
@@ -452,6 +478,20 @@ export default function AptosCheckPage() {
                     <ArrowRight className="w-4 h-4" />
                   </button>
                 </div>
+
+                {/* Most reviewers will not hold a perps position, and an empty
+                    book makes the demo land flat. One click into a wallet that
+                    currently holds one. */}
+                {protocol.id === "decibel" && (
+                  <button
+                    onClick={useLiveTrader}
+                    disabled={loadingTrader}
+                    className="mt-3 w-full flex items-center justify-center gap-2 rounded-xl border border-dashed border-[#1e1e3a] bg-transparent text-muted hover:text-white hover:border-accent/60 text-xs py-2.5 transition-colors disabled:opacity-50"
+                  >
+                    <Users className="w-3.5 h-3.5" />
+                    {loadingTrader ? "Finding a live trader…" : "No Decibel position? Use a live trader wallet"}
+                  </button>
+                )}
               </div>
 
               {connectError && (
