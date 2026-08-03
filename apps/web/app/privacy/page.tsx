@@ -25,7 +25,7 @@ export default function PrivacyPage() {
 
             <section>
               <h2 className="font-display text-lg font-semibold text-white mb-3">What we collect</h2>
-              <p>When you use TxID Support, we collect:</p>
+              <p>When you use TxID, we collect:</p>
               <ul className="list-disc pl-5 space-y-1 mt-2">
                 <li><strong className="text-white/80">Account data:</strong> your email address and name, via Clerk authentication</li>
                 <li><strong className="text-white/80">Project configuration:</strong> branding settings, smart contract addresses, and documentation you index</li>

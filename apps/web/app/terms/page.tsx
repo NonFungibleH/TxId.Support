@@ -26,14 +26,14 @@ export default function TermsPage() {
             <section>
               <h2 className="font-display text-lg font-semibold text-white mb-3">1. Acceptance</h2>
               <p>
-                By accessing or using TxID Support (&ldquo;the Service&rdquo;), you agree to be bound by these Terms. If you do not agree, do not use the Service.
+                By accessing or using TxID (&ldquo;the Service&rdquo;), you agree to be bound by these Terms. If you do not agree, do not use the Service.
               </p>
             </section>
 
             <section>
               <h2 className="font-display text-lg font-semibold text-white mb-3">2. Beta status</h2>
               <p>
-                TxID Support is currently in beta. The Service is provided &ldquo;as is&rdquo; and features may change without notice. We make no guarantees of uptime or availability during the beta period.
+                TxID is currently in beta. The Service is provided &ldquo;as is&rdquo; and features may change without notice. We make no guarantees of uptime or availability during the beta period.
               </p>
             </section>
 
@@ -51,21 +51,21 @@ export default function TermsPage() {
             <section>
               <h2 className="font-display text-lg font-semibold text-white mb-3">4. Your data</h2>
               <p>
-                You retain ownership of any content (documentation, configuration) you provide to the Service. By submitting content, you grant TxID Support a limited licence to process it solely for the purpose of providing the Service.
+                You retain ownership of any content (documentation, configuration) you provide to the Service. By submitting content, you grant TxID a limited licence to process it solely for the purpose of providing the Service.
               </p>
             </section>
 
             <section>
               <h2 className="font-display text-lg font-semibold text-white mb-3">5. AI outputs</h2>
               <p>
-                TxID Support uses large language models (Claude by Anthropic) to generate responses. AI outputs may occasionally be incorrect. You are responsible for verifying critical information before acting on it. TxID Support is not liable for losses arising from AI-generated content.
+                TxID uses large language models (Claude by Anthropic) to generate responses. AI outputs may occasionally be incorrect. You are responsible for verifying critical information before acting on it. TxID is not liable for losses arising from AI-generated content.
               </p>
             </section>
 
             <section>
               <h2 className="font-display text-lg font-semibold text-white mb-3">6. Limitation of liability</h2>
               <p>
-                To the maximum extent permitted by law, TxID Support shall not be liable for indirect, incidental, or consequential damages. Our total liability shall not exceed the amount you paid us in the twelve months preceding the claim.
+                To the maximum extent permitted by law, TxID shall not be liable for indirect, incidental, or consequential damages. Our total liability shall not exceed the amount you paid us in the twelve months preceding the claim.
               </p>
             </section>
 
