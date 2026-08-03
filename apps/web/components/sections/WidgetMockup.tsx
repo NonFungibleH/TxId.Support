@@ -5,59 +5,75 @@ import { CheckCircle2, XCircle, Loader2 } from "lucide-react";
 import Image from "next/image";
 import { clsx } from "clsx";
 
-const TRANSACTIONS = [
+export type MockActivity = { status: "success" | "failed"; label: string; time: string };
+export type MockExchange = { q: string; thinking: string; a: string };
+
+// Defaults are the failed-swap conversation used on the homepage and
+// /solutions/protocols. /how-it-works runs the same widget on a liquidation
+// case, so the whole conversation is a prop.
+const DEFAULT_ACTIVITY: MockActivity[] = [
   { status: "success", label: "Swap ETH → USDC", time: "2m ago" },
   { status: "success", label: "Approve USDC", time: "1h ago" },
   { status: "failed", label: "Failed swap", time: "3h ago" },
 ];
 
+const DEFAULT_EXCHANGES: MockExchange[] = [
+  {
+    q: "Why did my swap fail?",
+    thinking: "Diagnosing transaction…",
+    a: "Your swap ran out of gas. Raise the gas limit in your wallet's advanced settings and retry. Want me to check if it cost you anything?",
+  },
+  {
+    q: "Yes - did I lose any funds?",
+    thinking: "Checking your wallet…",
+    a: "No. The transaction reverted, so nothing left your wallet. You only paid $1.18 in gas. Retry with a higher limit and it should go through.",
+  },
+];
+
 const TABS = ["Support", "Token", "Content"];
 
-const Q1 = "Why did my swap fail?";
-const A1 =
-  "Your swap ran out of gas. Raise the gas limit in your wallet's advanced settings and retry. Want me to check if it cost you anything?";
-const Q2 = "Yes - did I lose any funds?";
-const A2 =
-  "No. The transaction reverted, so nothing left your wallet. You only paid $1.18 in gas. Retry with a higher limit and it should go through.";
+// Per-exchange phases: ask → think → type the answer → pause. The container is
+// locked to its natural idle height on mount (so the page never shifts), and
+// behaves like a real chat: content starts top-aligned and smooth-scrolls as
+// messages append. Static final frame when the visitor prefers reduced motion.
+const HOLDS = { idle: 2200, asked: 1050, thinking: 1650, pause: 2600, done: 5000 };
 
-// Looping two-exchange conversation: diagnose the failed swap, then reassure
-// that no funds were lost. The container is locked to its natural idle height
-// on mount (so the page never shifts), and behaves like a real chat: content
-// starts top-aligned and smooth-scrolls as messages append. Static final frame
-// when the visitor prefers reduced motion.
-const ORDER = [
-  "idle",
-  "asked1",
-  "diagnosing",
-  "answering1",
-  "pause1",
-  "asked2",
-  "checking",
-  "answering2",
-  "done",
-] as const;
-type Phase = (typeof ORDER)[number];
+export function WidgetMockup({
+  className,
+  activityLabel = "Recent transactions",
+  walletLabel = "0x1a2b...3c4d",
+  activity = DEFAULT_ACTIVITY,
+  exchanges = DEFAULT_EXCHANGES,
+}: {
+  className?: string;
+  activityLabel?: string;
+  walletLabel?: string;
+  activity?: MockActivity[];
+  exchanges?: MockExchange[];
+}) {
+  // idle, then (asked-i, thinking-i, answering-i, pause-i) per exchange.
+  const phases: string[] = [
+    "idle",
+    ...exchanges.flatMap((ex, i) => [
+      `asked-${i}`,
+      `thinking-${i}`,
+      ...(ex.a ? [`answering-${i}`] : []),
+      `pause-${i}`,
+    ]),
+  ];
+  const last = phases.length - 1;
 
-const HOLDS: Partial<Record<Phase, number>> = {
-  idle: 2200,
-  asked1: 1000,
-  diagnosing: 1800,
-  pause1: 2600,
-  asked2: 1100,
-  checking: 1500,
-  done: 5000,
-};
-
-export function WidgetMockup({ className }: { className?: string }) {
-  const [phase, setPhase] = useState<Phase>("idle");
-  const [chars1, setChars1] = useState(0);
-  const [chars2, setChars2] = useState(0);
+  const [at, setAt] = useState(0);
+  const [chars, setChars] = useState<number[]>(() => exchanges.map(() => 0));
   const [reduced, setReduced] = useState(false);
   const [lockedHeight, setLockedHeight] = useState<number | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  const at = ORDER.indexOf(phase);
-  const reached = (p: Phase) => at >= ORDER.indexOf(p);
+  const phase = phases[at]!;
+  const kind = phase.split("-")[0]!;
+  const idx = Number(phase.split("-")[1] ?? -1);
+  // Has the run reached the given phase for exchange i?
+  const reached = (k: string, i: number) => at >= phases.indexOf(`${k}-${i}`);
 
   // Lock the conversation area to its natural idle height so appending
   // messages never grows the card or shifts the page around it.
@@ -75,51 +91,59 @@ export function WidgetMockup({ className }: { className?: string }) {
     return () => mq.removeEventListener("change", onChange);
   }, []);
 
-  // Phase machine: fixed holds advance to the next phase; the two answering
+  // Phase machine: fixed holds advance to the next phase; the answering
   // phases advance from the typewriter effect below instead.
   useEffect(() => {
     if (reduced) {
-      setPhase("done");
-      setChars1(A1.length);
-      setChars2(A2.length);
+      setAt(last);
+      setChars(exchanges.map((e) => e.a.length));
       return;
     }
-    const hold = HOLDS[phase];
-    if (hold === undefined) return;
+    if (kind === "answering") return;
+    const hold =
+      kind === "idle" ? HOLDS.idle
+      : kind === "asked" ? HOLDS.asked
+      : kind === "thinking" ? HOLDS.thinking
+      : at === last ? HOLDS.done
+      : HOLDS.pause;
     const t = setTimeout(() => {
-      if (phase === "done") {
-        setChars1(0);
-        setChars2(0);
-        setPhase("idle");
+      if (at === last) {
+        setChars(exchanges.map(() => 0));
+        setAt(0);
       } else {
-        setPhase(ORDER[at + 1]);
+        setAt(at + 1);
       }
     }, hold);
     return () => clearTimeout(t);
-  }, [phase, at, reduced]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [at, reduced]);
 
   useEffect(() => {
-    if (reduced || (phase !== "answering1" && phase !== "answering2")) return;
-    const [text, setChars] = phase === "answering1" ? [A1, setChars1] : [A2, setChars2];
+    if (reduced || kind !== "answering") return;
+    const text = exchanges[idx]!.a;
     const iv = setInterval(() => {
-      setChars((c) => {
+      setChars((prev) => {
+        const c = prev[idx] ?? 0;
         if (c >= text.length) {
           clearInterval(iv);
-          setPhase(ORDER[ORDER.indexOf(phase) + 1]);
-          return c;
+          setAt((i) => i + 1);
+          return prev;
         }
-        return Math.min(c + 2, text.length);
+        const next = [...prev];
+        next[idx] = Math.min(c + 2, text.length);
+        return next;
       });
     }, 28);
     return () => clearInterval(iv);
-  }, [phase, reduced]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [at, reduced]);
 
   // Follow the conversation like a real chat window.
   useEffect(() => {
     const el = scrollRef.current;
     if (!el) return;
     el.scrollTo({ top: el.scrollHeight, behavior: reduced ? "auto" : "smooth" });
-  }, [phase, chars1, chars2, reduced]);
+  }, [at, chars, reduced]);
 
   return (
     <div
@@ -174,17 +198,17 @@ export function WidgetMockup({ className }: { className?: string }) {
 
         <div className="flex items-center gap-2 px-1 shrink-0">
           <div className="w-1.5 h-1.5 rounded-full bg-green-400" />
-          <span className="font-mono text-xs text-white/35">0x1a2b...3c4d</span>
+          <span className="font-mono text-xs text-white/35">{walletLabel}</span>
         </div>
 
         <div className="space-y-1.5 shrink-0">
-          <p className="text-xs text-white/35 px-1">Recent transactions</p>
-          {TRANSACTIONS.map((tx, i) => (
+          <p className="text-xs text-white/35 px-1">{activityLabel}</p>
+          {activity.map((tx, i) => (
             <div
               key={i}
               className={clsx(
                 "flex items-center justify-between bg-[#2a2a40] rounded-lg px-3 py-2 transition-all duration-500",
-                tx.status === "failed" && phase !== "idle" && "ring-1 ring-accent/50"
+                tx.status === "failed" && at !== 0 && "ring-1 ring-accent/50"
               )}
             >
               <div className="flex items-center gap-2">
@@ -200,57 +224,35 @@ export function WidgetMockup({ className }: { className?: string }) {
           ))}
         </div>
 
-        {reached("asked1") && (
-          <div className="flex justify-end shrink-0 animate-msg-in">
-            <div className="bg-accent rounded-xl rounded-br-sm px-3 py-2 max-w-[85%]">
-              <p className="text-white text-xs leading-relaxed">{Q1}</p>
-            </div>
-          </div>
-        )}
+        {exchanges.map((ex, i) => (
+          <div key={ex.q} className="contents">
+            {reached("asked", i) && (
+              <div className="flex justify-end shrink-0 animate-msg-in">
+                <div className="bg-accent rounded-xl rounded-br-sm px-3 py-2 max-w-[85%]">
+                  <p className="text-white text-xs leading-relaxed">{ex.q}</p>
+                </div>
+              </div>
+            )}
 
-        {phase === "diagnosing" && (
-          <div className="flex items-center gap-2 px-1 shrink-0 animate-msg-in">
-            <Loader2 className="w-3 h-3 text-accent animate-spin" />
-            <span className="text-xs text-white/40">Diagnosing transaction…</span>
-          </div>
-        )}
+            {(phase === `thinking-${i}` || (!ex.a && phase === `pause-${i}`)) && (
+              <div className="flex items-center gap-2 px-1 shrink-0 animate-msg-in">
+                <Loader2 className="w-3 h-3 text-accent animate-spin" />
+                <span className="text-xs text-white/40">{ex.thinking}</span>
+              </div>
+            )}
 
-        {reached("answering1") && (
-          <div className="bg-[#2a2a40] rounded-xl rounded-bl-sm p-3 max-w-[92%] shrink-0 animate-msg-in">
-            <p className="text-white/90 text-xs leading-relaxed">
-              {A1.slice(0, chars1)}
-              {phase === "answering1" && (
-                <span className="animate-caret text-accent">▍</span>
-              )}
-            </p>
+            {!!ex.a && reached("answering", i) && (
+              <div className="bg-[#2a2a40] rounded-xl rounded-bl-sm p-3 max-w-[92%] shrink-0 animate-msg-in">
+                <p className="text-white/90 text-xs leading-relaxed">
+                  {ex.a.slice(0, chars[i] ?? 0)}
+                  {phase === `answering-${i}` && (
+                    <span className="animate-caret text-accent">▍</span>
+                  )}
+                </p>
+              </div>
+            )}
           </div>
-        )}
-
-        {reached("asked2") && (
-          <div className="flex justify-end shrink-0 animate-msg-in">
-            <div className="bg-accent rounded-xl rounded-br-sm px-3 py-2 max-w-[85%]">
-              <p className="text-white text-xs leading-relaxed">{Q2}</p>
-            </div>
-          </div>
-        )}
-
-        {phase === "checking" && (
-          <div className="flex items-center gap-2 px-1 shrink-0 animate-msg-in">
-            <Loader2 className="w-3 h-3 text-accent animate-spin" />
-            <span className="text-xs text-white/40">Checking your wallet…</span>
-          </div>
-        )}
-
-        {reached("answering2") && (
-          <div className="bg-[#2a2a40] rounded-xl rounded-bl-sm p-3 max-w-[92%] shrink-0 animate-msg-in">
-            <p className="text-white/90 text-xs leading-relaxed">
-              {A2.slice(0, chars2)}
-              {phase === "answering2" && (
-                <span className="animate-caret text-accent">▍</span>
-              )}
-            </p>
-          </div>
-        )}
+        ))}
 
         {/* Breathing room below the last message inside the scroll area */}
         <div className="shrink-0 h-1" />

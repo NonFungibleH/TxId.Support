@@ -7,55 +7,90 @@ import { clsx } from "clsx";
 // The hero visual: an investigation case card, not a chat widget. The widget
 // mockup lives on /how-it-works now; the hero sells the engine - question in,
 // evidence gathered live, verdict out, case recorded.
-const STEPS = [
+//
+// Defaults are the homepage's failed-swap case. /how-it-works runs the same
+// component on a liquidation dispute, so everything is a prop.
+export type InvestigationStep = { label: string; detail?: string };
+
+const DEFAULT_STEPS: InvestigationStep[] = [
   { label: "Fetched transaction", detail: "0x8f2a…d41c" },
   { label: "Replayed against pool state", detail: "block 21044210" },
   { label: "Decoded revert", detail: "SlippageTooHigh" },
   { label: "Checked wallet impact", detail: "no funds moved" },
 ];
 
-// The full lifecycle, looping: question → evidence steps → verdict →
-// answer delivered → filed to the case record for compliance.
-const PHASES = ["idle", "s1", "s2", "s3", "s4", "verdict", "delivered", "recorded"] as const;
-type Phase = (typeof PHASES)[number];
-const HOLDS: Record<Phase, number> = {
+const DEFAULT_VERDICT = (
+  <>
+    The price moved past your 0.3% slippage tolerance, so the contract rejected the swap.
+    No funds left your wallet.{" "}
+    <span className="text-emerald-400 font-medium">Fix: retry with slippage at 0.5%.</span>
+  </>
+);
+
+const HOLDS = {
   idle: 1600,
-  s1: 900,
-  s2: 1000,
-  s3: 1000,
-  s4: 900,
+  step: 950,
   verdict: 1500,
   delivered: 1300,
   recorded: 5200,
 };
 
-export function InvestigationMockup({ className }: { className?: string }) {
-  const [phase, setPhase] = useState<Phase>("idle");
+export function InvestigationMockup({
+  className,
+  caseId = "#4821",
+  caseSubtitle = "Failed swap · Base",
+  question = "Why did my swap fail?",
+  steps = DEFAULT_STEPS,
+  verdict = DEFAULT_VERDICT,
+  verdictLabel,
+  showLifecycleTail = true,
+}: {
+  className?: string;
+  caseId?: string;
+  caseSubtitle?: string;
+  question?: string;
+  steps?: InvestigationStep[];
+  verdict?: React.ReactNode;
+  verdictLabel?: string;
+  showLifecycleTail?: boolean;
+}) {
+  // The full lifecycle, looping: question → one phase per evidence step →
+  // verdict → answer delivered → filed to the case record for compliance.
+  const phases = [
+    "idle",
+    ...steps.map((_, i) => `s${i + 1}`),
+    "verdict",
+    ...(showLifecycleTail ? ["delivered", "recorded"] : []),
+  ];
+  const holdFor = (p: string) =>
+    p === "idle" ? HOLDS.idle
+    : p === "verdict" ? HOLDS.verdict
+    : p === "delivered" ? HOLDS.delivered
+    : p === "recorded" ? HOLDS.recorded
+    : HOLDS.step;
+
+  const [at, setAt] = useState(0);
   const [reduced, setReduced] = useState(false);
 
   useEffect(() => {
     const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
     setReduced(mq.matches);
-    if (mq.matches) {
-      setPhase("recorded");
-      return;
-    }
+    if (mq.matches) setAt(phases.length - 1);
+    // phases is derived from props that do not change after mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
     if (reduced) return;
-    const idx = PHASES.indexOf(phase);
-    const next = PHASES[(idx + 1) % PHASES.length];
-    const t = setTimeout(() => setPhase(next), HOLDS[phase]);
+    const t = setTimeout(() => setAt((i) => (i + 1) % phases.length), holdFor(phases[at]!));
     return () => clearTimeout(t);
-  }, [phase, reduced]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [at, reduced]);
 
-  const at = PHASES.indexOf(phase);
-  const stepDone = (i: number) => at > i; // s1 done once past index 1, etc.
-  const stepActive = (i: number) => at === i;
-  const showVerdict = at >= PHASES.indexOf("verdict");
-  const showDelivered = at >= PHASES.indexOf("delivered");
-  const showRecorded = at >= PHASES.indexOf("recorded");
+  const verdictAt = phases.indexOf("verdict");
+  const showVerdict = at >= verdictAt;
+  const showDelivered = showLifecycleTail && at >= phases.indexOf("delivered");
+  const showRecorded = showLifecycleTail && at >= phases.indexOf("recorded");
 
   return (
     <div
@@ -71,8 +106,8 @@ export function InvestigationMockup({ className }: { className?: string }) {
             <FileSearch className="w-3.5 h-3.5 text-accent" />
           </div>
           <div>
-            <p className="text-[13px] font-semibold text-white leading-tight">Case #4821</p>
-            <p className="text-[10px] font-mono text-muted/70 leading-tight">Failed swap · Base</p>
+            <p className="text-[13px] font-semibold text-white leading-tight">Case {caseId}</p>
+            <p className="text-[10px] font-mono text-muted/70 leading-tight">{caseSubtitle}</p>
           </div>
         </div>
         <span
@@ -97,14 +132,14 @@ export function InvestigationMockup({ className }: { className?: string }) {
         {/* The user's question */}
         <div className="flex items-start gap-2.5">
           <Search className="w-3.5 h-3.5 text-muted/60 mt-0.5 shrink-0" />
-          <p className="text-sm text-white leading-snug">&ldquo;Why did my swap fail?&rdquo;</p>
+          <p className="text-sm text-white leading-snug">&ldquo;{question}&rdquo;</p>
         </div>
 
         {/* Evidence steps */}
         <ul className="space-y-2">
-          {STEPS.map((s, i) => {
-            const done = stepDone(i + 1);
-            const active = stepActive(i + 1);
+          {steps.map((s, i) => {
+            const done = at > i + 1;
+            const active = at === i + 1;
             const visible = done || active;
             return (
               <li
@@ -124,7 +159,9 @@ export function InvestigationMockup({ className }: { className?: string }) {
                   <span className="w-3.5 h-3.5 rounded-full border border-muted/30 shrink-0" />
                 )}
                 <span className="text-xs text-[#c8c8d8]">{s.label}</span>
-                <span className="ml-auto text-[10px] font-mono text-muted/60">{s.detail}</span>
+                {s.detail && (
+                  <span className="ml-auto text-[10px] font-mono text-muted/60">{s.detail}</span>
+                )}
               </li>
             );
           })}
@@ -139,35 +176,39 @@ export function InvestigationMockup({ className }: { className?: string }) {
               : "border-transparent bg-transparent opacity-0 translate-y-1",
           )}
         >
-          <p className="text-xs text-[#d6d6e4] leading-relaxed">
-            The price moved past your 0.3% slippage tolerance, so the contract rejected the swap.
-            No funds left your wallet. <span className="text-emerald-400 font-medium">Fix: retry with slippage at 0.5%.</span>
-          </p>
+          {verdictLabel && (
+            <p className="text-[10px] font-mono uppercase tracking-wider text-muted/70 mb-1.5">
+              {verdictLabel}
+            </p>
+          )}
+          <div className="text-xs text-[#d6d6e4] leading-relaxed">{verdict}</div>
         </div>
 
         {/* The lifecycle tail: answer delivered, then filed for compliance */}
-        <div className="space-y-1.5">
-          <div
-            className={clsx(
-              "flex items-center gap-2 text-[10px] font-mono transition-all duration-500",
-              showDelivered ? "opacity-100 translate-y-0" : "opacity-0 translate-y-0.5",
-            )}
-          >
-            <CheckCircle2 className="w-3 h-3 text-emerald-400 shrink-0" />
-            <span className="text-muted/80">Answer delivered to the user</span>
+        {showLifecycleTail && (
+          <div className="space-y-1.5">
+            <div
+              className={clsx(
+                "flex items-center gap-2 text-[10px] font-mono transition-all duration-500",
+                showDelivered ? "opacity-100 translate-y-0" : "opacity-0 translate-y-0.5",
+              )}
+            >
+              <CheckCircle2 className="w-3 h-3 text-emerald-400 shrink-0" />
+              <span className="text-muted/80">Answer delivered to the user</span>
+            </div>
+            <div
+              className={clsx(
+                "flex items-center justify-between rounded-md border px-2.5 py-1.5 text-[10px] font-mono transition-all duration-700",
+                showRecorded
+                  ? "border-accent/30 bg-accent/5 opacity-100 translate-y-0"
+                  : "border-transparent opacity-0 translate-y-0.5",
+              )}
+            >
+              <span className="text-muted/80">Case {caseId} filed</span>
+              <span className="text-accent">Compliance-ready ✓</span>
+            </div>
           </div>
-          <div
-            className={clsx(
-              "flex items-center justify-between rounded-md border px-2.5 py-1.5 text-[10px] font-mono transition-all duration-700",
-              showRecorded
-                ? "border-accent/30 bg-accent/5 opacity-100 translate-y-0"
-                : "border-transparent opacity-0 translate-y-0.5",
-            )}
-          >
-            <span className="text-muted/80">Case #4821 filed</span>
-            <span className="text-accent">Compliance-ready ✓</span>
-          </div>
-        </div>
+        )}
       </div>
     </div>
   );
