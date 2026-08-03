@@ -185,14 +185,14 @@ export default function SolutionsPage() {
       <Navbar />
       <main className="pt-28">
         {/* Hero */}
-        <section className="pb-12">
+        <section className="pb-16">
           <div className="max-w-3xl mx-auto px-6 text-center">
             <FadeIn>
               <p className="font-mono text-sm text-accent mb-3">Solutions</p>
               <h1 className="font-display text-5xl font-bold text-white leading-[1.1] tracking-tight mb-5">
                 One layer, three teams.
               </h1>
-              <p className="text-lg text-muted leading-relaxed mb-8">
+              <p className="text-lg text-muted leading-relaxed mb-10">
                 The same investigation engine, seen through the eyes of the team that relies
                 on it.
               </p>
@@ -216,11 +216,11 @@ export default function SolutionsPage() {
           <section
             key={a.id}
             id={a.id}
-            className="scroll-mt-24 py-14 border-t border-[var(--border)]"
+            className="scroll-mt-24 py-24 border-t border-[var(--border)]"
           >
             <div className="max-w-6xl mx-auto px-6">
               <FadeIn>
-                <div className="max-w-3xl mb-10">
+                <div className="max-w-3xl mb-14">
                   <p className="font-mono text-sm text-accent mb-3">
                     {String(ai + 1).padStart(2, "0")} · {a.badge}
                   </p>
@@ -231,23 +231,27 @@ export default function SolutionsPage() {
                 </div>
               </FadeIn>
 
-              <div className="grid md:grid-cols-3 gap-4 mb-12">
+              <div className="grid md:grid-cols-3 gap-5 mb-16">
                 {a.pains.map((p, i) => (
                   <FadeIn key={p.title} delay={i * 0.08}>
-                    <div className="h-full rounded-xl border border-[var(--border)] bg-[var(--bg-surface)] p-6">
-                      <h3 className="font-display font-semibold text-white mb-2">{p.title}</h3>
+                    <div className="h-full rounded-xl border border-[var(--border)] bg-[var(--bg-surface)] p-7">
+                      <h3 className="font-display font-semibold text-white mb-2.5">{p.title}</h3>
                       <p className="text-sm text-muted leading-relaxed">{p.detail}</p>
                     </div>
                   </FadeIn>
                 ))}
               </div>
 
-              <div className="grid lg:grid-cols-2 gap-12 items-center">
-                <FadeIn>
-                  <p className="font-mono text-xs uppercase tracking-widest text-muted/60 mb-4">
+              <div
+                className={`grid lg:grid-cols-2 gap-12 lg:gap-16 items-center ${
+                  ai % 2 === 1 ? "lg:[direction:rtl]" : ""
+                }`}
+              >
+                <FadeIn className="lg:[direction:ltr]">
+                  <p className="font-mono text-xs uppercase tracking-widest text-muted/60 mb-5">
                     What the layer delivers
                   </p>
-                  <ul className="space-y-3">
+                  <ul className="space-y-4">
                     {a.delivers.map((d) => (
                       <li key={d} className="flex items-start gap-3 text-sm text-muted">
                         <Check className="w-4 h-4 shrink-0 mt-0.5 text-accent" />
@@ -262,9 +266,9 @@ export default function SolutionsPage() {
                     </Button>
                   )}
                 </FadeIn>
-                <FadeIn delay={0.1}>
+                <FadeIn delay={0.1} className="lg:[direction:ltr]">
                   {a.visual}
-                  <p className="text-center text-xs text-muted/60 mt-4">{a.visualCaption}</p>
+                  <p className="text-center text-xs text-muted/60 mt-5">{a.visualCaption}</p>
                 </FadeIn>
               </div>
             </div>
@@ -272,7 +276,7 @@ export default function SolutionsPage() {
         ))}
 
         {/* CTA */}
-        <section className="py-16 border-t border-[var(--border)]">
+        <section className="py-24 border-t border-[var(--border)]">
           <div className="max-w-3xl mx-auto px-6 text-center">
             <FadeIn>
               <h2 className="font-display text-3xl font-bold text-white mb-4">
