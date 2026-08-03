@@ -13,36 +13,36 @@ const STAGES = [
   {
     icon: MessageCircle,
     who: "Your user",
-    title: "Asks anywhere",
-    detail: "On your site or in Telegram. Connects their wallet in one tap.",
+    title: "Gets help anywhere",
+    detail: "On your website or in Telegram. Connects their wallet in one tap.",
     chip: "“Why did my swap fail?”",
   },
   {
     icon: Search,
     who: "TxID",
-    title: "Investigates live",
-    detail: "Reads the chain, decodes the error, verifies what happened.",
-    chip: "12 chain reads · revert decoded",
+    title: "Investigates the transaction",
+    detail: "Reads live on-chain data, decodes the error, and identifies exactly what happened.",
+    chip: "Transaction analysed · Error decoded · Root cause found",
   },
   {
     icon: CheckCircle2,
     who: "Your user",
-    title: "Gets unblocked",
-    detail: "The answer and the fix, in seconds.",
-    chip: "Fix: raise slippage to 0.5%",
+    title: "Gets the fix in seconds",
+    detail: "Clear guidance to resolve the issue without waiting for support.",
+    chip: "Fix: Increase slippage to 0.5%",
   },
   {
     icon: Users,
     who: "Your team",
-    title: "Sees only what matters",
-    detail: "Escalations arrive in Slack or your tracker, case attached.",
-    chip: "Case #4821 → #support",
+    title: "Sees only what needs attention",
+    detail: "Complex issues are escalated automatically with the full transaction context attached.",
+    chip: "Case #4821 → Slack #support",
   },
   {
     icon: Archive,
     who: "Compliance & product",
-    title: "Keep the record",
-    detail: "Every case stored, searchable, and reportable.",
+    title: "Keeps the record",
+    detail: "Every case is filed with its evidence, ready to review or report on.",
     chip: "Filed · compliance-ready",
   },
 ];
@@ -74,10 +74,10 @@ export function CompanyFlow() {
           <div className="text-center mb-14">
             <p className="font-mono text-sm text-accent mb-3">The flow</p>
             <h2 className="font-display text-4xl font-bold text-white mb-4">
-              Follow one case through your company
+              Follow a user issue from start to resolution.
             </h2>
             <p className="text-muted max-w-2xl mx-auto">
-              Tap a stage to see who gets what.
+              Tap each stage to see how everyone benefits.
             </p>
           </div>
         </FadeIn>
