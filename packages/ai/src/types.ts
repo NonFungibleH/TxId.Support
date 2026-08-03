@@ -19,7 +19,7 @@ export interface WatchedContractSnapshot {
   // (Aptos accounts can host many modules).
   moduleName?: string
   errorGlossary?: ErrorGlossaryEntry[]
-  abi?: string          // ABI JSON string — auto-fetched from explorer or user-uploaded
+  abi?: string          // ABI JSON string, auto-fetched from explorer or user-uploaded
   abiSource?: "explorer" | "uploaded"
 }
 

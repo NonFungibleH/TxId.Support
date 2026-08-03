@@ -39,12 +39,12 @@ export default function ApiPage() {
       <h2>GET /api/widget-config/:key</h2>
       <Method method="GET" path="/api/widget-config/:key" badge="Public" />
       <p>
-        Returns the public configuration for a project — branding, chain list, token info, and watched
+        Returns the public configuration for a project: branding, chain list, token info, and watched
         contract metadata. Called by the widget on load to apply branding.
       </p>
       <h3>Parameters</h3>
       <ul>
-        <li><code>key</code> (path) — your <code>pk_...</code> publishable key</li>
+        <li><code>key</code> (path): your <code>pk_...</code> publishable key</li>
       </ul>
       <h3>Response</h3>
       <pre><code>{`{

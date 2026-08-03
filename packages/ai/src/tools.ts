@@ -86,7 +86,7 @@ const isNonEvm = (chainId: string): boolean => isSolanaChain(chainId) || isAptos
 // The Aptos clients return null when the fetch itself failed — that is NOT an
 // empty wallet / empty history, and the model must never present it as one.
 const APTOS_LOOKUP_FAILED =
-  "Could not reach the Aptos indexer to check this right now — this is a failed lookup, NOT a statement about the wallet's contents or history. Try again shortly."
+  "Could not reach the Aptos indexer to check this right now, this is a failed lookup, NOT a statement about the wallet's contents or history. Try again shortly."
 
 // A missing transaction means something DIFFERENT on Aptos than on EVM, and the
 // EVM instinct ("it is probably still pending, wait") is wrong here. Every Move
@@ -194,14 +194,14 @@ async function aptosModulesFor(target: WatchedContractSnapshot): Promise<AptosMo
 }
 
 const APTOS_FN_FORMAT_NOTE =
-  "On Aptos, functions live inside named modules — call again with function_name as 'module::function' (e.g. 'pool::get_fee'). Only functions on this protocol's own module account can be read, and type arguments are not supported here. Use get_contract_functions to list this account's modules and their view functions."
+  "On Aptos, functions live inside named modules, call again with function_name as 'module::function' (e.g. 'pool::get_fee'). Only functions on this protocol's own module account can be read, and type arguments are not supported here. Use get_contract_functions to list this account's modules and their view functions."
 
 const APTOS_FRAMEWORK_ADDRESSES = new Set(
   ["0x1", "0x3", "0x4"].map(normalizeAptosAddress),
 )
 
 const aptosFullnodeFailed = (what: string) =>
-  `Could not reach the Aptos fullnode to ${what} right now — a failed lookup, not a statement about the account. Try again shortly.`
+  `Could not reach the Aptos fullnode to ${what} right now, a failed lookup, not a statement about the account. Try again shortly.`
 
 /**
  * Build balance + history tools — only offered when a wallet is connected.
@@ -276,7 +276,7 @@ export function buildWalletTools(
       name: "get_recent_transactions",
       description:
         "Get the recent transaction history for the connected wallet. " +
-        "Use this proactively whenever the user mentions anything going wrong or asks if something worked — " +
+        "Use this proactively whenever the user mentions anything going wrong or asks if something worked, " +
         "do NOT ask the user for a transaction hash, look it up yourself. " +
         "If the relevant protocol contract address is known, pass it as contract_address to filter results." +
         contractHint,
@@ -324,7 +324,7 @@ export function buildTxLookupTool(): Anthropic.Tool {
       "Look up the full details of a specific transaction by its hash or signature. " +
       "Use when the user provides a transaction hash (0x... for EVM) or signature (base58 for Solana), " +
       "or refers to a specific transaction. " +
-      "The correct chain is detected automatically — do NOT ask the user which network it is on. " +
+      "The correct chain is detected automatically, do NOT ask the user which network it is on. " +
       "The result includes the chain the transaction was actually found on; if it includes checkedChains, it was not found on any of them.",
     input_schema: {
       type: "object" as const,
@@ -522,7 +522,7 @@ export async function executeTool(
           address: wallet.address,
           count: 0,
           approvals: [],
-          note: "Aptos has no standing token approvals — coins and fungible assets can only move when the owner signs. Nothing to revoke.",
+          note: "Aptos has no standing token approvals, coins and fungible assets can only move when the owner signs. Nothing to revoke.",
         }
       }
       const approvals = await getWalletApprovals(wallet.address, wallet.chainId)
@@ -570,7 +570,7 @@ export async function executeTool(
               hash,
               chainId: "aptos",
               status: "not_found",
-              note: "No Aptos user transaction exists at this version — or the fullnode could not be reached. Do not claim the transaction failed or was dropped; say it could not be found by this version number.",
+              note: "No Aptos user transaction exists at this version, or the fullnode could not be reached. Do not claim the transaction failed or was dropped; say it could not be found by this version number.",
               aptosNotFoundCauses: APTOS_NOT_FOUND_CAUSES,
             }
       }
@@ -643,7 +643,7 @@ export async function executeTool(
               hash,
               chainId: "aptos",
               status: "out_of_scope",
-              note: "This transaction does not involve any of this protocol's own modules, so it is outside what you can diagnose. Do NOT analyse it — decline in one sentence and offer to help with this protocol's own transactions.",
+              note: "This transaction does not involve any of this protocol's own modules, so it is outside what you can diagnose. Do NOT analyse it, decline in one sentence and offer to help with this protocol's own transactions.",
             }
           }
         }
@@ -677,7 +677,7 @@ export async function executeTool(
               chainId: hit.chainId,
               status: "out_of_scope",
               to: tx.to ?? "contract creation",
-              note: "This transaction does not involve any of this protocol's own contracts, so it is outside what you can diagnose. Do NOT analyse it — decline in one sentence and offer to help with this protocol's own transactions.",
+              note: "This transaction does not involve any of this protocol's own contracts, so it is outside what you can diagnose. Do NOT analyse it, decline in one sentence and offer to help with this protocol's own transactions.",
             }
           }
         }
@@ -708,7 +708,7 @@ export async function executeTool(
         hash,
         status: "not_found",
         checkedChains,
-        note: `This transaction was not found on any of the chains checked (${checkedChains.join(", ")}). Do not claim it is on, or dropped from, a specific chain — state which chains were checked.`,
+        note: `This transaction was not found on any of the chains checked (${checkedChains.join(", ")}). Do not claim it is on, or dropped from, a specific chain, state which chains were checked.`,
         // Aptos was one of the chains searched, so the EVM default ("probably
         // still pending in the mempool") may be the wrong explanation entirely.
         ...(checkAptos ? { aptosNotFoundCauses: APTOS_NOT_FOUND_CAUSES } : {}),
@@ -728,7 +728,7 @@ export async function executeTool(
         return {
           contract: contractAddress,
           status: "out_of_scope",
-          note: "This address is not one of this protocol's own contracts. Do NOT analyse it — decline in one sentence.",
+          note: "This address is not one of this protocol's own contracts. Do NOT analyse it, decline in one sentence.",
         }
       }
       const chainId = typeof input.chain_id === "string" ? input.chain_id : target.chain
@@ -755,7 +755,7 @@ export async function executeTool(
       if (ambiguousChains) {
         return {
           contract: contractAddress,
-          note: `This address is watched on multiple chains (${ambiguousChains.join(", ")}). Call this tool again with chain_id set to the chain the user means — infer it from context (their wallet's chain, the chain they named) or ask which chain if genuinely unclear.`,
+          note: `This address is watched on multiple chains (${ambiguousChains.join(", ")}). Call this tool again with chain_id set to the chain the user means, infer it from context (their wallet's chain, the chain they named) or ask which chain if genuinely unclear.`,
         }
       }
       if (!target) throw new Error("Specify which contract (contract_address) to read events from")
@@ -827,8 +827,8 @@ export async function executeTool(
           events: [],
           checked: false,
           note: hasAbi
-            ? `This contract's ABI is available, but it does not define a "${eventName}" event, so there is nothing to query. The most likely reason is that this contract simply does not emit that event — e.g. a swap router / periphery contract does NOT emit Swap or PoolCreated events; those are emitted by the individual pool/pair contracts (and factory), not the router. Tell the user this contract doesn't emit "${eventName}", suggest the specific pool/pair/factory address if they have it, and do NOT say the event never happened or that the ABI is missing.`
-            : `Could not verify the "${eventName}" event — this contract's ABI isn't available yet, so the event signature can't be derived. Do NOT say it never happened; say you couldn't check this specific event and offer to have the team upload the contract's ABI.`,
+            ? `This contract's ABI is available, but it does not define a "${eventName}" event, so there is nothing to query. The most likely reason is that this contract simply does not emit that event, e.g. a swap router / periphery contract does NOT emit Swap or PoolCreated events; those are emitted by the individual pool/pair contracts (and factory), not the router. Tell the user this contract doesn't emit "${eventName}", suggest the specific pool/pair/factory address if they have it, and do NOT say the event never happened or that the ABI is missing.`
+            : `Could not verify the "${eventName}" event, this contract's ABI isn't available yet, so the event signature can't be derived. Do NOT say it never happened; say you couldn't check this specific event and offer to have the team upload the contract's ABI.`,
         }
       }
       return { contract: target.name, event: eventName, count: events.length, events, checked: true }
@@ -841,7 +841,7 @@ export async function executeTool(
       if (ambiguousChains) {
         return {
           contract: contractAddress,
-          note: `This address is watched on multiple chains (${ambiguousChains.join(", ")}). Call this tool again with chain_id set to the chain the user means — infer it from context (their wallet's chain, the chain they named) or ask which chain if genuinely unclear.`,
+          note: `This address is watched on multiple chains (${ambiguousChains.join(", ")}). Call this tool again with chain_id set to the chain the user means, infer it from context (their wallet's chain, the chain they named) or ask which chain if genuinely unclear.`,
         }
       }
       if (!target) throw new Error("Specify which contract (contract_address) to look up")
@@ -878,7 +878,7 @@ export async function executeTool(
       if (ambiguousChains) {
         return {
           contract: contractAddress,
-          note: `This address is watched on multiple chains (${ambiguousChains.join(", ")}). Call this tool again with chain_id set to the chain the user means — infer it from context (their wallet's chain, the chain they named) or ask which chain if genuinely unclear.`,
+          note: `This address is watched on multiple chains (${ambiguousChains.join(", ")}). Call this tool again with chain_id set to the chain the user means, infer it from context (their wallet's chain, the chain they named) or ask which chain if genuinely unclear.`,
         }
       }
       if (!target) throw new Error("Specify which contract (contract_address) to check holdings for")
@@ -913,7 +913,7 @@ export async function executeTool(
       if (ambiguousChains) {
         return {
           contract: contractAddress,
-          note: `This address is watched on multiple chains (${ambiguousChains.join(", ")}). Call this tool again with chain_id set to the chain the user means — infer it from context (their wallet's chain, the chain they named) or ask which chain if genuinely unclear.`,
+          note: `This address is watched on multiple chains (${ambiguousChains.join(", ")}). Call this tool again with chain_id set to the chain the user means, infer it from context (their wallet's chain, the chain they named) or ask which chain if genuinely unclear.`,
         }
       }
       if (!target) throw new Error("Specify which contract (contract_address) to read")
@@ -926,7 +926,7 @@ export async function executeTool(
         const result = await viewFunction(fnId, [], [])
         return result
           ? { contract: target.name, function: fnId, result }
-          : { contract: target.name, function: fnId, note: "The view call failed — the function may not exist, may require arguments or type arguments, or the Aptos fullnode did not respond." }
+          : { contract: target.name, function: fnId, note: "The view call failed, the function may not exist, may require arguments or type arguments, or the Aptos fullnode did not respond." }
       }
       const state = await getContractState(target.address, target.chain, functionName, target.abi ?? undefined)
       return state
@@ -944,7 +944,7 @@ export async function executeTool(
       if (ambiguousChains) {
         return {
           contract: contractAddress,
-          note: `This address is watched on multiple chains (${ambiguousChains.join(", ")}). Call this tool again with chain_id set to the chain the user means — infer it from context (their wallet's chain, the chain they named) or ask which chain if genuinely unclear.`,
+          note: `This address is watched on multiple chains (${ambiguousChains.join(", ")}). Call this tool again with chain_id set to the chain the user means, infer it from context (their wallet's chain, the chain they named) or ask which chain if genuinely unclear.`,
         }
       }
       if (!target) throw new Error("Specify which contract (contract_address) to read")
@@ -989,12 +989,12 @@ export async function executeTool(
         }
         return result
           ? { contract: target.name, function: fnId, args, result }
-          : { contract: target.name, function: fnId, args, note: "The view call failed — check the argument count/types (addresses as 0x…, numbers as strings); functions needing type arguments are not supported here, or the Aptos fullnode did not respond." }
+          : { contract: target.name, function: fnId, args, note: "The view call failed, check the argument count/types (addresses as 0x…, numbers as strings); functions needing type arguments are not supported here, or the Aptos fullnode did not respond." }
       }
       const data = await getContractData(target.address, target.chain, functionName, args, target.abi ?? undefined)
       return data
         ? { contract: target.name, ...data }
-        : { contract: target.name, function: functionName, note: "Could not read that function — it may take unsupported argument types, not be a view function, or have reverted." }
+        : { contract: target.name, function: functionName, note: "Could not read that function, it may take unsupported argument types, not be a view function, or have reverted." }
     }
 
     case "get_contract_info": {
@@ -1004,7 +1004,7 @@ export async function executeTool(
       if (ambiguousChains) {
         return {
           contract: contractAddress,
-          note: `This address is watched on multiple chains (${ambiguousChains.join(", ")}). Call this tool again with chain_id set to the chain the user means — infer it from context (their wallet's chain, the chain they named) or ask which chain if genuinely unclear.`,
+          note: `This address is watched on multiple chains (${ambiguousChains.join(", ")}). Call this tool again with chain_id set to the chain the user means, infer it from context (their wallet's chain, the chain they named) or ask which chain if genuinely unclear.`,
         }
       }
       if (!target) throw new Error("Specify which contract (contract_address) to look up")
@@ -1024,7 +1024,7 @@ export async function executeTool(
             entryFunctions: m.functions.filter(f => f.isEntry).length,
             viewFunctions: m.functions.filter(f => f.isView).length,
           })),
-          note: "Aptos modules always publish their full ABI on-chain, so there is no Etherscan-style 'verified/unverified' distinction, and no proxy/implementation concept — module code can only change under the package's declared upgrade policy.",
+          note: "Aptos modules always publish their full ABI on-chain, so there is no Etherscan-style 'verified/unverified' distinction, and no proxy/implementation concept, module code can only change under the package's declared upgrade policy.",
         }
       }
       const info = await getContractInfo(target.address, target.chain)
@@ -1038,7 +1038,7 @@ export async function executeTool(
       if (ambiguousChains) {
         return {
           contract: contractAddress,
-          note: `This address is watched on multiple chains (${ambiguousChains.join(", ")}). Call this tool again with chain_id set to the chain the user means — infer it from context (their wallet's chain, the chain they named) or ask which chain if genuinely unclear.`,
+          note: `This address is watched on multiple chains (${ambiguousChains.join(", ")}). Call this tool again with chain_id set to the chain the user means, infer it from context (their wallet's chain, the chain they named) or ask which chain if genuinely unclear.`,
         }
       }
       if (!target) throw new Error("Specify which contract (contract_address)")
@@ -1090,7 +1090,7 @@ export async function executeTool(
       if (ambiguousChains) {
         return {
           contract: contractAddress,
-          note: `This address is watched on multiple chains (${ambiguousChains.join(", ")}). Call this tool again with chain_id set to the chain the user means — infer it from context (their wallet's chain, the chain they named) or ask which chain if genuinely unclear.`,
+          note: `This address is watched on multiple chains (${ambiguousChains.join(", ")}). Call this tool again with chain_id set to the chain the user means, infer it from context (their wallet's chain, the chain they named) or ask which chain if genuinely unclear.`,
         }
       }
       if (!target) throw new Error("Specify which contract (contract_address)")
@@ -1126,7 +1126,7 @@ export async function executeTool(
       if (isSolanaChain(chainId)) return { note: "Token reads here are EVM-only." }
       if (isAptosChain(chainId)) {
         const rows = await getAptosAssetMetadata(token)
-        if (rows === null) return { token, error: "Could not reach the Aptos indexer to look up this asset right now — a failed lookup, not a statement about the asset. Try again shortly." }
+        if (rows === null) return { token, error: "Could not reach the Aptos indexer to look up this asset right now, a failed lookup, not a statement about the asset. Try again shortly." }
         const meta = rows[0]
         return meta ?? { token, note: "The Aptos indexer has no fungible-asset metadata for this asset type. Check the exact asset type (e.g. 0x1::aptos_coin::AptosCoin, or a metadata object address) on explorer.aptoslabs.com." }
       }
@@ -1142,7 +1142,7 @@ export async function executeTool(
       const chainId = typeof input.chain_id === "string" ? input.chain_id : (wallet?.chainId ?? watchedContracts[0]?.chain ?? "0x1")
       if (isSolanaChain(chainId)) return { note: "Allowance reads here are EVM-only." }
       if (isAptosChain(chainId)) {
-        return { note: "Aptos has no token-allowance concept — coins and fungible assets move only when the owner signs, so no approval is ever needed and there is nothing to check." }
+        return { note: "Aptos has no token-allowance concept, coins and fungible assets move only when the owner signs, so no approval is ever needed and there is nothing to check." }
       }
       const allowance = await getTokenAllowance(token, owner, spender, chainId)
       return allowance ?? { token, owner, spender, note: "Could not read the allowance." }
@@ -1153,7 +1153,7 @@ export async function executeTool(
       if (!token) throw new Error("token_address is required")
       const chainId = typeof input.chain_id === "string" ? input.chain_id : (wallet?.chainId ?? watchedContracts[0]?.chain)
       const price = await getTokenPrice(token, chainId)
-      return price ?? { token, note: "No price found — the token may have no liquid DEX pair on this chain." }
+      return price ?? { token, note: "No price found, the token may have no liquid DEX pair on this chain." }
     }
 
     case "get_native_price": {
@@ -1174,15 +1174,15 @@ export async function executeTool(
           ...aptosStatus,
           ...(aptosStatus.up
             ? {}
-            : { note: "The Aptos fullnode did not respond or is lagging — the network (or this fullnode) may be having issues." }),
+            : { note: "The Aptos fullnode did not respond or is lagging, the network (or this fullnode) may be having issues." }),
         }
       }
       const status = await getNetworkStatus(chainId)
-      return status ?? { chainId, responsive: false, note: "The network RPC did not respond — the chain may be having issues." }
+      return status ?? { chainId, responsive: false, note: "The network RPC did not respond, the chain may be having issues." }
     }
 
     case "diagnose_wallet": {
-      if (!wallet) throw new Error("Wallet not connected — connect a wallet to diagnose its network/RPC state")
+      if (!wallet) throw new Error("Wallet not connected, connect a wallet to diagnose its network/RPC state")
       if (solana) return { note: "Wallet RPC diagnosis is EVM-only." }
       const chainId = wallet.chainId
       // Which chains does the protocol actually have contracts on? Used to spot
@@ -1220,13 +1220,13 @@ export async function executeTool(
         // non-null aptBalance proves the fullnode was reachable and exists=false is real.
         const cautions: string[] = []
         if (!diag.exists && diag.aptBalance !== null) {
-          cautions.push("exists=false: no account resource on Aptos mainnet — this address has most likely never sent a transaction (a common cause of 'nothing works': wrong address or wrong network in the wallet).")
+          cautions.push("exists=false: no account resource on Aptos mainnet, this address has most likely never sent a transaction (a common cause of 'nothing works': wrong address or wrong network in the wallet).")
         }
         if (!diag.exists && diag.aptBalance === null) {
-          cautions.push("exists=false but the fullnode may have been unreachable, so the existence check itself may have failed — account existence is UNVERIFIED. Do not tell the user the account does not exist.")
+          cautions.push("exists=false but the fullnode may have been unreachable, so the existence check itself may have failed, account existence is UNVERIFIED. Do not tell the user the account does not exist.")
         }
-        if (diag.aptBalance === null) cautions.push("aptBalance is null because the balance lookup failed — the balance is UNVERIFIED, do not describe it as zero or empty.")
-        if (diag.recentFailureCount === null) cautions.push("recentFailureCount is null because the recent-transaction lookup failed — whether recent transactions failed is UNVERIFIED, do not state a count.")
+        if (diag.aptBalance === null) cautions.push("aptBalance is null because the balance lookup failed, the balance is UNVERIFIED, do not describe it as zero or empty.")
+        if (diag.recentFailureCount === null) cautions.push("recentFailureCount is null because the recent-transaction lookup failed, whether recent transactions failed is UNVERIFIED, do not state a count.")
         return {
           walletAddress: wallet.address,
           chainId,
@@ -1263,7 +1263,7 @@ export async function executeTool(
           onProtocolChain,
           protocolChains,
           ...(switchTo ? { switchTo } : {}),
-          note: "Could not reach a public RPC for this chain — it may be unsupported or non-EVM.",
+          note: "Could not reach a public RPC for this chain, it may be unsupported or non-EVM.",
         }
       }
       return {
@@ -1304,7 +1304,7 @@ export async function executeTool(
         }
       }
       const safety = await getTokenSafety(token, chainId)
-      return safety ?? { token, note: "Could not screen this token — the chain may be unsupported or the safety API unavailable." }
+      return safety ?? { token, note: "Could not screen this token, the chain may be unsupported or the safety API unavailable." }
     }
 
     case "resolve_ens_name": {
@@ -1340,7 +1340,7 @@ export async function executeTool(
         return { name: resolution.name, chain: "aptos", resolves: false, note: "The Aptos Names registry has no record of this name, so it has not been registered." }
       }
       const resolution = await resolveEnsName(name)
-      return resolution ?? { name, note: "ENS lookup failed — the resolver RPC did not respond." }
+      return resolution ?? { name, note: "ENS lookup failed, the resolver RPC did not respond." }
     }
 
     case "estimate_action": {
@@ -1348,13 +1348,13 @@ export async function executeTool(
       const contractAddress = typeof input.contract_address === "string" ? input.contract_address : undefined
       const args = Array.isArray(input.args) ? input.args.map(a => String(a)) : []
       if (!functionName) throw new Error("function_name is required")
-      if (!wallet) throw new Error("Wallet not connected — estimates simulate from the user's address")
+      if (!wallet) throw new Error("Wallet not connected, estimates simulate from the user's address")
       const chainHint = typeof input.chain_id === "string" ? input.chain_id : undefined
       const { target, ambiguousChains } = findWatched(watchedContracts, contractAddress, chainHint)
       if (ambiguousChains) {
         return {
           contract: contractAddress,
-          note: `This address is watched on multiple chains (${ambiguousChains.join(", ")}). Call this tool again with chain_id set to the chain the user means — infer it from context (their wallet's chain, the chain they named) or ask which chain if genuinely unclear.`,
+          note: `This address is watched on multiple chains (${ambiguousChains.join(", ")}). Call this tool again with chain_id set to the chain the user means, infer it from context (their wallet's chain, the chain they named) or ask which chain if genuinely unclear.`,
         }
       }
       if (!target) throw new Error("Specify which contract (contract_address)")
@@ -1389,7 +1389,7 @@ export async function executeTool(
       const estimate = await estimateAction(target.address, target.chain, functionName, args, wallet.address, target.abi ?? undefined)
       return estimate
         ? { contractName: target.name, ...estimate }
-        : { contractName: target.name, function: functionName, note: "Could not estimate — the function may take unsupported argument types or not exist on this contract." }
+        : { contractName: target.name, function: functionName, note: "Could not estimate, the function may take unsupported argument types or not exist on this contract." }
     }
 
     case "check_address_sanctions": {
@@ -1435,7 +1435,7 @@ export function buildContractTxsTool(
     name: "get_contract_transactions",
     description:
       "Look up recent transactions sent to one of the protocol's smart contracts. " +
-      "Use this PROACTIVELY when a user reports a transaction problem but hasn't connected their wallet — " +
+      "Use this PROACTIVELY when a user reports a transaction problem but hasn't connected their wallet, " +
       "you can find their likely transaction without asking them for anything technical. " +
       "After finding a failed transaction, call get_transaction_by_hash with its hash for a full error diagnosis. " +
       `This protocol's contracts: ${contractList}.`,
@@ -1472,16 +1472,16 @@ export function buildContractEventsTool(
   const lines = watchedContracts
     .map(c => {
       const events = eventNamesFromAbi(c.abi).slice(0, 40)
-      return `${c.name} at ${c.address} (chain ${c.chain})${events.length ? ` — known events: ${events.join(", ")}` : ""}`
+      return `${c.name} at ${c.address} (chain ${c.chain})${events.length ? `: known events: ${events.join(", ")}` : ""}`
     })
     .join("; ")
   return {
     name: "get_contract_events",
     description:
       "Read the on-chain history of a specific EVENT emitted by one of the protocol's contracts, newest first. " +
-      "Use this to answer WHEN something happened or HOW OFTEN — e.g. 'when were fees last changed' (FeesChanged), " +
+      "Use this to answer WHEN something happened or HOW OFTEN, e.g. 'when were fees last changed' (FeesChanged), " +
       "'has this ever been paused' (Paused), 'when was the last deposit', 'how many times has X happened'. " +
-      "You can request ANY event by name — it works even if the event isn't in the listed ABI (it resolves events from the live log). " +
+      "You can request ANY event by name, it works even if the event isn't in the listed ABI (it resolves events from the live log). " +
       "Always TRY it before saying you lack event history. Returns each occurrence's block timestamp and transaction hash; an empty result means that event genuinely has not fired. " +
       `Contracts${lines ? ` and their known events: ${lines}` : ""}.`,
     input_schema: {
@@ -1553,7 +1553,7 @@ export function buildContractHoldingsTool(
   return {
     name: "get_contract_holdings",
     description:
-      "Look up the tokens held BY one of the protocol's contracts — i.e. how many tokens are locked or custodied in it. " +
+      "Look up the tokens held BY one of the protocol's contracts, i.e. how many tokens are locked or custodied in it. " +
       "Use for 'how many tokens are locked', 'what does the contract hold', 'how much is in the contract', 'total value locked'. " +
       "Returns the contract's native balance and its ERC-20 token balances. " +
       `This protocol's contracts: ${list}.`,
@@ -1588,16 +1588,16 @@ export function buildContractStateTool(
   const lines = withAbi
     .map(c => {
       if (isAptosChain(c.chain)) {
-        return `${c.name} at ${c.address} (chain aptos) — Move modules: pass function_name as 'module::function'; list views with get_contract_functions first`
+        return `${c.name} at ${c.address} (chain aptos), Move modules: pass function_name as 'module::function'; list views with get_contract_functions first`
       }
       const getters = viewGetterNames(c.abi).slice(0, 40)
-      return `${c.name} at ${c.address} (chain ${c.chain}) — getters: ${getters.join(", ") || "none"}`
+      return `${c.name} at ${c.address} (chain ${c.chain}), getters: ${getters.join(", ") || "none"}`
     })
     .join("; ")
   return {
     name: "get_contract_state",
     description:
-      "Read the CURRENT value of a no-argument view getter on one of the protocol's contracts — e.g. the current fee, whether it's paused right now, the owner, a total, a limit. " +
+      "Read the CURRENT value of a no-argument view getter on one of the protocol's contracts, e.g. the current fee, whether it's paused right now, the owner, a total, a limit. " +
       "Use for 'what is the current fee', 'is the contract paused', 'who owns it', 'what is the <setting>'. Pass the contract address and the exact getter name. " +
       `Available contracts and their getters: ${lines}.`,
     input_schema: {
@@ -1637,14 +1637,14 @@ export function buildContractDataTool(
   const lines = withArgFns
     .map(({ c, fns }) =>
       isAptosChain(c.chain)
-        ? `${c.name} at ${c.address} (chain aptos) — Move modules: pass function_name as 'module::function'; list views with get_contract_functions first`
-        : `${c.name} at ${c.address} (chain ${c.chain}) — functions: ${fns.slice(0, 30).join("; ")}`,
+        ? `${c.name} at ${c.address} (chain aptos), Move modules: pass function_name as 'module::function'; list views with get_contract_functions first`
+        : `${c.name} at ${c.address} (chain ${c.chain}), functions: ${fns.slice(0, 30).join("; ")}`,
     )
     .join(" | ")
   return {
     name: "get_contract_data",
     description:
-      "Call a view function that takes ARGUMENTS on one of the protocol's contracts and get the decoded result — e.g. a user's lock (getUserLock(address)), an allowance, a balanceOf, a lock by index. " +
+      "Call a view function that takes ARGUMENTS on one of the protocol's contracts and get the decoded result, e.g. a user's lock (getUserLock(address)), an allowance, a balanceOf, a lock by index. " +
       "Use for questions about a specific address or index, especially the connected wallet's own position. Pass contract_address, function_name, and args in the exact order the function expects (addresses as 0x…, numbers as strings). " +
       `Available contracts and their argument-taking functions: ${lines}.`,
     input_schema: {
@@ -1701,7 +1701,7 @@ export function buildContractFunctionsTool(
   return {
     name: "get_contract_functions",
     description:
-      "List what a contract can do — its read (view) functions and write (state-changing) functions, from the ABI. " +
+      "List what a contract can do, its read (view) functions and write (state-changing) functions, from the ABI. " +
       "Use for 'what can this contract do', 'what functions does it have', 'how do I interact with it'. " +
       `Contracts: ${list}.`,
     input_schema: {
@@ -1752,7 +1752,7 @@ export function buildTokenTools(): Anthropic.Tool[] {
     {
       name: "get_token_allowance",
       description:
-        "Check how much of a token the owner has approved a spender to move — answers 'do I need to approve first?'. " +
+        "Check how much of a token the owner has approved a spender to move, answers 'do I need to approve first?'. " +
         "For the connected wallet, owner defaults to it. spender is usually the protocol contract the user is interacting with. " +
         "Returns the allowance, whether it's unlimited, and whether an approval is still needed.",
       input_schema: {
@@ -1775,7 +1775,7 @@ export function buildTokenTools(): Anthropic.Tool[] {
         type: "object" as const,
         properties: {
           token_address: { type: "string", description: "The token contract address." },
-          chain_id: { type: "string", description: "The chain the token is on (e.g. '0x1', '0x2105') — filters out same-address tokens on other chains." },
+          chain_id: { type: "string", description: "The chain the token is on (e.g. '0x1', '0x2105'), filters out same-address tokens on other chains." },
         },
         required: ["token_address"],
       },
@@ -1791,7 +1791,7 @@ export function buildTokenSafetyTool(): Anthropic.Tool {
       "Screen a token contract for scam characteristics: honeypot (can't sell), buy/sell tax, owner minting, " +
       "balance manipulation, pausable transfers, blacklists, unverified source. " +
       "Use for 'is this token a scam', 'why can't I sell this token', 'is it safe to buy', or when a diagnosis " +
-      "suggests a token is behaving abnormally. Returns structured flags — report the red flags plainly.",
+      "suggests a token is behaving abnormally. Returns structured flags, report the red flags plainly.",
     input_schema: {
       type: "object" as const,
       properties: {
@@ -1836,7 +1836,7 @@ export function buildEstimateActionTool(
   const lines = withAbi
     .map(c => {
       const writes = contractFunctions(c.abi).write.slice(0, 30)
-      return `${c.name} at ${c.address} (chain ${c.chain}) — write functions: ${writes.join("; ") || "none"}`
+      return `${c.name} at ${c.address} (chain ${c.chain}), write functions: ${writes.join("; ") || "none"}`
     })
     .join(" | ")
   return {
@@ -1886,7 +1886,7 @@ export function buildNativePriceTool(): Anthropic.Tool {
   return {
     name: "get_native_price",
     description:
-      "Get the current USD price of a chain's NATIVE gas token — AVAX on Avalanche, ETH on Ethereum/Base/Arbitrum/Optimism, BNB on BNB Chain, POL on Polygon. " +
+      "Get the current USD price of a chain's NATIVE gas token, AVAX on Avalanche, ETH on Ethereum/Base/Arbitrum/Optimism, BNB on BNB Chain, POL on Polygon. " +
       "Use for 'what's the price of AVAX / ETH / BNB', 'how much is the native token'. Defaults to the connected wallet's chain or the protocol's chain if chain_id is omitted.",
     input_schema: {
       type: "object" as const,
@@ -1920,10 +1920,10 @@ export function buildWalletDiagnosisTool(): Anthropic.Tool {
   return {
     name: "diagnose_wallet",
     description:
-      "Diagnose the connected wallet's network/RPC state — the failures that happen BEFORE a transaction ever lands. " +
+      "Diagnose the connected wallet's network/RPC state, the failures that happen BEFORE a transaction ever lands. " +
       "Call this FIRST when the user reports that things fail with no specific tx hash: 'nothing works', 'my transactions won't go through / keep failing', 'I can't send / swap / claim', 'MetaMask internal JSON-RPC error', 'stuck pending', or 'wrong network'. " +
-      "Returns: which chain the wallet is on and whether that matches the protocol's contracts (onProtocolChain — false means the user is on the WRONG NETWORK, the single most common cause), the wallet's native balance and whether it's too empty to pay gas (outOfGasFunds), any stuck pending transactions blocking new sends (stuckPendingTxs), and whether the chain's RPC is responding (networkResponsive false → the network/RPC is down). " +
-      "If networkResponsive is true but the user still can't transact, their own wallet RPC endpoint is likely failing — tell them to switch to a fresh public RPC via Chainlist.org.",
+      "Returns: which chain the wallet is on and whether that matches the protocol's contracts (onProtocolChain, false means the user is on the WRONG NETWORK, the single most common cause), the wallet's native balance and whether it's too empty to pay gas (outOfGasFunds), any stuck pending transactions blocking new sends (stuckPendingTxs), and whether the chain's RPC is responding (networkResponsive false → the network/RPC is down). " +
+      "If networkResponsive is true but the user still can't transact, their own wallet RPC endpoint is likely failing, tell them to switch to a fresh public RPC via Chainlist.org.",
     input_schema: {
       type: "object" as const,
       properties: {},
@@ -1952,9 +1952,9 @@ export function buildEscalationTool(): Anthropic.Tool {
         summary: {
           type: "string",
           description:
-            "A concise 1–2 sentence description of the user's issue, written in plain English directly for the user to read — NOT internal diagnostic notes. " +
+            "A concise 1–2 sentence description of the user's issue, written in plain English directly for the user to read, NOT internal diagnostic notes. " +
             "Write as if confirming their issue to them: empathetic, user-facing, no technical jargon, no mention of what you tried internally. " +
-            "Example (good): 'Your token lock transactions on BNB Chain are failing — our team will investigate what's preventing them from going through.' " +
+            "Example (good): 'Your token lock transactions on BNB Chain are failing, our team will investigate what's preventing them from going through.' " +
             "Example (bad): 'User's three lock transactions failed with gas/revert errors. Need to investigate wallet state and contract interactions.'",
         },
         reason: {

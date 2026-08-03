@@ -18,7 +18,7 @@ export interface NativeBalance {
 export interface DecodedRevert {
   cause: "out_of_gas" | "revert_reason" | "custom_error" | "panic" | "unknown_revert"
   reason: string           // raw error string or description
-  errorName?: string       // e.g. "SlippageTooHigh" — used to match error glossary entries
+  errorName?: string       // e.g. "SlippageTooHigh", used to match error glossary entries
   errorSignature?: string  // e.g. "SlippageTooHigh(uint256,uint256)"
   rawHex?: string
   gasInfo: { used: number; limit: number; percentUsed: number }

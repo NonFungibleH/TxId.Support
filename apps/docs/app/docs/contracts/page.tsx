@@ -21,12 +21,12 @@ export default function ContractsPage() {
       </p>
       <ul>
         <li>&ldquo;Is my token locked?&rdquo;</li>
-        <li>&ldquo;My transaction failed — what happened?&rdquo;</li>
+        <li>&ldquo;My transaction failed. What happened?&rdquo;</li>
         <li>&ldquo;Why did my lock revert?&rdquo;</li>
       </ul>
       <p>
-        The AI uses the contract address, name, and description you provide — along with the user&apos;s
-        connected wallet — to give accurate, protocol-specific answers.
+        The AI uses the contract address, name, and description you provide, along with the user&apos;s
+        connected wallet, to give accurate, protocol-specific answers.
       </p>
 
       <h2>Adding a contract</h2>
@@ -77,7 +77,7 @@ export default function ContractsPage() {
         users can perform on the contract, making it much easier to write a useful description.
       </p>
 
-      <h3>Example — Team Finance lock contract</h3>
+      <h3>Example: Team Finance lock contract</h3>
       <pre><code>{`Name:        Team Finance Lock
 Address:     0x1234...abcd
 Chain:       Ethereum
@@ -85,7 +85,7 @@ Description: This is Team Finance's token lock contract. Users lock
              ERC-20 tokens here for a specified duration. Common
              questions: "is my token locked?", "when does my lock
              expire?", "how do I unlock early?". The contract is
-             read-only — only the original locker can initiate an
+             read-only: only the original locker can initiate an
              unlock after the lock period expires.`}</code></pre>
 
       <h2>Transaction diagnostics</h2>
@@ -97,14 +97,14 @@ Description: This is Team Finance's token lock contract. Users lock
       <p>Examples of what the AI can say:</p>
       <ul>
         <li>&ldquo;Your transaction failed because you didn&apos;t set a high enough gas limit in your wallet settings.&rdquo;</li>
-        <li>&ldquo;The contract rejected this because the slippage tolerance was exceeded — try increasing your slippage to 1% and retrying.&rdquo;</li>
+        <li>&ldquo;The contract rejected this because the slippage tolerance was exceeded. Try increasing your slippage to 1% and retrying.&rdquo;</li>
         <li>&ldquo;The RPC your wallet is using may be down or rate-limited. Try switching to a public RPC from Chainlist.org.&rdquo;</li>
       </ul>
 
       <p>
         Diagnostics work automatically for standard Solidity errors (<code>Error(string)</code> reverts)
         and out-of-gas failures. For contracts that use <strong>custom errors</strong> (e.g. <code>SlippageTooHigh()</code>),
-        the AI needs the contract&apos;s ABI to decode them — see the ABI section below.
+        the AI needs the contract&apos;s ABI to decode them. See the ABI section below.
       </p>
 
       <h2>ABI upload</h2>
@@ -152,28 +152,28 @@ Description: This is Team Finance's token lock contract. Users lock
       </p>
       <ul>
         <li>
-          <strong>Address</strong> — add the <em>package</em> address (0x…). Optionally scope the
+          <strong>Address</strong>: add the <em>package</em> address (0x…). Optionally scope the
           contract to a single module: when you pick Aptos as the chain, the dialog reads the
           package&apos;s modules live from the fullnode and lets you select one.
         </li>
         <li>
-          <strong>ABI</strong> — there is nothing to verify or upload. Move module ABIs are public
+          <strong>ABI</strong>: there is nothing to verify or upload. Move module ABIs are public
           on-chain; TxID reads them directly from the Aptos fullnode, so the contract card
           shows <em>Move module ABI (on-chain)</em> automatically.
         </li>
         <li>
-          <strong>Failed transactions</strong> — instead of Solidity reverts, Aptos transactions fail
+          <strong>Failed transactions</strong>: instead of Solidity reverts, Aptos transactions fail
           with Move abort codes. TxID decodes them in layers: the standard error category,
           the Aptos framework&apos;s own error tables, and per-protocol error maps, so users get a
           plain-English reason rather than <code>0x10010</code>.
         </li>
         <li>
-          <strong>Wallets</strong> — users connect Petra or Martian in the widget, or paste an
+          <strong>Wallets</strong>: users connect Petra or Martian in the widget, or paste an
           address. Aptos-only behaviours are handled natively: expired transactions that leave no
           on-chain record, sponsored (fee-payer) transactions, and auth-key rotation.
         </li>
         <li>
-          <strong>Protocol accounts</strong> — some Aptos protocols keep user funds in a
+          <strong>Protocol accounts</strong>: some Aptos protocols keep user funds in a
           protocol-owned account object rather than the wallet (perps venues with subaccounts and
           delegated session keys, for example). TxID resolves these automatically and merges
           their activity into the user&apos;s answers, so a trader whose wallet looks empty still
@@ -194,8 +194,8 @@ Description: This is Team Finance's token lock contract. Users lock
       <p>
         If the contract has an ABI, TxID reads the custom error definitions from it and
         shows you a list of errors that don&apos;t have explanations yet. Click any error to expand
-        it and write a plain-English explanation. You only need to write the explanation itself
-        — the error name is pre-filled from the ABI, so there is no chance of a typo.
+        it and write a plain-English explanation. You only need to write the explanation
+        itself: the error name is pre-filled from the ABI, so there is no chance of a typo.
       </p>
       <p>
         For contracts without a verified ABI, you can still add entries manually by entering the
@@ -247,7 +247,7 @@ Description: This is Team Finance's token lock contract. Users lock
         <p className="text-sm text-[#a1a1aa]">
           Encourage users to connect their wallet in the widget&apos;s Wallet tab before asking contract
           questions (MetaMask on EVM chains, Petra on Aptos). With a wallet connected, the AI can look
-          up their recent transactions and give wallet-specific answers — including exactly why a
+          up their recent transactions and give wallet-specific answers, including exactly why a
           specific transaction failed.
         </p>
       </div>

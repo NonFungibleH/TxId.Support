@@ -6,8 +6,8 @@ const inter = Inter({ subsets: ["latin"], variable: "--font-sans" })
 const mono = Space_Mono({ subsets: ["latin"], weight: ["400", "700"], variable: "--font-mono" })
 
 export const metadata: Metadata = {
-  title: { default: "TxID Docs", template: "%s — TxID" },
-  description: "Developer documentation for TxID — the AI-powered DeFi support widget.",
+  title: { default: "TxID Docs", template: "%s | TxID" },
+  description: "Developer documentation for TxID, the AI-powered DeFi support widget.",
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

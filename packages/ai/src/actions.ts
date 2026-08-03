@@ -114,8 +114,8 @@ export function buildPrepareContractActionTool(
     name: "prepare_contract_action",
     description:
       "Prepare a protocol contract transaction the user EXPLICITLY asked to make (e.g. lock, stake, claim), for review and signing in their own wallet. " +
-      "Only for carrying out the user's stated request — never propose or suggest transactions the user did not ask for. " +
-      `Available functions — ${catalogue}. ` +
+      "Only for carrying out the user's stated request, never propose or suggest transactions the user did not ask for. " +
+      `Available functions, ${catalogue}. ` +
       "Amounts are human units (e.g. \"100\" tokens); pass all function arguments in order as strings.",
     input_schema: {
       type: "object" as const,
@@ -135,7 +135,7 @@ export function buildPrepareSwapTool(ctx: ActionsContext): Anthropic.Tool | null
     name: "prepare_swap",
     description:
       "Prepare a token swap the user EXPLICITLY asked to make, for review and signing in their own wallet. " +
-      "Only for carrying out the user's stated request — never propose, suggest, or recommend swaps or tokens. " +
+      "Only for carrying out the user's stated request, never propose, suggest, or recommend swaps or tokens. " +
       "Supported tokens: the protocol's token and major tokens (native coin, wrapped native, USDC, USDT, DAI) on the connected chain.",
     input_schema: {
       type: "object" as const,
@@ -196,7 +196,7 @@ export async function prepareSwap(
   if (from.address.toLowerCase() === to.address.toLowerCase()) return { error: "Those are the same token." }
 
   const decimals = await getTokenDecimals(from.address, chainId)
-  if (decimals === null) return { error: "Couldn't read that token's decimals right now — please try again." }
+  if (decimals === null) return { error: "Couldn't read that token's decimals right now, please try again." }
   let amountRaw: bigint
   try { amountRaw = toRawAmount(params.amount, decimals) } catch (e) { return { error: e instanceof Error ? e.message : "Invalid amount" } }
   if (amountRaw <= 0n) return { error: "The amount must be greater than zero." }
@@ -215,7 +215,7 @@ export async function prepareSwap(
   // the rebuild endpoint (post-approval), so the quote is never stale at sign.
   if (from.address.toLowerCase() !== NATIVE_TOKEN.toLowerCase()) {
     const allowance = await getAllowance(from.address, wallet.address, quote.routerAddress, chainId)
-    if (allowance === null) return { error: "Couldn't check the token allowance right now — please try again." }
+    if (allowance === null) return { error: "Couldn't check the token allowance right now, please try again." }
     if (allowance < amountRaw) {
       const approveTx = buildApproveTx(from.address, quote.routerAddress, amountRaw)
       const pf = await preflightTx(chainId, wallet.address, approveTx.to, approveTx.data)
@@ -295,11 +295,11 @@ export async function prepareContractAction(
     const amountHuman = params.args[rule.approval.amountArg]
     if (amountHuman === undefined) return { error: "Missing the amount argument for this action." }
     const decimals = await getTokenDecimals(rule.approval.token, wallet.chainId)
-    if (decimals === null) return { error: "Couldn't read the token's decimals right now — please try again." }
+    if (decimals === null) return { error: "Couldn't read the token's decimals right now, please try again." }
     let amountRaw: bigint
     try { amountRaw = toRawAmount(amountHuman, decimals) } catch (e) { return { error: e instanceof Error ? e.message : "Invalid amount" } }
     const allowance = await getAllowance(rule.approval.token, wallet.address, contract.address, wallet.chainId)
-    if (allowance === null) return { error: "Couldn't check the token allowance right now — please try again." }
+    if (allowance === null) return { error: "Couldn't check the token allowance right now, please try again." }
     if (allowance < amountRaw) {
       const approveTx = buildApproveTx(rule.approval.token, contract.address, amountRaw)
       const pf = await preflightTx(wallet.chainId, wallet.address, approveTx.to, approveTx.data)

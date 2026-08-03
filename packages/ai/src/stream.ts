@@ -99,7 +99,7 @@ async function executeToolWithTimeout(
   return Promise.race([
     run,
     new Promise((_, reject) =>
-      setTimeout(() => reject(new Error(`${name} timed out — the data source is slow or unreachable right now`)), TOOL_TIMEOUT_MS),
+      setTimeout(() => reject(new Error(`${name} timed out, the data source is slow or unreachable right now`)), TOOL_TIMEOUT_MS),
     ),
   ])
 }
@@ -255,7 +255,7 @@ export async function* streamChatWithTools(
             let input: { summary?: string; reason?: string } = {}
             try {
               input = JSON.parse(escalationCall.function.arguments || "{}") as { summary?: string; reason?: string }
-            } catch { /* malformed args from the model — escalate with defaults */ }
+            } catch { /* malformed args from the model, escalate with defaults */ }
             yield { type: "escalate", summary: input.summary ?? "Issue needs further attention", reason: input.reason ?? "unresolved" }
             return
           }

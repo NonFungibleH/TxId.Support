@@ -21,10 +21,10 @@ export default function QuickStartPage() {
       <h2>2. Configure your widget</h2>
       <p>Visit the dashboard pages to configure your widget:</p>
       <ul>
-        <li><strong>Branding</strong> — set colours, font, and widget position. A live preview updates as you type.</li>
-        <li><strong>Token</strong> — add your token address and chain for token-aware responses.</li>
-        <li><strong>Smart Contracts</strong> — add contract addresses the AI can query on behalf of users.</li>
-        <li><strong>Chains</strong> — toggle which chains your protocol supports.</li>
+        <li><strong>Branding</strong>: set colours, font, and widget position. A live preview updates as you type.</li>
+        <li><strong>Token</strong>: add your token address and chain for token-aware responses.</li>
+        <li><strong>Smart Contracts</strong>: add contract addresses the AI can query on behalf of users.</li>
+        <li><strong>Chains</strong>: toggle which chains your protocol supports.</li>
       </ul>
 
       <h2>3. Embed the widget</h2>

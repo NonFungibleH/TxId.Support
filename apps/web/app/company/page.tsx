@@ -8,25 +8,39 @@ import { ArrowRight } from "lucide-react";
 export const metadata: Metadata = {
   title: "Company | TxID",
   description:
-    "TxID is building the support and operations layer for on-chain finance: an investigation behind every answer, and a record behind every case. Built by the former Product Lead of Team Finance.",
+    "Every blockchain transaction tells you what happened. TxID explains why, guides the resolution, and creates a record of what occurred. The intelligence layer for on-chain operations.",
   alternates: { canonical: "/company" },
 };
 
 const BELIEFS = [
   {
     title: "Answers about value must be correct",
-    detail:
-      "A wrong answer about someone's assets is worse than no answer. That's why every claim is backed by a live on-chain read, and why verified fact is always kept distinct from interpretation.",
+    paras: [
+      "A wrong answer about someone's assets is worse than no answer.",
+      "That is why TxID grounds every response in live blockchain data, keeps verified facts separate from interpretation, and shows the evidence behind its conclusions.",
+    ],
   },
   {
     title: "Support is an investigation, not a script",
-    detail:
-      "The right answer to \"why did my transaction fail?\" lives on-chain. Reading it properly, the way a protocol engineer would, is the product.",
+    paras: [
+      "The answer to \u201cWhy did my transaction fail?\u201d does not live in a knowledge base. It lives on-chain.",
+      "Reading that data properly, the way a protocol engineer would, is the product.",
+    ],
   },
   {
     title: "The record matters as much as the answer",
-    detail:
-      "As institutions bring real value on-chain, what was said to a client, and on what basis, becomes infrastructure. We build for the team that has to stand behind it.",
+    paras: [
+      "As more financial activity moves on-chain, organisations need more than a response.",
+    ],
+    listLabel: "They need to know:",
+    items: [
+      "What was asked",
+      "What data was reviewed",
+      "What was answered",
+      "Why that answer was correct",
+    ],
+    outro:
+      "TxID creates that record for the teams responsible for supporting and operating on-chain systems.",
   },
 ];
 
@@ -45,10 +59,16 @@ export default function CompanyPage() {
                 <br />
                 <span className="text-accent">explains on-chain finance.</span>
               </h1>
+              <p className="text-lg text-muted leading-relaxed mb-3">
+                Every blockchain transaction tells you what happened.
+              </p>
+              <p className="text-lg text-muted leading-relaxed mb-3">
+                TxID explains why, guides the resolution, and creates a record of what occurred.
+              </p>
               <p className="text-lg text-muted leading-relaxed">
-                Every blockchain transaction tells you what happened. TxID explains why, guides the
-                fix, and keeps the record. We&apos;re building that as infrastructure: for protocols
-                today, and for the institutions bringing real value on-chain next.
+                We are building the intelligence layer for on-chain operations, helping protocols
+                today and the institutions moving larger-scale financial activity on-chain
+                tomorrow.
               </p>
             </FadeIn>
           </div>
@@ -60,9 +80,33 @@ export default function CompanyPage() {
             <div className="grid md:grid-cols-3 gap-4">
               {BELIEFS.map((b, i) => (
                 <FadeIn key={b.title} delay={i * 0.08}>
-                  <div className="h-full rounded-xl border border-[var(--border)] bg-[var(--bg-surface)] p-6">
-                    <h2 className="font-display font-semibold text-white mb-2">{b.title}</h2>
-                    <p className="text-sm text-muted leading-relaxed">{b.detail}</p>
+                  <div className="h-full rounded-xl border border-[var(--border)] bg-[var(--bg-surface)] p-7">
+                    <h2 className="font-display font-semibold text-white mb-3">{b.title}</h2>
+                    <div className="space-y-2.5">
+                      {b.paras.map((t) => (
+                        <p key={t} className="text-sm text-muted leading-relaxed">
+                          {t}
+                        </p>
+                      ))}
+                    </div>
+                    {b.listLabel && (
+                      <p className="text-sm text-muted leading-relaxed mt-3">{b.listLabel}</p>
+                    )}
+                    {b.items && (
+                      <ul className="mt-3 space-y-2">
+                        {b.items.map((it) => (
+                          <li key={it} className="flex items-start gap-2.5 text-sm text-muted">
+                            <span className="mt-[0.45rem] w-1 h-1 rounded-full bg-accent shrink-0" />
+                            <span>{it}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                    {b.outro && (
+                      <p className="mt-4 text-sm text-[#c8c8d8] leading-relaxed border-l-2 border-accent/50 pl-4">
+                        {b.outro}
+                      </p>
+                    )}
                   </div>
                 </FadeIn>
               ))}
@@ -76,13 +120,22 @@ export default function CompanyPage() {
             <FadeIn>
               <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-surface)] p-8">
                 <p className="font-mono text-sm text-accent mb-3">Who&apos;s behind it</p>
-                <p className="text-[15px] text-[#c8c8d8] leading-relaxed">
-                  TxID is built by <span className="text-white font-semibold">Howard Pearce</span>,
-                  previously Product Lead at Team Finance, the token management platform integrated
-                  across 20+ blockchains that supported 40,000 projects in their launches, and
-                  hands-on with a wide range of early-stage teams through the TrustSwap incubator.
-                  Development runs Move-native on Aptos and across the major EVM networks.
-                </p>
+                <div className="space-y-3 text-[15px] text-[#c8c8d8] leading-relaxed">
+                  <p>
+                    TxID is built by{" "}
+                    <span className="text-white font-semibold">Howard Pearce</span>, previously
+                    Product Lead at Team Finance, a token management platform used across 20+
+                    blockchain networks and supporting 40,000+ projects.
+                  </p>
+                  <p>
+                    He has worked hands-on with early-stage Web3 teams through the TrustSwap
+                    ecosystem, building products across token launches, liquidity infrastructure,
+                    and on-chain operations.
+                  </p>
+                  <p>
+                    Today, TxID is being developed across Move-native Aptos and major EVM networks.
+                  </p>
+                </div>
               </div>
             </FadeIn>
           </div>

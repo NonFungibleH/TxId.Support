@@ -12,11 +12,11 @@ export default function EmbedPage() {
       </div>
 
       <p>
-        Your publishable API key (<code>pk_...</code>) is safe to expose in frontend code — it only
+        Your publishable API key (<code>pk_...</code>) is safe to expose in frontend code, it only
         identifies your project. Never expose your <code>sk_...</code> secret key publicly.
       </p>
 
-      <h2>Option 1 — Script tag</h2>
+      <h2>Option 1, Script tag</h2>
       <p>
         The simplest integration. Paste this snippet before the closing <code>&lt;/body&gt;</code> tag
         on any HTML page.
@@ -45,9 +45,9 @@ export default function EmbedPage() {
         To position bottom-left, change <code>right:20px</code> to <code>left:20px</code>.
       </p>
 
-      <h2>Option 2 — Inline iframe</h2>
+      <h2>Option 2, Inline iframe</h2>
       <p>
-        Embed the widget inline inside any container on your page — useful for a dedicated support page
+        Embed the widget inline inside any container on your page, useful for a dedicated support page
         or sidebar panel.
       </p>
       <pre><code>{`<iframe
@@ -57,7 +57,7 @@ export default function EmbedPage() {
   loading="lazy">
 </iframe>`}</code></pre>
 
-      <h2>Option 3 — React component</h2>
+      <h2>Option 3, React component</h2>
       <p>
         Install the <code>@txid/react</code> package for a first-class React integration with a
         managed toggle button and open/close state.

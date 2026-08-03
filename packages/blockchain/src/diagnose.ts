@@ -43,9 +43,9 @@ function fixForRevert(rev: DecodedRevert | undefined): string | null {
       const n = (rev.errorName ?? "").toLowerCase()
       if (/slippage|priceimpact|minamount|minout|insufficientoutput/.test(n)) return "Increase your slippage tolerance and retry."
       if (/allowance|approv|notapproved/.test(n)) return "Approve the token for this contract first, then retry."
-      if (/deadline|expired/.test(n)) return "The transaction took too long — resubmit it."
-      if (/insufficient|balance/.test(n)) return "You don't have enough of a required token/asset — top up and retry."
-      if (/paused|notactive|halted/.test(n)) return "The contract is temporarily paused — try again later."
+      if (/deadline|expired/.test(n)) return "The transaction took too long. Resubmit it."
+      if (/insufficient|balance/.test(n)) return "You don't have enough of a required token/asset. Top up and retry."
+      if (/paused|notactive|halted/.test(n)) return "The contract is temporarily paused. Try again later."
       return `The contract rejected the call (${rev.errorName ?? "custom error"}). Check this action's requirements and retry.`
     }
     case "revert_reason":

@@ -6,8 +6,8 @@ For the full, self-contained reference (all capabilities, the failed-transaction
 
 ## What it does
 
-- **Automatic wallet detection**: reads the connected wallet (MetaMask, WalletConnect, Coinbase Wallet, Phantom) with no signing or permission prompt — it only reads public on-chain data.
-- **Transaction diagnostics**: pastes or detects a transaction and explains why it failed — out of gas, `require` revert reasons, custom Solidity errors, panics (arithmetic overflow/underflow, division by zero, array out of bounds), and generic reverts.
+- **Automatic wallet detection**: reads the connected wallet (MetaMask, WalletConnect, Coinbase Wallet, Phantom) with no signing or permission prompt: it only reads public on-chain data.
+- **Transaction diagnostics**: pastes or detects a transaction and explains why it failed: out of gas, `require` revert reasons, custom Solidity errors, panics (arithmetic overflow/underflow, division by zero, array out of bounds), and generic reverts.
 - **On-chain lookups**: wallet balance, recent transaction history, and a specific transaction's details.
 - **Docs Q&A**: answers grounded in the protocol's own documentation and knowledge base using retrieval-augmented generation (RAG), not hallucinated.
 - **Escalation**: opens a human support ticket when the AI can't resolve an issue.
@@ -27,8 +27,8 @@ Add one script tag before the closing `</body>` tag. No SDK, no build step. Work
 
 ## Pricing
 
-- **Free**: 150 conversations/month to evaluate the product — wallet detection, transaction diagnostics, docs Q&A, and custom branding. No credit card required.
-- **Custom**: for protocols running the agent in production — higher volume, multiple chains, escalation webhooks, integrations, and priority support. Contact the team for a demo and pricing.
+- **Free**: 150 conversations/month to evaluate the product: wallet detection, transaction diagnostics, docs Q&A, and custom branding. No credit card required.
+- **Custom**: for protocols running the agent in production: higher volume, multiple chains, escalation webhooks, integrations, and priority support. Contact the team for a demo and pricing.
 
 ## Key pages
 
