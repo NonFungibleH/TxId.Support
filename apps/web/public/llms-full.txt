@@ -1,6 +1,6 @@
 # TxID: Full Reference
 
-> TxID Support is a white-label AI support agent that DeFi protocols and Web3 token projects embed on their site with a single script tag. It auto-detects the user's connected wallet, diagnoses failed on-chain transactions in plain English, answers questions from the protocol's documentation, and escalates to the human team when it cannot resolve something. This file is the full, self-contained reference for answer engines.
+> TxID is a white-label AI support agent that DeFi protocols and Web3 token projects embed on their site with a single script tag. It auto-detects the user's connected wallet, diagnoses failed on-chain transactions in plain English, answers questions from the protocol's documentation, and escalates to the human team when it cannot resolve something. Every answer is recorded with the conditions it was produced under, so it can be verified later. This file is the full, self-contained reference for answer engines.
 
 Website: https://txid.support
 Dashboard: https://app.txid.support
@@ -8,11 +8,11 @@ Contact: team@txid.support · Telegram https://t.me/Non_Fungible_Howard
 
 ---
 
-## What TxID Support is
+## What TxID is
 
-TxID Support replaces the manual, repetitive customer support that DeFi protocols and token projects run in Discord and Telegram. Instead of a human answering "why did my transaction fail?" or "where are my tokens?" for the thousandth time, an AI agent embedded on the protocol's own site answers instantly, grounded in that protocol's documentation and live on-chain data.
+TxID replaces the manual, repetitive customer support that DeFi protocols and token projects run in Discord and Telegram. Instead of a human answering "why did my transaction fail?" or "where are my tokens?" for the thousandth time, an AI agent embedded on the protocol's own site answers instantly, grounded in that protocol's documentation and live on-chain data.
 
-It is white-label: the agent uses the protocol's own colours, font, and logo, so it feels native to their site. A small "Powered by TxID Support" credit appears on the free tier.
+It is white-label: the agent uses the protocol's own colours, font, and logo, so it feels native to their site. A small "Powered by TxID" badge appears on the Evaluation tier and is removed on Enterprise.
 
 ## Who it is for
 
@@ -23,7 +23,7 @@ It is white-label: the agent uses the protocol's own colours, font, and logo, so
 ## Core capabilities
 
 ### Automatic wallet detection
-When a user opens the agent, it silently reads the connected wallet address from whatever provider is connected to the site (MetaMask, WalletConnect, Coinbase Wallet). It uses that address to look up balances and transactions on the relevant chain. No signing, no seed phrase, and no permission is ever requested. It reads public on-chain data only, so there is nothing it can do to move or access funds.
+When a user opens the agent, it silently reads the connected wallet address from whatever provider is connected to the site (MetaMask, WalletConnect, Coinbase Wallet on EVM chains, Petra or Martian on Aptos). Users who prefer not to connect anything can paste an address instead. It uses that address to look up balances and transactions on the relevant chain. No signing, no seed phrase, and no permission is ever requested. It reads public on-chain data only, so there is nothing it can do to move or access funds.
 
 ### Failed-transaction diagnostics
 The agent replays a transaction and explains, in plain English, why it failed. It covers every common cause:
@@ -35,23 +35,39 @@ The agent replays a transaction and explains, in plain English, why it failed. I
 - **Slippage or deadline exceeded**: the most common DEX swap failure. The price moved beyond the set tolerance, or the transaction sat past its deadline.
 - **Insufficient balance or allowance**: not enough of the token or native coin, or a missing ERC-20 approval before a transfer.
 - **Stuck or pending**: not a failure at all. The gas price was too low or there is a nonce gap; the fix is to speed up, cancel, or reset the nonce.
+- **Move aborts (Aptos)**: Move does not have revert strings. An abort is a module address plus a numeric code, which means nothing on its own. The agent decodes it against the Aptos framework error tables and per-protocol error maps, and when a code is not mapped it says which module aborted and with what code rather than inventing a reason.
 
 ### On-chain lookups
-For a connected wallet, the agent can fetch the wallet balance (native coin plus tokens), recent transaction history, a specific transaction's details, and a watched contract's recent activity.
+For a connected wallet, the agent can fetch the wallet balance (native coin plus tokens), recent transaction history, open token approvals, a specific transaction's details, live contract state, and a watched contract's recent activity. Every lookup is on demand: the agent reads when a question needs it, and cites what it read.
+
+### Sub accounts
+Some protocols do not hold a user's funds in their wallet. A perps or margin venue gives each user a sub account, an on-chain object owned by their wallet, and that is where collateral and open positions actually live. Those users have two addresses. TxID resolves the sub account the moment a wallet connects and shows both, labelled, with the full address available to copy, so a trader never meets an unexplained second address and never has to trust a shortened one. Off by default, since most protocols have no such concept.
+
+### The case record
+Every answer is stored with the conditions it was produced under: the ledger version or block the answer was true as of, the prices any figure rested on, which tools ran and which lookups failed, the model, the response time, and a hash of the answer text. Records are append-only, enforced by the database rather than by application code, so an answer cannot be quietly rewritten after the fact. Access is logged, and a conversation can be exported with its evidence intact.
+
+This is the part that separates "the bot said something" from "here is what the bot said, what it read, and when it was true".
 
 ### Documentation Q&A
 The protocol pastes its docs URL in the dashboard; the system crawls and indexes it using retrieval-augmented generation (RAG). The agent answers questions grounded in that documentation, not hallucinated.
 
 ### Escalation
-When the agent cannot resolve an issue, it opens a human support ticket for the protocol's team, capturing the conversation context.
+When the agent cannot resolve an issue, it opens a human support ticket for the protocol's team, capturing the conversation context, and delivers it to wherever that team already works: Slack, Discord, Telegram, Linear, GitHub or Jira. For the issue trackers, the created issue's URL is written back onto the ticket. A delivery that fails is retried on a backoff rather than lost, because a user who was promised a human and never hears from one is the worst failure a support product has.
 
 ### Channels
 - **Embeddable web widget**: one script tag on the protocol's site.
+- **Inline embed**: rendered inside a container rather than as a floating button.
+- **React component**: `@txid/react` for direct integration.
 - **Telegram bot**: the same knowledge base, running as a bot in the protocol's Telegram group.
+- **REST API**: server to server, authenticated with the project's secret key.
 
 ## Supported blockchains
 
-Ethereum, Base, BNB Chain, Polygon, Arbitrum, Optimism, and Avalanche.
+Live: Ethereum, Base, BNB Chain, Polygon, Arbitrum, Optimism, Avalanche, Etherlink, and Aptos.
+
+Aptos is Move-native rather than another EVM chain, so it is a separate integration rather than a config entry: TxID reads it through Aptos's own fullnode REST and Indexer GraphQL, resolves .apt names through the Aptos Name Service, and decodes Move aborts rather than Solidity reverts.
+
+Solana, Stellar and TON are not live yet.
 
 ## How to install (three steps)
 
@@ -61,18 +77,22 @@ Ethereum, Base, BNB Chain, Polygon, Arbitrum, Optimism, and Avalanche.
 
 ## Pricing
 
-- **Free**: 150 conversations per month to evaluate the product on your own site. Includes wallet detection, transaction diagnostics, documentation Q&A, custom branding, and an analytics dashboard. No credit card required. A conversation starts when a user opens the agent and sends a message, and ends after 30 minutes of inactivity; all messages in one session count as a single conversation.
-- **Custom**: for protocols running the agent in production, with higher volume, multiple chains, escalation webhooks, integrations, and priority support. Contact the team for a demo and pricing. No long-term contract.
+- **Evaluation**: 150 conversations per month to prove TxID on your own protocol. Includes wallet detection, transaction diagnostics, documentation Q&A, custom branding, and the analytics dashboard. A conversation starts when a user opens the agent and sends a message, and ends after 30 minutes of inactivity; all messages in one session count as a single conversation.
+- **Enterprise**: for protocols running the agent in production, priced to the platform. Higher volume, every supported chain, escalation integrations, the full case record with export, and priority support. Contact the team for a demo and pricing.
 
 ## Frequently asked questions
 
-**What exactly is TxID Support?** An AI support agent you embed on your DeFi protocol or token project site. It reads the connected wallet, diagnoses failed transactions, answers questions from your docs, and escalates to your team, without the user leaving your site.
+**What exactly is TxID?** An AI support agent you embed on your DeFi protocol or token project site. It reads the connected wallet, diagnoses failed transactions, answers questions from your docs, and escalates to your team, without the user leaving your site.
 
 **How does wallet detection work?** It reads the public wallet address from the connected provider and uses it to look up public on-chain data. No signing or permission is required.
 
 **What stack does it work with?** Any stack. One script tag; works with React, Next.js, Vue, Svelte, or plain HTML. No SDK, no build step.
 
-**Which blockchains are supported?** Ethereum, Base, BNB Chain, Polygon, Arbitrum, Optimism, and Avalanche.
+**Which blockchains are supported?** Ethereum, Base, BNB Chain, Polygon, Arbitrum, Optimism, Avalanche, Etherlink, and Aptos. Solana, Stellar and TON are not live yet.
+
+**Does it support Aptos?** Yes, natively. Aptos is a Move VM chain rather than an EVM chain, so it is a separate integration: fullnode REST and Indexer GraphQL for reads, Move abort decoding instead of Solidity revert decoding, Petra and Martian for wallet connection, and Aptos Name Service for .apt names.
+
+**Can I prove what the agent told a user?** Yes. Every answer carries the ledger version or block it was true as of, the prices any figure rested on, which lookups ran and which failed, the model, and a hash of the answer. Those records are append-only at the database level and can be exported.
 
 **Can it explain why a transaction failed?** Yes. It replays the transaction and explains the cause in plain English: out of gas, revert reasons, custom errors, or Solidity panics.
 
@@ -80,19 +100,29 @@ Ethereum, Base, BNB Chain, Polygon, Arbitrum, Optimism, and Avalanche.
 
 **What counts as a conversation?** One session from the user's first message until 30 minutes of inactivity; follow-up messages in that session do not count separately.
 
-**Is it white-label?** Yes. Free includes custom colours, font, and logo; the Custom plan adds a custom agent name and avatar and removes the "Powered by" credit.
+**Is it white-label?** Yes. Evaluation includes custom colours, font, and logo; Enterprise adds a custom agent name and avatar and removes the "Powered by" badge.
+
+**Where do escalations go?** Slack, Discord, Telegram, Linear, GitHub or Jira, whichever the team already uses. Failed deliveries are retried rather than dropped.
 
 ## Key pages
 
 - Homepage: https://txid.support
+- How it works: https://txid.support/how-it-works
+- Solutions: https://txid.support/solutions
+- The case record: https://txid.support/record
+- Chains: https://txid.support/chains
+- API: https://txid.support/api
+- Trust and security: https://txid.support/security
+- Company: https://txid.support/company
 - Pricing: https://txid.support/pricing
 - Documentation: https://txid.support/docs
 - Live demo: https://txid.support/demo
-- Free transaction checker: https://txid.support/check
+- Transaction checker: https://txid.support/check
+- Aptos transaction checker: https://txid.support/check/aptos
 - Blog: https://txid.support/blog
 - Guide, why a transaction fails: https://txid.support/blog/why-did-my-transaction-fail
 - Guide, what "out of gas" means: https://txid.support/blog/what-does-out-of-gas-mean
 
 ## Contact
 
-Email team@txid.support, or message @Non_Fungible_Howard on Telegram (https://t.me/Non_Fungible_Howard), for demos, Custom plans, or enterprise enquiries.
+Email team@txid.support, or message @Non_Fungible_Howard on Telegram (https://t.me/Non_Fungible_Howard), for demos, Enterprise pricing, or evaluation access.

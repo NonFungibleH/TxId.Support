@@ -1,6 +1,6 @@
 # Compliance Features
 
-A compliance-oriented view of TxID Support — for positioning to protocols,
+A compliance-oriented view of TxID — for positioning to protocols,
 compliance teams, and ecosystem partners. Much of this is **already built** and
 simply reframed; the rest is a natural **"Compliance Mode"** product line.
 

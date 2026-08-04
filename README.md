@@ -1,4 +1,4 @@
-# TxID Support
+# TxID
 
 AI-powered Web3 support widget for DeFi protocols.
 

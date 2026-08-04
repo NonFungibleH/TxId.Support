@@ -1,25 +1,31 @@
-# TxID Support
+# TxID
 
-> TxID Support is a white-label AI support agent that DeFi protocols and Web3 token projects embed on their site with a single script tag. It auto-detects the user's connected wallet, diagnoses failed on-chain transactions in plain English, answers questions from the protocol's documentation, and escalates to the human team when it can't resolve something.
+> TxID is a white-label AI support agent that DeFi protocols and Web3 token projects embed on their site with a single script tag. It auto-detects the user's connected wallet, diagnoses failed on-chain transactions in plain English, answers questions from the protocol's documentation, and escalates to the human team when it can't resolve something. Every answer is recorded with the conditions it was produced under, so it can be verified later.
 
 For the full, self-contained reference (all capabilities, the failed-transaction glossary, FAQ, and pricing in one file), see https://txid.support/llms-full.txt
 
 ## What it does
 
-- **Automatic wallet detection**: reads the connected wallet (MetaMask, WalletConnect, Coinbase Wallet, Phantom) with no signing or permission prompt: it only reads public on-chain data.
-- **Transaction diagnostics**: pastes or detects a transaction and explains why it failed: out of gas, `require` revert reasons, custom Solidity errors, panics (arithmetic overflow/underflow, division by zero, array out of bounds), and generic reverts.
-- **On-chain lookups**: wallet balance, recent transaction history, and a specific transaction's details.
+- **Automatic wallet detection**: reads the connected wallet (MetaMask, WalletConnect, Coinbase Wallet, Petra, Martian) with no signing or permission prompt: it only reads public on-chain data. Users can also paste an address without connecting anything.
+- **Transaction diagnostics**: pastes or detects a transaction and explains why it failed: out of gas, `require` revert reasons, custom Solidity errors, panics (arithmetic overflow/underflow, division by zero, array out of bounds), generic reverts, and Move abort codes on Aptos decoded against framework and protocol error maps.
+- **On-chain lookups**: wallet balance, recent transaction history, token approvals, contract state, and a specific transaction's details.
+- **Sub accounts**: on protocols that hold user funds in a per-user account object rather than the wallet, such as a perps or margin venue, TxID resolves that account on connect and shows both addresses labelled, so a trader never meets an unexplained second address.
 - **Docs Q&A**: answers grounded in the protocol's own documentation and knowledge base using retrieval-augmented generation (RAG), not hallucinated.
-- **Escalation**: opens a human support ticket when the AI can't resolve an issue.
-- **Channels**: embeddable web widget plus an optional Telegram bot that uses the same knowledge.
+- **The case record**: every answer is stored with the ledger version it was true as of, the prices any figure rested on, which lookups ran and which failed, the model, and a hash of the answer. Records are append-only, enforced in the database, and exportable.
+- **Escalation**: opens a human support ticket when the AI can't resolve an issue, and delivers it to Slack, Discord, Telegram, Linear, GitHub or Jira. Failed deliveries are retried rather than lost.
+- **Channels**: embeddable web widget, an optional Telegram bot using the same knowledge, a React component, and a REST API.
 
 ## Chains supported
 
-Ethereum, Base, BNB Chain, Polygon, Arbitrum, Optimism, and Avalanche.
+Live: Ethereum, Base, BNB Chain, Polygon, Arbitrum, Optimism, Avalanche, Etherlink, and Aptos.
+
+Aptos is Move-native rather than another EVM chain: TxID reads it through Aptos's own fullnode REST and Indexer GraphQL, and decodes Move aborts into plain English.
+
+Solana, Stellar and TON are not live yet.
 
 ## Who it's for
 
-DeFi protocols, token projects, and Web3 teams that get repetitive support questions ("why did my transaction fail?", "where are my tokens?", "how does staking work?") and want to answer them automatically instead of staffing a support team.
+DeFi protocols, token projects, and Web3 teams that get repetitive support questions ("why did my transaction fail?", "where are my tokens?", "how does staking work?") and want to answer them automatically instead of staffing a support team. Teams that have to show their work later, to an auditor, a regulator or a user in dispute, use the case record for it.
 
 ## How to install
 
@@ -27,18 +33,26 @@ Add one script tag before the closing `</body>` tag. No SDK, no build step. Work
 
 ## Pricing
 
-- **Free**: 150 conversations/month to evaluate the product: wallet detection, transaction diagnostics, docs Q&A, and custom branding. No credit card required.
-- **Custom**: for protocols running the agent in production: higher volume, multiple chains, escalation webhooks, integrations, and priority support. Contact the team for a demo and pricing.
+- **Evaluation**: 150 conversations per month to prove TxID on your own protocol. Wallet detection, transaction diagnostics, docs Q&A, custom branding, and the analytics dashboard.
+- **Enterprise**: for protocols running the agent in production, priced to the platform. Higher volume, every supported chain, escalation integrations, the full case record and export, and priority support.
 
 ## Key pages
 
 - [Homepage](https://txid.support): product overview
-- [Pricing](https://txid.support/pricing): plans
-- [Docs](https://txid.support/docs): setup, branding, smart contracts, knowledge base, chains, embed
+- [How it works](https://txid.support/how-it-works): the mechanics, walked through a real case
+- [Solutions](https://txid.support/solutions): what it changes for support, engineering and compliance
+- [The case record](https://txid.support/record): what is stored against every answer, and why
+- [Chains](https://txid.support/chains): every chain and what is supported on each
+- [API](https://txid.support/api): server to server access
+- [Trust](https://txid.support/security): data handling, subprocessors, and security posture
+- [Pricing](https://txid.support/pricing): Evaluation and Enterprise
+- [Docs](https://txid.support/docs): setup, branding, smart contracts, sub accounts, knowledge base, chains, embed
 - [Live demo](https://txid.support/demo): try the agent
 - [Transaction checker](https://txid.support/check): diagnose a transaction
+- [Aptos checker](https://txid.support/check/aptos): the Move-native version
+- [Company](https://txid.support/company): who builds it
 - [Blog](https://txid.support/blog): articles
 
 ## Contact
 
-Email team@txid.support, or message @Non_Fungible_Howard on Telegram (https://t.me/Non_Fungible_Howard), for demos, custom plans, or enterprise enquiries.
+Email team@txid.support, or message @Non_Fungible_Howard on Telegram (https://t.me/Non_Fungible_Howard), for demos, Enterprise pricing, or evaluation access.
