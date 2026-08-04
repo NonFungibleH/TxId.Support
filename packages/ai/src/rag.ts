@@ -35,13 +35,13 @@ export async function retrieveContext(
   if (error) {
     // Non-fatal: if no docs indexed yet, return empty context
     console.error("[rag] match_documents error:", error.message)
-    return { context: "", chunks: [] }
+    return { context: "", chunks: [], includedChunks: 0, contextChars: 0 }
   }
 
   const rows = (data ?? []) as MatchRow[]
 
   if (rows.length === 0) {
-    return { context: "", chunks: [] }
+    return { context: "", chunks: [], includedChunks: 0, contextChars: 0 }
   }
 
   // Hard char budget for the assembled context (~6k tokens). Pathological
@@ -53,8 +53,10 @@ export async function retrieveContext(
   const SEP = "\n\n---\n\n"
   const parts: string[] = []
   let used = 0
+  let includedChunks = 0
   for (const r of rows) {
     if (used >= MAX_CONTEXT_CHARS) break
+    includedChunks++
     const remaining = MAX_CONTEXT_CHARS - used
     const piece = r.content.length > remaining ? r.content.slice(0, remaining) : r.content
     parts.push(piece)
@@ -64,6 +66,8 @@ export async function retrieveContext(
 
   return {
     context,
+    includedChunks,
+    contextChars: context.length,
     chunks: rows.map((r) => ({
       content: r.content,
       source: r.source_url,

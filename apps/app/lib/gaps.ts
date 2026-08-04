@@ -23,6 +23,23 @@ export interface GapsReport {
   silentlyUnhappy: GapItem[]
   /** Reads that failed. Infrastructure, not knowledge. */
   dataGaps: { reason: string; count: number }[]
+  /**
+   * Questions the documentation did not cover. Distinct from every other
+   * bucket: the user may have been perfectly happy with the answer, and the
+   * team still needs to know the assistant had nothing to answer from.
+   */
+  docGaps: GapItem[]
+  /**
+   * How well the documentation is holding up, and what it costs to consult.
+   * `avgContextChars` is prompt spend on every single message, so it belongs
+   * next to the score that spend bought.
+   */
+  docCoverage: {
+    answered: number
+    noMatch: number
+    weakMatch: number
+    avgContextChars: number
+  }
   /** Which subject areas the shortfalls cluster in. */
   byCategory: { category: string; count: number }[]
   totals: { conversations: number; withProblems: number }
@@ -36,6 +53,14 @@ export interface GapItem {
 }
 
 const NEGATIVE_SENTIMENT = new Set(["negative", "frustrated", "angry"])
+
+/**
+ * Below this, the documentation technically matched but not well enough to
+ * trust. A starting heuristic, not a measured constant: retrieval only returns
+ * results above 0.35, so this marks the band just above the floor. Now that
+ * scores are recorded, it can be tuned against real data rather than guessed.
+ */
+const WEAK_MATCH = 0.5
 
 /** Collapse a failure note to its recognisable prefix so like groups with like. */
 function normaliseFailure(note: string): string {
@@ -51,7 +76,9 @@ export async function buildGapsReport(projectId: string, days = 30): Promise<Gap
   since.setDate(since.getDate() - days)
 
   const empty: GapsReport = {
-    unanswered: [], thumbsDown: [], escalated: [], silentlyUnhappy: [], dataGaps: [], byCategory: [],
+    unanswered: [], thumbsDown: [], escalated: [], silentlyUnhappy: [], dataGaps: [],
+    docGaps: [], docCoverage: { answered: 0, noMatch: 0, weakMatch: 0, avgContextChars: 0 },
+    byCategory: [],
     totals: { conversations: 0, withProblems: 0 },
   }
 
@@ -103,6 +130,11 @@ export async function buildGapsReport(projectId: string, days = 30): Promise<Gap
   const lastRole = new Map<string, { role: string; at: string }>()
   const thumbsDownIds = new Set<string>()
   const failureCounts = new Map<string, number>()
+  const docGapIds = new Set<string>()
+  let answeredWithDocs = 0
+  let noMatch = 0
+  let weakMatch = 0
+  let contextCharsTotal = 0
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   for (const m of (messagesRes?.data ?? []) as any[]) {
     if (m.feedback === -1) thumbsDownIds.add(m.conversation_id)
@@ -110,6 +142,22 @@ export async function buildGapsReport(projectId: string, days = 30): Promise<Gap
     if (!seen || (m.created_at && m.created_at > seen.at)) {
       lastRole.set(m.conversation_id, { role: m.role, at: m.created_at ?? "" })
     }
+    // Documentation coverage, read from the same evidence blob. Only answers
+    // that actually ran a search carry this, so token-mode and pre-evidence
+    // rows are skipped rather than counted as misses.
+    const retrieval = m.evidence?.retrieval
+    if (retrieval && typeof retrieval.matched === "number") {
+      answeredWithDocs++
+      contextCharsTotal += typeof retrieval.contextChars === "number" ? retrieval.contextChars : 0
+      if (retrieval.matched === 0) {
+        noMatch++
+        docGapIds.add(m.conversation_id)
+      } else if (typeof retrieval.topScore === "number" && retrieval.topScore < WEAK_MATCH) {
+        weakMatch++
+        docGapIds.add(m.conversation_id)
+      }
+    }
+
     const failed = m.evidence?.investigation?.failedLookups
     if (Array.isArray(failed)) {
       for (const f of failed) {
@@ -141,6 +189,10 @@ export async function buildGapsReport(projectId: string, days = 30): Promise<Gap
     .filter(c => !escalatedIds.has(c.id) && !thumbsDownIds.has(c.id))
     .map(c => c.id)
 
+  // Doc gaps are deliberately NOT counted as problems. A user can get a good
+  // answer from live chain data while the docs covered nothing, and calling
+  // that conversation a failure would overstate the number the team is judged
+  // on. It is a content signal, not a service failure.
   const problemIds = new Set<string>([...unansweredIds, ...thumbsDownIds, ...escalatedIds, ...silentIds])
 
   const categoryCounts = new Map<string, number>()
@@ -154,6 +206,13 @@ export async function buildGapsReport(projectId: string, days = 30): Promise<Gap
     thumbsDown: Array.from(thumbsDownIds).slice(0, 10).map(toItem),
     escalated: Array.from(escalatedIds).filter(id => byId.has(id)).slice(0, 10).map(toItem),
     silentlyUnhappy: silentIds.slice(0, 10).map(toItem),
+    docGaps: Array.from(docGapIds).filter(id => byId.has(id)).slice(0, 10).map(toItem),
+    docCoverage: {
+      answered: answeredWithDocs,
+      noMatch,
+      weakMatch,
+      avgContextChars: answeredWithDocs > 0 ? Math.round(contextCharsTotal / answeredWithDocs) : 0,
+    },
     dataGaps: Array.from(failureCounts.entries())
       .sort((a, b) => b[1] - a[1])
       .slice(0, 8)

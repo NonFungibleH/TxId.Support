@@ -522,11 +522,28 @@ export async function POST(request: Request) {
 
     // RAG: only run for support mode (never for the docs-less inspect tool)
     let ragContext = ""
+    // Kept so the answer can record what the documentation search returned.
+    // Recorded even when nothing matched: "the docs did not cover this" is the
+    // single most useful thing a protocol can learn from its own support log.
+    let retrievalEvidence: AnswerEvidence["retrieval"]
     if (projectMode === "support" && !inspectMode) {
       const latestUserMessage = [...safeMessages].reverse().find((m) => m.role === "user")
       if (latestUserMessage) {
         const ragResult = await retrieveContext(supabase, typedProject.id, latestUserMessage.content)
         ragContext = ragResult.context
+        const sources = Array.from(
+          new Set(ragResult.chunks.map(c => c.source).filter((s): s is string => !!s)),
+        ).slice(0, 8)
+        const dropped = ragResult.chunks.length - ragResult.includedChunks
+        retrievalEvidence = {
+          matched: ragResult.chunks.length,
+          ...(ragResult.chunks.length > 0
+            ? { topScore: Math.round(Math.max(...ragResult.chunks.map(c => c.score)) * 1000) / 1000 }
+            : {}),
+          ...(dropped > 0 ? { dropped } : {}),
+          ...(ragResult.contextChars > 0 ? { contextChars: ragResult.contextChars } : {}),
+          ...(sources.length > 0 ? { sources } : {}),
+        }
       }
     }
 
@@ -715,6 +732,7 @@ export async function POST(request: Request) {
           void persistMessages(supabase, typedProject.id, sessionId, validActionResult ? [...safeMessages, { role: "assistant" as const, content: `⚙️ Action update: ${validActionResult.row.summary ?? "transaction"} ${validActionResult.confirmed ? "confirmed" : "failed"} (${validActionResult.txHash})` }] : safeMessages, walletAddress, chainId, fullResponseText || undefined, usage, {
             ...requestEvidence,
             investigation: mergeToolEvidence(toolEvidence),
+            ...(retrievalEvidence ? { retrieval: retrievalEvidence } : {}),
             ...(chainId ? { chainId } : {}),
             surface: "widget",
             ...(config.branding?.language ? { language: config.branding.language } : {}),
@@ -759,6 +777,7 @@ interface EvidenceContext {
   language?: string
   startedAt?: number
   investigation?: { toolsUsed: string[]; failedLookups: string[]; prices: Record<string, string> }
+  retrieval?: AnswerEvidence["retrieval"]
 }
 
 async function persistMessages(
@@ -814,6 +833,7 @@ async function persistMessages(
             ...(evidenceContext?.language ? { language: evidenceContext.language } : {}),
           },
           ...(usage?.model ? { model: { name: usage.model } } : {}),
+          ...(evidenceContext?.retrieval ? { retrieval: evidenceContext.retrieval } : {}),
           ...(evidenceContext?.investigation
             ? {
                 investigation: {

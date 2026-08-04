@@ -56,6 +56,15 @@ export interface RagChunk {
 export interface RagResult {
   context: string
   chunks: RagChunk[]
+  /**
+   * How many chunks survived the character budget. Fewer than `chunks.length`
+   * means the rest were cut, which is worth knowing: it is the difference
+   * between "the docs did not say" and "the docs said it in the part we
+   * dropped".
+   */
+  includedChunks: number
+  /** Characters of documentation actually sent. This is prompt spend. */
+  contextChars: number
 }
 
 /** Resolved per-user protocol account. `failed` is never rendered as `none`. */

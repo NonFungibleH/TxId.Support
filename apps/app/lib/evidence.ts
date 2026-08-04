@@ -30,6 +30,32 @@ export interface AnswerEvidence {
   }
   model?: { name?: string; promptVersion?: string }
   investigation?: { toolsUsed?: string[]; failedLookups?: string[] }
+  /**
+   * What the documentation search actually returned.
+   *
+   * WHY: a weak answer caused by documentation that does not cover the topic
+   * and one caused by documentation that covers it badly are identical in a
+   * transcript, and have opposite fixes: write a new page, or fix the page you
+   * have. `matched: 0` is the first, a low `topScore` is the second. Without
+   * this the whole knowledge half of the gaps view is guesswork.
+   *
+   * `contextChars` is here for a second reason: it is prompt spend. Every
+   * character is paid for on every message, so seeing it next to the score
+   * that earned it is what makes the retrieval budget tunable rather than a
+   * number somebody picked once.
+   */
+  retrieval?: {
+    /** Chunks above the similarity threshold. 0 means the docs did not cover it. */
+    matched: number
+    /** Best similarity, 0 to 1. Present only when something matched. */
+    topScore?: number
+    /** Chunks cut by the character budget, so a miss is never blamed on the docs. */
+    dropped?: number
+    /** Characters of documentation sent to the model. */
+    contextChars?: number
+    /** Pages the answer could draw on, deduplicated. */
+    sources?: string[]
+  }
   answer?: { sha256: string; characters: number }
   latencyMs?: number
 }

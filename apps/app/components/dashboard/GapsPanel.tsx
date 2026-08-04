@@ -1,6 +1,6 @@
 import Link from "next/link"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { ThumbsDown, Ticket, CloudOff, HeartCrack, MessageSquareOff } from "lucide-react"
+import { ThumbsDown, Ticket, CloudOff, HeartCrack, MessageSquareOff, BookX } from "lucide-react"
 import type { GapsReport, GapItem } from "@/lib/gaps"
 
 function GapList({ items, empty }: { items: GapItem[]; empty: string }) {
@@ -89,6 +89,28 @@ export function GapsPanel({ report, days }: { report: GapsReport; days: number }
             />
           </div>
         </div>
+
+        {report.docCoverage.answered > 0 && (
+          <div className="space-y-2.5 border-t border-border pt-5">
+            <div className="flex items-center gap-2">
+              <BookX className="size-3.5 text-violet-600" />
+              <p className="text-xs font-semibold">Documentation coverage</p>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Of {report.docCoverage.answered} answers that searched your documentation,{" "}
+              <span className="font-medium text-foreground">{report.docCoverage.noMatch}</span> found
+              nothing and{" "}
+              <span className="font-medium text-foreground">{report.docCoverage.weakMatch}</span>{" "}
+              found only a weak match. Those are pages to write and pages to sharpen, in that order.
+              Each answer carried an average of{" "}
+              <span className="font-medium text-foreground">
+                {report.docCoverage.avgContextChars.toLocaleString()}
+              </span>{" "}
+              characters of documentation into the prompt, which you pay for on every message.
+            </p>
+            {report.docGaps.length > 0 && <GapList items={report.docGaps} empty="" />}
+          </div>
+        )}
 
         {report.dataGaps.length > 0 && (
           <div className="space-y-2.5 border-t border-border pt-5">
