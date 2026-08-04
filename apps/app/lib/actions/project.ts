@@ -5,6 +5,7 @@ import { createServiceClient } from "@/lib/supabase/server"
 import type { ProjectConfig } from "@/lib/types/config"
 import { DEFAULT_CONFIG } from "@/lib/types/config"
 import { revalidatePath } from "next/cache"
+import { recordAudit } from "@/lib/audit"
 import type { Database, Json } from "@/lib/supabase/types"
 
 type OrgRow = Database["public"]["Tables"]["organisations"]["Row"]
@@ -226,6 +227,18 @@ export async function updateConfig(
 
   if (updateError) throw new Error(`Update failed: ${updateError.message}`)
 
+  // One hook covers every configuration change, because every one of them
+  // funnels through here: branding, integrations, contracts, chains, actions,
+  // sub accounts. Only the KEYS are recorded, never the values, so a saved
+  // Jira token cannot end up in the log meant to reassure people about it.
+  void recordAudit({
+    action: "config.updated",
+    target: Object.keys(resolvedPartial).join(", ") || "config",
+    projectId,
+    orgId: org.id,
+    metadata: { fields: Object.keys(resolvedPartial) },
+  })
+
   revalidatePath("/dashboard")
   revalidatePath("/dashboard/branding")
   revalidatePath("/dashboard/token")
@@ -297,6 +310,14 @@ export async function toggleActive(projectId: string, isActive: boolean) {
     .eq("org_id", org.id)
 
   if (error) throw new Error(error.message)
+
+  // Going live and going dark are the two changes a customer most often needs
+  // to date afterwards, and neither is visible in the config diff above.
+  void recordAudit({
+    action: isActive ? "widget.enabled" : "widget.disabled",
+    projectId,
+    orgId: org.id,
+  })
 
   revalidatePath("/dashboard")
 }

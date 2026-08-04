@@ -11,6 +11,8 @@ import type { Database } from "@/lib/supabase/types"
 import { OrgNameEditor } from "@/components/dashboard/OrgNameEditor"
 import { isStripeConfigured } from "@/lib/stripe"
 import { ManageBillingButton } from "@/components/settings/BillingButtons"
+import { AuditList } from "@/components/dashboard/AuditList"
+import { listAudit } from "@/lib/audit"
 
 type ProjectRow = Database["public"]["Tables"]["projects"]["Row"]
 
@@ -28,6 +30,7 @@ export default async function AccountPage() {
   if (!project) redirect("/dashboard")
 
   const typedProject = project as unknown as ProjectRow
+  const auditRows = await listAudit(typedProject.id, 50)
   const config = typedProject.config as unknown as ProjectConfig
   const plan: Plan = config.plan ?? "free"
   const supabase = createServiceClient()
@@ -219,6 +222,8 @@ export default async function AccountPage() {
           )}
         </CardContent>
       </Card>
+
+      <AuditList rows={auditRows} />
     </div>
   )
 }
