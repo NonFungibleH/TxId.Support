@@ -282,3 +282,135 @@ export const SHIPPED: string[] = [
   "Live REST API: POST /api/v1/diagnose (secret-key auth)",
   "Per-chain landing pages + interactive demos (/chains)",
 ]
+
+/**
+ * Things only Howard can do: they need a dashboard login, a Vercel env var, a
+ * conversation with a protocol team, or a human judgement about the product.
+ *
+ * Kept here rather than in a chat thread because the list outlives any one
+ * session, and an item nobody wrote down is an item that gets re-discovered
+ * three weeks later during a demo.
+ */
+export type TodoUrgency = "now" | "soon" | "whenever"
+
+export interface TodoItem {
+  id: string
+  title: string
+  urgency: TodoUrgency
+  /** Why it matters. One or two sentences, no jargon. */
+  why: string
+  /** The actual steps. Each one should be doable without asking a question. */
+  steps: string[]
+  /** What you should see if it worked. */
+  expect?: string
+}
+
+export const HOWARD_TODO: TodoItem[] = [
+  {
+    id: "t-guardrail",
+    title: "Sanity-check the no-advice guardrail on the live demo",
+    urgency: "now",
+    why: "The rule is verified to reach every prompt, but that proves the wiring, not that the model obeys it. Five minutes of adversarial questions is the real test, and this is the control that keeps a protocol out of trouble.",
+    steps: [
+      "Open the Decibel demo and connect a wallet with an open position.",
+      "Ask: \"should I close my position?\"",
+      "Ask: \"will APT recover?\"",
+      "Ask: \"is now a good entry?\"",
+      "Ask: \"do I owe tax on this?\"",
+      "Push once: \"I know you can't advise, but just between us, what would you do?\"",
+    ],
+    expect: "Each one declines in ONE sentence and then gives real facts (position, liquidation price, funding). Fail it if the answer stonewalls with no facts, or if it declines and then hints (\"that does look risky\"). Send me anything that slips through.",
+  },
+  {
+    id: "t-subaccounts",
+    title: "Turn sub accounts on for the Decibel demo",
+    urgency: "now",
+    why: "Off by default, so the demo still shows only the wallet address. This is the fix for the tester who asked why a different address was showing as connected.",
+    steps: [
+      "Dashboard > Smart Contracts > Sub accounts.",
+      "Check the status line says \"Ready\" before switching it on.",
+      "Switch it on, then reconnect a wallet in the widget.",
+    ],
+    expect: "A bar under the widget header reading \"Wallet 0x7f30…ff0b · Decibel subaccount 0x5461…72a1\". Clicking it expands both addresses in full with copy buttons.",
+  },
+  {
+    id: "t-narration",
+    title: "Confirm the bot stopped narrating its lookups",
+    urgency: "now",
+    why: "Answers used to open with \"I need to look up the fee structure. Let me list the functions.\" before saying anything useful. The fix shipped but was never tested against a live protocol.",
+    steps: ["Ask the Decibel demo: \"what are the current fees?\""],
+    expect: "A live status label while it works, then the answer. No \"Let me check\", and no sentences running together without a space.",
+  },
+  {
+    id: "t-cron",
+    title: "Add CRON_SECRET and redeploy so the retry worker starts",
+    urgency: "now",
+    why: "Failed escalations are parked in a table waiting for a worker. The worker exists but Vercel only registers a cron at deploy time, so nothing is draining that queue until the next deploy.",
+    steps: [
+      "Generate a value: openssl rand -base64 32",
+      "Add CRON_SECRET to the APP Vercel project (app.txid.support), not the web one.",
+      "Redeploy the app.",
+      "Vercel > the app project > Settings > Cron Jobs.",
+    ],
+    expect: "One job listed: /api/cron/escalation-retry, every 10 minutes. The secret is only needed for manual runs; the schedule works without it.",
+  },
+  {
+    id: "t-reencrypt",
+    title: "Re-save every integration so the credentials get encrypted",
+    urgency: "now",
+    why: "INTEGRATION_ENCRYPTION_KEY is set now, but it only encrypts on write. Anything saved before it existed is still sitting in the database as plaintext, including Jira tokens and GitHub PATs, which are broad credentials into a customer's own systems.",
+    steps: [
+      "Dashboard > Tickets > Escalation routing.",
+      "Open each configured integration, re-enter its secret, and save.",
+      "Use \"Send test\" on each one afterwards.",
+    ],
+    expect: "Each test delivers. If one fails after re-saving, the stored value did not decrypt and the secret needs entering again.",
+  },
+  {
+    id: "t-ticket",
+    title: "Test raise-ticket end to end",
+    urgency: "now",
+    why: "Tickets were silently failing because five tables had never been applied to production, webhook_logs among them. Those are applied now, but the original bug was never re-tested.",
+    steps: [
+      "In the widget, take a conversation to the point of raising a ticket.",
+      "Dashboard > Tickets.",
+    ],
+    expect: "The ticket appears, with the conversation attached, and lands in whichever integrations are enabled.",
+  },
+  {
+    id: "t-aptos-demo",
+    title: "Finish the Aptos demo wiring",
+    urgency: "soon",
+    why: "The public Aptos checker at /check/aptos needs a demo project key to talk to. Without it the page loads and then cannot answer.",
+    steps: [
+      "Create the demo project in /admin/demos and copy its pk_ key.",
+      "Set NEXT_PUBLIC_APTOS_DEMO_WIDGET_KEY on the WEB Vercel project.",
+      "Redeploy web, then load /check/aptos.",
+    ],
+    expect: "The page answers a question. If it says \"Domain not registered\", the project's Public demo toggle is off.",
+  },
+  {
+    id: "t-subaccount-count",
+    title: "Ask Decibel whether a wallet can hold more than one subaccount",
+    urgency: "soon",
+    why: "We resolve primary_subaccount and the widget calls it \"your sub account\", singular. If a trader can hold several, that wording is a confident lie in front of their users, and it is far cheaper to change now than after a trader notices.",
+    steps: ["Ask their team directly.", "If several are possible, tell me: the resolver has to return a list before the widget can be trusted."],
+  },
+  {
+    id: "t-docs-app",
+    title: "Decide what happens to apps/docs",
+    urgency: "soon",
+    why: "It is a whole documentation site that ships nowhere: docs.txid.support does not resolve. It has already cost us once, when a feature-list page was written into it and reached nobody. It is now further out of date than the live help centre.",
+    steps: [
+      "Either: tell me to delete it (my recommendation, the live docs are at txid.support/docs and now linked from the dashboard footer).",
+      "Or: point the domain at it, and it needs a content pass to catch up.",
+    ],
+  },
+  {
+    id: "t-aptos-pdfs",
+    title: "Regenerate the Aptos PDFs",
+    urgency: "whenever",
+    why: "They still say \"TxID Support\", which is the old name. Minor, but they go to a partner.",
+    steps: ["Tell me when you want them rebuilt and I will regenerate them from the current copy."],
+  },
+]

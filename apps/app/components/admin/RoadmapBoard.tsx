@@ -3,9 +3,10 @@
 import { useEffect, useMemo, useState } from "react"
 import { cn } from "@/lib/utils"
 import {
-  ROADMAP, PHASES, AREA_LABEL, FRAMING, SHIPPED,
+  ROADMAP, PHASES, AREA_LABEL, FRAMING, SHIPPED, HOWARD_TODO,
   type RoadmapItem, type RoadmapArea,
 } from "@/lib/roadmap"
+import { TodoPanel } from "./TodoPanel"
 
 const STORE_KEY = "txid-roadmap-v1"
 
@@ -39,14 +40,17 @@ interface Store {
   status: Record<string, Status>
   notes: Record<string, string>
   scratch: string
+  /** Ticked to-do items, by id. */
+  todoDone: Record<string, boolean>
 }
 
-const EMPTY: Store = { status: {}, notes: {}, scratch: "" }
+const EMPTY: Store = { status: {}, notes: {}, scratch: "", todoDone: {} }
 
 export function RoadmapBoard() {
   const [store, setStore] = useState<Store>(EMPTY)
   const [loaded, setLoaded] = useState(false)
   const [filter, setFilter] = useState<RoadmapArea | "all">("all")
+  const [tab, setTab] = useState<"roadmap" | "todo">("roadmap")
   const [openNotes, setOpenNotes] = useState<Set<string>>(new Set())
 
   // Load from localStorage on mount (client-only, avoids hydration mismatch).
@@ -67,6 +71,12 @@ export function RoadmapBoard() {
 
   const setStatus = (id: string, s: Status) => setStore((p) => ({ ...p, status: { ...p.status, [id]: s } }))
   const setNote = (id: string, v: string) => setStore((p) => ({ ...p, notes: { ...p.notes, [id]: v } }))
+  const toggleTodo = (id: string) =>
+    setStore((p) => ({ ...p, todoDone: { ...p.todoDone, [id]: !p.todoDone[id] } }))
+
+  // Only counted once localStorage has loaded, so the badge does not flash the
+  // full count and then drop on hydration.
+  const todoOpen = loaded ? HOWARD_TODO.filter((t) => !store.todoDone[t.id]).length : 0
   const toggleNote = (id: string) =>
     setOpenNotes((prev) => {
       const n = new Set(prev)
@@ -87,8 +97,39 @@ export function RoadmapBoard() {
 
   const areas: (RoadmapArea | "all")[] = ["all", "foundation", "knowledge", "handoff", "compliance"]
 
+  const tabs: { id: "roadmap" | "todo"; label: string; badge: number }[] = [
+    { id: "roadmap", label: "Roadmap", badge: 0 },
+    { id: "todo", label: "Howard's to-do", badge: todoOpen },
+  ]
+
   return (
     <div className="space-y-8">
+      <div className="flex gap-1 border-b border-border">
+        {tabs.map((t) => (
+          <button
+            key={t.id}
+            onClick={() => setTab(t.id)}
+            className={cn(
+              "flex items-center gap-2 border-b-2 px-4 py-2.5 text-sm font-medium transition-colors -mb-px",
+              tab === t.id
+                ? "border-indigo-500 text-foreground"
+                : "border-transparent text-muted-foreground hover:text-foreground",
+            )}
+          >
+            {t.label}
+            {t.badge > 0 && (
+              <span className="rounded-full bg-indigo-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-indigo-400">
+                {t.badge}
+              </span>
+            )}
+          </button>
+        ))}
+      </div>
+
+      {tab === "todo" ? (
+        <TodoPanel done={store.todoDone} onToggle={toggleTodo} />
+      ) : (
+      <div className="space-y-8">
       {/* Framing */}
       <div className="grid gap-3 md:grid-cols-2">
         <div className="rounded-xl border border-border bg-card p-4">
@@ -239,6 +280,8 @@ export function RoadmapBoard() {
       <p className="text-center text-[11px] text-muted-foreground/60">
         Statuses and notes are saved in this browser only. Ask to upgrade to shared, cross-device persistence when you want the team on it.
       </p>
+      </div>
+      )}
     </div>
   )
 }
