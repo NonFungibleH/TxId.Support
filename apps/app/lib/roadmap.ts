@@ -50,15 +50,17 @@ export const FRAMING = {
 export const ROADMAP: RoadmapItem[] = [
   // ── Phase 0 - Foundations ─────────────────────────────────────────────────
   {
+    // id kept as "f-seats" so any status you have already set on the board
+    // survives. The work it describes changed; the row is the same row.
     id: "f-seats",
-    title: "Team seats + roles",
-    area: "foundation",
+    title: "Enforce roles on server actions",
+    area: "compliance",
     phase: 0,
-    complexity: "Medium",
-    effort: "~1 wk",
+    complexity: "Low",
+    effort: "~2-3 days",
     status: "next",
-    what: "Today it's one user per org, no seats, no roles. Add an org_users join table (admin/agent/viewer). Clerk already supports org members; needs RLS role checks + an invite UI.",
-    depends: "Blocks: handoff assignment, compliance audit + access control.",
+    what: "SEATS ALREADY EXIST and this item used to claim otherwise. /dashboard/team invites real people through Clerk as Admin or Member, and several can hold accounts on one org today. What does NOT exist is any difference between those roles: not one of the ~60 server actions gates on role, so a Member can rotate keys, rewrite escalation routing, clear the knowledge base and switch the widget off. The only role check in the codebase validates the role string when sending an invite. The work is a requireRole() helper alongside resolveProjectWithOwnership, applied to the destructive and credential-touching actions first (delete/clear/remove/toggle/rotate/invite/revoke), then everything else.",
+    depends: "Nothing. Clerk already returns the member's role, and the audit log already records who acted.",
   },
   {
     id: "f-cron",

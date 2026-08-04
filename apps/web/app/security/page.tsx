@@ -344,6 +344,12 @@ export default function SecurityPage() {
                   A SOC 2 audit and configurable data retention are on the roadmap. Neither is
                   in place today.
                 </p>
+                <p className="text-sm text-muted leading-relaxed mb-2.5">
+                  Dashboard roles are not enforced yet either. You can invite colleagues as Admin
+                  or Member, but every member can currently change every setting, so invite with
+                  that in mind. The change history records who changed what in the meantime, and
+                  role enforcement is the next thing we are building.
+                </p>
                 <p className="text-sm text-[#c8c8d8] leading-relaxed">
                   Nothing else on this page implies otherwise. If a control is not listed above
                   as available today, assume we do not have it and ask us.

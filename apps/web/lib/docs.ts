@@ -122,6 +122,8 @@ export const DOCS: Doc[] = [
         { feature: "Append-only", detail: "Enforced in the database: content and evidence cannot be rewritten.", status: "available" },
         { feature: "Access log", detail: "Who viewed, exported or erased a record, and when.", status: "available" },
         { feature: "Change history", detail: "Who changed which settings, and when. Append-only, and never records a credential value.", status: "available" },
+        { feature: "Team access", detail: "Invite colleagues to the dashboard as Admin or Member.", status: "available" },
+        { feature: "Role restrictions", detail: "Not enforced yet. Every invited member can currently change every setting, so invite accordingly. The change history records who did what in the meantime.", status: "coming" },
         { feature: "Retrieval evidence", detail: "What the documentation search returned for each answer, and what it cost in context.", status: "available" },
         { feature: "Recorded erasure", detail: "Deletion leaves a tombstone, so a gap is never unexplained.", status: "available" },
         { feature: "CSV export", detail: "Includes ledger version, country, model and answer hash.", status: "available" },

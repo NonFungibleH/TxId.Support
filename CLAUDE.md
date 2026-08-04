@@ -511,6 +511,14 @@ This shipped once: `case_access_log` blocked `admin_erase_project()`, so no proj
 
 The pattern both tables now use: permit exactly one shape of update, the FK going to NULL with every other column identical, via `to_jsonb(new) - 'project_id' = to_jsonb(old) - 'project_id'`. A reference can be cleared, never repointed, and no content rides along. Deletes stay refused.
 
+### Team access: seats exist, roles do NOT
+**Do not repeat the claim that this is "one user per org".** It was wrong, it sat in the roadmap for months, and it was quoted at the user. The truth:
+
+- **Built:** `/dashboard/team` invites real people through Clerk as `org:admin` or `org:member` (`lib/actions/team.ts`: `getTeamMembers`, `inviteTeamMember`, `revokeInvitation`). Several people can hold accounts on one org today. There is no `org_users` table; membership lives in Clerk, not our database.
+- **NOT built:** any difference between those roles. **Not one of the ~60 server actions gates on role.** The single role check in the codebase validates the role string when sending an invite. A Member can rotate keys, rewrite escalation routing, clear the knowledge base and switch the widget off.
+
+Remaining work is a `requireRole()` helper alongside `resolveProjectWithOwnership`, applied to destructive and credential-touching actions first. Roadmap item `f-seats` (id kept, title now "Enforce roles on server actions"). Stated plainly on the Trust page and in the feature list, because a buyer who assumes Member is restricted would be wrong.
+
 ### Audit log
 `audit_logs` (migration `20260804000001`) + `apps/app/lib/audit.ts`. `recordAudit()` NEVER fails the write it accompanies (auditing is a side effect; refusing to save a webhook URL because the log is down is worse than a gap) and **scrubs any metadata key matching `token|secret|key|password|webhookurl|apitoken|apikey|credential`** before writing, so one careless `metadata: patch` cannot put a customer's Jira token in the table we point reviewers at. Record that a credential CHANGED, never its value.
 
