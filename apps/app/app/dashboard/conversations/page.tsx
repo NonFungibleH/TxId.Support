@@ -8,6 +8,8 @@ import type { Database } from "@/lib/supabase/types"
 type ProjectRow = Database["public"]["Tables"]["projects"]["Row"]
 
 import type { AnswerEvidence } from "@/lib/evidence"
+import { recordCaseAccess } from "@/lib/case-access"
+import { auth } from "@clerk/nextjs/server"
 
 export interface ConversationWithMessages {
   id: string
@@ -144,6 +146,15 @@ export default async function ConversationsPage({
       summaryById.set(s.id, { summary: s.summary, category: s.category, sentiment: s.sentiment })
     }
   } catch { /* migration not applied yet - summaries are optional */ }
+
+  // Reading client case records is itself an event a reviewer will ask about.
+  // Fire-and-forget so it never delays or breaks the page.
+  void recordCaseAccess({
+    projectId: typedProject.id,
+    actor: (await auth()).userId ?? "unknown",
+    action: "view",
+    detail: { conversations: convIds.length, filters: { q, wallet, chain, from, to } },
+  })
 
   const [{ data: messages }, { data: tickets }] = await Promise.all([
     // `evidence` post-dates the generated types, and on a deployment that has

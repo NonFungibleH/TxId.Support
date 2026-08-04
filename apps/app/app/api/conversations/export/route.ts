@@ -1,6 +1,21 @@
 import { auth } from "@clerk/nextjs/server"
 import { getProject } from "@/lib/actions/project"
 import { createServiceClient } from "@/lib/supabase/server"
+import { recordCaseAccess } from "@/lib/case-access"
+
+// Evidence columns turn the export from a transcript into a record: a
+// reviewer can replay the chain state and check the answer has not changed.
+const HEADER = [
+  "session_id", "wallet_address", "chain_id", "conversation_started", "role", "content",
+  "ledger_version", "state_read_at", "country", "model", "answer_sha256",
+].join(",")
+
+interface EvidenceShape {
+  chain?: { ledgerVersion?: string; readAt?: string }
+  request?: { country?: string }
+  model?: { name?: string }
+  answer?: { sha256?: string }
+}
 
 export async function GET() {
   const { userId } = await auth()
@@ -20,7 +35,7 @@ export async function GET() {
     .limit(5000)
 
   if (!conversations || conversations.length === 0) {
-    const csv = "session_id,wallet_address,chain_id,created_at,role,content\n"
+    const csv = `${HEADER}\n`
     return new Response(csv, {
       headers: {
         "Content-Type": "text/csv",
@@ -30,11 +45,24 @@ export async function GET() {
   }
 
   const convIds = conversations.map((c) => c.id)
-  const { data: messages } = await supabase
+  // Ask for evidence, and fall back without it so an export still works on a
+  // deployment that has not run the migration.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: messages } = await ((supabase as any)
     .from("messages")
-    .select("conversation_id, role, content, created_at")
+    .select("conversation_id, role, content, created_at, evidence")
     .in("conversation_id", convIds)
     .order("created_at", { ascending: true })
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    .then((res: any) =>
+      res.error
+        ? supabase
+            .from("messages")
+            .select("conversation_id, role, content, created_at")
+            .in("conversation_id", convIds)
+            .order("created_at", { ascending: true })
+        : res,
+    ))
 
   const msgByConv = new Map<string, typeof messages>()
   for (const msg of messages ?? []) {
@@ -52,7 +80,7 @@ export async function GET() {
     return str
   }
 
-  const rows: string[] = ["session_id,wallet_address,chain_id,conversation_started,role,content"]
+  const rows: string[] = [HEADER]
   for (const conv of conversations) {
     const msgs = msgByConv.get(conv.id) ?? []
     if (msgs.length === 0) {
@@ -61,11 +89,12 @@ export async function GET() {
         escapeCell(conv.wallet_address),
         escapeCell(conv.chain_id),
         escapeCell(conv.created_at),
-        "",
-        "",
+        "", "", "", "", "", "", "",
       ].join(","))
     } else {
       for (const msg of msgs) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const ev = ((msg as any).evidence ?? null) as EvidenceShape
         rows.push([
           escapeCell(conv.session_id),
           escapeCell(conv.wallet_address),
@@ -73,10 +102,23 @@ export async function GET() {
           escapeCell(conv.created_at),
           escapeCell(msg.role),
           escapeCell(msg.content),
+          escapeCell(ev?.chain?.ledgerVersion),
+          escapeCell(ev?.chain?.readAt),
+          escapeCell(ev?.request?.country),
+          escapeCell(ev?.model?.name),
+          escapeCell(ev?.answer?.sha256),
         ].join(","))
       }
     }
   }
+
+  // An export is a disclosure of client data, so it is logged like one.
+  await recordCaseAccess({
+    projectId,
+    actor: userId,
+    action: "export",
+    detail: { conversations: conversations.length, rows: rows.length - 1 },
+  })
 
   const csv = rows.join("\n")
   return new Response(csv, {

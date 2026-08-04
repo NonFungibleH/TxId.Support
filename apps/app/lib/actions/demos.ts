@@ -1,5 +1,6 @@
 "use server"
 
+import { auth } from "@clerk/nextjs/server"
 import { createServiceClient } from "@/lib/supabase/server"
 import { assertAdmin } from "@/lib/admin-auth"
 import { DEFAULT_CONFIG } from "@/lib/types/config"
@@ -130,7 +131,17 @@ export async function deleteDemo(id: string): Promise<void> {
   const supabase = createServiceClient()
   const orgId = await demosOrgId(supabase)
   await assertDemoProject(supabase, orgId, id)
-  await supabase.from("projects").delete().eq("id", id)
+  // Conversations are delete-guarded, so a plain delete would be refused.
+  // admin_erase_project opts into erasure for the transaction and leaves a
+  // tombstone naming what was removed and by whom.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error } = await (supabase as any).rpc("admin_erase_project", {
+    target_project_id: id,
+    actor_id: (await auth()).userId ?? "admin",
+  })
+  // Deployments that have not run the integrity migration have no such
+  // function, and no delete guard either, so the direct delete still works.
+  if (error) await supabase.from("projects").delete().eq("id", id)
   revalidatePath("/admin/demos")
 }
 
