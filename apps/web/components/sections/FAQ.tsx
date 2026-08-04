@@ -35,7 +35,7 @@ export const FAQS = [
   },
   {
     q: "Which blockchains does TxID work with?",
-    a: "TxID works across Ethereum, Base, BNB Chain, Polygon, Arbitrum, Optimism, and Avalanche, plus Aptos (the Move-based L1). It detects the connected wallet on any of these and looks up balances and transactions on the relevant chain.",
+    a: "TxID works across Ethereum, Base, BNB Chain, Polygon, Arbitrum, Optimism, Avalanche and Etherlink, plus Aptos (the Move-based L1). It detects the connected wallet on any of these and looks up balances and transactions on the relevant chain.",
   },
   {
     q: "Can it explain why a transaction failed?",

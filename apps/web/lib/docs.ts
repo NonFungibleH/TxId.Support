@@ -134,13 +134,14 @@ export const DOCS: Doc[] = [
         { feature: "Notifications", detail: "Slack, Discord, Telegram.", status: "available" },
         { feature: "Issue trackers", detail: "Linear, GitHub, Jira. The issue URL is written back to the ticket.", status: "available" },
         { feature: "Outbound webhooks", detail: "HMAC-signed, with a delivery log.", status: "available" },
+        { feature: "Delivery retry", detail: "A failed escalation is retried on a backoff and stays visible until it lands, rather than being lost.", status: "available" },
       ]},
 
       { type: "h2", text: "Analytics" },
       { type: "features", items: [
         { feature: "Volume and trends", detail: "Conversations over time, by chain.", status: "available" },
         { feature: "Categories and sentiment", detail: "What users ask about, and how those conversations end.", status: "available" },
-        { feature: "Gaps view", detail: "What was marked unhelpful, escalated, or ended badly without escalating.", status: "available" },
+        { feature: "Gaps view", detail: "What was never answered at all, marked unhelpful, escalated, or ended badly without escalating.", status: "available" },
         { feature: "Knowledge vs data gaps", detail: "Separates missing documentation from failed chain reads, because the fixes have different owners.", status: "available" },
       ]},
 

@@ -54,7 +54,7 @@ export function Hero() {
 
             <FadeIn delay={0.32}>
               <p className="text-xs text-muted mt-4 mb-2">
-                Early access: we onboard teams personally · Free tier opening soon
+                Early access: we onboard teams personally · Evaluation tier opening soon
               </p>
               <p className="text-xs text-muted/70 mb-6 inline-flex items-center gap-1.5">
                 <ShieldCheck className="w-3.5 h-3.5 text-accent/70 shrink-0" />

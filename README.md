@@ -6,19 +6,21 @@ AI-powered Web3 support widget for DeFi protocols.
 
 | App | URL | Description |
 |-----|-----|-------------|
-| `apps/web` | txid.support | Marketing site |
-| `apps/app` | app.txid.support | B2B Dashboard |
-| `apps/docs` | docs.txid.support | Documentation |
+| `apps/web` | txid.support | Marketing site, and the live help centre at `/docs` |
+| `apps/app` | app.txid.support | B2B dashboard, the widget, and every API route |
+| `apps/docs` | not deployed | Standalone docs site. `docs.txid.support` does not resolve, so nothing here reaches a user. The live documentation is `apps/web/lib/docs.ts`. |
 
 ## Packages
 
 | Package | npm name | Description |
 |---------|----------|-------------|
-| `packages/ai` | `@txid/ai` | Claude streaming + RAG pipeline |
-| `packages/blockchain` | `@txid/blockchain` | Moralis + block explorer integrations |
+| `packages/ai` | `@txid/ai` | Claude streaming, tools, RAG pipeline, prompt building |
+| `packages/blockchain` | `@txid/blockchain` | EVM: Moralis, block explorers, transaction decoder |
+| `packages/aptos` | `@txid/aptos` | Aptos: fullnode REST, Indexer GraphQL, Move abort decoding, protocol adapters |
+| `packages/solana` | `@txid/solana` | Solana: Helius RPC and enhanced transactions. Paused in the interface |
 | `packages/ui` | `@txid/ui` | Shared UI components |
-| `packages/widget` | `@txid/widget` | Embeddable JS widget |
-| `packages/react` | `@txid/support` | React npm package |
+| `packages/widget` | `@txid/widget` | Embeddable JS widget (stub: the shipping loader is `apps/app/public/widget.js`) |
+| `packages/react` | `@txid/react` | React npm package |
 
 ## Setup
 
