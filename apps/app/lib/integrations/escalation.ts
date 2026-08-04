@@ -18,6 +18,15 @@ export interface EscalationTicket {
   userEmail?: string | null
   wallet?: string | null
   conversation?: Array<{ role: string; content: string }>
+  /**
+   * The protocol's standing disclaimer, carried onto the handoff.
+   *
+   * WHY IT TRAVELS: a transcript read weeks later in Jira, by someone who was
+   * never in the conversation, is exactly where an assistant's answer gets
+   * mistaken for the protocol's formal position. The disclaimer the user saw
+   * should be attached to the record they saw it in.
+   */
+  disclaimer?: string | null
 }
 
 type AdapterResult = { ok: boolean; url?: string; error?: string }
@@ -39,7 +48,8 @@ function plainBody(t: EscalationTicket): string {
     t.wallet ? `Wallet: ${t.wallet}` : "",
   ].filter(Boolean)
   const tx = transcript(t)
-  return lines.join("\n") + (tx ? `\n\n--- Conversation ---\n${tx}` : "")
+  const foot = t.disclaimer ? `\n\n---\n${t.disclaimer}` : ""
+  return lines.join("\n") + (tx ? `\n\n--- Conversation ---\n${tx}` : "") + foot
 }
 
 function issueTitle(t: EscalationTicket): string {

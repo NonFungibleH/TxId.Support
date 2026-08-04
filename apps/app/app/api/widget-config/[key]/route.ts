@@ -1,6 +1,6 @@
 import { createServiceClient } from "@/lib/supabase/server"
 import type { ProjectConfig, Plan } from "@/lib/types/config"
-import { isPaidPlan } from "@/lib/types/config"
+import { isPaidPlan, resolveDisclaimer } from "@/lib/types/config"
 import type { Database } from "@/lib/supabase/types"
 import { verifyPreviewToken } from "@/lib/preview-token"
 import { isActionDemo } from "@/lib/actions-gate"
@@ -148,6 +148,9 @@ export async function GET(
     subaccounts: { enabled: config.subaccounts?.enabled === true },
     tokenModeAsk: config.tokenModeAsk ?? null,
     welcomeMessage: config.branding?.welcomeMessage ?? null,
+    // Resolved server-side so the widget never has to know the default, and an
+    // old cached widget cannot end up showing nothing.
+    disclaimer: resolveDisclaimer(config.branding),
     watchedContracts: (config.watchedContracts ?? []).map((c) => ({
       id: c.id,
       name: c.name,

@@ -1,6 +1,7 @@
 import crypto from "crypto"
 import { createServiceClient } from "@/lib/supabase/server"
 import type { ProjectConfig } from "@/lib/types/config"
+import { resolveDisclaimer } from "@/lib/types/config"
 import type { Database } from "@/lib/supabase/types"
 import { rateLimit, clientIp } from "@/lib/rate-limit"
 import { TICKET_LIMITS } from "@/lib/limits"
@@ -214,6 +215,7 @@ export async function POST(request: Request) {
         userName: name || null,
         userEmail: email || null,
         conversation: safeConversation,
+        disclaimer: resolveDisclaimer(config.branding) || null,
       },
       config.integrations,
       config.telegramBotToken ?? undefined,

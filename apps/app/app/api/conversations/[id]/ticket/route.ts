@@ -4,6 +4,7 @@ import { createServiceClient } from "@/lib/supabase/server"
 import { getProject } from "@/lib/actions/project"
 import type { Database } from "@/lib/supabase/types"
 import type { ProjectConfig } from "@/lib/types/config"
+import { resolveDisclaimer } from "@/lib/types/config"
 import { dispatchEscalation } from "@/lib/integrations/escalation"
 import { log } from "@/lib/logger"
 
@@ -96,6 +97,7 @@ export async function POST(
       reason: conv.wallet_address ? `Wallet: ${conv.wallet_address}` : null,
       wallet: conv.wallet_address,
       conversation: safeConversation,
+      disclaimer: resolveDisclaimer(config.branding) || null,
     },
     config.integrations,
     config.telegramBotToken ?? undefined,

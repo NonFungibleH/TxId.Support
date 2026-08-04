@@ -11,7 +11,7 @@ import { ColorPicker } from "./ColorPicker"
 import { updateConfig } from "@/lib/actions/project"
 import { fetchBrandColors } from "@/lib/actions/brand"
 import type { BrandingConfig } from "@/lib/types/config"
-import { SUPPORTED_FONTS, PERSONAS, PERSONA_LABELS, FONT_SCALES, FONT_SCALE_LABEL, autoInputTextColor } from "@/lib/types/config"
+import { SUPPORTED_FONTS, PERSONAS, PERSONA_LABELS, FONT_SCALES, FONT_SCALE_LABEL, autoInputTextColor, DEFAULT_DISCLAIMER } from "@/lib/types/config"
 
 type ColorPreset = Pick<BrandingConfig, "primaryColor" | "secondaryColor" | "backgroundColor" | "textColor">
 const PRESETS: Array<{ name: string } & ColorPreset> = [
@@ -366,6 +366,33 @@ export function BrandingForm({ projectId, initial, onBrandingChange }: BrandingF
             rows={3}
             className="text-sm resize-none"
           />
+        </div>
+
+        {/* Disclaimer. Unlike every other field here, blank is NOT "use the
+            default": it is the explicit opt-out. Spelled out in the copy,
+            because guessing wrong here has legal consequences. */}
+        <div className="space-y-2">
+          <div>
+            <h3 className="text-sm font-medium">Disclaimer</h3>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              Shown under the chat box, and attached to every escalation so it reaches whoever
+              reads the ticket later. Leave as is unless your own legal wording says otherwise.
+              Clearing it removes the disclaimer entirely.
+            </p>
+          </div>
+          <Textarea
+            placeholder={DEFAULT_DISCLAIMER}
+            value={branding.disclaimer ?? DEFAULT_DISCLAIMER}
+            onChange={e => update("disclaimer", e.target.value)}
+            rows={2}
+            className="text-sm resize-none"
+          />
+          {(branding.disclaimer ?? DEFAULT_DISCLAIMER).trim() === "" && (
+            <p className="text-xs text-amber-600">
+              No disclaimer will be shown. The assistant still refuses financial, tax and legal
+              advice, which is not switchable, but nothing on screen says so.
+            </p>
+          )}
         </div>
       </div>
 

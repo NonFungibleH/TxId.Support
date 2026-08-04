@@ -161,6 +161,27 @@ export interface BrandingConfig {
   // wallet context adds nothing (e.g. a product's own support bot answering
   // docs questions). Undefined = shown (backward-compatible default).
   hideWallet?: boolean
+  /**
+   * Standing disclaimer under the chat composer and on every escalation.
+   *
+   * UNSET MEANS THE DEFAULT TEXT, NOT SILENCE. A disclaimer nobody remembers
+   * to switch on is worth nothing, so this defaults to present and a protocol
+   * has to deliberately clear it. Empty string is the explicit opt-out, for
+   * teams whose own legal wording already sits on the page.
+   */
+  disclaimer?: string | null
+}
+
+/** Shown when a project has not set its own. Deliberately short: a long
+ *  disclaimer is scrolled past, and this has to survive in a chat widget. */
+export const DEFAULT_DISCLAIMER =
+  "Informational only, not financial advice."
+
+/** Resolve what to show. Undefined/null take the default; "" means off. */
+export function resolveDisclaimer(branding: { disclaimer?: string | null } | undefined | null): string {
+  const raw = branding?.disclaimer
+  if (raw === undefined || raw === null) return DEFAULT_DISCLAIMER
+  return raw.trim()
 }
 
 export interface TokenConfig {

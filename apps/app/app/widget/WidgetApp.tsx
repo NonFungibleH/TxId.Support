@@ -132,6 +132,8 @@ interface WidgetConfig {
   /** Team-curated starter chips. Non-empty overrides AI-generated follow-ups. */
   suggestedQuestions?: string[]
   subaccounts?: { enabled: boolean }
+  /** Resolved server-side. Empty string means the protocol turned it off. */
+  disclaimer?: string
   contentBlocks?: ContentBlockData[]
   /** Paid/hand-provisioned plans hide the "Powered by TxID" badge. */
   hidePoweredBy?: boolean
@@ -2217,6 +2219,14 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
                 )}
               </button>
             </div>
+            {config.disclaimer && (
+              <p
+                className="px-1 pt-1.5 text-center text-[9px] leading-snug"
+                style={{ color: adaptiveText, opacity: 0.4 }}
+              >
+                {config.disclaimer}
+              </p>
+            )}
           </div>
         )}
 
@@ -2472,6 +2482,14 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
                   )}
                 </button>
               </div>
+            )}
+            {config.disclaimer && (
+              <p
+                className="px-1 pt-1.5 text-center text-[9px] leading-snug"
+                style={{ color: adaptiveText, opacity: 0.4 }}
+              >
+                {config.disclaimer}
+              </p>
             )}
           </div>
         )}

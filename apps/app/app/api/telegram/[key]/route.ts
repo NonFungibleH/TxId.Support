@@ -3,7 +3,7 @@ import { createServiceClient } from "@/lib/supabase/server"
 import { buildSystemPrompt, completeChatWithToolsUsage } from "@txid/ai"
 import type { ChatMessage, ProjectConfigSnapshot, WalletConfig, WatchedContractSnapshot } from "@txid/ai"
 import type { ProjectConfig, Plan } from "@/lib/types/config"
-import { PLAN_CONV_LIMITS } from "@/lib/types/config"
+import { PLAN_CONV_LIMITS, resolveDisclaimer } from "@/lib/types/config"
 import type { Database } from "@/lib/supabase/types"
 import { log } from "@/lib/logger"
 import { rateLimit } from "@/lib/rate-limit"
@@ -450,6 +450,7 @@ export async function POST(
           reason: escalation.reason,
           userName: message.from.username ? `@${message.from.username}` : message.from.first_name,
           conversation: [...messages.slice(-6), { role: "assistant", content: reply }],
+          disclaimer: resolveDisclaimer(config.branding) || null,
         },
         integrations,
         botToken,
