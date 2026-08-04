@@ -34,16 +34,25 @@ export type ProtocolAccountStatus =
 
 const OFF: ProtocolAccountStatus = { status: "off" }
 
-/** Resolution is deterministic on chain, so a short TTL is safe and cheap. */
-const TTL_MS = 5 * 60_000
-const cache = new Map<string, { at: number; value: ProtocolAccountStatus }>()
+/**
+ * TTLs differ by answer, because the two answers are not equally stable.
+ *
+ * An account address, once created, does not change, so caching it long costs
+ * nothing and saves a view call on every message of a conversation. "No account
+ * yet" is the opposite: it stops being true the moment the user deposits, and
+ * they may well do that mid-conversation, so it is rechecked within the minute.
+ */
+const TTL_OK_MS = 30 * 60_000
+const TTL_NONE_MS = 60_000
+const cache = new Map<string, { until: number; value: ProtocolAccountStatus }>()
 
 /** Bounded so a busy instance cannot grow the map without limit. */
 function remember(key: string, value: ProtocolAccountStatus): ProtocolAccountStatus {
-  // A failure is worth retrying sooner than a success, so it is not cached.
-  if (value.status === "failed") return value
+  // A failure says nothing about the account, so it is never cached.
+  if (value.status === "failed" || value.status === "off") return value
   if (cache.size > 500) cache.clear()
-  cache.set(key, { at: Date.now(), value })
+  const ttl = value.status === "ok" ? TTL_OK_MS : TTL_NONE_MS
+  cache.set(key, { until: Date.now() + ttl, value })
   return value
 }
 
@@ -69,7 +78,7 @@ export async function resolveProtocolAccount(
 
   const key = `${adapter.name}:${walletAddress.toLowerCase()}`
   const hit = cache.get(key)
-  if (hit && Date.now() - hit.at < TTL_MS) return hit.value
+  if (hit && Date.now() < hit.until) return hit.value
 
   const meta = { protocol: adapter.name, label: adapter.accountLabel }
 
