@@ -17,6 +17,13 @@ export type DocSection =
   | { type: "code";    lang?: string; text: string }
   | { type: "grid";    items: Array<{ title: string; description: string }> }
   | { type: "steps";   items: Array<{ title: string; description: string }> }
+  // A scannable capability table. Status is required on every row so nothing
+  // can be listed without saying whether it actually exists yet.
+  | { type: "features"; items: Array<{
+      feature: string
+      detail: string
+      status: "available" | "optional" | "coming" | "paused"
+    }> }
 
 export interface Doc {
   slug: string
@@ -28,6 +35,143 @@ export interface Doc {
 }
 
 export const DOCS: Doc[] = [
+  {
+    slug: "features",
+    title: "Feature list",
+    description: "Everything TxID does, with what is and is not built yet",
+    category: "features",
+    order: -1,
+    content: [
+      { type: "p", text: "Everything TxID does, in one place. Each row carries a status: Available means it is in production today, Optional means it is off unless you turn it on, Coming means it is on the roadmap and not built, and Paused means it is built but hidden for now." },
+      { type: "callout", variant: "info", title: "Why the statuses matter", text: "A feature list is exactly where an overstated \"available\" costs the most. Anything marked Coming is genuinely not built, and we would rather tell you that here than have you discover it during an evaluation." },
+
+      { type: "h2", text: "Deployment surfaces" },
+      { type: "features", items: [
+        { feature: "Embedded widget", detail: "One script tag. Works with React, Next.js, Vue, Svelte or plain HTML.", status: "available" },
+        { feature: "Inline embed", detail: "Render inside a container instead of a floating button.", status: "available" },
+        { feature: "React component", detail: "@txid/react for direct integration.", status: "available" },
+        { feature: "Telegram bot", detail: "One bot per protocol, connected with a BotFather token.", status: "available" },
+        { feature: "REST API", detail: "Server to server, authenticated with your secret key.", status: "available" },
+        { feature: "MCP server", detail: "On-chain diagnostics as tools for MCP-compatible AI clients.", status: "coming" },
+      ]},
+
+      { type: "h2", text: "Transaction diagnostics" },
+      { type: "features", items: [
+        { feature: "Failure diagnosis", detail: "Replays the transaction and explains the cause.", status: "available" },
+        { feature: "Revert reasons", detail: "require() strings decoded and translated into plain English.", status: "available" },
+        { feature: "Custom errors", detail: "Solidity custom errors decoded via your ABI or 4byte.directory.", status: "available" },
+        { feature: "Solidity panics", detail: "Overflow, division by zero, array bounds, failed assert.", status: "available" },
+        { feature: "Out of gas", detail: "Detected from gas used against the limit, with no extra RPC call.", status: "available" },
+        { feature: "Move aborts", detail: "Aptos abort codes decoded against framework and protocol error maps.", status: "available" },
+        { feature: "Stuck and pending", detail: "Nonce gaps and underpriced transactions identified as such.", status: "available" },
+        { feature: "Error glossary", detail: "Your own explanation per contract error, used verbatim.", status: "available" },
+      ]},
+
+      { type: "h2", text: "Wallet and account intelligence" },
+      { type: "features", items: [
+        { feature: "Wallet detection", detail: "MetaMask, WalletConnect, Coinbase Wallet, Petra, Martian.", status: "available" },
+        { feature: "Address paste", detail: "Answers without connecting a wallet at all.", status: "available" },
+        { feature: "Balances", detail: "Native, ERC-20, and Aptos fungible assets.", status: "available" },
+        { feature: "Transaction history", detail: "Recent activity, scoped to your contracts where useful.", status: "available" },
+        { feature: "Token approvals", detail: "Open allowances, including unlimited grants. EVM only.", status: "available" },
+        { feature: "Name resolution", detail: "ENS on EVM, Aptos Name Service on Aptos.", status: "available" },
+        { feature: "Protocol accounts", detail: "Resolves a wallet to the protocol's own account object, so delegated-trading balances are never reported as empty.", status: "available" },
+        { feature: "Merged history", detail: "Wallet and protocol-account activity combined, each labelled with where it came from.", status: "available" },
+      ]},
+
+      { type: "h2", text: "Contract and token intelligence" },
+      { type: "features", items: [
+        { feature: "Contract verification", detail: "Source-verified status, proxy configuration, upgrade history.", status: "available" },
+        { feature: "Live contract state", detail: "Read from the chain at question time, not from a cache.", status: "available" },
+        { feature: "Contract events", detail: "Indexed on EVM. On Aptos, recovered by scanning a stated window.", status: "available" },
+        { feature: "Move module ABIs", detail: "Read on-chain, so there is nothing to upload.", status: "available" },
+        { feature: "Token information", detail: "Supply, decimals, live DEX price, allowances.", status: "available" },
+        { feature: "Token safety", detail: "Honeypot and fee-on-transfer signals. EVM only.", status: "available" },
+        { feature: "Network status", detail: "Gas conditions, fee guidance, node responsiveness.", status: "available" },
+      ]},
+
+      { type: "h2", text: "Protocol-aware answers" },
+      { type: "p", text: "Configured per protocol. The set below is what a perpetuals venue exposes, and shows the depth available when a protocol's own views are wired in." },
+      { type: "features", items: [
+        { feature: "Positions and collateral", detail: "Size, side, entry, leverage and margin mode, in dollars and units.", status: "available" },
+        { feature: "Unrealised PnL", detail: "Live oracle price against entry, per position.", status: "available" },
+        { feature: "Liquidation risk", detail: "The contract's own liquidation check, plus equity against the threshold.", status: "available" },
+        { feature: "Order constraints", detail: "Minimum size, size increment, maximum leverage, market open state.", status: "available" },
+        { feature: "Pending orders", detail: "Accepted but not yet matched, across every market.", status: "available" },
+        { feature: "Pending withdrawals", detail: "Answers \"where is my withdrawal?\" from the queue itself.", status: "available" },
+        { feature: "Funding and stops", detail: "Complete funding cost, and whether a stop or take profit is set.", status: "available" },
+      ]},
+
+      { type: "h2", text: "Knowledge" },
+      { type: "features", items: [
+        { feature: "Documentation indexing", detail: "Crawls your docs and answers from them, citing sources.", status: "available" },
+        { feature: "Grounded answers", detail: "Says so when something cannot be verified, rather than guessing.", status: "available" },
+        { feature: "Content blocks", detail: "Fixed answers for questions you want worded exactly.", status: "available" },
+        { feature: "Languages", detail: "16 supported, or auto-detected from the user.", status: "available" },
+      ]},
+
+      { type: "h2", text: "The case record" },
+      { type: "features", items: [
+        { feature: "Full investigation", detail: "Question, evidence, reasoning and resolution, not just a transcript.", status: "available" },
+        { feature: "Summaries and tags", detail: "One-line summary, category and sentiment per conversation.", status: "available" },
+        { feature: "Chain state", detail: "The ledger version an answer was true as of, so it can be replayed.", status: "available" },
+        { feature: "Prices at read time", detail: "The prices a figure rested on, kept alongside the answer.", status: "available" },
+        { feature: "Failed lookups", detail: "Reads that did not happen, so a thin answer is never mistaken for a complete one.", status: "available" },
+        { feature: "Request context", detail: "Country, coarse device, surface and language. No IP address is stored.", status: "available" },
+        { feature: "Append-only", detail: "Enforced in the database: content and evidence cannot be rewritten.", status: "available" },
+        { feature: "Access log", detail: "Who viewed, exported or erased a record, and when.", status: "available" },
+        { feature: "Recorded erasure", detail: "Deletion leaves a tombstone, so a gap is never unexplained.", status: "available" },
+        { feature: "CSV export", detail: "Includes ledger version, country, model and answer hash.", status: "available" },
+        { feature: "Full-text case search", detail: "Search across the whole record set.", status: "coming" },
+        { feature: "Retention controls", detail: "Configurable per project, and enforced.", status: "coming" },
+        { feature: "SOC 2 audit", detail: "Not held today.", status: "coming" },
+      ]},
+
+      { type: "h2", text: "Escalation and workflow" },
+      { type: "features", items: [
+        { feature: "Support tickets", detail: "Raised from the widget or the dashboard, with the investigation attached.", status: "available" },
+        { feature: "Notifications", detail: "Slack, Discord, Telegram.", status: "available" },
+        { feature: "Issue trackers", detail: "Linear, GitHub, Jira. The issue URL is written back to the ticket.", status: "available" },
+        { feature: "Outbound webhooks", detail: "HMAC-signed, with a delivery log.", status: "available" },
+      ]},
+
+      { type: "h2", text: "Analytics" },
+      { type: "features", items: [
+        { feature: "Volume and trends", detail: "Conversations over time, by chain.", status: "available" },
+        { feature: "Categories and sentiment", detail: "What users ask about, and how those conversations end.", status: "available" },
+        { feature: "Gaps view", detail: "What was marked unhelpful, escalated, or ended badly without escalating.", status: "available" },
+        { feature: "Knowledge vs data gaps", detail: "Separates missing documentation from failed chain reads, because the fixes have different owners.", status: "available" },
+      ]},
+
+      { type: "h2", text: "Branding and configuration" },
+      { type: "features", items: [
+        { feature: "White-label", detail: "Your colours, font, logo, agent name and avatar.", status: "available" },
+        { feature: "Placement", detail: "Bottom-right, bottom-left, or inline in a container.", status: "available" },
+        { feature: "Live preview", detail: "Updates as you type, before anything goes live.", status: "available" },
+        { feature: "Go-live control", detail: "Show or hide the widget without touching your code.", status: "available" },
+      ]},
+
+      { type: "h2", text: "Trust and safety" },
+      { type: "features", items: [
+        { feature: "Read-only", detail: "No keys, no signing, no custody. Nothing can move funds.", status: "available" },
+        { feature: "Sanctions screening", detail: "On request, against the on-chain oracle, with the source cited. EVM only.", status: "available" },
+        { feature: "Audit references", detail: "Your audits surfaced when users ask about security.", status: "available" },
+        { feature: "Abuse protection", detail: "Invisible Turnstile and per-IP rate limits on public surfaces.", status: "available" },
+        { feature: "Actions", detail: "User-authorised transactions, signed in the user's own wallet. Off by default, paid plans only.", status: "optional" },
+      ]},
+
+      { type: "h2", text: "Chains" },
+      { type: "features", items: [
+        { feature: "Aptos", detail: "Move-native: modules, resources, aborts and protocol accounts.", status: "available" },
+        { feature: "Ethereum, Base, Arbitrum, Optimism", detail: "Full EVM diagnosis.", status: "available" },
+        { feature: "BNB Chain, Polygon, Avalanche", detail: "Full EVM diagnosis.", status: "available" },
+        { feature: "Etherlink", detail: "Tezos EVM Layer 2, via Blockscout.", status: "available" },
+        { feature: "Solana", detail: "Plumbing in place, hidden in the interface for now.", status: "paused" },
+      ]},
+
+      { type: "callout", variant: "tip", title: "Something missing?", text: "Tell us what you are building at team@txid.support. Anything marked Coming is genuinely not built yet, and a chain or capability you need may move up the list." },
+    ],
+  },
   // ── GETTING STARTED ──────────────────────────────────────────────────────
   {
     slug: "introduction",

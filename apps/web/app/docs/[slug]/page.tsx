@@ -112,6 +112,40 @@ function Section({ section }: { section: DocSection }) {
           ))}
         </div>
       )
+    case "features": {
+      const style = {
+        available: { cls: "border-emerald-500/40 bg-emerald-500/10 text-emerald-400", label: "Available" },
+        optional:  { cls: "border-sky-500/40 bg-sky-500/10 text-sky-400",             label: "Optional" },
+        coming:    { cls: "border-amber-500/40 bg-amber-500/10 text-amber-400",       label: "Coming" },
+        paused:    { cls: "border-[var(--border)] bg-white/5 text-[var(--text-muted)]", label: "Paused" },
+      }
+      return (
+        <div className="my-6 overflow-x-auto rounded-xl border border-[var(--border)]">
+          <table className="w-full border-collapse text-sm">
+            <tbody>
+              {section.items.map((item, i) => {
+                const s = style[item.status]
+                return (
+                  <tr key={i} className={i > 0 ? "border-t border-[var(--border)]" : undefined}>
+                    <td className="px-4 py-3 align-top font-medium text-white w-[34%] min-w-[150px]">
+                      {item.feature}
+                    </td>
+                    <td className="px-4 py-3 align-top text-[var(--text-muted)] leading-relaxed">
+                      {item.detail}
+                    </td>
+                    <td className="px-4 py-3 align-top text-right">
+                      <span className={`inline-block whitespace-nowrap rounded-full border px-2 py-0.5 text-[11px] font-medium ${s.cls}`}>
+                        {s.label}
+                      </span>
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+      )
+    }
     case "steps":
       return (
         <div className="my-6 space-y-0">
