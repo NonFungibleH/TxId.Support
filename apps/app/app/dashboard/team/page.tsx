@@ -2,6 +2,8 @@ import { auth } from "@clerk/nextjs/server"
 import { getTeamMembers } from "@/lib/actions/team"
 import { TeamInviteForm } from "@/components/dashboard/TeamInviteForm"
 import { RevokeInviteButton } from "@/components/dashboard/RevokeInviteButton"
+import { MemberRoleSelect } from "@/components/dashboard/MemberRoleSelect"
+import { ROLES, ROLE_LABEL, ROLE_DESCRIPTION } from "@/lib/roles"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
@@ -65,6 +67,26 @@ export default async function TeamPage() {
         </CardContent>
       </Card>
 
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">What each role can do</CardTitle>
+          <CardDescription>
+            Enforced on the server, not just hidden in the interface. Everyone can read
+            conversations and records; the difference is what they can change.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="p-0">
+          <ul className="divide-y divide-border">
+            {ROLES.map((r) => (
+              <li key={r} className="flex items-baseline gap-3 px-6 py-2.5">
+                <span className="w-24 shrink-0 text-sm font-medium">{ROLE_LABEL[r]}</span>
+                <span className="text-xs text-muted-foreground">{ROLE_DESCRIPTION[r]}</span>
+              </li>
+            ))}
+          </ul>
+        </CardContent>
+      </Card>
+
       {/* Members */}
       <Card>
         <CardHeader>
@@ -86,9 +108,7 @@ export default async function TeamPage() {
                   {m.name && <p className="text-sm font-medium truncate">{m.name}</p>}
                   <p className="text-xs text-muted-foreground truncate">{m.email}</p>
                 </div>
-                <Badge variant="secondary" className="text-xs shrink-0">
-                  {roleLabel(m.role)}
-                </Badge>
+                <MemberRoleSelect userId={m.userId} role={m.role} isSelf={m.isSelf} />
               </li>
             ))}
           </ul>

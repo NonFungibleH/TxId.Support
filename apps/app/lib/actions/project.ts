@@ -1,5 +1,7 @@
 "use server"
 
+import { requireCapability } from "@/lib/roles-server"
+
 import { auth } from "@clerk/nextjs/server"
 import { createServiceClient } from "@/lib/supabase/server"
 import type { ProjectConfig } from "@/lib/types/config"
@@ -42,6 +44,7 @@ export async function getProject() {
 }
 
 export async function createProject(name: string) {
+  await requireCapability("settings")
   const { orgId, userId } = await auth()
   if (!userId) throw new Error("Unauthenticated")
   const orgKey = orgId ?? userId
@@ -77,6 +80,7 @@ export async function createProject(name: string) {
 }
 
 export async function createProjectWithMode(name: string, mode: "support" | "token") {
+  await requireCapability("settings")
   const { orgId, userId } = await auth()
   if (!userId) throw new Error("Unauthenticated")
   const orgKey = orgId ?? userId
@@ -114,6 +118,7 @@ export async function createProjectWithMode(name: string, mode: "support" | "tok
 }
 
 export async function renameOrg(name: string) {
+  await requireCapability("settings")
   const { orgId, userId } = await auth()
   if (!userId) throw new Error("Unauthenticated")
   const orgKey = orgId ?? userId
@@ -134,6 +139,7 @@ export async function renameOrg(name: string) {
 }
 
 export async function renameProject(projectId: string, name: string) {
+  await requireCapability("settings")
   const { orgId, userId } = await auth()
   if (!userId) throw new Error("Unauthenticated")
   const orgKey = orgId ?? userId
@@ -165,6 +171,7 @@ export async function updateConfig(
   projectId: string,
   partial: Partial<ProjectConfig>
 ) {
+  await requireCapability("settings")
   const { orgId, userId } = await auth()
   if (!userId) throw new Error("Unauthenticated")
   const orgKey = orgId ?? userId
@@ -251,6 +258,7 @@ export async function updateConfig(
 }
 
 export async function confirmPreview(projectId: string) {
+  await requireCapability("settings")
   const { orgId, userId } = await auth()
   if (!userId) throw new Error("Unauthenticated")
   const orgKey = orgId ?? userId
@@ -289,6 +297,7 @@ export async function confirmPreview(projectId: string) {
 }
 
 export async function toggleActive(projectId: string, isActive: boolean) {
+  await requireCapability("settings")
   const { orgId, userId } = await auth()
   if (!userId) throw new Error("Unauthenticated")
   const orgKey = orgId ?? userId

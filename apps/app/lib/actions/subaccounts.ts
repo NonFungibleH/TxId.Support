@@ -1,5 +1,7 @@
 "use server"
 
+import { requireCapability } from "@/lib/roles-server"
+
 import { revalidatePath } from "next/cache"
 import { getProject, updateConfig } from "@/lib/actions/project"
 import type { ProjectConfig } from "@/lib/types/config"
@@ -13,6 +15,7 @@ import type { ProjectConfig } from "@/lib/types/config"
  * second address the user does not have.
  */
 export async function setSubaccountsEnabled(enabled: boolean): Promise<void> {
+  await requireCapability("settings")
   const { project } = await getProject()
   if (!project) throw new Error("No project")
   await updateConfig((project as { id: string }).id, {

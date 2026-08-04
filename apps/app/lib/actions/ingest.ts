@@ -1,5 +1,7 @@
 "use server"
 
+import { requireCapability } from "@/lib/roles-server"
+
 import { auth } from "@clerk/nextjs/server"
 import { createServiceClient } from "@/lib/supabase/server"
 import { chunkText, embedBatch } from "@txid/ai"
@@ -17,6 +19,7 @@ export async function ingestText(
   text: string,
   sourceUrl?: string,
 ): Promise<{ ok: boolean; chunksInserted?: number; error?: string }> {
+  await requireCapability("settings")
   const { orgId, userId } = await auth()
   if (!userId) return { ok: false, error: "Unauthorized" }
   const orgKey = orgId ?? userId
@@ -101,6 +104,7 @@ export async function deleteSource(
   projectId: string,
   sourceUrl: string,
 ): Promise<{ ok: boolean; error?: string }> {
+  await requireCapability("destroy")
   const { orgId, userId } = await auth()
   if (!userId) return { ok: false, error: "Unauthorized" }
   const orgKey = orgId ?? userId
@@ -135,6 +139,7 @@ export async function deleteSource(
 export async function clearKnowledgeBase(
   projectId: string,
 ): Promise<{ ok: boolean; error?: string }> {
+  await requireCapability("destroy")
   const { orgId, userId } = await auth()
   if (!userId) return { ok: false, error: "Unauthorized" }
   const orgKey = orgId ?? userId
@@ -172,6 +177,7 @@ export async function crawlAndIngest(
   projectId: string,
   rootUrl: string,
 ): Promise<{ ok: boolean; pagesIndexed?: number; chunksInserted?: number; discovered?: number; error?: string }> {
+  await requireCapability("settings")
   const { orgId, userId } = await auth()
   if (!userId) return { ok: false, error: "Unauthorized" }
 
@@ -207,6 +213,7 @@ export async function fetchAndIngest(
   projectId: string,
   url: string,
 ): Promise<{ ok: boolean; chunksInserted?: number; error?: string }> {
+  await requireCapability("settings")
   const { userId } = await auth()
   if (!userId) return { ok: false, error: "Unauthorized" }
 

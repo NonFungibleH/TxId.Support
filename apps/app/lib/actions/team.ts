@@ -1,7 +1,11 @@
 "use server"
 
-import { auth, clerkClient } from "@clerk/nextjs/server"
+import { ROLES, DEFAULT_ROLE, type Role } from "@/lib/roles"
+import { requireCapability, rolesForOrg, currentActor } from "@/lib/roles-server"
+import { createServiceClient } from "@/lib/supabase/server"
+import { recordAudit } from "@/lib/audit"
 import { revalidatePath } from "next/cache"
+import { auth, clerkClient } from "@clerk/nextjs/server"
 
 export async function getTeamMembers() {
   const { orgId } = await auth()
@@ -13,14 +17,26 @@ export async function getTeamMembers() {
     clerk.organizations.getOrganizationInvitationList({ organizationId: orgId, status: ["pending"] }),
   ])
 
-  const members = memberships.data.map((m) => ({
-    id: m.id,
-    email: m.publicUserData?.identifier ?? "",
-    name: [m.publicUserData?.firstName, m.publicUserData?.lastName].filter(Boolean).join(" ") || null,
-    imageUrl: m.publicUserData?.imageUrl ?? null,
-    role: m.role as string,
-    joinedAt: m.createdAt,
-  }))
+  // Clerk knows who is in the org; our own table knows what they may do. The
+  // TxID role is what the server actually enforces, so it is what the page
+  // shows, defaulting for anyone without an explicit row.
+  const actor = await currentActor()
+  const explicit = actor ? await rolesForOrg(actor.orgId) : {}
+
+  const members = memberships.data.map((m) => {
+    const uid = m.publicUserData?.userId ?? null
+    return {
+      id: m.id,
+      userId: uid,
+      email: m.publicUserData?.identifier ?? "",
+      name: [m.publicUserData?.firstName, m.publicUserData?.lastName].filter(Boolean).join(" ") || null,
+      imageUrl: m.publicUserData?.imageUrl ?? null,
+      clerkRole: m.role as string,
+      role: (uid && explicit[uid]) || DEFAULT_ROLE,
+      isSelf: uid === actor?.userId,
+      joinedAt: m.createdAt,
+    }
+  })
 
   const pending = invitations.data.map((i) => ({
     id: i.id,
@@ -33,6 +49,7 @@ export async function getTeamMembers() {
 }
 
 export async function inviteTeamMember(formData: FormData) {
+  await requireCapability("team")
   const { userId, orgId } = await auth()
   if (!userId || !orgId) throw new Error("Unauthenticated")
 
@@ -59,6 +76,7 @@ export async function inviteTeamMember(formData: FormData) {
 }
 
 export async function revokeInvitation(invitationId: string) {
+  await requireCapability("team")
   const { userId, orgId } = await auth()
   if (!userId || !orgId) throw new Error("Unauthenticated")
 
@@ -67,6 +85,63 @@ export async function revokeInvitation(invitationId: string) {
     organizationId: orgId,
     invitationId,
     requestingUserId: userId,
+  })
+
+  revalidatePath("/dashboard/team")
+}
+
+/**
+ * Change a colleague's role.
+ *
+ * Two refusals worth having. You cannot change your own role, because an admin
+ * demoting themselves by accident locks the organisation out of its own team
+ * settings. And the last admin cannot be demoted, for the same reason with no
+ * way back.
+ */
+export async function setMemberRole(clerkUserId: string, role: Role): Promise<void> {
+  const actor = await requireCapability("team")
+  if (!ROLES.includes(role)) throw new Error("Unknown role")
+  if (clerkUserId === actor.userId) {
+    throw new Error("You cannot change your own role. Ask another Admin.")
+  }
+
+  const supabase = createServiceClient()
+
+  // Refuse to remove the last admin. Roles default to Admin when unset, so the
+  // count has to consider members with no row, which is why it is computed
+  // from the Clerk member list rather than from this table alone.
+  if (role !== "admin") {
+    const { orgId: clerkOrgId } = await auth()
+    if (clerkOrgId) {
+      const clerk = await clerkClient()
+      const list = await clerk.organizations.getOrganizationMembershipList({ organizationId: clerkOrgId })
+      const explicit = await rolesForOrg(actor.orgId)
+      const admins = list.data.filter(m => {
+        const uid = m.publicUserData?.userId
+        return uid ? (explicit[uid] ?? DEFAULT_ROLE) === "admin" : false
+      })
+      if (admins.length <= 1 && admins.some(m => m.publicUserData?.userId === clerkUserId)) {
+        throw new Error("This is the only Admin. Promote someone else first.")
+      }
+    }
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error } = await (supabase as any)
+    .from("org_members")
+    .upsert(
+      { org_id: actor.orgId, clerk_user_id: clerkUserId, role, updated_at: new Date().toISOString() },
+      { onConflict: "org_id,clerk_user_id" },
+    )
+  if (error) throw new Error(error.message)
+
+  // A permission change is the most sensitive change there is, so it is
+  // recorded even though the role table itself is rewritable.
+  void recordAudit({
+    action: "member.role_changed",
+    target: clerkUserId,
+    orgId: actor.orgId,
+    metadata: { role },
   })
 
   revalidatePath("/dashboard/team")

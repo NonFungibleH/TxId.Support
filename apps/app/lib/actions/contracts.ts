@@ -1,5 +1,7 @@
 "use server"
 
+import { requireCapability } from "@/lib/roles-server"
+
 import { auth } from "@clerk/nextjs/server"
 import { createServiceClient } from "@/lib/supabase/server"
 import { nanoid } from "nanoid"
@@ -82,6 +84,7 @@ export async function addContract(
   projectId: string,
   input: { name: string; address: string; chain: string; description: string; moduleName?: string }
 ) {
+  await requireCapability("settings")
   const parsed = AddContractSchema.safeParse(input)
   if (!parsed.success) throw new Error(parsed.error.issues[0].message)
 
@@ -147,6 +150,7 @@ export async function addContract(
 }
 
 export async function refreshContractAbi(projectId: string, contractId: string) {
+  await requireCapability("settings")
   const project = await resolveProjectWithOwnership(projectId)
   const config = project.config as unknown as ProjectConfig
   const contract = (config.watchedContracts ?? []).find((c) => c.id === contractId)
@@ -181,6 +185,7 @@ export async function refreshContractAbi(projectId: string, contractId: string) 
 }
 
 export async function saveContractAbi(projectId: string, contractId: string, abi: string) {
+  await requireCapability("settings")
   // Validate it's parseable JSON
   try {
     JSON.parse(abi)
@@ -213,6 +218,7 @@ export async function updateContractDetails(
   contractId: string,
   input: { name: string; description: string },
 ) {
+  await requireCapability("settings")
   const name = input.name.trim()
   const description = input.description.trim()
   if (!name) throw new Error("Name is required")
@@ -241,6 +247,7 @@ export async function updateContractDetails(
 }
 
 export async function addAudit(projectId: string, input: { auditor: string; url: string; date?: string }) {
+  await requireCapability("settings")
   const auditor = input.auditor.trim()
   const url = input.url.trim()
   if (!auditor) throw new Error("Auditor name is required")
@@ -263,6 +270,7 @@ export async function addAudit(projectId: string, input: { auditor: string; url:
 }
 
 export async function removeAudit(projectId: string, auditId: string) {
+  await requireCapability("settings")
   const project = await resolveProjectWithOwnership(projectId)
   const config = project.config as unknown as ProjectConfig
   const updated: ProjectConfig = { ...config, audits: (config.audits ?? []).filter(a => a.id !== auditId) }
@@ -274,6 +282,7 @@ export async function removeAudit(projectId: string, auditId: string) {
 }
 
 export async function clearContractAbi(projectId: string, contractId: string) {
+  await requireCapability("settings")
   const project = await resolveProjectWithOwnership(projectId)
   const config = project.config as unknown as ProjectConfig
 
@@ -305,6 +314,7 @@ export async function upsertGlossaryEntry(
   contractId: string,
   entry: ErrorGlossaryEntry,
 ) {
+  await requireCapability("settings")
   const parsed = GlossaryEntrySchema.safeParse(entry)
   if (!parsed.success) throw new Error(parsed.error.issues[0].message)
 
@@ -339,6 +349,7 @@ export async function removeGlossaryEntry(
   contractId: string,
   errorName: string,
 ) {
+  await requireCapability("settings")
   const project = await resolveProjectWithOwnership(projectId)
   const config = project.config as unknown as ProjectConfig
 
@@ -361,6 +372,7 @@ export async function removeGlossaryEntry(
 }
 
 export async function removeContract(projectId: string, contractId: string) {
+  await requireCapability("settings")
   const project = await resolveProjectWithOwnership(projectId)
   const config = project.config as unknown as ProjectConfig
 

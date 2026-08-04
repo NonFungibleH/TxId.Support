@@ -1,5 +1,7 @@
 "use server"
 
+import { requireCapability } from "@/lib/roles-server"
+
 import { getProject } from "@/lib/actions/project"
 import { updateConfig } from "@/lib/actions/project"
 import { testIntegration, deliverOne } from "@/lib/integrations/escalation"
@@ -19,6 +21,7 @@ import { encryptIntegration } from "@/lib/secrets"
  * token is never sent back to the browser and never overwritten with empty.
  */
 export async function saveIntegration(target: IntegrationTarget, patch: Record<string, unknown>): Promise<void> {
+  await requireCapability("settings")
   const { project } = await getProject()
   if (!project) throw new Error("No project")
   const config = (project as { config: unknown }).config as ProjectConfig
@@ -40,6 +43,7 @@ export async function saveIntegration(target: IntegrationTarget, patch: Record<s
 }
 
 export async function testIntegrationAction(target: IntegrationTarget): Promise<{ ok: boolean; error?: string; url?: string }> {
+  await requireCapability("settings")
   const { project } = await getProject()
   if (!project) return { ok: false, error: "No project" }
   const config = (project as { config: unknown }).config as ProjectConfig
@@ -98,6 +102,7 @@ export async function listFailedDeliveries(): Promise<FailedDelivery[]> {
  * and need to know it works.
  */
 export async function retryDelivery(id: string): Promise<{ ok: boolean; error?: string }> {
+  await requireCapability("tickets")
   const { project } = await getProject()
   if (!project) return { ok: false, error: "No project" }
   const projectId = (project as { id: string }).id

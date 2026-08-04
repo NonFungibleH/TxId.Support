@@ -1,5 +1,7 @@
 "use server"
 
+import { requireCapability } from "@/lib/roles-server"
+
 import { revalidatePath } from "next/cache"
 import { createServiceClient } from "@/lib/supabase/server"
 import { auth } from "@clerk/nextjs/server"
@@ -65,6 +67,7 @@ async function callTelegramApi(
 }
 
 export async function saveTelegramToken(projectId: string, token: string) {
+  await requireCapability("settings")
   if (!token.trim()) throw new Error("Token is required")
 
   // Validate token by calling getMe
@@ -186,6 +189,7 @@ export async function getTelegramWebhookHealth(projectId: string): Promise<Teleg
  * or fixed a route, without needing to re-paste the bot token.
  */
 export async function resyncTelegramWebhook(projectId: string): Promise<TelegramHealth> {
+  await requireCapability("settings")
   const project = await resolveProjectWithOwnership(projectId)
   const config = project.config as unknown as ProjectConfig
   if (!config.telegramBotToken) throw new Error("No bot connected")
@@ -205,6 +209,7 @@ export async function resyncTelegramWebhook(projectId: string): Promise<Telegram
 }
 
 export async function removeTelegramToken(projectId: string) {
+  await requireCapability("settings")
   const project = await resolveProjectWithOwnership(projectId)
   const config = project.config as unknown as ProjectConfig
 

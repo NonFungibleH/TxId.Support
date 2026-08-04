@@ -1,5 +1,7 @@
 "use server"
 
+import { requireCapability } from "@/lib/roles-server"
+
 import { auth } from "@clerk/nextjs/server"
 import { createServiceClient } from "@/lib/supabase/server"
 import { getStripe } from "@/lib/stripe"
@@ -40,6 +42,7 @@ async function resolveOrg() {
  * client-side.
  */
 export async function createCheckoutSession(): Promise<{ url: string }> {
+  await requireCapability("billing")
   const priceId = process.env.STRIPE_PRICE_PRO
   if (!priceId) throw new Error("Billing is not configured yet")
 
@@ -80,6 +83,7 @@ export async function createCheckoutSession(): Promise<{ url: string }> {
  * card, view invoices, or cancel. Requires an existing Stripe customer.
  */
 export async function createPortalSession(): Promise<{ url: string }> {
+  await requireCapability("billing")
   const { org } = await resolveOrg()
   const customerId = org.stripe_customer_id
   if (!customerId) throw new Error("No billing account yet - upgrade first")
