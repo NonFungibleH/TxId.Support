@@ -1,13 +1,17 @@
-# TxID Support — CLAUDE.md
+# TxID — CLAUDE.md
+
+> **Naming:** the product is **TxID**, not "TxID Support". Renamed across the whole
+> codebase (108 replacements, 57 files). The domain stays txid.support and the
+> contact stays team@txid.support. /terms and /privacy name TxID as the Service.
 
 ## What this project is
 
-TxID Support is a B2B embeddable AI support widget for DeFi protocols. Protocol teams install a JS snippet on their site; their users get a chat assistant that knows the protocol's docs, smart contracts, and can look up live on-chain data for a connected wallet.
+TxID is a B2B embeddable AI support widget for DeFi protocols. Protocol teams install a JS snippet on their site; their users get a chat assistant that knows the protocol's docs, smart contracts, and can look up live on-chain data for a connected wallet.
 
 **Products:**
 - `apps/web` — public marketing site (txid.support)
 - `apps/app` — B2B dashboard where protocol teams configure their project (app.txid.support)
-- `apps/docs` — documentation site (docs.txid.support)
+- `apps/docs` — documentation site, NOT DEPLOYED (see Docs section)
 - `packages/react` — published npm package (`@txid/react`) for React embed
 - `packages/widget` — embeddable vanilla JS widget (package still a stub, BUT a working script-tag loader ships at `apps/app/public/widget.js`, served as `https://app.txid.support/widget.js` — that's the embed path the docs reference)
 
@@ -362,8 +366,8 @@ Never read `projects` without verifying org membership first.
 
 ## Docs (two separate systems — don't conflate)
 
-1. **`apps/docs`** — standalone docs site (docs.txid.support). Hardcoded JSX pages: quickstart, dashboard, embed, contracts, api. Sidebar: `apps/docs/components/Sidebar.tsx`. Key page: `app/docs/contracts/page.tsx` (transaction diagnostics, ABI upload three-states, error glossary).
-2. **`apps/web/lib/docs.ts`** — data-driven help center rendered at txid.support/docs (`apps/web/app/docs/[slug]/page.tsx`). 12 docs: introduction, quick-start, branding, smart-contracts, knowledge-base, chains, content-blocks, preview, embed, conversations, tickets, analytics.
+1. **`apps/docs`** — standalone docs site. ⚠️ **NOT DEPLOYED**: `docs.txid.support` does not resolve, so nothing here reaches a user. Verify before writing docs into it. Hardcoded JSX pages: quickstart, dashboard, embed, contracts, api, features. Sidebar: `apps/docs/components/Sidebar.tsx`.
+2. **`apps/web/lib/docs.ts`** — data-driven help centre at txid.support/docs (`apps/web/app/docs/[slug]/page.tsx`). **This is the live one.** 15 docs: features (the full capability table), introduction, quick-start, branding, smart-contracts, knowledge-base, chains, content-blocks, preview, embed, actions, integrations, conversations, tickets, analytics. Block types include `features`, a three-column table whose `status` field (`available`/`optional`/`coming`/`paused`) is REQUIRED, so a capability cannot be listed without stating whether it exists.
 
 When a product fact changes (chains, plans, limits), update BOTH systems plus the marketing FAQ (`apps/web/components/sections/FAQ.tsx`).
 
@@ -381,14 +385,19 @@ When a product fact changes (chains, plans, limits), update BOTH systems plus th
 | `support_tickets` | Escalated issues, `ref` unique constraint |
 | `webhook_logs` | Outbound webhook event log |
 | `token_usage` | Per-message input/output token counts; aggregated by `admin_token_usage()` SQL function for the /admin cost cockpit (migration `20260706000003_token_usage.sql`) |
+| `case_access_log` | Who viewed/exported/erased a case record. Append-only, no update or delete path (migration `20260803000002`) |
+
+`messages.evidence` (jsonb, migration `20260803000001`) holds the conditions each assistant answer was produced under. See the Case Record section below.
 
 ---
 
 ## Features built
 
-### Em dash cleanup (marketing site)
-- Removed all em dashes across `apps/web` (FeatureGrid, ForWho, HowItWorks, FAQ, EmbedPreview, layout, opengraph-image, not-found)
-- Updated FAQ: free tier is 150 conversations (was 200, then 50); branding included in free
+### No em dashes, anywhere user- or model-facing
+- 250 replacements across apps/web, apps/docs, apps/web/public/llms*.txt and packages/ai
+- The bulk were in `packages/ai` `prompt.ts` + `tools.ts`: em dashes in the system prompt and tool descriptions taught the MODEL to emit them in answers, which is where the rule actually bites
+- Rule: colon after a bold/`<strong>` label, comma otherwise, full stop between two independent clauses. Left alone: code comments, dev-script console output
+- Tiers are **Enterprise** and **Evaluation** (150 conversations/month). The word "Free" is retired as a tier name; "no credit card required" removed as a consumer signal
 
 ### Transaction decoder
 - `packages/blockchain/src/decoder.ts` — replays failed txs via `eth_call` at mined block
@@ -475,6 +484,53 @@ When a product fact changes (chains, plans, limits), update BOTH systems plus th
 - Conversation history: per-chat context stored in `conversations`/`messages` with session_id `tg-{chatId}`
 - Reply format: markdown converted to Telegram HTML (`<b>`, `<i>`, `<code>`, `<pre>`)
 - Server action: `lib/actions/telegram.ts`; webhook: `app/api/telegram/[key]/route.ts`
+
+---
+
+### The Case Record (compliance evidence)
+The differentiator for institutional buyers, and the part they think they are buying.
+
+**`messages.evidence` (jsonb)** — the conditions each assistant answer was produced under:
+- `chain.ledgerVersion` — the ledger version the answer was true as of, so an auditor can REPLAY the exact chain state. Read AFTER the response has streamed, so it costs the user no latency (`apps/app/lib/evidence.ts` `chainStateAt`)
+- `pricesAtRead` — the prices a figure rested on. "You were down $312" is unverifiable later without them
+- `investigation.toolsUsed` / `.failedLookups` — what ran, and what did not
+- `request` — country + region (Vercel edge headers), coarse device, surface, language
+- `model`, `latencyMs`, `answer.sha256`
+
+**PRIVACY, deliberate:** the raw IP is used for rate limiting and NEVER persisted (personal data under GDPR; only country granularity is ever needed). Device facts stop at platform + browser family and are never combined into an identifier. Do not "improve" this by adding IP or fingerprinting.
+
+**Evidence extraction** lives in `packages/ai/src/evidence.ts`: the tool loop emits a `tool_evidence` StreamEvent per round, consumed server-side in the chat route and never forwarded to the client. Full tool results are far too large to store; only prices + failures are kept.
+
+**Integrity (migration `20260803000002`)** — enforced in Postgres, not the app:
+- `messages` append-only: content, role, evidence, timestamp, conversation_id cannot be rewritten. `feedback` stays writable (the widget thumbs legitimately changes later)
+- DELETE on `messages`/`conversations` is REFUSED unless `app.erasure = 'on'` is set for the transaction. GDPR erasure goes through `erase_conversation(id, actor)`, which leaves a tombstone
+- `admin_erase_project(id, actor)` is the ONLY way to delete a project (demo cleanup cascades into conversations). `deleteDemo` calls it, falling back to a direct delete pre-migration
+- `case_access_log` records view/export/erase. Itself append-only. `project_id` is `on delete set null`, NOT cascade: a tombstone that dies with its project records nothing
+- Access logging: `apps/app/lib/case-access.ts`, never allowed to fail a read
+
+**Export** (`/api/conversations/export`) carries ledger version, state-read time, country, model and answer hash, and logs itself as a disclosure.
+
+**Gaps view** (`apps/app/lib/gaps.ts` + `GapsPanel`) on Analytics: thumbs-down, escalated, and negative-sentiment-that-never-escalated (the ones who leave quietly). Splits KNOWLEDGE gaps from DATA gaps using `failedLookups` — different owners, and adding docs will not fix an indexer outage.
+
+### Decibel / Aptos protocol adapters (`packages/aptos/src/protocols.ts`)
+`ProtocolAdapter` declares how to get from a wallet to the protocol's own account object and which views describe it. **`humanize()` is not cosmetic**: Move views return fixed-point integers with no units, and the model will otherwise invent a scale and state a confidently wrong price.
+
+**SCALING, verified against live mainnet — get this wrong and every number is wrong:**
+- Prices are a flat **1e6** across all markets (BTC mark `63695700000` = $63,695.70)
+- **SIZE decimals are PER MARKET** via `market_sz_decimals`, and none of the sampled markets use 6: BTC 8, ETH 8, GOLD 8, TSLA 7, APT 5, MEGA 4, CHIP 3. A flat 1e6 made every size and notional wrong by 10^(szDecimals-6)
+- Notional = `entry_px_times_size_sum / (1e6 * 10^szDecimals)`
+- USD formatting scales precision to magnitude: 2dp turns a $0.0371 small-cap entry into "$0.04", a different price
+
+**`perMarket`** reads (oracle price, `is_position_liquidatable`, order constraints, funding, stops) run ONLY for markets the trader holds, capped at 5 (constraints at 2). A 29-position book at 8 markets x 11 views is 88 calls for one question, which throttles even with a key. The model is told an absent field means NOT READ, never zero.
+
+**`walletViews`** exist because withdrawal queues key on the OWNER, not the subaccount: reading `get_pending_withdrawals` with the subaccount returns empty and would answer "there isn't one" to someone whose withdrawal is pending.
+
+**429 handling:** `viewFunctionResult` treats 429/408/425 as `unreachable`, NOT `aborted`. `aborted` is read by `resolveProtocolAccountAddress` as "this wallet has no subaccount", so a rate-limited lookup previously told an active trader they had never traded on Decibel. Do not re-bucket all 4xx.
+
+**Not answerable, correctly declined:** historical/realised PnL and tax basis. No view exposes it per account; reconstructing from trade history would be a guess presented as a number.
+
+### Aptos demo page
+`/check/aptos` has a "use a live trader wallet" escape hatch backed by `apps/web/app/api/aptos/sample-trader/route.ts`, which walks recent Decibel traders until one holds an open book (cached 5 min). `primary_subaccount` resolves for ANY wallet, so a reviewer connecting a fresh wallet otherwise sees a correct but empty answer.
 
 ---
 
