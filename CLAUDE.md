@@ -511,6 +511,21 @@ This shipped once: `case_access_log` blocked `admin_erase_project()`, so no proj
 
 The pattern both tables now use: permit exactly one shape of update, the FK going to NULL with every other column identical, via `to_jsonb(new) - 'project_id' = to_jsonb(old) - 'project_id'`. A reference can be cleared, never repointed, and no content rides along. Deletes stay refused.
 
+### Proactive opener
+`lib/session-opener.ts` + `GET /api/widget/opener` (public in middleware). Replaces the widget's old "Wallet connected: 0x… I can look up your balance and transactions now", which announced a capability at the exact moment it could have used one.
+
+**Rules that are not style preferences:**
+- **NO AMOUNTS** in an unprompted greeting. Lead with the event ("your last swap didn't go through"), never the number. Amounts are fine once the user engages.
+- **NOTHING EVALUATIVE.** The no-advice guardrail binds harder proactively: unsolicited financial commentary is a stronger form of advice than answering a question.
+- **Silence is a valid output.** A failed lookup returns null and the plain greeting stands. Returning 204, not an error.
+- **Never blocks.** The plain confirmation posts first; the opener is appended only if it arrives and only if the user has not already spoken.
+- **Not an LLM call.** Runs on every connect, must feel instant, and would cost money for users who never ask anything.
+
+**v1 scenarios:** `recent_failure` (leads with the decoded cause, not an offer to look), `no_activity` (activation, not support: a wallet that never traded is someone stuck before their first transaction), `active`, and silence. **Deliberately absent: "your transaction is stuck"** because history endpoints return only MINED transactions, so an unconfirmed one is invisible without a hash or mempool access. Roadmap `k-opener-stuck`.
+
+### Conversation source
+`lib/conversation-source.ts`. Derived from the session id prefix (`tg-` Telegram, `preview-` preview, else widget) rather than stored, so it works retroactively on existing rows. Badge + filter on Conversations, shown only when more than one source is in use. WHY: Telegram has no wallet and no on-chain tools, so judging its answers by the widget's standard compares two different products.
+
 ### Roles (four, enforced server-side)
 `org_members` (migration `20260804000003`) + `lib/roles.ts` (matrix, labels, CLIENT-SAFE) and `lib/roles-server.ts` (`currentActor`, `requireCapability`, `rolesForOrg`). **The split is not cosmetic**: importing them together pulls `next/headers` into the browser bundle and fails the build.
 

@@ -71,6 +71,8 @@ export const DOCS: Doc[] = [
       { type: "features", items: [
         { feature: "Wallet detection", detail: "MetaMask, WalletConnect, Coinbase Wallet, Petra, Martian.", status: "available" },
         { feature: "Address paste", detail: "Answers without connecting a wallet at all.", status: "available" },
+        { feature: "Proactive opener", detail: "On connect, leads with what is actually happening: a failed transaction is diagnosed rather than offered. Silent when a lookup fails.", status: "available" },
+        { feature: "First-transaction help", detail: "A wallet that has never used the protocol gets set-up help instead of a support prompt.", status: "available" },
         { feature: "Balances", detail: "Native, ERC-20, and Aptos fungible assets.", status: "available" },
         { feature: "Transaction history", detail: "Recent activity, scoped to your contracts where useful.", status: "available" },
         { feature: "Token approvals", detail: "Open allowances, including unlimited grants. EVM only.", status: "available" },
@@ -154,6 +156,7 @@ export const DOCS: Doc[] = [
       { type: "features", items: [
         { feature: "Volume and trends", detail: "Conversations over time, by chain.", status: "available" },
         { feature: "Categories and sentiment", detail: "What users ask about, and how those conversations end.", status: "available" },
+        { feature: "Filter by source", detail: "Widget, Telegram and preview conversations tagged and filterable, since they are not the same product.", status: "available" },
         { feature: "Gaps view", detail: "What was never answered at all, marked unhelpful, escalated, or ended badly without escalating.", status: "available" },
         { feature: "Knowledge vs data gaps", detail: "Separates missing documentation from failed chain reads, because the fixes have different owners.", status: "available" },
         { feature: "Documentation coverage", detail: "What your docs did not cover, what they covered weakly, and the context cost per answer.", status: "available" },

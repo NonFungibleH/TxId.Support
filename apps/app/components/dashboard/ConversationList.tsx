@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
+import { sourceOf, SOURCE_LABEL, type ConversationSource } from "@/lib/conversation-source"
 import { useRouter } from "next/navigation"
 import { ChevronDown, ChevronUp, ThumbsUp, ThumbsDown, Wallet, Download, Globe, MessageSquare, Bot, Ticket, Loader2, CheckCircle2, ShieldCheck } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
@@ -194,6 +195,7 @@ export function ConversationList({
   // cached, categorised, cost-tracked summary system instead of two.
   const [tags, setTags] = useState<Record<string, ConvSummary>>({})
   const [catFilter, setCatFilter] = useState<string>("all")
+  const [srcFilter, setSrcFilter] = useState<ConversationSource | "all">("all")
   const staleTriggered = useRef(false)
   useEffect(() => {
     if (staleTriggered.current) return
@@ -234,7 +236,12 @@ export function ConversationList({
 
   const effectiveCat = (c: ConversationWithMessages) => tags[c.id]?.category ?? c.category ?? null
   const presentCats = Array.from(new Set(conversations.map(effectiveCat).filter(Boolean))) as string[]
-  const visible = catFilter === "all" ? conversations : conversations.filter(c => effectiveCat(c) === catFilter)
+  // Only offer a source filter when more than one is actually in use: a lone
+  // "Widget" button is chrome that teaches the reader nothing.
+  const presentSources = Array.from(new Set(conversations.map(c => sourceOf(c.session_id)))) as ConversationSource[]
+  const visible = conversations
+    .filter(c => catFilter === "all" || effectiveCat(c) === catFilter)
+    .filter(c => srcFilter === "all" || sourceOf(c.session_id) === srcFilter)
 
   return (
     <div className="space-y-4">
@@ -258,6 +265,22 @@ export function ConversationList({
             ))}
           </div>
         ) : <span />}
+
+        {presentSources.length > 1 && (
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="text-[11px] uppercase tracking-wide text-muted-foreground">Source</span>
+            {(["all", ...presentSources] as const).map(s => (
+              <button
+                key={s}
+                onClick={() => setSrcFilter(s as ConversationSource | "all")}
+                className={`rounded-full border px-2.5 py-1 text-xs font-medium transition-colors ${srcFilter === s ? "border-primary/40 bg-primary/10 text-primary" : "border-border text-muted-foreground hover:text-foreground"}`}
+              >
+                {s === "all" ? "All" : SOURCE_LABEL[s as ConversationSource]}
+              </button>
+            ))}
+          </div>
+        )}
+
         <a
           href="/api/conversations/export"
           download="conversations.csv"
@@ -360,6 +383,9 @@ export function ConversationList({
                       <Ticket className="size-2.5" />
                       {tRef}
                     </Badge>
+                  )}
+                  {sourceOf(conv.session_id) === "telegram" && (
+                    <Badge variant="outline" className="shrink-0 text-[10px]">Telegram</Badge>
                   )}
                   {conv.session_id?.startsWith("preview-") && (
                     <Badge className="text-[10px] px-1.5 py-0.5 leading-none shrink-0 bg-violet-500/10 text-violet-400 border-violet-500/20">

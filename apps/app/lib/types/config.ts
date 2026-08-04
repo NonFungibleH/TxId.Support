@@ -342,6 +342,12 @@ export interface ProjectConfig {
   publicDemo?: boolean
   actions?: ActionsConfig
   integrations?: Integrations
+  /**
+   * Greet a connecting wallet with what is actually happening on their
+   * account, instead of "describe your issue". ON by default: the alternative
+   * is a blank prompt that makes the user diagnose themselves first.
+   */
+  proactiveOpener?: { enabled: boolean }
   docsSync?: DocsSyncConfig
   subaccounts?: SubaccountsConfig
   telegramBotToken?: string | null

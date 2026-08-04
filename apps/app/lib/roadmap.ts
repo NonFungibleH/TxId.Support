@@ -129,6 +129,38 @@ export const ROADMAP: RoadmapItem[] = [
     depends: "Cron runner is built, so this is unblocked.",
   },
 
+  {
+    id: "k-opener-2",
+    title: "Proactive opener: the harder scenarios",
+    area: "knowledge",
+    phase: 2,
+    complexity: "Medium",
+    effort: "~1 wk",
+    status: "soon",
+    what: "v1 ships the four safe scenarios (recent failure, never traded, active, lookup failed). Still to come: a withdrawal sitting in a queue, and the fact that open positions exist. Both need per-market reads, which cost the most, and both sit closest to the advice line: 'you have 3 open positions' is a fact, anything about their state is a judgement. Also: rank openers by URGENCY rather than recency once stuck transactions are detectable.",
+    care: "Nothing evaluative and no amounts in an unprompted greeting. Unsolicited financial commentary is a stronger form of advice than answering a question.",
+  },
+  {
+    id: "k-opener-stuck",
+    title: "Detect stuck and pending transactions",
+    area: "foundation",
+    phase: 2,
+    complexity: "Medium",
+    effort: "~1 wk",
+    status: "soon",
+    what: "The highest-value opener is 'your transaction has not confirmed', and it is the one we cannot produce: history endpoints return only MINED transactions, so an unconfirmed one is invisible without a hash or mempool access. Needs a per-chain pending source. Until then the opener stays silent about it rather than guessing.",
+  },
+  {
+    id: "k-opener-measure",
+    title: "Measure whether openers land",
+    area: "knowledge",
+    phase: 2,
+    complexity: "Low",
+    effort: "~3 days",
+    status: "soon",
+    what: "Record which opener scenario fired and whether the user engaged with it, ignored it, or immediately asked about something else. If openers are consistently ignored the classification is wrong, and right now there is no way to find that out. Feeds the gaps view.",
+  },
+
   // ── Phase 2 - Flywheel ────────────────────────────────────────────────────
   {
     id: "k-gaps",

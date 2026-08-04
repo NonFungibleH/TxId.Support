@@ -779,6 +779,42 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
   // Wallet setup flow: prompt → (connected | manual | skipped)
   const [walletSetup, setWalletSetup] = useState<"prompt" | "manual-input" | "connected" | "manual" | "skipped">("prompt")
 
+  // What is actually happening on this wallet, fetched as soon as we know who
+  // they are. Deliberately additive: the plain confirmation posts first and is
+  // only replaced if the lookup returns something worth saying, so a slow or
+  // failed read never leaves the widget looking stuck.
+  const openerFetched = useRef<string | null>(null)
+  useEffect(() => {
+    // config.mode read inline: `isTokenMode` is declared far below and would
+    // be evaluated in the dependency array during render, before it exists.
+    if (!walletAddress || !chainId || config?.mode === "token") return
+    const cacheKey = `${walletAddress}:${chainId}`
+    if (openerFetched.current === cacheKey) return
+    openerFetched.current = cacheKey
+    let cancelled = false
+    fetch(
+      `/api/widget/opener?key=${encodeURIComponent(apiKey)}` +
+      `&address=${encodeURIComponent(walletAddress)}&chainId=${encodeURIComponent(chainId)}`,
+    )
+      .then(r => (r.status === 204 ? null : r.json()))
+      .then((d: { message?: string; chips?: string[] } | null) => {
+        if (cancelled || !d?.message) return
+        setMessages(prev => {
+          // If they have already started typing or asked something, the moment
+          // has passed: interrupting with an unprompted greeting is worse than
+          // staying quiet.
+          if (prev.some(m => m.role === "user")) return prev
+          return [...prev, { id: nanoid(), role: "assistant", content: d.message!, local: true }]
+        })
+        // Curated chips are the protocol's deliberate choice and keep winning;
+        // these only fill the slot when nothing was curated.
+        if (d.chips?.length) setSuggestions(d.chips)
+      })
+      .catch(() => { /* silence is the designed fallback */ })
+    return () => { cancelled = true }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [walletAddress, chainId, apiKey, config?.mode])
+
   // The address the user connected is not the account their positions live in.
   // Resolve the second one as soon as we have the first, so both are on screen
   // before they ask a question rather than after they are confused by one.
