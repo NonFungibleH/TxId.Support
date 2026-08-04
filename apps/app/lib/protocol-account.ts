@@ -14,6 +14,12 @@ import type { ProjectConfig } from "@/lib/types/config"
  * `failed` is NOT `none`. A throttled lookup that renders as "you have no
  * account" tells an active trader they have never traded, which is the exact
  * bug this codebase has already shipped once. Callers must branch on all four.
+ *
+ * ONE ACCOUNT PER WALLET, deliberately. `adapter.resolveAccountFn` returns a
+ * single account (Decibel's `primary_subaccount`), and the widget names it as
+ * "your sub account". If a protocol ever lets one wallet hold several, that
+ * phrasing becomes a confident lie and this needs to return a list before the
+ * UI can be trusted. Decided 2026-08-04: single for now.
  */
 
 export type ProtocolAccountStatus =

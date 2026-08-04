@@ -38,10 +38,11 @@ export default async function ContractsPage() {
   ])]
 
   // Whether any watched contract belongs to a protocol TxID knows keeps user
-  // funds in a per-user account. Drives the copy on the subaccounts card, so
-  // the toggle is never a guess about whether it will do anything.
+  // funds in a sub account. Drives the copy on the card, so the toggle is never
+  // a guess about whether it will do anything. Only the account LABEL crosses
+  // into the UI: the protocol name would read as us naming somebody else.
   const adapter = adapterFor(contracts.map(c => ({ address: c.address, chain: c.chain as string })))
-  const detected = adapter ? { protocol: adapter.name, label: adapter.accountLabel } : null
+  const detected = adapter ? { label: adapter.accountLabel } : null
 
   const chainLimitRaw = PLAN_CHAIN_LIMITS[plan]
   const chainLimit = chainLimitRaw === Infinity ? -1 : chainLimitRaw
@@ -70,13 +71,13 @@ export default async function ContractsPage() {
       </CollapsibleCard>
 
       <CollapsibleCard
-        title="User accounts"
-        description="For protocols that hold each user's funds in a per-user account object rather than in their wallet, such as a perps or margin venue."
+        title="Sub accounts"
+        description="For protocols that hold each user's funds in a sub account rather than in their wallet, such as a perps or margin venue."
         summary={
           config.subaccounts?.enabled
             ? detected
-              ? `On. ${detected.protocol} ${detected.label} shown on connect.`
-              : "On, but no supported protocol detected yet."
+              ? "On. Users see their sub account when they connect."
+              : "On, but your watched contracts do not use sub accounts."
             : "Off. Users see only their wallet address."
         }
         defaultOpen={false}
