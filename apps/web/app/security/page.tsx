@@ -299,7 +299,7 @@ export default function SecurityPage() {
                   </h2>
                 </div>
                 <p className="text-sm text-muted leading-relaxed mb-2.5">
-                  SOC 2 readiness and configurable data retention are on the roadmap. Neither is
+                  A SOC 2 audit and configurable data retention are on the roadmap. Neither is
                   in place today.
                 </p>
                 <p className="text-sm text-[#c8c8d8] leading-relaxed">

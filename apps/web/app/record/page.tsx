@@ -81,7 +81,7 @@ const POSTURE = [
   {
     label: "Coming next",
     paras: [
-      "Full-text case search, exports, data retention controls, and SOC 2 readiness.",
+      "Full-text case search, exports, data retention controls, and a SOC 2 audit.",
     ],
   },
 ];

@@ -10,6 +10,8 @@ import type { ProjectConfig, Plan } from "@/lib/types/config"
 import { PLAN_CONV_LIMITS } from "@/lib/types/config"
 import { cn } from "@/lib/utils"
 import { AnalyticsPeriodSelector } from "@/components/dashboard/AnalyticsPeriodSelector"
+import { GapsPanel } from "@/components/dashboard/GapsPanel"
+import { buildGapsReport } from "@/lib/gaps"
 
 const ConversationChart = dynamic(
   () => import("@/components/dashboard/ConversationChart").then((m) => m.ConversationChart),
@@ -177,6 +179,9 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Se
       count,
       pct: totalChainConvs > 0 ? Math.round((count / totalChainConvs) * 100) : 0,
     }))
+
+  // What the engine could not finish, for the support lead's work queue.
+  const gapsReport = await buildGapsReport(projectId, days).catch(() => null)
 
   // Build chart data
   const dayMap = new Map<string, number>()
@@ -373,6 +378,10 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Se
             </div>
           </CardContent>
         </Card>
+      )}
+
+      {gapsReport && gapsReport.totals.conversations > 0 && (
+        <GapsPanel report={gapsReport} days={days} />
       )}
     </div>
   )

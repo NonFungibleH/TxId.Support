@@ -1,0 +1,143 @@
+import { createServiceClient } from "@/lib/supabase/server"
+
+/**
+ * Where TxID fell short, split by whose problem it is.
+ *
+ * THE DISTINCTION THAT MATTERS: a support lead needs to know whether an answer
+ * was weak because the knowledge was missing (fix the docs) or because a chain
+ * read failed (fix the infrastructure). Those look identical in a transcript
+ * and have completely different owners. Failed lookups are recorded on the
+ * message evidence, so the split is available here and nowhere else.
+ */
+export interface GapsReport {
+  /** Users who explicitly said the answer was wrong. */
+  thumbsDown: GapItem[]
+  /** Handed to a human, so the engine could not finish. */
+  escalated: GapItem[]
+  /** Negative sentiment that never escalated: the ones that leave quietly. */
+  silentlyUnhappy: GapItem[]
+  /** Reads that failed. Infrastructure, not knowledge. */
+  dataGaps: { reason: string; count: number }[]
+  /** Which subject areas the shortfalls cluster in. */
+  byCategory: { category: string; count: number }[]
+  totals: { conversations: number; withProblems: number }
+}
+
+export interface GapItem {
+  conversationId: string
+  summary: string
+  category: string | null
+  createdAt: string
+}
+
+const NEGATIVE_SENTIMENT = new Set(["negative", "frustrated", "angry"])
+
+/** Collapse a failure note to its recognisable prefix so like groups with like. */
+function normaliseFailure(note: string): string {
+  const cleaned = note.replace(/\s+/g, " ").trim()
+  const colon = cleaned.indexOf(":")
+  const head = colon > 0 && colon < 60 ? cleaned.slice(0, colon) : cleaned.slice(0, 60)
+  return head.charAt(0).toUpperCase() + head.slice(1)
+}
+
+export async function buildGapsReport(projectId: string, days = 30): Promise<GapsReport> {
+  const supabase = createServiceClient()
+  const since = new Date()
+  since.setDate(since.getDate() - days)
+
+  const empty: GapsReport = {
+    thumbsDown: [], escalated: [], silentlyUnhappy: [], dataGaps: [], byCategory: [],
+    totals: { conversations: 0, withProblems: 0 },
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: conversations } = await (supabase as any)
+    .from("conversations")
+    .select("id, created_at, summary, category, sentiment")
+    .eq("project_id", projectId)
+    .gte("created_at", since.toISOString())
+    .order("created_at", { ascending: false })
+    .limit(2000)
+
+  const convs = (conversations ?? []) as Array<{
+    id: string; created_at: string; summary: string | null
+    category: string | null; sentiment: string | null
+  }>
+  if (convs.length === 0) return empty
+  const convIds = convs.map(c => c.id)
+  const byId = new Map(convs.map(c => [c.id, c]))
+
+  const [messagesRes, ticketsRes] = await Promise.all([
+    // Evidence may not exist yet; fall back so the view still works.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (supabase as any)
+      .from("messages")
+      .select("conversation_id, feedback, evidence")
+      .in("conversation_id", convIds)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .then((res: any) =>
+        res.error
+          ? supabase.from("messages").select("conversation_id, feedback").in("conversation_id", convIds)
+          : res,
+      ),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (supabase as any).from("tickets").select("conversation_id").in("conversation_id", convIds),
+  ])
+
+  const toItem = (id: string): GapItem => {
+    const c = byId.get(id)
+    return {
+      conversationId: id,
+      summary: c?.summary ?? "No summary yet",
+      category: c?.category ?? null,
+      createdAt: c?.created_at ?? "",
+    }
+  }
+
+  const thumbsDownIds = new Set<string>()
+  const failureCounts = new Map<string, number>()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  for (const m of (messagesRes?.data ?? []) as any[]) {
+    if (m.feedback === -1) thumbsDownIds.add(m.conversation_id)
+    const failed = m.evidence?.investigation?.failedLookups
+    if (Array.isArray(failed)) {
+      for (const f of failed) {
+        if (typeof f !== "string") continue
+        const key = normaliseFailure(f)
+        failureCounts.set(key, (failureCounts.get(key) ?? 0) + 1)
+      }
+    }
+  }
+
+  const escalatedIds = new Set<string>(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ((ticketsRes?.data ?? []) as any[]).map(t => t.conversation_id).filter(Boolean),
+  )
+
+  const silentIds = convs
+    .filter(c => c.sentiment && NEGATIVE_SENTIMENT.has(c.sentiment.toLowerCase()))
+    .filter(c => !escalatedIds.has(c.id) && !thumbsDownIds.has(c.id))
+    .map(c => c.id)
+
+  const problemIds = new Set<string>([...thumbsDownIds, ...escalatedIds, ...silentIds])
+
+  const categoryCounts = new Map<string, number>()
+  for (const id of problemIds) {
+    const cat = byId.get(id)?.category ?? "uncategorised"
+    categoryCounts.set(cat, (categoryCounts.get(cat) ?? 0) + 1)
+  }
+
+  return {
+    thumbsDown: Array.from(thumbsDownIds).slice(0, 10).map(toItem),
+    escalated: Array.from(escalatedIds).filter(id => byId.has(id)).slice(0, 10).map(toItem),
+    silentlyUnhappy: silentIds.slice(0, 10).map(toItem),
+    dataGaps: Array.from(failureCounts.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 8)
+      .map(([reason, count]) => ({ reason, count })),
+    byCategory: Array.from(categoryCounts.entries())
+      .sort((a, b) => b[1] - a[1])
+      .map(([category, count]) => ({ category, count })),
+    totals: { conversations: convs.length, withProblems: problemIds.size },
+  }
+}
