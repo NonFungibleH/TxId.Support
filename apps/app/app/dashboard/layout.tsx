@@ -30,6 +30,8 @@ export default async function DashboardLayout({
         <div className="mx-auto flex max-w-4xl flex-wrap items-center gap-x-3 gap-y-1 px-4 py-3 text-xs text-muted-foreground md:px-6">
           <span>© {new Date().getFullYear()} TxID</span>
           <span className="opacity-40">·</span>
+          <a href={`${webUrl}/docs`} target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors">Docs</a>
+          <span className="opacity-40">·</span>
           <a href={`${webUrl}/terms`} target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors">Terms</a>
           <span className="opacity-40">·</span>
           <a href={`${webUrl}/privacy`} target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors">Privacy</a>

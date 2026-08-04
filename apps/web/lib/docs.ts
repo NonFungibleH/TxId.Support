@@ -75,7 +75,8 @@ export const DOCS: Doc[] = [
         { feature: "Transaction history", detail: "Recent activity, scoped to your contracts where useful.", status: "available" },
         { feature: "Token approvals", detail: "Open allowances, including unlimited grants. EVM only.", status: "available" },
         { feature: "Name resolution", detail: "ENS on EVM, Aptos Name Service on Aptos.", status: "available" },
-        { feature: "Protocol accounts", detail: "Resolves a wallet to the protocol's own account object, so delegated-trading balances are never reported as empty.", status: "available" },
+        { feature: "Sub accounts", detail: "Resolves a wallet to the protocol's own account object, so delegated-trading balances are never reported as empty.", status: "optional" },
+        { feature: "Two-address display", detail: "Shows wallet and sub account together on connect, labelled, both available in full to copy.", status: "optional" },
         { feature: "Merged history", detail: "Wallet and protocol-account activity combined, each labelled with where it came from.", status: "available" },
       ]},
 
@@ -306,11 +307,49 @@ export const DOCS: Doc[] = [
   },
 
   {
+    slug: "sub-accounts",
+    title: "Sub Accounts",
+    description: "For protocols that hold user funds in a per-user account rather than the wallet",
+    category: "configuration",
+    order: 2,
+    content: [
+      { type: "p", text: "Some protocols do not hold a user's funds in their wallet. A perps or margin venue gives each user a sub account, an on-chain object owned by their wallet, and that is where collateral and open positions actually live. Those users have two addresses, and the two are not interchangeable." },
+      { type: "p", text: "This matters more than it sounds. A trader who connects their wallet and then sees a second address they do not recognise usually assumes something has gone wrong, and support gets \"why is a different address showing as connected?\". Turning sub accounts on removes that question instead of answering it." },
+
+      { type: "h2", text: "What changes when it is on" },
+      { type: "ul", items: [
+        "The moment a user connects, TxID resolves their sub account and shows both addresses in the widget, each labelled, so neither is a surprise.",
+        "Both addresses are available in full, with a copy button, not only in shortened form.",
+        "The assistant is told about both before the user's first question, so it never has to discover the second address halfway through an answer.",
+        "Answers name which address they mean every time, rather than printing a bare 0x and leaving the user to work it out.",
+      ]},
+
+      { type: "callout", variant: "warning", title: "Why the full address is always shown", text: "A shortened address is not something a user can verify. Address-poisoning scams generate lookalike addresses whose first and last characters match a real one exactly, so an abbreviation confirms nothing. TxID always makes the complete address available, and tells users why." },
+
+      { type: "h2", text: "Turning it on" },
+      { type: "steps", items: [
+        { title: "Open Smart Contracts", description: "Sub accounts has its own section on the Smart Contracts page in the dashboard." },
+        { title: "Check the status line", description: "It tells you whether your watched contracts actually use sub accounts. If they do, it also shows what your protocol calls them, and that is the word the widget and the assistant will use." },
+        { title: "Switch it on", description: "Users see their sub account from their next connection. Nothing else needs changing." },
+      ]},
+
+      { type: "callout", variant: "info", title: "Off by default, on purpose", text: "Most protocols keep user funds in the wallet. Showing a second address there would invent a concept your users do not have, so this stays off unless you turn it on, and it does nothing on a protocol without sub accounts." },
+
+      { type: "h2", text: "Limits worth knowing" },
+      { type: "ul", items: [
+        "Support is added per protocol, since resolving a wallet to its sub account depends on how that protocol is built. Get in touch if yours is not recognised yet.",
+        "One sub account per wallet. If a protocol lets a single wallet hold several, tell us before enabling this, because the wording assumes one.",
+        "If the lookup itself fails, TxID shows nothing rather than claiming the user has no account. \"No sub account\" is only ever said when that is genuinely the answer.",
+      ]},
+    ],
+  },
+
+  {
     slug: "knowledge-base",
     title: "Docs & Knowledge Base",
     description: "Index your documentation so the AI can search and reference it",
     category: "configuration",
-    order: 2,
+    order: 3,
     content: [
       { type: "p", text: "The Knowledge Base is a list of URLs that TxID indexes and searches when answering questions. When a user asks something the AI can't answer from on-chain data alone, such as how your governance works, what your tokenomics are, or how to bridge, it searches your indexed pages to find the answer." },
       { type: "h2", text: "How indexing works" },
@@ -352,7 +391,7 @@ export const DOCS: Doc[] = [
     title: "Chains",
     description: "Configure which blockchains the AI scans for wallet activity",
     category: "configuration",
-    order: 3,
+    order: 4,
     content: [
       { type: "p", text: "Chains control which blockchains the AI scans when a user connects their wallet. Enable only the chains your protocol is deployed on. The AI will scan those networks when looking up wallet history and querying contract state." },
       { type: "h2", text: "Supported chains" },
