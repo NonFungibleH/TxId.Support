@@ -4,6 +4,7 @@ import { getProject } from "@/lib/actions/project"
 import { updateConfig } from "@/lib/actions/project"
 import { testIntegration } from "@/lib/integrations/escalation"
 import type { ProjectConfig, Integrations, IntegrationTarget } from "@/lib/types/config"
+import { encryptIntegration } from "@/lib/secrets"
 
 // Save one integration's config (merging into config.integrations), and test
 // a target with a sample escalation. Secrets never leave the server - the
@@ -19,7 +20,9 @@ export async function saveIntegration(target: IntegrationTarget, patch: Record<s
   if (!project) throw new Error("No project")
   const config = (project as { config: unknown }).config as ProjectConfig
   const existing = (config.integrations?.[target] ?? {}) as Record<string, unknown>
-  const merged = { ...existing, ...patch }
+  // Encrypt at the boundary, so a credential is never written in plaintext.
+  // Existing values are already encrypted and are left alone by the merge.
+  const merged = { ...existing, ...encryptIntegration(target, patch) }
   const next = { ...(config.integrations ?? {}), [target]: merged } as Integrations
   await updateConfig((project as { id: string }).id, { integrations: next })
 }

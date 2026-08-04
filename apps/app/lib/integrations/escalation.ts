@@ -1,3 +1,4 @@
+import { decryptIntegrations } from "@/lib/secrets"
 import type { createServiceClient } from "@/lib/supabase/server"
 import type { Integrations, IntegrationTarget } from "@/lib/types/config"
 
@@ -47,6 +48,35 @@ function issueTitle(t: EscalationTicket): string {
 
 function issueBody(t: EscalationTicket): string {
   return plainBody(t)
+}
+
+/** Backoff schedule per attempt, in ms: ~1m, 5m, 30m, 2h, 6h. */
+export const BACKOFF_MS = [60_000, 300_000, 1_800_000, 7_200_000, 21_600_000]
+export const MAX_ATTEMPTS = BACKOFF_MS.length
+
+/**
+ * Worth trying again? A timeout, a rate limit or a 5xx is the other end having
+ * a bad moment. A 401 or a 404 is configuration, and retrying it just fails
+ * five more times.
+ */
+export function isTransient(error: string | undefined): boolean {
+  if (!error) return true
+  const e = error.toLowerCase()
+  // Configuration, not a blip: a bad token or a deleted channel will fail the
+  // same way five more times, and each retry delays the ones worth making.
+  if (/\b(400|401|403|404|410|422)\b|unauthor|forbidden|not found|invalid|revoked/.test(e)) {
+    return false
+  }
+  // Everything else retries. Losing an escalation is worse than a wasted call.
+  return true
+}
+
+async function attempt(run: () => Promise<AdapterResult>): Promise<AdapterResult> {
+  try {
+    return await run()
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : "error" }
+  }
 }
 
 async function timed<T>(p: Promise<T>): Promise<T> {
@@ -141,6 +171,7 @@ export async function testIntegration(
   integrations: Integrations,
   telegramBotToken: string | undefined,
 ): Promise<AdapterResult> {
+  integrations = decryptIntegrations(integrations)
   const sample: EscalationTicket = {
     ref: "TKT-TEST",
     projectName: "TxID test",
@@ -165,6 +196,28 @@ export async function testIntegration(
 }
 
 /** Fan the ticket out to every enabled integration. Fire-and-forget safe. */
+/**
+ * Deliver one escalation to one target. Used by the retry worker, which has a
+ * stored payload and a single destination rather than a fresh fan-out.
+ */
+export async function deliverOne(
+  target: IntegrationTarget,
+  ticket: EscalationTicket,
+  integrations: Integrations,
+  telegramBotToken: string | undefined,
+): Promise<AdapterResult> {
+  const cfg = decryptIntegrations(integrations)
+  switch (target) {
+    case "slack":    return cfg.slack ? attempt(() => toSlack(ticket, cfg.slack!)) : { ok: false, error: "not configured" }
+    case "discord":  return cfg.discord ? attempt(() => toDiscord(ticket, cfg.discord!)) : { ok: false, error: "not configured" }
+    case "telegram": return cfg.telegram ? attempt(() => toTelegram(ticket, cfg.telegram!, telegramBotToken)) : { ok: false, error: "not configured" }
+    case "linear":   return cfg.linear ? attempt(() => toLinear(ticket, cfg.linear!)) : { ok: false, error: "not configured" }
+    case "github":   return cfg.github ? attempt(() => toGithub(ticket, cfg.github!)) : { ok: false, error: "not configured" }
+    case "jira":     return cfg.jira ? attempt(() => toJira(ticket, cfg.jira!)) : { ok: false, error: "not configured" }
+    default:         return { ok: false, error: "unknown target" }
+  }
+}
+
 export async function dispatchEscalation(
   supabase: ReturnType<typeof createServiceClient>,
   projectId: string,
@@ -174,6 +227,8 @@ export async function dispatchEscalation(
   telegramBotToken: string | undefined,
 ): Promise<void> {
   if (!integrations) return
+  // Credentials are stored encrypted; decrypt once, here, at the point of use.
+  integrations = decryptIntegrations(integrations)
 
   const jobs: { target: IntegrationTarget; run: () => Promise<AdapterResult> }[] = []
   if (integrations.slack?.enabled && integrations.slack.webhookUrl) jobs.push({ target: "slack", run: () => toSlack(ticket, integrations.slack!) })
@@ -189,13 +244,30 @@ export async function dispatchEscalation(
   await Promise.allSettled(
     jobs.map(async ({ target, run }) => {
       const start = Date.now()
-      let result: AdapterResult
-      try {
-        result = await run()
-      } catch (err) {
-        result = { ok: false, error: err instanceof Error ? err.message : "error" }
+      // Most failures are a blip: a cold Lambda, a brief 5xx, a rate limit.
+      // One immediate retry clears the majority without waiting for a worker.
+      let result = await attempt(run)
+      if (!result.ok && isTransient(result.error)) {
+        await new Promise(r => setTimeout(r, 400))
+        result = await attempt(run)
       }
       if (result.ok && result.url && TRACKERS.includes(target)) externalRefs[target] = result.url
+
+      // Still failing: park the payload so it can actually be redelivered.
+      // A lost escalation means a user was promised a human who never hears.
+      if (!result.ok) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await (supabase as any).from("escalation_deliveries").insert({
+          project_id: projectId,
+          target,
+          ticket_ref: ticket.ref,
+          payload: ticket,
+          status: "pending",
+          attempts: 1,
+          last_error: (result.error ?? "failed").slice(0, 500),
+          next_attempt_at: new Date(Date.now() + BACKOFF_MS[0]!).toISOString(),
+        }).catch(() => { /* table may not exist pre-migration */ })
+      }
       // Log target + status only - never the Slack/Discord webhook URL (secret).
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await (supabase as any).from("webhook_logs").insert({

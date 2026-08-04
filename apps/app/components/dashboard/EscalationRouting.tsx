@@ -16,8 +16,11 @@ interface EscalationRoutingProps {
 }
 
 // Where escalations go, all in one place: email + webhook + the channel/tracker
-// integrations. Lives at the top of the Tickets page as a collapsible panel so
-// the ticket inbox stays the focus. Default open only when nothing is set up yet.
+// integrations. Lives at the top of the Tickets page as a collapsed dropdown so
+// the ticket inbox stays the focus. It stays collapsed even when nothing is set
+// up: eight configuration cards pushing the inbox off screen is a worse first
+// impression than one line saying it needs attention, which the header already
+// does. Setup is a once-ever task; reading tickets is not.
 export function EscalationRouting({ projectId, notificationEmail, webhookUrl, integrations }: EscalationRoutingProps) {
   const [email, setEmail] = useState(notificationEmail)
   const [webhook, setWebhook] = useState(webhookUrl)
@@ -35,7 +38,7 @@ export function EscalationRouting({ projectId, notificationEmail, webhookUrl, in
     integrations.jira.enabled && integrations.jira.configured ? "Jira" : null,
   ].filter((x): x is string => x !== null)
 
-  const [open, setOpen] = useState(activeRoutes.length === 0)
+  const [open, setOpen] = useState(false)
 
   function saveEmail() {
     startTransition(async () => {
@@ -73,7 +76,7 @@ export function EscalationRouting({ projectId, notificationEmail, webhookUrl, in
             <p className="text-xs text-muted-foreground mt-0.5">
               {activeRoutes.length > 0
                 ? `Active: ${activeRoutes.join(", ")}`
-                : "Not set up yet: raised tickets aren't being sent anywhere."}
+                : "Not set up yet: raised tickets aren't being sent anywhere. Open to configure."}
             </p>
           </div>
         </div>
