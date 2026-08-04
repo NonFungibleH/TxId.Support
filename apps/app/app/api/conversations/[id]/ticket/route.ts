@@ -5,6 +5,7 @@ import { getProject } from "@/lib/actions/project"
 import type { Database } from "@/lib/supabase/types"
 import type { ProjectConfig } from "@/lib/types/config"
 import { dispatchEscalation } from "@/lib/integrations/escalation"
+import { log } from "@/lib/logger"
 
 type ProjectRow = Database["public"]["Tables"]["projects"]["Row"]
 
@@ -16,7 +17,7 @@ export async function POST(
   if (!userId) return Response.json({ error: "Unauthorized" }, { status: 401 })
 
   const { project } = await getProject()
-  if (!project) return Response.json({ error: "No project" }, { status: 403 })
+  if (!project) return Response.json({ error: "No project for this account" }, { status: 403 })
   const typedProject = project as unknown as ProjectRow
 
   const supabase = createServiceClient()
@@ -28,7 +29,12 @@ export async function POST(
     .eq("project_id", typedProject.id)
     .maybeSingle()
 
-  if (!conv) return Response.json({ error: "Not found" }, { status: 404 })
+  if (!conv) {
+    return Response.json(
+      { error: "Conversation not found for this project", conversationId: params.id },
+      { status: 404 },
+    )
+  }
 
   const { data: messages } = await supabase
     .from("messages")
@@ -58,7 +64,24 @@ export async function POST(
     .select("id, ref")
     .single()
 
-  if (error) return Response.json({ error: "Failed to create ticket" }, { status: 500 })
+  if (error) {
+    // The Postgres error is the only thing that explains a failure here, and
+    // discarding it turned a one-line fix into a guessing game.
+    log.error("Ticket insert failed", error, {
+      event: "ticket.insert_failed",
+      projectId: typedProject.id,
+      conversationId: params.id,
+    })
+    return Response.json(
+      {
+        error: "Failed to create ticket",
+        detail: (error as { message?: string }).message ?? String(error),
+        code: (error as { code?: string }).code ?? null,
+        hint: (error as { hint?: string }).hint ?? null,
+      },
+      { status: 500 },
+    )
+  }
 
   // Dashboard-raised tickets fan out to integrations too (not just widget ones).
   const config = typedProject.config as unknown as ProjectConfig

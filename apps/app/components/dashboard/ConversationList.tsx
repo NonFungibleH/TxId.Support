@@ -183,6 +183,7 @@ export function ConversationList({
   const [ticketStatus, setTicketStatus] = useState<Record<string, TicketStatus>>(() =>
     Object.fromEntries(Object.keys(existingTickets).map(id => [id, "done"]))
   )
+  const [ticketErrors, setTicketErrors] = useState<Record<string, string>>({})
   const [ticketRefs, setTicketRefs] = useState<Record<string, string>>(() =>
     Object.fromEntries(Object.entries(existingTickets).map(([id, t]) => [id, t.ref]))
   )
@@ -210,14 +211,23 @@ export function ConversationList({
     setTicketStatus(prev => ({ ...prev, [convId]: "loading" }))
     try {
       const res = await fetch(`/api/conversations/${convId}/ticket`, { method: "POST" })
+      const data = await res.json().catch(() => ({}))
       if (res.ok) {
-        const data = await res.json()
         setTicketRefs(prev => ({ ...prev, [convId]: data.ref }))
         setTicketStatus(prev => ({ ...prev, [convId]: "done" }))
       } else {
+        // Show why. "Failed to create ticket" with no reason is not actionable.
+        setTicketErrors(prev => ({
+          ...prev,
+          [convId]: [data.error, data.detail, data.code].filter(Boolean).join(" · ") || `HTTP ${res.status}`,
+        }))
         setTicketStatus(prev => ({ ...prev, [convId]: "error" }))
       }
-    } catch {
+    } catch (err) {
+      setTicketErrors(prev => ({
+        ...prev,
+        [convId]: err instanceof Error ? err.message : "Request failed",
+      }))
       setTicketStatus(prev => ({ ...prev, [convId]: "error" }))
     }
   }
@@ -433,7 +443,9 @@ export function ConversationList({
                       </a>
                     </span>
                   ) : tStatus === "error" ? (
-                    <span className="text-xs text-destructive">Failed to create ticket.</span>
+                    <span className="max-w-[70%] text-right text-xs text-destructive">
+                      {ticketErrors[conv.id] ?? "Failed to create ticket."}
+                    </span>
                   ) : (
                     <button
                       onClick={() => raiseTicket(conv.id)}
