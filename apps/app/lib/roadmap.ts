@@ -78,9 +78,9 @@ export const ROADMAP: RoadmapItem[] = [
     phase: 0,
     complexity: "Low",
     effort: "~0.5 wk",
-    status: "next",
-    what: "PART DONE. messages.evidence now persists which tools ran, which lookups failed, and the prices a figure rested on, which is what powers the knowledge-vs-data split. Retrieval is still the hole: chunk scores and source_url are computed then dropped, so 'the docs did not cover this' cannot yet be told apart from 'the docs covered it badly'.",
-    depends: "Blocks: ranked gap clustering, and source citations.",
+    status: "done",
+    what: "DONE. messages.evidence.retrieval carries matched count, top score, chunks dropped by the character budget, characters sent and the pages consulted, alongside the tools and prices already recorded. Analytics gains a Documentation coverage section: what found nothing, what found only a weak match, and what the context cost. Source citations in answers are now a small step rather than a build.",
+    depends: "Unblocked: ranked gap clustering, and source citations.",
   },
 
   // ── Phase 1 - Quick wins ──────────────────────────────────────────────────
@@ -101,8 +101,8 @@ export const ROADMAP: RoadmapItem[] = [
     phase: 1,
     complexity: "Low",
     effort: "~1 day",
-    status: "next",
-    what: "There is zero disclaimer text in the widget today. Add a BrandingConfig field ('informational only, not financial advice') and render it in the widget + on escalation.",
+    status: "done",
+    what: "DONE. branding.disclaimer defaults to \"Informational only, not financial advice.\" and renders under the chat composer in both modes. Unset means the DEFAULT, not silence: a protocol must deliberately clear it, and the dashboard warns when they have. It is appended in plainBody so all six escalation integrations carry it, which matters more than the widget line: a transcript read weeks later in Jira is where an answer gets mistaken for the protocol's formal position.",
   },
   {
     id: "c-audit",
@@ -111,9 +111,9 @@ export const ROADMAP: RoadmapItem[] = [
     phase: 1,
     complexity: "Low",
     effort: "~3 days",
-    status: "soon",
-    what: "New audit_logs table + a log.audit() helper wired into server actions (config changes, key generation, ticket actions). Small build, big trust signal for serious buyers.",
-    depends: "Best after seats (needs an actor id).",
+    status: "done",
+    what: "DONE. Append-only audit_logs enforced in Postgres, recordAudit() that never fails the write it accompanies and scrubs any credential-shaped metadata key, one hook on updateConfig covering every config change plus named hooks for integrations, redeliveries and go-live. Shown on Account as Change history. Building it surfaced a live bug: the same append-only shape on case_access_log was blocking `on delete set null`, so no project with an access-log row could be deleted at all.",
+    depends: "The seats dependency was wrong: Clerk already provides an actor id. Seats will add roles without changing the column.",
   },
   {
     id: "k-autosync",
@@ -263,6 +263,10 @@ export const ROADMAP: RoadmapItem[] = [
 
 // A short record of what shipped recently, for context on the board.
 export const SHIPPED: string[] = [
+  "No-advice guardrail on every surface, with no way to switch it off",
+  "Widget disclaimer, default on, carried onto every escalation",
+  "Append-only audit log of configuration changes, with who made them",
+  "Retrieval evidence: what the docs search returned, and what it cost",
   "Aptos: Move-native diagnosis, abort decoding, Petra/Martian, .apt names",
   "Decibel protocol adapter: positions, liquidation risk, funding, withdrawals",
   "Sub accounts: both addresses shown on connect, labelled, in full",
@@ -405,6 +409,18 @@ export const HOWARD_TODO: TodoItem[] = [
       "Either: tell me to delete it (my recommendation, the live docs are at txid.support/docs and now linked from the dashboard footer).",
       "Or: point the domain at it, and it needs a content pass to catch up.",
     ],
+  },
+  {
+    id: "t-sql-audit",
+    title: "Run the updated SQL, it fixes a live bug",
+    urgency: "now",
+    why: "Two things. It adds the audit_logs table so configuration changes start being recorded. More urgently it fixes a bug already in production: deleting a project fails outright for any project that has ever been viewed or exported, because the append-only guard on case_access_log blocks the referential nulling Postgres uses. That means GDPR project erasure and demo cleanup are currently broken.",
+    steps: [
+      "Open the Supabase SQL editor.",
+      "Paste the whole of supabase/RUN_IN_SQL_EDITOR.sql and run it.",
+      "It is safe to re-run: verified three times against a local reproduction.",
+    ],
+    expect: "\"Success. No rows returned\". Afterwards, deleting a demo from /admin/demos should work, and Account > Change history should start filling up from your next settings change.",
   },
   {
     id: "t-aptos-pdfs",
