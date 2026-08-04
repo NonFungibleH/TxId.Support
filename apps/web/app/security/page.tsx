@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import {
   ShieldCheck, ScanSearch, Archive, ArrowRight, KeyRound, Eye,
-  BadgeCheck, PenLine, Database, Milestone, Check,
+  BadgeCheck, PenLine, Database, Milestone, Check, Scale,
 } from "lucide-react";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
@@ -197,6 +197,45 @@ export default function SecurityPage() {
             </FadeIn>
 
             <FadeIn delay={0.12}>
+              <div className="h-full rounded-2xl border border-[var(--border)] bg-[var(--bg-surface)] p-8">
+                <div className="w-10 h-10 rounded-lg bg-accent-muted flex items-center justify-center mb-4">
+                  <Scale className="w-5 h-5 text-accent" />
+                </div>
+                <p className="font-mono text-[11px] uppercase tracking-widest text-accent mb-2">
+                  Not an adviser
+                </p>
+                <h2 className="font-display text-xl font-bold text-white mb-4">
+                  It will not tell your users what to do with their money
+                </h2>
+                <p className="text-sm text-muted leading-relaxed mb-4">
+                  Telling a user to buy, sell, hold or close is regulated advice, and a support
+                  agent giving it becomes your problem, not ours. So the assistant declines it,
+                  in one sentence, and then gives the facts that let the user decide.
+                </p>
+                <p className="text-sm text-muted mb-3">Always refused, on every plan:</p>
+                <ul className="space-y-2.5">
+                  {[
+                    "Buy, sell, hold, close, or position sizing",
+                    "Price predictions, targets, or forecasts",
+                    "Whether something is a good investment",
+                    "Tax treatment, and legal or jurisdictional eligibility",
+                    "The same question asked as an opinion, or hypothetically",
+                  ].map((t) => (
+                    <li key={t} className="flex items-start gap-2.5 text-sm text-muted">
+                      <Check className="w-4 h-4 shrink-0 mt-0.5 text-accent" />
+                      <span>{t}</span>
+                    </li>
+                  ))}
+                </ul>
+                <p className="mt-5 text-sm text-[#c8c8d8] leading-relaxed border-l-2 border-accent/50 pl-4">
+                  There is no setting that turns this off. Conversations where a user asked for
+                  advice are labelled in your dashboard, so you can show how often it came up and
+                  that it was declined every time.
+                </p>
+              </div>
+            </FadeIn>
+
+            <FadeIn delay={0.15}>
               <div className="h-full rounded-2xl border border-[var(--border)] bg-[var(--bg-surface)] p-8">
                 <div className="w-10 h-10 rounded-lg bg-accent-muted flex items-center justify-center mb-4">
                   <PenLine className="w-5 h-5 text-accent" />

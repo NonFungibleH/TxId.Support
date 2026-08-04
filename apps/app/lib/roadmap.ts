@@ -91,8 +91,8 @@ export const ROADMAP: RoadmapItem[] = [
     phase: 1,
     complexity: "Low",
     effort: "~2 days",
-    status: "next",
-    what: "The prompt has scope guards but no financial/legal-advice refusal. Add a policy block (refuse buy/sell, price predictions, tax/legal) + a config toggle. Cheap, and it protects the protocols that deploy the bot.",
+    status: "done",
+    what: "DONE. An unconditional policy block in buildUniversalRules, so it reaches support mode, token mode, the widget, Telegram and the API alike. Refuses buy/sell/hold/sizing, price predictions, good-investment judgements, tax and legal, and the same questions asked as an opinion or hypothetically, then hands over the facts instead. Deliberately NOT configurable: a protocol cannot switch off the rule that protects it. Conversations that asked for advice are labelled advice-request so the volume is visible.",
   },
   {
     id: "c-disclaimer",

@@ -156,6 +156,8 @@ export const DOCS: Doc[] = [
       { type: "h2", text: "Trust and safety" },
       { type: "features", items: [
         { feature: "Read-only", detail: "No keys, no signing, no custody. Nothing can move funds.", status: "available" },
+        { feature: "No financial advice", detail: "Refuses buy/sell/hold, price predictions, tax and legal questions on every plan, then gives the facts instead. Not switchable.", status: "available" },
+        { feature: "Advice requests labelled", detail: "Conversations where a user asked for advice are categorised, so you can show how often it came up.", status: "available" },
         { feature: "Sanctions screening", detail: "On request, against the on-chain oracle, with the source cited. EVM only.", status: "available" },
         { feature: "Audit references", detail: "Your audits surfaced when users ask about security.", status: "available" },
         { feature: "Abuse protection", detail: "Invisible Turnstile and per-IP rate limits on public surfaces.", status: "available" },

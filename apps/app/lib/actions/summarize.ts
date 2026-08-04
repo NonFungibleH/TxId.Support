@@ -8,7 +8,10 @@ import { completeChatWithUsage } from "@txid/ai"
 // Conversations page is scannable. Generated lazily and capped per call -
 // no cron. Model cost is recorded to token_usage like every other AI turn.
 
-export const CONV_CATEGORIES = ["failed-tx", "how-to", "bug-report", "feature-request", "account", "other"] as const
+// "advice-request" earns its place: the assistant is forbidden from giving
+// investment, tax or legal advice, and a protocol under scrutiny needs to be
+// able to show how often users asked for it and that it declined every time.
+export const CONV_CATEGORIES = ["failed-tx", "how-to", "bug-report", "feature-request", "account", "advice-request", "other"] as const
 export type ConvCategory = (typeof CONV_CATEGORIES)[number]
 const SENTIMENTS = ["positive", "neutral", "negative"] as const
 type Sentiment = (typeof SENTIMENTS)[number]
@@ -22,7 +25,8 @@ export interface ConvSummary {
 
 const SYSTEM = `You label a single support conversation for a DeFi protocol's team dashboard. Reply ONLY with minified JSON: {"summary": string, "category": string, "sentiment": string}.
 - summary: one plain-English sentence (max 140 chars) of what the user needed and whether it was resolved. No preamble.
-- category: exactly one of failed-tx, how-to, bug-report, feature-request, account, other.
+- category: exactly one of failed-tx, how-to, bug-report, feature-request, account, advice-request, other.
+- use advice-request when the user asked what to DO with their money (buy, sell, hold, close, size a position, whether something is a good investment, where a price is going, tax or legal treatment), whether or not the assistant declined. Label what the USER asked for, not what the assistant answered.
 - sentiment: exactly one of positive, neutral, negative (the user's apparent mood by the end).
 No markdown, no extra keys.`
 
