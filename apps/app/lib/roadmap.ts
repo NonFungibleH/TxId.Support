@@ -5,7 +5,9 @@
 
 export type RoadmapArea = "foundation" | "knowledge" | "handoff" | "compliance"
 export type Complexity = "Low" | "Medium" | "High" | "Very High"
-export type DefaultStatus = "next" | "soon" | "later" | "deferred"
+// Mirrors the board's own status list, so an item that has shipped can say so
+// in the data rather than only in one admin's browser storage.
+export type DefaultStatus = "next" | "in-progress" | "soon" | "later" | "done" | "deferred"
 
 export interface RoadmapItem {
   id: string
@@ -42,7 +44,7 @@ export const FRAMING = {
   vision:
     "Shift from a reactive support widget (problem → answer) to a trustworthy knowledge-and-records layer: prevent tickets, resolve them well when they happen, and turn every interaction into product intelligence.",
   constraint:
-    "Guardrail: INFORM, don't act or advise. No on-chain actions (no signing/simulation/revoke), and no regulated advice (no buy/sell, price, tax, or legal). Reading the chain to diagnose a past transaction is fine - that's factual and read-only.",
+    "Guardrail: INFORM, don't advise. No regulated advice (no buy/sell, price predictions, tax, or legal). Reading the chain to diagnose a past transaction is fine, that's factual and read-only. Actions since shipped and narrow the rule rather than break it: TxID never holds keys or signs, only prepares a transaction the user explicitly asked for and signs in their own wallet, and is forbidden from proposing or recommending one.",
 }
 
 export const ROADMAP: RoadmapItem[] = [
@@ -65,9 +67,9 @@ export const ROADMAP: RoadmapItem[] = [
     phase: 0,
     complexity: "Low",
     effort: "~0.5 wk",
-    status: "next",
-    what: "The indexing_jobs table exists but has no runner and there are zero Vercel crons. Add a Vercel Cron → job route so scheduled work is reliable off the request path.",
-    depends: "Blocks: knowledge auto-sync, compliance retention purge.",
+    status: "done",
+    what: "DONE. apps/app/vercel.json runs /api/cron/escalation-retry every 10 minutes, authorised by Vercel's cron header or CRON_SECRET. Adding another scheduled job is now a route plus a line of config.",
+    depends: "Unblocked: knowledge auto-sync, compliance retention purge.",
   },
   {
     id: "f-logging",
@@ -77,8 +79,8 @@ export const ROADMAP: RoadmapItem[] = [
     complexity: "Low",
     effort: "~0.5 wk",
     status: "next",
-    what: "Retrieval scores are computed then thrown away. Persist the top-chunk sources + score + a 'no-match' flag onto each answer. The 👍/👎 feedback is already collecting.",
-    depends: "Blocks: knowledge gap detection.",
+    what: "PART DONE. messages.evidence now persists which tools ran, which lookups failed, and the prices a figure rested on, which is what powers the knowledge-vs-data split. Retrieval is still the hole: chunk scores and source_url are computed then dropped, so 'the docs did not cover this' cannot yet be told apart from 'the docs covered it badly'.",
+    depends: "Blocks: ranked gap clustering, and source citations.",
   },
 
   // ── Phase 1 - Quick wins ──────────────────────────────────────────────────
@@ -121,8 +123,8 @@ export const ROADMAP: RoadmapItem[] = [
     complexity: "Low",
     effort: "~1 wk",
     status: "soon",
-    what: "The crawler + source_url re-sync already exist and are manually triggered. Put crawlAndIngest on a schedule + track last-synced per source so the bot never goes stale.",
-    depends: "Needs the cron runner (Phase 0).",
+    what: "The crawler + source_url re-sync already exist and are manually triggered. Put crawlAndIngest on a schedule + track last-synced per source so the bot never goes stale. The obvious next use of the cron runner.",
+    depends: "Cron runner is built, so this is unblocked.",
   },
 
   // ── Phase 2 - Flywheel ────────────────────────────────────────────────────
@@ -133,9 +135,9 @@ export const ROADMAP: RoadmapItem[] = [
     phase: 2,
     complexity: "Medium",
     effort: "~1.5 wk",
-    status: "soon",
-    what: "Cluster low-score / escalated / 👎'd questions into a ranked 'your users keep asking this and you haven't documented it' list. This is the flywheel: the product tells the protocol where its docs/UX fail.",
-    depends: "Needs per-message signal logging (Phase 0).",
+    status: "in-progress",
+    what: "PART DONE. The gaps view ships on Analytics with four buckets (never answered, marked unhelpful, escalated, left unhappy without escalating) and splits knowledge gaps from data gaps using failedLookups, because those have different owners. What is missing is the clustering: it lists conversations, not a ranked 'your users keep asking this' by question.",
+    depends: "Ranking by question needs retrieval scores (Phase 0 logging).",
   },
   {
     id: "k-citations",
@@ -220,8 +222,8 @@ export const ROADMAP: RoadmapItem[] = [
     complexity: "Medium",
     effort: "~1.5-2 wk",
     status: "soon",
-    what: "The privacy policy states 12-month retention but nothing enforces it (a real liability). Add a scheduled purge + delete-on-request + export endpoints.",
-    depends: "Retention purge needs the cron runner (Phase 0).",
+    what: "PART DONE. Erasure and export exist: erase_conversation() and admin_erase_project() leave tombstones, /api/conversations/export carries the evidence and logs itself as a disclosure, and case_access_log records every view, export and erasure. What is missing is the automatic side: the privacy policy states 12-month retention and nothing enforces it, and retention is not configurable per project.",
+    depends: "Cron runner is built, so the scheduled purge is unblocked.",
   },
   {
     id: "c-access",
@@ -261,12 +263,22 @@ export const ROADMAP: RoadmapItem[] = [
 
 // A short record of what shipped recently, for context on the board.
 export const SHIPPED: string[] = [
+  "Aptos: Move-native diagnosis, abort decoding, Petra/Martian, .apt names",
+  "Decibel protocol adapter: positions, liquidation risk, funding, withdrawals",
+  "Sub accounts: both addresses shown on connect, labelled, in full",
+  "The case record: chain state, prices, failed lookups and answer hash per answer",
+  "Append-only records enforced in Postgres, with an access log and recorded erasure",
+  "Case export carrying ledger version, country, model and answer hash",
+  "Gaps view: never answered, unhelpful, escalated, silently unhappy, split by owner",
+  "Escalation integrations: Slack, Discord, Telegram, Linear, GitHub, Jira",
+  "Escalation retry worker, so a failed delivery is never silently lost",
+  "Conversation summaries, categories and sentiment",
+  "Actions: user-signed swaps and allowlisted contract calls, off by default",
+  "Credential encryption (AES-256-GCM) for stored integration secrets",
+  "Telegram bot with the full on-chain toolset",
+  "Demo creator: per-prospect themed demos, bookmarklet and share page",
   "👍/👎 answer feedback + live Satisfaction metric",
   "One-tap 'switch network' when the wallet is on the wrong chain",
   "Live REST API: POST /api/v1/diagnose (secret-key auth)",
   "Per-chain landing pages + interactive demos (/chains)",
-  "Docs / Knowledge Base content block (widget + bot)",
-  "Token is AI-only by default; show-in-widget moved to Content",
-  "10-message cap with graceful escalation handoff",
-  "diagnose_wallet tool (wrong network, no gas, stuck nonce)",
 ]
