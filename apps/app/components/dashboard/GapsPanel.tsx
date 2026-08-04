@@ -1,6 +1,6 @@
 import Link from "next/link"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { ThumbsDown, Ticket, CloudOff, HeartCrack } from "lucide-react"
+import { ThumbsDown, Ticket, CloudOff, HeartCrack, MessageSquareOff } from "lucide-react"
 import type { GapsReport, GapItem } from "@/lib/gaps"
 
 function GapList({ items, empty }: { items: GapItem[]; empty: string }) {
@@ -48,11 +48,20 @@ export function GapsPanel({ report, days }: { report: GapsReport; days: number }
         <CardTitle className="text-base">Where it fell short</CardTitle>
         <p className="text-xs text-muted-foreground">
           {totals.withProblems} of {totals.conversations} conversations in the last {days} days
-          needed attention ({pct}%). Knowledge gaps are yours to fix; data gaps are ours.
+          needed attention ({pct}%). Never answered means no reply was generated at all,
+          which is ours. Knowledge gaps are yours; data gaps are ours.
         </p>
       </CardHeader>
       <CardContent className="space-y-6">
-        <div className="grid gap-5 md:grid-cols-3">
+        <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">
+          <div className="space-y-2.5">
+            <div className="flex items-center gap-2">
+              <MessageSquareOff className="size-3.5 text-red-600" />
+              <p className="text-xs font-semibold">Never answered</p>
+            </div>
+            <GapList items={report.unanswered} empty="Every question got a reply." />
+          </div>
+
           <div className="space-y-2.5">
             <div className="flex items-center gap-2">
               <ThumbsDown className="size-3.5 text-amber-600" />

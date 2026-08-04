@@ -33,6 +33,18 @@ function getGroqClient(): OpenAI {
 
 // ── Stream event types ───────────────────────────────────────────────────────
 
+/**
+ * How much text to hold back before deciding it is an answer, not narration.
+ * Pre-tool narration is a sentence or two ("Let me list the functions."), so
+ * anything longer is real content and should stream rather than wait.
+ */
+const NARRATION_CHARS = 200
+
+/** Keep a paragraph break between text from separate tool-loop rounds. */
+function separate(text: string, alreadyEmitted: boolean): string {
+  return alreadyEmitted ? `\n\n${text.replace(/^\s+/, "")}` : text
+}
+
 export type StreamEvent =
   // Compact facts about what the investigation actually read: which tools ran,
   // which lookups failed, and the prices the answer rested on. Consumed by the
@@ -407,6 +419,18 @@ export async function* streamChatWithTools(
     let hasToolCalls = false
     const emittedToolIds = new Set<string>()
 
+    // Text written immediately before a tool call is the model thinking aloud
+    // ("I need to look up the fee structure. Let me list the functions."). The
+    // widget already shows a live label for every tool call, so that narration
+    // is a second, worse status line, and consecutive rounds run together with
+    // no paragraph break. Hold text back until either a tool call proves it was
+    // narration (drop it) or the round ends without one (it was the answer).
+    //
+    // The cap exists so a long final answer still streams: narration is a
+    // sentence or two, so anything past it is real content and flushes live.
+    let pending = ""
+    let flushed = false
+
     for await (const event of stream) {
       if (
         event.type === "content_block_start" &&
@@ -415,14 +439,29 @@ export async function* streamChatWithTools(
       ) {
         emittedToolIds.add(event.content_block.id)
         hasToolCalls = true
+        pending = ""
         yield { type: "tool_call", tool: event.content_block.name }
       } else if (
         event.type === "content_block_delta" &&
         event.delta.type === "text_delta"
       ) {
-        anyTextThisTurn = true
-        yield { type: "text", text: event.delta.text }
+        if (flushed) {
+          yield { type: "text", text: event.delta.text }
+          continue
+        }
+        pending += event.delta.text
+        if (pending.length > NARRATION_CHARS) {
+          flushed = true
+          yield { type: "text", text: separate(pending, anyTextThisTurn) }
+          anyTextThisTurn = true
+          pending = ""
+        }
       }
+    }
+
+    if (pending && !hasToolCalls) {
+      yield { type: "text", text: separate(pending, anyTextThisTurn) }
+      anyTextThisTurn = true
     }
 
     // Token usage for this round (the SDK accumulated the full message during

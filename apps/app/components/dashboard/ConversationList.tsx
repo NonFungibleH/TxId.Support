@@ -277,8 +277,19 @@ export function ConversationList({
         const hasNegative = conv.messages.some((m) => m.feedback === -1)
         const chainName = conv.chain_id ? (CHAIN_NAMES[conv.chain_id] ?? `Chain ${conv.chain_id}`) : null
 
+        // A conversation whose LAST message is the user's is not one the user
+        // wandered away from: persistMessages writes the question and the answer
+        // together, so a user-final conversation is one where the answer never
+        // generated. That is our failure, and calling it "dropped off" both
+        // blamed the user and hid it from the gaps view.
+        //
+        // The exception is a conversation still in flight, where the answer is
+        // simply not written yet, so recent ones are left unlabelled.
         const lastMsg = conv.messages[conv.messages.length - 1]
-        const outcome = lastMsg?.role === "user" ? "dropped" : "ended"
+        const ageMs = lastMsg?.created_at ? Date.now() - new Date(lastMsg.created_at).getTime() : Infinity
+        const stillLive = ageMs < 2 * 60_000
+        const outcome =
+          lastMsg?.role === "user" ? (stillLive ? "in_progress" : "unanswered") : "answered"
 
         const tStatus = ticketStatus[conv.id] ?? "idle"
         const tRef = ticketRefs[conv.id]
@@ -317,9 +328,28 @@ export function ConversationList({
                       {chainName}
                     </span>
                   )}
-                  {outcome === "dropped" && (
-                    <Badge className="text-[10px] px-1.5 py-0.5 leading-none shrink-0 bg-amber-500/10 text-amber-400 border-amber-500/20">
-                      Dropped off
+                  {outcome === "unanswered" && (
+                    <Badge
+                      title="The user asked something and no answer was generated. This is a failure on our side, not the user leaving."
+                      className="text-[10px] px-1.5 py-0.5 leading-none shrink-0 bg-red-500/10 text-red-400 border-red-500/20"
+                    >
+                      No answer given
+                    </Badge>
+                  )}
+                  {outcome === "in_progress" && (
+                    <Badge
+                      title="The last message is very recent, so a reply may still be generating."
+                      className="text-[10px] px-1.5 py-0.5 leading-none shrink-0 bg-muted text-muted-foreground border-border"
+                    >
+                      In progress
+                    </Badge>
+                  )}
+                  {outcome === "answered" && tRef && (
+                    <Badge
+                      title="Answered, then handed to a human."
+                      className="text-[10px] px-1.5 py-0.5 leading-none shrink-0 bg-indigo-500/10 text-indigo-400 border-indigo-500/20"
+                    >
+                      Escalated
                     </Badge>
                   )}
                   {hasNegative && (

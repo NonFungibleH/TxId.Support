@@ -10,6 +10,11 @@ import { createServiceClient } from "@/lib/supabase/server"
  * message evidence, so the split is available here and nowhere else.
  */
 export interface GapsReport {
+  /**
+   * Asked, and never answered. The strongest failure signal there is, and the
+   * only one where the user gave up because nothing came back at all.
+   */
+  unanswered: GapItem[]
   /** Users who explicitly said the answer was wrong. */
   thumbsDown: GapItem[]
   /** Handed to a human, so the engine could not finish. */
@@ -46,7 +51,7 @@ export async function buildGapsReport(projectId: string, days = 30): Promise<Gap
   since.setDate(since.getDate() - days)
 
   const empty: GapsReport = {
-    thumbsDown: [], escalated: [], silentlyUnhappy: [], dataGaps: [], byCategory: [],
+    unanswered: [], thumbsDown: [], escalated: [], silentlyUnhappy: [], dataGaps: [], byCategory: [],
     totals: { conversations: 0, withProblems: 0 },
   }
 
@@ -72,12 +77,12 @@ export async function buildGapsReport(projectId: string, days = 30): Promise<Gap
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (supabase as any)
       .from("messages")
-      .select("conversation_id, feedback, evidence")
+      .select("conversation_id, feedback, role, created_at, evidence")
       .in("conversation_id", convIds)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .then((res: any) =>
         res.error
-          ? supabase.from("messages").select("conversation_id, feedback").in("conversation_id", convIds)
+          ? supabase.from("messages").select("conversation_id, feedback, role, created_at").in("conversation_id", convIds)
           : res,
       ),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -94,11 +99,17 @@ export async function buildGapsReport(projectId: string, days = 30): Promise<Gap
     }
   }
 
+    // Last message per conversation, to find the ones that never got a reply.
+  const lastRole = new Map<string, { role: string; at: string }>()
   const thumbsDownIds = new Set<string>()
   const failureCounts = new Map<string, number>()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   for (const m of (messagesRes?.data ?? []) as any[]) {
     if (m.feedback === -1) thumbsDownIds.add(m.conversation_id)
+    const seen = lastRole.get(m.conversation_id)
+    if (!seen || (m.created_at && m.created_at > seen.at)) {
+      lastRole.set(m.conversation_id, { role: m.role, at: m.created_at ?? "" })
+    }
     const failed = m.evidence?.investigation?.failedLookups
     if (Array.isArray(failed)) {
       for (const f of failed) {
@@ -114,12 +125,23 @@ export async function buildGapsReport(projectId: string, days = 30): Promise<Gap
     ((ticketsRes?.data ?? []) as any[]).map(t => t.conversation_id).filter(Boolean),
   )
 
+  // Anything whose final message is the user's, and old enough that a reply is
+  // not simply still streaming.
+  const twoMinutesAgo = Date.now() - 2 * 60_000
+  const unansweredIds = convs
+    .filter(c => {
+      const last = lastRole.get(c.id)
+      if (!last || last.role !== "user") return false
+      return !last.at || new Date(last.at).getTime() < twoMinutesAgo
+    })
+    .map(c => c.id)
+
   const silentIds = convs
     .filter(c => c.sentiment && NEGATIVE_SENTIMENT.has(c.sentiment.toLowerCase()))
     .filter(c => !escalatedIds.has(c.id) && !thumbsDownIds.has(c.id))
     .map(c => c.id)
 
-  const problemIds = new Set<string>([...thumbsDownIds, ...escalatedIds, ...silentIds])
+  const problemIds = new Set<string>([...unansweredIds, ...thumbsDownIds, ...escalatedIds, ...silentIds])
 
   const categoryCounts = new Map<string, number>()
   for (const id of problemIds) {
@@ -128,6 +150,7 @@ export async function buildGapsReport(projectId: string, days = 30): Promise<Gap
   }
 
   return {
+    unanswered: unansweredIds.slice(0, 10).map(toItem),
     thumbsDown: Array.from(thumbsDownIds).slice(0, 10).map(toItem),
     escalated: Array.from(escalatedIds).filter(id => byId.has(id)).slice(0, 10).map(toItem),
     silentlyUnhappy: silentIds.slice(0, 10).map(toItem),
