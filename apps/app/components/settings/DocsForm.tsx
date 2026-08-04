@@ -4,7 +4,6 @@ import { useState, useTransition, useEffect, useRef } from "react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
 import {
   Loader2, CheckCircle2, Trash2, Plus, Globe, FileText,
   AlertTriangle, RefreshCw, X, Layers, ChevronDown,
@@ -60,6 +59,9 @@ export function DocsForm({ projectId, docCount, pastedChunkCount, pastedLastInde
   const [totalChunks, setTotalChunks] = useState(docCount)
   const [sources, setSources] = useState<Source[]>(initialSources)
   const [pastedCount, setPastedCount] = useState(pastedChunkCount)
+  // Distinct pages, which is the number a team can sanity-check against their
+  // own docs site. Chunk counts cannot be reasoned about.
+  const pageCount = sources.length + pastedCount
   const [isPending, startTransition] = useTransition()
   const [refreshingUrl, setRefreshingUrl] = useState<string | null>(null)
   const [deletingUrl, setDeletingUrl] = useState<string | null>(null)
@@ -113,7 +115,7 @@ export function DocsForm({ projectId, docCount, pastedChunkCount, pastedLastInde
         const result = await crawlAndIngest(projectId, targetUrl)
         if (result.ok) {
           const discovered = (result as { discovered?: number }).discovered
-          const msg = `Crawled ${result.pagesIndexed} pages, indexed ${result.chunksInserted} chunks${discovered ? ` (found ${discovered} total)` : ""}`
+          const msg = `Indexed ${result.pagesIndexed} page${result.pagesIndexed !== 1 ? "s" : ""} into ${result.chunksInserted} searchable section${result.chunksInserted !== 1 ? "s" : ""}${discovered ? ` (${discovered} pages found in total)` : ""}`
           setCrawlStatus(msg)
           toast.success(msg)
           // Refresh page to show updated source list
@@ -139,7 +141,7 @@ export function DocsForm({ projectId, docCount, pastedChunkCount, pastedLastInde
       try {
         const result = await fetchAndIngest(projectId, targetUrl)
         if (result.ok && result.chunksInserted) {
-          toast.success(`Indexed ${result.chunksInserted} chunks from ${targetUrl}`)
+          toast.success(`Indexed ${targetUrl} into ${result.chunksInserted} searchable section${result.chunksInserted !== 1 ? "s" : ""}`)
           const now = new Date().toISOString()
           setSources(prev => {
             const exists = prev.find(s => s.url === targetUrl)
@@ -163,7 +165,7 @@ export function DocsForm({ projectId, docCount, pastedChunkCount, pastedLastInde
       try {
         const result = await fetchAndIngest(projectId, sourceUrl)
         if (result.ok && result.chunksInserted != null) {
-          toast.success(`Re-indexed ${result.chunksInserted} chunks`)
+          toast.success(`Re-indexed into ${result.chunksInserted} searchable section${result.chunksInserted !== 1 ? "s" : ""}`)
           const now = new Date().toISOString()
           setSources(prev =>
             prev.map(s => s.url === sourceUrl ? { ...s, count: result.chunksInserted!, lastIndexedAt: now } : s),
@@ -210,7 +212,7 @@ export function DocsForm({ projectId, docCount, pastedChunkCount, pastedLastInde
     startTransition(async () => {
       const result = await ingestText(projectId, pasteContent, pasteUrl.trim() || undefined)
       if (result.ok && result.chunksInserted) {
-        toast.success(`Indexed ${result.chunksInserted} chunks`)
+        toast.success(`Indexed into ${result.chunksInserted} searchable section${result.chunksInserted !== 1 ? "s" : ""}`)
         if (pasteUrl.trim()) {
           const now = new Date().toISOString()
           setSources(prev => {
@@ -248,22 +250,52 @@ export function DocsForm({ projectId, docCount, pastedChunkCount, pastedLastInde
   return (
     <div className="space-y-6">
       {/* Status */}
-      <div className="flex items-center gap-3">
-        <span className="text-sm text-muted-foreground">Knowledge base:</span>
-        <Badge variant={totalChunks > 0 ? "default" : "secondary"}>
-          {totalChunks} chunk{totalChunks !== 1 ? "s" : ""} indexed
-        </Badge>
-        {totalChunks > 0 && (
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-7 gap-1 text-xs text-destructive hover:text-destructive"
-            onClick={clearAll}
-            disabled={isPending}
-          >
-            <Trash2 className="size-3" />
-            Clear all
-          </Button>
+      <div className="rounded-lg border border-border bg-muted/30 px-4 py-3">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            {totalChunks > 0 ? (
+              <>
+                <p className="text-sm font-medium">
+                  {pageCount > 0
+                    ? `${pageCount} page${pageCount !== 1 ? "s" : ""} indexed, in ${totalChunks} searchable section${totalChunks !== 1 ? "s" : ""}`
+                    : `${totalChunks} searchable section${totalChunks !== 1 ? "s" : ""} indexed`}
+                </p>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  Long pages are split into sections so the AI can quote the relevant part
+                  rather than the whole page.
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="text-sm font-medium">Nothing indexed yet</p>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  Until you add documentation, the AI can read the chain but cannot answer
+                  questions about how your protocol works.
+                </p>
+              </>
+            )}
+          </div>
+          {totalChunks > 0 && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 gap-1 shrink-0 text-xs text-destructive hover:text-destructive"
+              onClick={clearAll}
+              disabled={isPending}
+            >
+              <Trash2 className="size-3" />
+              Clear all
+            </Button>
+          )}
+        </div>
+
+        {/* Coverage, not just volume: a handful of pages answers a handful of
+            questions, and the team cannot tell that from a chunk count. */}
+        {pageCount > 0 && pageCount < 10 && (
+          <p className="mt-2.5 border-t border-border pt-2.5 text-xs text-amber-600">
+            Thin coverage. Around 10 to 20 pages is usually the point where the AI stops
+            saying it does not know.
+          </p>
         )}
       </div>
 
@@ -335,7 +367,7 @@ export function DocsForm({ projectId, docCount, pastedChunkCount, pastedLastInde
                       </span>
                     )}
                     <span className="text-[11px] text-muted-foreground shrink-0 tabular-nums">
-                      {group.sources.length} pages · {group.totalChunks} chunks
+                      {group.sources.length} pages · {group.totalChunks} sections
                     </span>
                     <ChevronDown className={`size-3.5 text-muted-foreground shrink-0 transition-transform duration-150 ${isOpen ? "rotate-180" : ""}`} />
                   </button>
