@@ -17,6 +17,11 @@ create index if not exists token_usage_project_id_idx on public.token_usage(proj
 create index if not exists token_usage_created_at_idx  on public.token_usage(created_at desc);
 
 -- Per-project token totals (all-time + current UTC month) for the admin table.
+-- Drop first: 20260729000001 later widens this function's return type, and on
+-- a re-run the narrow definition here cannot replace the wide one. CREATE OR
+-- REPLACE can never change OUT parameters in either direction.
+drop function if exists admin_token_usage();
+
 create or replace function admin_token_usage()
 returns table (
   project_id     uuid,

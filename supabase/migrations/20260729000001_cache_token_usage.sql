@@ -44,6 +44,12 @@ $$;
 -- input_all / input_month keep their existing meaning (uncached input) so the
 -- admin table's columns don't silently change definition; the cache buckets are
 -- returned alongside for an accurate cost line.
+-- This widens the return type (adds the cache columns), and CREATE OR REPLACE
+-- cannot change a function's OUT parameters. Without the drop, this migration
+-- fails on any database that already has the earlier definition from
+-- 20260706000003, which is every database that ran migrations in order.
+drop function if exists admin_token_usage();
+
 create or replace function admin_token_usage()
 returns table (
   project_id          uuid,

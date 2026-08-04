@@ -17,9 +17,17 @@ create index if not exists webhook_logs_fired_at_idx   on public.webhook_logs(fi
 -- Service-role only (same pattern as tickets)
 alter table public.webhook_logs enable row level security;
 
-create policy "Service role full access on webhook_logs"
-  on public.webhook_logs
-  for all
+-- CREATE POLICY has no IF NOT EXISTS, so guard it: this migration must be
+-- safe to re-run against a database that already has the policy.
+do $policy$ begin
+  if not exists (
+    select 1 from pg_policies
+    where schemaname = 'public' and tablename = 'webhook_logs'
+      and policyname = 'Service role full access on webhook_logs'
+  ) then
+    create policy "Service role full access on webhook_logs" on public.webhook_logs for all
   to service_role
   using (true)
   with check (true);
+  end if;
+end $policy$;

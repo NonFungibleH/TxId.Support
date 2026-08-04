@@ -1,11 +1,132 @@
 -- ============================================================
--- PASTE INTO THE SUPABASE SQL EDITOR
+-- TxID: bring this database up to date with the repo
 --
--- Safe to run more than once: every statement is idempotent
--- (if not exists / or replace). Run the whole file in one go.
+-- Tested against a Postgres reproduction of this database's exact
+-- current state. Run three times, clean every time.
 --
--- Covers the migrations that may not have been applied yet.
+-- Excluded on purpose: initial schema, RLS policies, tickets table.
+-- Already applied, and they contain bare CREATE statements that
+-- would error on a second run.
+--
+-- Creates: webhook_logs, token_usage, action_events,
+-- case_access_log, escalation_deliveries.
 -- ============================================================
+
+
+-- ─────────────────────────────────────────────────────────
+-- 20260628000001_webhook_logs
+-- ─────────────────────────────────────────────────────────
+-- Webhook delivery log — records every outbound webhook attempt for a ticket
+create table if not exists public.webhook_logs (
+  id            uuid         primary key default gen_random_uuid(),
+  project_id    uuid         not null references public.projects(id) on delete cascade,
+  ticket_ref    text         not null,
+  webhook_url   text         not null,
+  status_code   int,
+  success       boolean      not null default false,
+  error_message text,
+  duration_ms   int,
+  fired_at      timestamptz  not null default now()
+);
+
+create index if not exists webhook_logs_project_id_idx on public.webhook_logs(project_id);
+create index if not exists webhook_logs_fired_at_idx   on public.webhook_logs(fired_at desc);
+
+-- Service-role only (same pattern as tickets)
+alter table public.webhook_logs enable row level security;
+
+-- CREATE POLICY has no IF NOT EXISTS, so guard it: this migration must be
+-- safe to re-run against a database that already has the policy.
+do $policy$ begin
+  if not exists (
+    select 1 from pg_policies
+    where schemaname = 'public' and tablename = 'webhook_logs'
+      and policyname = 'Service role full access on webhook_logs'
+  ) then
+    create policy "Service role full access on webhook_logs" on public.webhook_logs for all
+  to service_role
+  using (true)
+  with check (true);
+  end if;
+end $policy$;
+
+
+-- ─────────────────────────────────────────────────────────
+-- 20260629000001_conversations_session_id_unique
+-- ─────────────────────────────────────────────────────────
+-- Fix: conversations.session_id must be UNIQUE for the upsert ON CONFLICT
+-- clause in persistMessages() to resolve correctly. Without this constraint
+-- the upsert throws a PostgreSQL error that was being silently caught.
+do $guard$ begin
+  if not exists (select 1 from pg_constraint where conname = 'conversations_session_id_key') then
+    alter table conversations add constraint conversations_session_id_key UNIQUE (session_id);
+  end if;
+end $guard$;
+
+
+-- ─────────────────────────────────────────────────────────
+-- 20260701000001_stripe_admin
+-- ─────────────────────────────────────────────────────────
+-- ============================================
+-- STRIPE BILLING COLUMNS (pre-wired for Stripe integration)
+-- ============================================
+alter table organisations
+  add column if not exists stripe_customer_id      text unique,
+  add column if not exists stripe_subscription_id  text unique,
+  add column if not exists stripe_subscription_status text
+    check (stripe_subscription_status in ('active', 'past_due', 'canceled', 'trialing', 'incomplete'));
+
+-- ============================================
+-- ADMIN STATS FUNCTION
+-- Returns per-project usage rollup for the admin dashboard.
+-- SECURITY DEFINER so it can be called via service-role client.
+-- ============================================
+create or replace function admin_project_stats()
+returns table (
+  project_id           uuid,
+  org_id               uuid,
+  org_name             text,
+  clerk_org_id         text,
+  stripe_customer_id   text,
+  stripe_sub_status    text,
+  project_name         text,
+  is_active            boolean,
+  mode                 text,
+  plan                 text,
+  org_created_at       timestamptz,
+  project_created_at   timestamptz,
+  conv_count_total     bigint,
+  conv_count_month     bigint,
+  message_count        bigint,
+  doc_count            bigint
+) as $$
+begin
+  return query
+  select
+    p.id                                           as project_id,
+    o.id                                           as org_id,
+    o.name                                         as org_name,
+    o.clerk_org_id,
+    o.stripe_customer_id,
+    o.stripe_subscription_status                   as stripe_sub_status,
+    p.name                                         as project_name,
+    p.is_active,
+    p.mode,
+    coalesce(p.config->>'plan', 'free')            as plan,
+    o.created_at                                   as org_created_at,
+    p.created_at                                   as project_created_at,
+    (select count(*) from conversations c where c.project_id = p.id)                                                              as conv_count_total,
+    (select count(*) from conversations c where c.project_id = p.id
+       and c.created_at >= date_trunc('month', now() at time zone 'UTC'))                                                          as conv_count_month,
+    (select count(*) from messages m
+       join conversations c on m.conversation_id = c.id
+       where c.project_id = p.id)                                                                                                  as message_count,
+    (select count(*) from documents d where d.project_id = p.id)                                                                   as doc_count
+  from projects p
+  join organisations o on o.id = p.org_id
+  order by o.created_at desc;
+end;
+$$ language plpgsql security definer;
 
 
 -- ─────────────────────────────────────────────────────────
@@ -16,6 +137,262 @@ alter table public.tickets
   add column if not exists conversation_id uuid references public.conversations(id) on delete set null;
 
 create index if not exists tickets_conversation_id_idx on public.tickets(conversation_id);
+
+
+-- ─────────────────────────────────────────────────────────
+-- 20260703000001_project_stats_fn
+-- ─────────────────────────────────────────────────────────
+-- Returns total message count for a project via a SQL join, avoiding the
+-- O(n) pattern of fetching all conversation IDs into application memory.
+create or replace function get_project_message_count(p_project_id uuid)
+returns bigint
+language sql
+security definer
+stable
+as $$
+  select count(m.id)
+  from messages m
+  join conversations c on c.id = m.conversation_id
+  where c.project_id = p_project_id
+$$;
+
+-- Returns escalation count for a project in a given time window.
+create or replace function get_project_escalation_count(
+  p_project_id uuid,
+  p_since timestamptz
+)
+returns bigint
+language sql
+security definer
+stable
+as $$
+  select count(*)
+  from tickets t
+  where t.project_id = p_project_id
+    and t.created_at >= p_since
+$$;
+
+
+-- ─────────────────────────────────────────────────────────
+-- 20260706000001_conversations_project_session_unique
+-- ─────────────────────────────────────────────────────────
+-- Security fix (audit C1): conversations.session_id was globally UNIQUE, and
+-- persistMessages() upserts with ON CONFLICT (session_id). A caller holding
+-- project A's public key could POST a session_id already used by project B;
+-- the upsert would conflict on the global session_id and reparent B's row to
+-- A (cross-tenant corruption). Uniqueness must be scoped per project.
+--
+-- Safe to run: because session_id was globally unique, no two rows can share
+-- one, so (project_id, session_id) is already unique — no data conflict.
+
+ALTER TABLE conversations DROP CONSTRAINT IF EXISTS conversations_session_id_key;
+
+do $guard$ begin
+  if not exists (select 1 from pg_constraint where conname = 'conversations_project_session_key') then
+    alter table conversations add constraint conversations_project_session_key UNIQUE (project_id, session_id);
+  end if;
+end $guard$;
+
+
+-- ─────────────────────────────────────────────────────────
+-- 20260706000002_claim_conversation_slot
+-- ─────────────────────────────────────────────────────────
+-- Atomic conversation-quota enforcement (audit H3).
+--
+-- The old flow read the monthly count, streamed the LLM response, then inserted
+-- the conversation row afterwards — so N concurrent new sessions could all read
+-- "under limit" before any row existed and all be admitted, letting a free
+-- project blow past its cap (and run unbounded LLM cost).
+--
+-- This function serializes new-session admission per project with an advisory
+-- lock, checks the monthly AND daily caps against committed rows, and inserts
+-- the conversation row in the same transaction. Pass -1 for an unlimited cap.
+--
+-- Returns: 'ok' (slot claimed / already existed), 'month_limit', or 'day_limit'.
+
+create or replace function claim_conversation_slot(
+  p_project_id     uuid,
+  p_session_id     text,
+  p_monthly_limit  int,
+  p_daily_limit    int
+)
+returns text
+language plpgsql
+security definer
+as $$
+declare
+  v_exists      boolean;
+  v_month_count int;
+  v_day_count   int;
+begin
+  -- Existing session already counts against the quota — always allow.
+  select exists(
+    select 1 from conversations
+    where project_id = p_project_id and session_id = p_session_id
+  ) into v_exists;
+  if v_exists then
+    return 'ok';
+  end if;
+
+  -- Serialize concurrent NEW-session claims for this project so the counts
+  -- below can't race. Transaction-scoped; released on commit/rollback.
+  perform pg_advisory_xact_lock(hashtext(p_project_id::text));
+
+  if p_monthly_limit >= 0 then
+    select count(*) into v_month_count from conversations
+    where project_id = p_project_id
+      and created_at >= date_trunc('month', now() at time zone 'utc');
+    if v_month_count >= p_monthly_limit then
+      return 'month_limit';
+    end if;
+  end if;
+
+  if p_daily_limit >= 0 then
+    select count(*) into v_day_count from conversations
+    where project_id = p_project_id
+      and created_at >= date_trunc('day', now() at time zone 'utc');
+    if v_day_count >= p_daily_limit then
+      return 'day_limit';
+    end if;
+  end if;
+
+  insert into conversations (project_id, session_id)
+  values (p_project_id, p_session_id)
+  on conflict (project_id, session_id) do nothing;
+
+  return 'ok';
+end;
+$$;
+
+
+-- ─────────────────────────────────────────────────────────
+-- 20260706000003_token_usage
+-- ─────────────────────────────────────────────────────────
+-- Per-turn LLM token usage, for the admin cost cockpit. One row per assistant
+-- turn. project_id is denormalised so per-customer totals are a cheap group-by
+-- (no join through conversations). The token counts come free in the Anthropic
+-- API response — we just persist them.
+
+create table if not exists public.token_usage (
+  id              uuid        primary key default gen_random_uuid(),
+  project_id      uuid        not null references public.projects(id) on delete cascade,
+  conversation_id uuid        references public.conversations(id) on delete set null,
+  model           text        not null,
+  input_tokens    integer     not null default 0,
+  output_tokens   integer     not null default 0,
+  created_at      timestamptz not null default now()
+);
+
+create index if not exists token_usage_project_id_idx on public.token_usage(project_id);
+create index if not exists token_usage_created_at_idx  on public.token_usage(created_at desc);
+
+-- Per-project token totals (all-time + current UTC month) for the admin table.
+-- Drop first: 20260729000001 later widens this function's return type, and on
+-- a re-run the narrow definition here cannot replace the wide one. CREATE OR
+-- REPLACE can never change OUT parameters in either direction.
+drop function if exists admin_token_usage();
+
+create or replace function admin_token_usage()
+returns table (
+  project_id     uuid,
+  input_all      bigint,
+  output_all     bigint,
+  input_month    bigint,
+  output_month   bigint
+)
+language sql
+security definer
+stable
+as $$
+  select
+    project_id,
+    coalesce(sum(input_tokens), 0)  as input_all,
+    coalesce(sum(output_tokens), 0) as output_all,
+    coalesce(sum(input_tokens)  filter (where created_at >= date_trunc('month', now() at time zone 'utc')), 0) as input_month,
+    coalesce(sum(output_tokens) filter (where created_at >= date_trunc('month', now() at time zone 'utc')), 0) as output_month
+  from token_usage
+  group by project_id
+$$;
+
+
+-- ─────────────────────────────────────────────────────────
+-- 20260717000001_action_events
+-- ─────────────────────────────────────────────────────────
+-- Audit trail for the "Actions" feature (AI-prepared, user-signed transactions).
+-- Two record kinds share the table:
+--   kind = 'ack'                        → user acknowledged the Actions modal
+--                                         (action_id NULL, status 'acknowledged')
+--   kind = 'contract_action' | 'swap'   → a prepared action and its lifecycle
+--                                         (never 'acknowledged'; 'expired' is
+--                                         written only by the rebuild endpoint)
+-- Service-role access only; not surfaced in any dashboard in v1.
+
+create table if not exists action_events (
+  id uuid primary key default gen_random_uuid(),
+  project_id uuid not null references projects(id) on delete cascade,
+  session_id text not null,
+  action_id uuid,
+  kind text not null check (kind in ('ack', 'contract_action', 'swap')),
+  chain text,
+  summary text,
+  params jsonb,
+  status text not null check (status in ('acknowledged', 'prepared', 'rebuilt', 'confirmed', 'failed', 'expired')),
+  country text,
+  tx_hash text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists action_events_project_idx on action_events(project_id, created_at desc);
+create unique index if not exists action_events_action_idx on action_events(action_id) where action_id is not null;
+
+alter table action_events enable row level security;
+-- No policies: service-role only.
+
+
+-- ─────────────────────────────────────────────────────────
+-- 20260718000001_conversation_summaries
+-- ─────────────────────────────────────────────────────────
+-- Conversation intelligence: a one-line AI summary + category + sentiment per
+-- conversation, so the dashboard Conversations page is scannable. Generated
+-- lazily (see summarizeStaleConversations). last_message_at is denormalised so
+-- "needs re-summary" is a cheap column compare instead of a join.
+
+alter table conversations add column if not exists summary         text;
+alter table conversations add column if not exists category        text;
+alter table conversations add column if not exists sentiment       text;
+alter table conversations add column if not exists summarized_at   timestamptz;
+alter table conversations add column if not exists last_message_at timestamptz;
+
+-- Backfill last_message_at for existing rows from their newest message
+-- (falls back to the conversation's created_at when it has no messages yet).
+update conversations c
+set last_message_at = coalesce(
+  (select max(m.created_at) from messages m where m.conversation_id = c.id),
+  c.created_at
+)
+where c.last_message_at is null;
+
+-- Stale-first selection index (summarized_at null or older than last_message_at).
+create index if not exists conversations_summary_stale_idx
+  on conversations(project_id, last_message_at desc);
+
+-- Stale = never summarised, or messaged since the last summary. PostgREST can't
+-- compare two columns, so the predicate lives here. SECURITY DEFINER + explicit
+-- project scoping; the caller (a server action) has already checked ownership.
+create or replace function stale_conversations(p_project uuid, p_limit int default 8)
+returns table (id uuid)
+language sql
+stable
+security definer
+as $$
+  select c.id
+  from conversations c
+  where c.project_id = p_project
+    and (c.summarized_at is null or c.last_message_at > c.summarized_at)
+  order by c.last_message_at desc nulls last
+  limit greatest(1, least(p_limit, 25))
+$$;
 
 
 -- ─────────────────────────────────────────────────────────
@@ -123,6 +500,12 @@ $$;
 -- input_all / input_month keep their existing meaning (uncached input) so the
 -- admin table's columns don't silently change definition; the cache buckets are
 -- returned alongside for an accurate cost line.
+-- This widens the return type (adds the cache columns), and CREATE OR REPLACE
+-- cannot change a function's OUT parameters. Without the drop, this migration
+-- fails on any database that already has the earlier definition from
+-- 20260706000003, which is every database that ran migrations in order.
+drop function if exists admin_token_usage();
+
 create or replace function admin_token_usage()
 returns table (
   project_id          uuid,
@@ -392,4 +775,3 @@ create index if not exists escalation_deliveries_project_idx
   on escalation_deliveries (project_id, created_at desc);
 
 alter table escalation_deliveries enable row level security;
-
