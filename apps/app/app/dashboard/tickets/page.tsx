@@ -4,6 +4,8 @@ import { getTickets, getWebhookLogs } from "@/lib/actions/tickets"
 import { TicketList } from "@/components/dashboard/TicketList"
 import { EscalationRouting } from "@/components/dashboard/EscalationRouting"
 import { WebhookLogList } from "@/components/dashboard/WebhookLogList"
+import { UndeliveredEscalations } from "@/components/dashboard/UndeliveredEscalations"
+import { listFailedDeliveries } from "@/lib/actions/integrations"
 import type { IntegrationsStatus } from "@/components/settings/IntegrationsForm"
 import type { Database } from "@/lib/supabase/types"
 import type { ProjectConfig } from "@/lib/types/config"
@@ -17,9 +19,10 @@ export default async function TicketsPage() {
   const typedProject = project as unknown as ProjectRow & { name: string }
   const config = typedProject.config as unknown as ProjectConfig
 
-  const [tickets, webhookLogs] = await Promise.all([
+  const [tickets, webhookLogs, failedDeliveries] = await Promise.all([
     getTickets(typedProject.id),
     config.webhookUrl ? getWebhookLogs(typedProject.id) : Promise.resolve([]),
+    listFailedDeliveries(),
   ])
 
   // Secrets are never sent to the client - only {configured} booleans plus the
@@ -49,6 +52,8 @@ export default async function TicketsPage() {
         webhookUrl={config.webhookUrl ?? ""}
         integrations={integrations}
       />
+
+      <UndeliveredEscalations deliveries={failedDeliveries} />
 
       <TicketList tickets={tickets} />
 

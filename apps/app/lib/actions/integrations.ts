@@ -2,7 +2,9 @@
 
 import { getProject } from "@/lib/actions/project"
 import { updateConfig } from "@/lib/actions/project"
-import { testIntegration } from "@/lib/integrations/escalation"
+import { testIntegration, deliverOne } from "@/lib/integrations/escalation"
+import { createServiceClient } from "@/lib/supabase/server"
+import { revalidatePath } from "next/cache"
 import type { ProjectConfig, Integrations, IntegrationTarget } from "@/lib/types/config"
 import { encryptIntegration } from "@/lib/secrets"
 
@@ -34,4 +36,99 @@ export async function testIntegrationAction(target: IntegrationTarget): Promise<
   if (!config.integrations?.[target]) return { ok: false, error: "Save the settings first, then test." }
   const res = await testIntegration(target, config.integrations, config.telegramBotToken ?? undefined)
   return { ok: res.ok, ...(res.error ? { error: res.error } : {}), ...(res.url ? { url: res.url } : {}) }
+}
+
+/**
+ * Escalations that never reached their destination.
+ *
+ * The user was told a human would follow up. Until one of these rows is
+ * delivered or abandoned, that promise is outstanding, so it belongs on screen
+ * rather than in a table nobody reads.
+ */
+export interface FailedDelivery {
+  id: string
+  target: string
+  ticketRef: string
+  status: string
+  attempts: number
+  lastError: string | null
+  nextAttemptAt: string
+  createdAt: string
+}
+
+export async function listFailedDeliveries(): Promise<FailedDelivery[]> {
+  const { project } = await getProject()
+  if (!project) return []
+  const supabase = createServiceClient()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data, error } = await (supabase as any)
+    .from("escalation_deliveries")
+    .select("id, target, ticket_ref, status, attempts, last_error, next_attempt_at, created_at")
+    .eq("project_id", (project as { id: string }).id)
+    .in("status", ["pending", "abandoned"])
+    .order("created_at", { ascending: false })
+    .limit(20)
+  if (error) return []
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return ((data ?? []) as any[]).map(r => ({
+    id: r.id,
+    target: r.target,
+    ticketRef: r.ticket_ref,
+    status: r.status,
+    attempts: r.attempts,
+    lastError: r.last_error ?? null,
+    nextAttemptAt: r.next_attempt_at,
+    createdAt: r.created_at,
+  }))
+}
+
+/**
+ * Send one parked escalation again, now. The worker will get to it eventually,
+ * but "eventually" is not what you want when you have just fixed the webhook
+ * and need to know it works.
+ */
+export async function retryDelivery(id: string): Promise<{ ok: boolean; error?: string }> {
+  const { project } = await getProject()
+  if (!project) return { ok: false, error: "No project" }
+  const projectId = (project as { id: string }).id
+  const config = (project as { config: unknown }).config as ProjectConfig
+  if (!config.integrations) return { ok: false, error: "No integrations configured" }
+
+  const supabase = createServiceClient()
+  // Scoped to this project, so an id from elsewhere finds nothing.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: row } = await (supabase as any)
+    .from("escalation_deliveries")
+    .select("id, target, payload, attempts")
+    .eq("id", id)
+    .eq("project_id", projectId)
+    .maybeSingle()
+  if (!row) return { ok: false, error: "Not found" }
+
+  const res = await deliverOne(
+    row.target as IntegrationTarget,
+    row.payload,
+    config.integrations,
+    config.telegramBotToken ?? undefined,
+  )
+  const attempts = row.attempts + 1
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await (supabase as any)
+    .from("escalation_deliveries")
+    .update(
+      res.ok
+        ? { status: "delivered", attempts, last_error: null, updated_at: new Date().toISOString() }
+        : {
+            status: "pending",
+            attempts,
+            last_error: (res.error ?? "failed").slice(0, 500),
+            next_attempt_at: new Date(Date.now() + 60_000).toISOString(),
+            updated_at: new Date().toISOString(),
+          },
+    )
+    .eq("id", id)
+
+  revalidatePath("/dashboard/tickets")
+  return res.ok ? { ok: true } : { ok: false, ...(res.error ? { error: res.error } : {}) }
 }
