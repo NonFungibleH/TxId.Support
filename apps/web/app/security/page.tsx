@@ -276,10 +276,13 @@ export default function SecurityPage() {
                 <p className="mt-5 text-sm text-[#c8c8d8] leading-relaxed border-l-2 border-accent/50 pl-4">
                   There is no mechanism for the assistant to request them.
                 </p>
-                {/* Per-project retention is not configurable yet: that lands with
-                    the roadmap item below. State the policy figure instead. */}
+                {/* Neither a configurable period nor an automatic purge exists yet.
+                    Saying so beats quoting a figure nothing enforces, which is the
+                    first thing a security reviewer checks against the system. */}
                 <p className="mt-4 text-sm text-muted leading-relaxed">
-                  Conversation data is retained for 12 months, as set out in our{" "}
+                  Conversation data is kept for as long as the project is active, and is deleted
+                  with the project. There is no automatic deletion schedule today, and deletion on
+                  request is recorded rather than silent. Set out in our{" "}
                   <Link href="/privacy" className="text-accent hover:underline">privacy policy</Link>.
                 </p>
               </div>

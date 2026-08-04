@@ -67,7 +67,14 @@ export default function PrivacyPage() {
             <section>
               <h2 className="font-display text-lg font-semibold text-white mb-3">Data retention</h2>
               <p>
-                Conversation data is retained for 12 months. You can request deletion of your account and associated data at any time by emailing us.
+                We keep conversation data for as long as the project it belongs to is active. A support record exists so the protocol can answer for what its assistant told a user, so it stays useful for as long as they run the service. When a project is deleted, its conversations go with it.
+              </p>
+              <p className="mt-3">
+                We do not currently run an automatic deletion schedule, and we would rather say that than publish a period we do not enforce. Retention periods you can configure, applied automatically, are on our roadmap and are listed as not built on our{" "}
+                <a href="/security" className="text-accent hover:underline">Trust page</a>.
+              </p>
+              <p className="mt-3">
+                You can request deletion of your account and its data at any time by emailing us. Deletion is recorded rather than silent: an erased conversation leaves behind a marker showing that a record existed and was erased, containing no personal data. That is deliberate, so a gap in a record set is never unexplained.
               </p>
             </section>
 

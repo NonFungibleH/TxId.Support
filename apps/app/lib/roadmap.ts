@@ -222,7 +222,7 @@ export const ROADMAP: RoadmapItem[] = [
     complexity: "Medium",
     effort: "~1.5-2 wk",
     status: "soon",
-    what: "PART DONE. Erasure and export exist: erase_conversation() and admin_erase_project() leave tombstones, /api/conversations/export carries the evidence and logs itself as a disclosure, and case_access_log records every view, export and erasure. What is missing is the automatic side: the privacy policy states 12-month retention and nothing enforces it, and retention is not configurable per project.",
+    what: "PART DONE. Erasure and export exist: erase_conversation() and admin_erase_project() leave tombstones, /api/conversations/export carries the evidence and logs itself as a disclosure, and case_access_log records every view, export and erasure. What is missing is the automatic side: there is no scheduled purge and retention is not configurable per project. The privacy policy no longer claims a 12-month period, since nothing enforced it; it now describes what actually happens, so this is a feature gap rather than a broken promise.",
     depends: "Cron runner is built, so the scheduled purge is unblocked.",
   },
   {
