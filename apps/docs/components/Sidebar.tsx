@@ -21,6 +21,7 @@ const NAV = [
   {
     section: "Reference",
     items: [
+      { label: "Feature List", href: "/docs/features" },
       { label: "API Reference", href: "/docs/api" },
     ],
   },
