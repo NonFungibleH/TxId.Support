@@ -107,6 +107,8 @@ Ports: web=3000, app=3001, docs=3002, widget=3003
 - `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` — distributed limiter for `/api/chat`; falls back to per-instance in-memory when unset
 
 ### Platform
+- `CRON_SECRET` — bearer token for manually invoking `/api/cron/*`. Vercel Cron's own scheduled calls are recognised by their `x-vercel-cron` header and do not need it
+- `INTEGRATION_ENCRYPTION_KEY` — base64 32-byte AES-256-GCM key (`openssl rand -base64 32`) encrypting integration credentials in `projects.config`. Absent, values pass through in plaintext; rotating it makes stored secrets unreadable, so treat a rotation as a re-save of every integration
 - `RESEND_API_KEY` — email notifications (optional)
 - `WEBHOOK_SECRET` — HMAC for outbound webhooks
 - `PREVIEW_HMAC_SECRET` — dashboard preview token signing
@@ -501,6 +503,12 @@ When a product fact changes (chains, plans, limits), update BOTH systems plus th
 - Design doc: `docs/superpowers/specs/2026-07-18-conversation-intelligence-integrations-design.md` (2-round spec review).
 - **Summaries + auto-tags:** each conversation gets a cached one-line AI summary + `category` (failed-tx/how-to/bug-report/feature-request/account/other) + `sentiment`, on `conversations` (migration `20260718000001`). Generated lazily by `summarizeStaleConversations` (`lib/actions/summarize.ts`) — one-shot per Conversations mount, 8 concurrent Haiku calls, stale rows picked via the `stale_conversations` SQL function (column-vs-column predicate PostgREST can't do). `last_message_at` stamped on both chat + telegram persist paths. Cost recorded to `token_usage`. Replaced the old on-expand `/api/conversations/[id]/summary` (deleted). Conversations page reads new columns via a guarded separate query (deploy-safe before migration).
 - **Integrations:** `config.integrations` (server-only secrets, never in `publicConfig` / never sent raw to the client — dashboard derives `{configured}` booleans, write-only secret UI). Adapters + `dispatchEscalation` in `lib/integrations/escalation.ts`: notifications (Slack/Discord/Telegram) + issue trackers (Linear/GitHub/Jira, issue URL written back to `tickets.external_refs`, shown on the Tickets page). Fan-out is `Promise.allSettled` + 5s timeouts; logged to `webhook_logs` (now has a `target` column + nullable `webhook_url` — Slack/Discord URLs are secrets, never logged). Wired into BOTH ticket routes (`/api/tickets` widget-raised AND `/api/conversations/[id]/ticket` dashboard-raised). Dashboard `/dashboard/integrations` (`IntegrationsForm`) with per-integration card + "Send test" (`lib/actions/integrations.ts`). Migration `20260718000002`.
+
+### Escalation retry worker
+`escalation_deliveries` (migration `20260803000003`) holds escalations that never reached their destination, with the payload needed to redeliver. `GET /api/cron/escalation-retry` drains it: 25 oldest-waiting rows per run, `deliverOne` per row, backoff `1m/5m/30m/2h/6h`, abandoned after five attempts rather than deleted. Scheduled every 10 minutes in **`apps/app/vercel.json`** (the app is its own Vercel project, so the schedule lives there, not at the repo root). Authorised by the `x-vercel-cron` header or `Bearer $CRON_SECRET`; exempt from Clerk in `middleware.ts`. Surfaced on Dashboard > Tickets as "Escalations that did not arrive" (`UndeliveredEscalations`) with a per-row Retry now.
+
+### No narration before tool calls
+The Claude tool loop holds text back until a tool call proves it was narration (dropped) or the round ends without one (it was the answer), with a 200-char cap so long answers still stream (`NARRATION_CHARS` in `packages/ai/src/stream.ts`). WHY: the widget already renders a live label per tool call, so model text like "Let me list the available functions" was a second, worse status line, and consecutive rounds concatenated with no paragraph break. The prompt forbids it too, so the model mostly stops producing it. Consequence worth knowing: `anyTextThisTurn` now means text actually reached the user, which is what the never-blank-response fallback should have been keying on all along.
 
 ### Telegram bot integration
 - One bot per protocol: protocol team creates a bot with @BotFather and pastes the token in Dashboard > Telegram
