@@ -6,6 +6,7 @@ import { EscalationRouting } from "@/components/dashboard/EscalationRouting"
 import { WebhookLogList } from "@/components/dashboard/WebhookLogList"
 import { UndeliveredEscalations } from "@/components/dashboard/UndeliveredEscalations"
 import { listFailedDeliveries } from "@/lib/actions/integrations"
+import { getTeamMembers } from "@/lib/actions/team"
 import type { IntegrationsStatus } from "@/components/settings/IntegrationsForm"
 import type { Database } from "@/lib/supabase/types"
 import type { ProjectConfig } from "@/lib/types/config"
@@ -24,6 +25,13 @@ export default async function TicketsPage() {
     config.webhookUrl ? getWebhookLogs(typedProject.id) : Promise.resolve([]),
     listFailedDeliveries(),
   ])
+
+  // Who a ticket can be assigned to. Empty when the org has no Clerk
+  // organisation, which just means the picker offers nobody rather than erroring.
+  const team = await getTeamMembers().catch(() => ({ members: [] }))
+  const teammates = team.members.flatMap(m =>
+    m.userId && m.email ? [{ userId: m.userId, email: m.email }] : [],
+  )
 
   // Secrets are never sent to the client - only {configured} booleans plus the
   // non-secret display fields (repo, domain, team id, chat id, …).
@@ -55,7 +63,7 @@ export default async function TicketsPage() {
 
       <UndeliveredEscalations deliveries={failedDeliveries} />
 
-      <TicketList tickets={tickets} />
+      <TicketList tickets={tickets} teammates={teammates} />
 
       {config.webhookUrl && (
         <div className="space-y-3">

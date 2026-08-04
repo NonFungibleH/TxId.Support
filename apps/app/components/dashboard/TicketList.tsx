@@ -6,12 +6,16 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { ChevronDown, ChevronRight, Mail } from "lucide-react"
 import { updateTicketStatus, updateTicketNotes } from "@/lib/actions/tickets"
+import { TicketWorkspace } from "./TicketWorkspace"
+import type { TicketStatus, TicketPriority } from "@/lib/actions/ticket-inbox"
 import type { Ticket } from "@/lib/actions/tickets"
 
 const STATUS_LABELS: Record<string, { label: string; variant: "default" | "secondary" | "outline" }> = {
-  open:        { label: "Open",        variant: "default" },
-  in_progress: { label: "In progress", variant: "secondary" },
-  resolved:    { label: "Resolved",    variant: "outline" },
+  open:        { label: "Open",           variant: "default" },
+  in_progress: { label: "In progress",    variant: "secondary" },
+  waiting:     { label: "Waiting on user", variant: "secondary" },
+  resolved:    { label: "Resolved",       variant: "outline" },
+  closed:      { label: "Closed",         variant: "outline" },
 }
 
 const REASON_LABELS: Record<string, string> = {
@@ -22,7 +26,7 @@ const REASON_LABELS: Record<string, string> = {
   urgent:        "Urgent",
 }
 
-function TicketRow({ ticket }: { ticket: Ticket }) {
+function TicketRow({ ticket, teammates }: { ticket: Ticket; teammates: { userId: string; email: string }[] }) {
   const [open, setOpen] = useState(false)
   const [isPending, startTransition] = useTransition()
   const [notes, setNotes] = useState(ticket.notes ?? "")
@@ -137,6 +141,14 @@ function TicketRow({ ticket }: { ticket: Ticket }) {
       {/* Expanded detail */}
       {open && (
         <div className="border-t border-border bg-muted/20 px-4 py-4 space-y-4">
+          <TicketWorkspace
+            ticketId={ticket.id}
+            status={ticket.status as TicketStatus}
+            priority={(ticket.priority ?? null) as TicketPriority | null}
+            assigneeEmail={ticket.assignee_email ?? null}
+            teammates={teammates}
+          />
+
           {/* Conversation transcript */}
           {conversation && conversation.length > 0 && (
             <div className="space-y-1.5">
@@ -179,12 +191,15 @@ function TicketRow({ ticket }: { ticket: Ticket }) {
 
 interface TicketListProps {
   tickets: Ticket[]
+  teammates?: { userId: string; email: string }[]
 }
 
-export function TicketList({ tickets }: TicketListProps) {
+export function TicketList({ tickets, teammates = [] }: TicketListProps) {
   const open     = tickets.filter(t => t.status === "open")
-  const progress = tickets.filter(t => t.status === "in_progress")
-  const resolved = tickets.filter(t => t.status === "resolved")
+  // "Waiting on user" belongs with in-progress: somebody owns it, they are
+  // just not the one who has to act next.
+  const progress = tickets.filter(t => t.status === "in_progress" || t.status === "waiting")
+  const resolved = tickets.filter(t => t.status === "resolved" || t.status === "closed")
 
   return (
     <div className="space-y-6">
@@ -202,7 +217,7 @@ export function TicketList({ tickets }: TicketListProps) {
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
                 Open · {open.length}
               </p>
-              {open.map(t => <TicketRow key={t.id} ticket={t} />)}
+              {open.map(t => <TicketRow key={t.id} ticket={t} teammates={teammates} />)}
             </section>
           )}
           {progress.length > 0 && (
@@ -210,7 +225,7 @@ export function TicketList({ tickets }: TicketListProps) {
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
                 In Progress · {progress.length}
               </p>
-              {progress.map(t => <TicketRow key={t.id} ticket={t} />)}
+              {progress.map(t => <TicketRow key={t.id} ticket={t} teammates={teammates} />)}
             </section>
           )}
           {resolved.length > 0 && (
@@ -218,7 +233,7 @@ export function TicketList({ tickets }: TicketListProps) {
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
                 Resolved · {resolved.length}
               </p>
-              {resolved.map(t => <TicketRow key={t.id} ticket={t} />)}
+              {resolved.map(t => <TicketRow key={t.id} ticket={t} teammates={teammates} />)}
             </section>
           )}
         </div>

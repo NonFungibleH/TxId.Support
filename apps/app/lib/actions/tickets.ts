@@ -14,9 +14,14 @@ export interface Ticket {
   summary: string
   reason: string | null
   conversation: unknown
-  status: "open" | "in_progress" | "resolved"
+  status: "open" | "in_progress" | "waiting" | "resolved" | "closed"
   notes: string | null
   external_refs?: Record<string, string> | null
+  assignee_id?: string | null
+  assignee_email?: string | null
+  priority?: "low" | "normal" | "high" | "urgent" | null
+  first_response_at?: string | null
+  resolved_at?: string | null
   created_at: string
   updated_at: string
 }
