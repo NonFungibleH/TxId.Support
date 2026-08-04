@@ -375,6 +375,33 @@ When a product fact changes (chains, plans, limits), update BOTH systems plus th
 
 ## Supabase schema (key tables)
 
+> **Production schema drifts.** On 2026-08-04 production was missing FIVE tables,
+> the oldest since June: `webhook_logs`, `token_usage`, `action_events`, plus the
+> two added that day. Migrations exist in the repo but had never been applied.
+> `webhook_logs` being absent is why `tickets` was completely empty:
+> `dispatchEscalation` writes to it on every escalation.
+>
+> **Never assume a migration is applied.** Check before diagnosing anything that
+> touches the database:
+> ```sql
+> select t.name, to_regclass('public.'||t.name) is not null as exists
+> from (values ('organisations'),('projects'),('documents'),('conversations'),
+> ('messages'),('rate_limits'),('indexing_jobs'),('tickets'),('webhook_logs'),
+> ('token_usage'),('action_events'),('case_access_log'),
+> ('escalation_deliveries')) as t(name) order by exists, t.name;
+> ```
+>
+> `supabase/RUN_IN_SQL_EDITOR.sql` is a regenerable catch-up file (every
+> migration from `20260628000001` onward, guarded so it is safe to re-run).
+> The CLI is not linked locally, so the dashboard SQL editor is the route.
+>
+> **Two migrations were unappliable until fixed** (both repaired 2026-08-04):
+> `CREATE OR REPLACE FUNCTION` cannot change a return type, so widening
+> `admin_token_usage()` needs a `drop function` first; and `CREATE POLICY` has
+> no `IF NOT EXISTS`. Test migrations against a local Postgres reproduction of
+> the current production table set before handing anyone SQL to run.
+
+
 | Table | Purpose |
 |---|---|
 | `organisations` | Clerk org → internal org mapping |
