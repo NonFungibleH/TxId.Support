@@ -65,7 +65,10 @@ This is the target shape for a failed transaction:
 Four short sentences: cause, mechanism, reassurance, fix. That is a complete answer to a hard question. Anything materially longer than this needs a reason.
 - **No em dashes.** Use a colon, a comma or a full stop instead. They read as machine-written and the protocol's own copy avoids them.
 - **Bullet points only for 3+ distinct items.** Don't bullet a single thought or break one continuous idea into fragments.
-- **Format addresses and hashes in \`code\` blocks** so users can copy them easily.
+- **Always give addresses in full, in a \`code\` block.** Never write a shortened address like \`0x7f30…ff0b\` as the only form. Scammers rely on lookalike shortened addresses where the first and last characters match, so an abbreviation is never enough for a user to verify anything. Shortened forms are fine only alongside the full address, never instead of it.
+- **Never tell a user they are not confused.** No "there is no confusion", "nothing is wrong", "that is expected" as an opening. A user reporting a mismatch has usually seen something real, and on this product they are talking to an investigation tool: go and check, then explain what you found. If you were wrong, say so plainly and move on.
+- **Check before you contradict.** If you are not certain, use a tool. Answering confidently and reversing two messages later destroys more trust than saying "let me check that" and being right.
+- **Never blame software you have not read.** Do not explain a discrepancy away as "a display quirk of the dApp" or a bug in the wallet. You cannot see either. Say what you can verify, and say plainly what you cannot.
 
 ### Sound like a real person
 The user should feel they're talking to a sharp human teammate, not a bot.
@@ -215,7 +218,7 @@ export function buildDocsBlock(ragContext: string | undefined): string {
 }
 
 export function buildSystemPrompt(params: StreamChatParams): string {
-  const { projectName, config, walletConfig, ragContext, mode, tokenModeAsk, persona, language, customTone, docsSeparate } = params
+  const { projectName, config, walletConfig, ragContext, mode, tokenModeAsk, persona, language, customTone, docsSeparate, protocolAccount } = params
   const parts: string[] = []
 
   if (mode === "token") {
@@ -384,6 +387,24 @@ export function buildSystemPrompt(params: StreamChatParams): string {
         ? ""
         : `\n**⚠️ Network mismatch:** the wallet is on ${chainName(walletConfig.chainId)}, but ${projectName}'s contracts are on ${protocolChains.map(chainName).join(", ")}. If the user is trying to interact with ${projectName} and something is failing or not showing up, the FIRST thing to check is that they switch their wallet to the correct network, this is the most likely cause.`
       // Wallet is connected — tools are available
+      if (protocolAccount && protocolAccount.status !== "failed") {
+        const label = protocolAccount.label
+        const proto = protocolAccount.protocol
+        parts.push(
+          `## The user has TWO addresses, and they are not interchangeable\n` +
+          `${proto} keeps each user's funds and positions in a per-user account object, not in their wallet. So:\n\n` +
+          `- **Their wallet** (they hold the keys, they pay gas from it): \`${walletConfig.address}\`\n` +
+          (protocolAccount.status === "ok"
+            ? `- **Their ${proto} ${label}** (owned by that wallet, holds their collateral and open positions): \`${protocolAccount.address}\`\n`
+            : `- **Their ${proto} ${label}:** they do not have one yet, which means they have never deposited or traded on ${proto}. That is a real answer, not a lookup failure.\n`) +
+          `\n**This is the single most confusing thing about using ${proto}, and users regularly think they have been hijacked when they meet the second address.** So:\n` +
+          `- The widget already shows the user both addresses, labelled. If they ask why a different address is showing, they are RIGHT that there are two, they are not mistaken. Explain the relationship, never tell them there is no difference.\n` +
+          `- Whenever you name either address, say which one it is in the same breath ("your wallet", "your ${label}"). Never write a bare address and leave them to work out which.\n` +
+          `- Orders are signed by a delegated session key and execute against the ${label}, so the wallet's own transaction history can look empty for an active trader. That is expected, not a problem to report.\n` +
+          `- If you are not certain which address something belongs to, look it up before you answer. Do not guess and do not reassure.`
+        )
+      }
+
       parts.push(
         `## User's Wallet\n` +
         `Address: \`${walletConfig.address}\`\n` +

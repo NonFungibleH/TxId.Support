@@ -19,6 +19,9 @@ import {
   ThumbsUp as ThumbsUpIcon,
   ThumbsDown as ThumbsDownIcon,
   BookOpen as BookOpenIcon,
+  Copy as CopyIcon,
+  Check as CheckIcon,
+  ShieldAlert as ShieldAlertIcon,
 } from "lucide-react"
 
 // Human-readable status shown while the bot runs each tool. Kept in sync with
@@ -128,6 +131,7 @@ interface WidgetConfig {
   welcomeMessage?: string | null
   /** Team-curated starter chips. Non-empty overrides AI-generated follow-ups. */
   suggestedQuestions?: string[]
+  subaccounts?: { enabled: boolean }
   contentBlocks?: ContentBlockData[]
   /** Paid/hand-provisioned plans hide the "Powered by TxID" badge. */
   hidePoweredBy?: boolean
@@ -597,6 +601,128 @@ type WalletSession = {
 }
 
 /** Aptos addresses are 66 chars, so never show one in full inside a chrome pill. */
+/**
+ * The user's account with the protocol, when the protocol keeps funds in a
+ * per-user object rather than the wallet. `failed` must never render as
+ * `none`: telling an active trader they have no account is worse than saying
+ * nothing.
+ */
+type ProtocolAccountInfo =
+  | { status: "ok"; protocol: string; label: string; address: string }
+  | { status: "none"; protocol: string; label: string }
+  | { status: "failed"; protocol: string; label: string }
+  | { status: "off" }
+
+function AddressRow({
+  label, address, muted, accent,
+}: { label: string; address: string; muted: string; accent: string }) {
+  const [copied, setCopied] = useState(false)
+  return (
+    <div className="space-y-1">
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: muted }}>
+          {label}
+        </span>
+        <button
+          type="button"
+          onClick={() => {
+            navigator.clipboard?.writeText(address).then(
+              () => { setCopied(true); setTimeout(() => setCopied(false), 1500) },
+              () => {},
+            )
+          }}
+          className="flex shrink-0 items-center gap-1 text-[10px] transition-opacity hover:opacity-70"
+          style={{ color: accent }}
+        >
+          {copied ? <CheckIcon className="size-3" /> : <CopyIcon className="size-3" />}
+          {copied ? "Copied" : "Copy"}
+        </button>
+      </div>
+      {/* Full, never truncated. A shortened address is not something a user can
+          verify: lookalike scams match the first and last characters exactly. */}
+      <code className="block break-all font-mono text-[10px] leading-relaxed">{address}</code>
+    </div>
+  )
+}
+
+/**
+ * Both of the user's identities, on screen from the moment they connect.
+ *
+ * WHY: on a protocol with subaccounts the wallet the user connected is not the
+ * account holding their positions. Meeting that second address for the first
+ * time inside an answer reads as a hijack, and users have asked "why is a
+ * different address showing as connected?". Naming both up front removes the
+ * question rather than answering it.
+ */
+function IdentityBar({
+  wallet, account, adaptiveText, accent, border,
+}: {
+  wallet: string
+  account: ProtocolAccountInfo
+  adaptiveText: string
+  accent: string
+  border: string
+}) {
+  const [open, setOpen] = useState(false)
+  // "failed" says nothing rather than something wrong.
+  if (account.status === "off" || account.status === "failed") return null
+
+  const muted = `${adaptiveText}99`
+  const summary =
+    account.status === "ok"
+      ? `Wallet ${shortAddr(wallet)} · ${account.protocol} ${account.label} ${shortAddr(account.address)}`
+      : `Wallet ${shortAddr(wallet)} · no ${account.protocol} ${account.label} yet`
+
+  return (
+    <div className="shrink-0 border-b px-4 py-2" style={{ borderColor: border }}>
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        className="flex w-full items-center gap-1.5 text-left transition-opacity hover:opacity-80"
+        style={{ color: adaptiveText }}
+      >
+        <span className="min-w-0 flex-1 truncate font-mono text-[10px]">{summary}</span>
+        <ChevronDownIcon
+          className="size-3 shrink-0 transition-transform"
+          style={{ transform: open ? "rotate(180deg)" : undefined, color: muted }}
+        />
+      </button>
+
+      {open && (
+        <div className="mt-2.5 space-y-3" style={{ color: adaptiveText }}>
+          <AddressRow label="Your wallet" address={wallet} muted={muted} accent={accent} />
+          {account.status === "ok" ? (
+            <>
+              <AddressRow
+                label={`Your ${account.protocol} ${account.label}`}
+                address={account.address}
+                muted={muted}
+                accent={accent}
+              />
+              <p className="text-[10px] leading-relaxed" style={{ color: muted }}>
+                Your {account.label} is owned by your wallet and holds your positions and
+                collateral. Both addresses are yours.
+              </p>
+            </>
+          ) : (
+            <p className="text-[10px] leading-relaxed" style={{ color: muted }}>
+              This wallet has no {account.protocol} {account.label} yet, so it has never
+              deposited or traded there.
+            </p>
+          )}
+          <p className="flex items-start gap-1.5 text-[10px] leading-relaxed" style={{ color: muted }}>
+            <ShieldAlertIcon className="mt-px size-3 shrink-0" />
+            <span>
+              Always check the full address. Scams use shortened addresses whose first and
+              last characters match a real one.
+            </span>
+          </p>
+        </div>
+      )}
+    </div>
+  )
+}
+
 function shortAddr(a: string): string {
   return a.length > 14 ? `${a.slice(0, 6)}…${a.slice(-4)}` : a
 }
@@ -642,6 +768,7 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
   // Wallet state
   const [walletAddress, setWalletAddress] = useState<string | null>(null)
   const [chainId, setChainId] = useState<string | null>(null)
+  const [protocolAccount, setProtocolAccount] = useState<ProtocolAccountInfo>({ status: "off" })
   const [walletConnecting, setWalletConnecting] = useState(false)
   const isSolanaProject = (config?.chains ?? []).includes("solana")
   const isAptosProject = (config?.chains ?? []).includes("aptos")
@@ -649,6 +776,26 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
 
   // Wallet setup flow: prompt → (connected | manual | skipped)
   const [walletSetup, setWalletSetup] = useState<"prompt" | "manual-input" | "connected" | "manual" | "skipped">("prompt")
+
+  // The address the user connected is not the account their positions live in.
+  // Resolve the second one as soon as we have the first, so both are on screen
+  // before they ask a question rather than after they are confused by one.
+  useEffect(() => {
+    if (!walletAddress || config?.subaccounts?.enabled !== true) {
+      setProtocolAccount({ status: "off" })
+      return
+    }
+    let cancelled = false
+    const url =
+      `/api/widget/protocol-account?key=${encodeURIComponent(apiKey)}` +
+      `&address=${encodeURIComponent(walletAddress)}`
+    fetch(url)
+      .then(r => (r.ok ? r.json() : { status: "failed" }))
+      .then((d: ProtocolAccountInfo) => { if (!cancelled) setProtocolAccount(d) })
+      // A failed lookup shows nothing. It must never render as "no account".
+      .catch(() => { if (!cancelled) setProtocolAccount({ status: "off" }) })
+    return () => { cancelled = true }
+  }, [walletAddress, config?.subaccounts?.enabled, apiKey])
 
   // Ticket escalation state
   const [escalation, setEscalation] = useState<{ summary: string; reason: string } | null>(null)
@@ -1772,6 +1919,16 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
           <XIcon className="size-4" />
         </button>
       </div>
+
+      {walletAddress && (
+        <IdentityBar
+          wallet={walletAddress}
+          account={protocolAccount}
+          adaptiveText={adaptiveText}
+          accent={b.primaryColor}
+          border="var(--w-border)"
+        />
+      )}
 
       {/* Tab bar. A lone "Chat" tab is dead chrome, so it only renders when
           there is somewhere else to go. */}

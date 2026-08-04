@@ -58,6 +58,12 @@ export interface RagResult {
   chunks: RagChunk[]
 }
 
+/** Resolved per-user protocol account. `failed` is never rendered as `none`. */
+export type ProtocolAccountContext =
+  | { status: "ok"; protocol: string; label: string; address: string }
+  | { status: "none"; protocol: string; label: string }
+  | { status: "failed"; protocol: string; label: string }
+
 export interface StreamChatParams {
   projectName: string
   config: ProjectConfigSnapshot
@@ -69,6 +75,14 @@ export interface StreamChatParams {
   persona?: string | null
   language?: string | null
   customTone?: string | null
+  /**
+   * The user's protocol account (subaccount), when this protocol keeps funds in
+   * a per-user account object rather than the wallet. Resolved BEFORE the first
+   * message so the model knows the user has two identities rather than
+   * discovering it mid-conversation, which is how it ends up telling a user
+   * their own address is not theirs.
+   */
+  protocolAccount?: ProtocolAccountContext | null
   /**
    * Omit the retrieved-docs section from the prompt so the caller can place it
    * after the prompt-cache breakpoint. Docs change per question; leaving them

@@ -2,6 +2,7 @@ import { createServiceClient } from "@/lib/supabase/server"
 import { answerFingerprint, chainStateAt, coarseDevice, requestGeo, type AnswerEvidence } from "@/lib/evidence"
 import { mergeToolEvidence, type ToolEvidence } from "@txid/ai"
 import { buildSystemPrompt, buildDocsBlock, retrieveContext, streamChatWithTools, generateSuggestions } from "@txid/ai"
+import { resolveProtocolAccount } from "@/lib/protocol-account"
 import type { ChatMessage, ProjectConfigSnapshot, ActionsContext } from "@txid/ai"
 import { actionsGate, effectiveMaxSwapUsd } from "@/lib/actions-gate"
 import type { ProjectConfig, Plan } from "@/lib/types/config"
@@ -535,6 +536,16 @@ export async function POST(request: Request) {
         ? { address: walletAddress, chainId }
         : null
 
+    // The user's protocol account, resolved BEFORE the model sees the question.
+    // Discovering a second address mid-conversation is how it ends up telling a
+    // user their own address is not theirs. Cached for 5 minutes and shared
+    // with the widget's connect-time lookup, so this is usually free.
+    const protocolAccount = walletConfig
+      ? await resolveProtocolAccount(rawConfig, walletConfig.address).catch(
+          () => ({ status: "off" as const }),
+        )
+      : { status: "off" as const }
+
     // ── Actions policy gate → tools context ───────────────────────────────
     const gate = actionsGate(request, rawConfig, plan, isDemo, walletMode)
     const actionsCtx: ActionsContext | null =
@@ -582,6 +593,7 @@ export async function POST(request: Request) {
       mode: projectMode as "support" | "token",
       tokenModeAsk: config.tokenModeAsk ?? undefined,
       persona: config.branding?.persona ?? "concise",
+      ...(protocolAccount.status !== "off" ? { protocolAccount } : {}),
       customTone: config.branding?.customTone ?? undefined,
       ...(config.branding?.language ? { language: config.branding.language } : {}),
     })

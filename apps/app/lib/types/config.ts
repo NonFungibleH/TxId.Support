@@ -258,6 +258,22 @@ export interface Integrations {
 
 export type IntegrationTarget = "slack" | "discord" | "telegram" | "linear" | "github" | "jira"
 
+/**
+ * Protocols that keep each user's funds in a per-user account OBJECT rather
+ * than in the wallet itself: perps venues, margin venues, anything with a
+ * subaccount. Those users have two addresses that are not interchangeable, and
+ * meeting the second one unlabelled halfway through a conversation is how
+ * "why is a different address showing as connected?" happens.
+ *
+ * OFF BY DEFAULT and deliberately so. Most protocols have no such concept, and
+ * showing a second address there would invent one the user does not have. The
+ * label and the resolver come from the protocol adapter in `packages/aptos`,
+ * so enabling this only decides whether we look.
+ */
+export interface SubaccountsConfig {
+  enabled: boolean
+}
+
 export interface ProjectConfig {
   branding: BrandingConfig
   token: TokenConfig | null
@@ -287,6 +303,7 @@ export interface ProjectConfig {
   publicDemo?: boolean
   actions?: ActionsConfig
   integrations?: Integrations
+  subaccounts?: SubaccountsConfig
   telegramBotToken?: string | null
   telegramBotUsername?: string | null
 }

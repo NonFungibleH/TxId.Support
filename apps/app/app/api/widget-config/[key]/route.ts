@@ -143,6 +143,9 @@ export async function GET(
             (config.plan ?? "free") !== "demo" &&
             config.publicDemo !== true)),
     },
+    // Whether this protocol keeps user funds in a per-user account object. The
+    // address itself is resolved per wallet at connect time, not here.
+    subaccounts: { enabled: config.subaccounts?.enabled === true },
     tokenModeAsk: config.tokenModeAsk ?? null,
     welcomeMessage: config.branding?.welcomeMessage ?? null,
     watchedContracts: (config.watchedContracts ?? []).map((c) => ({

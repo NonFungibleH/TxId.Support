@@ -4,6 +4,8 @@ import { ContractList } from "@/components/settings/ContractList"
 import { AddContractDialog } from "@/components/settings/AddContractDialog"
 import { AuditsManager } from "@/components/settings/AuditsManager"
 import { TokenForm } from "@/components/settings/TokenForm"
+import { SubaccountsForm } from "@/components/settings/SubaccountsForm"
+import { adapterFor } from "@txid/aptos"
 import { CollapsibleCard } from "@/components/settings/CollapsibleCard"
 import { Card, CardContent } from "@/components/ui/card"
 import type { ProjectConfig, Plan } from "@/lib/types/config"
@@ -35,6 +37,12 @@ export default async function ContractsPage() {
     ...(config.token?.chain ? [config.token.chain as string] : []),
   ])]
 
+  // Whether any watched contract belongs to a protocol TxID knows keeps user
+  // funds in a per-user account. Drives the copy on the subaccounts card, so
+  // the toggle is never a guess about whether it will do anything.
+  const adapter = adapterFor(contracts.map(c => ({ address: c.address, chain: c.chain as string })))
+  const detected = adapter ? { protocol: adapter.name, label: adapter.accountLabel } : null
+
   const chainLimitRaw = PLAN_CHAIN_LIMITS[plan]
   const chainLimit = chainLimitRaw === Infinity ? -1 : chainLimitRaw
   const atChainLimit = chainLimit !== -1 && activeChains.length >= chainLimit
@@ -59,6 +67,21 @@ export default async function ContractsPage() {
         defaultOpen={false}
       >
         <TokenForm projectId={typedProject.id} initial={config.token} />
+      </CollapsibleCard>
+
+      <CollapsibleCard
+        title="User accounts"
+        description="For protocols that hold each user's funds in a per-user account object rather than in their wallet, such as a perps or margin venue."
+        summary={
+          config.subaccounts?.enabled
+            ? detected
+              ? `On. ${detected.protocol} ${detected.label} shown on connect.`
+              : "On, but no supported protocol detected yet."
+            : "Off. Users see only their wallet address."
+        }
+        defaultOpen={false}
+      >
+        <SubaccountsForm enabled={config.subaccounts?.enabled === true} detected={detected} />
       </CollapsibleCard>
 
       <CollapsibleCard

@@ -11,6 +11,7 @@ export type { WalletConfig } from "./tools"
 export type {
   ChatMessage,
   StreamChatParams,
+  ProtocolAccountContext,
   ProjectConfigSnapshot,
   TokenConfigSnapshot,
   WatchedContractSnapshot,
