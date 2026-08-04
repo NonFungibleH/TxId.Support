@@ -345,10 +345,10 @@ export default function SecurityPage() {
                   in place today.
                 </p>
                 <p className="text-sm text-muted leading-relaxed mb-2.5">
-                  Dashboard roles are not enforced yet either. You can invite colleagues as Admin
-                  or Member, but every member can currently change every setting, so invite with
-                  that in mind. The change history records who changed what in the meantime, and
-                  role enforcement is the next thing we are building.
+                  Dashboard roles are enforced: Admin, Developer, Support and Auditor, checked in
+                  every server action rather than hidden in the interface. Auditor reads and exports
+                  the full record and can change nothing, which is the account to hand an external
+                  auditor. Single sign-on is not built.
                 </p>
                 <p className="text-sm text-[#c8c8d8] leading-relaxed">
                   Nothing else on this page implies otherwise. If a control is not listed above

@@ -105,7 +105,11 @@ export const DOCS: Doc[] = [
 
       { type: "h2", text: "Knowledge" },
       { type: "features", items: [
-        { feature: "Documentation indexing", detail: "Crawls your docs and answers from them, citing sources.", status: "available" },
+        { feature: "Documentation indexing", detail: "Crawls your docs and answers from them.", status: "available" },
+        { feature: "Source citations", detail: "Links the page an answer came from. Cites nothing when the answer came from chain data instead.", status: "available" },
+        { feature: "Automatic re-sync", detail: "Re-checks your docs daily or weekly and re-indexes only pages that changed.", status: "optional" },
+        { feature: "Deleted pages pruned", detail: "A page you remove stops being answered from, instead of lingering forever.", status: "available" },
+        { feature: "Re-sync on docs commit", detail: "Trigger a re-check from a webhook when your docs repo changes.", status: "coming" },
         { feature: "Grounded answers", detail: "Says so when something cannot be verified, rather than guessing.", status: "available" },
         { feature: "Content blocks", detail: "Fixed answers for questions you want worded exactly.", status: "available" },
         { feature: "Languages", detail: "16 supported, or auto-detected from the user.", status: "available" },
@@ -123,7 +127,8 @@ export const DOCS: Doc[] = [
         { feature: "Access log", detail: "Who viewed, exported or erased a record, and when.", status: "available" },
         { feature: "Change history", detail: "Who changed which settings, and when. Append-only, and never records a credential value.", status: "available" },
         { feature: "Team access", detail: "Invite colleagues to the dashboard as Admin or Member.", status: "available" },
-        { feature: "Role restrictions", detail: "Not enforced yet. Every invited member can currently change every setting, so invite accordingly. The change history records who did what in the meantime.", status: "coming" },
+        { feature: "Roles", detail: "Admin, Developer, Support and Auditor, enforced on the server rather than hidden in the interface.", status: "available" },
+        { feature: "Auditor role", detail: "Reads and exports the full record, changes nothing. Safe to hand an external auditor.", status: "available" },
         { feature: "Retrieval evidence", detail: "What the documentation search returned for each answer, and what it cost in context.", status: "available" },
         { feature: "Recorded erasure", detail: "Deletion leaves a tombstone, so a gap is never unexplained.", status: "available" },
         { feature: "CSV export", detail: "Includes ledger version, country, model and answer hash.", status: "available" },
@@ -138,6 +143,10 @@ export const DOCS: Doc[] = [
         { feature: "Notifications", detail: "Slack, Discord, Telegram.", status: "available" },
         { feature: "Issue trackers", detail: "Linear, GitHub, Jira. The issue URL is written back to the ticket.", status: "available" },
         { feature: "Outbound webhooks", detail: "HMAC-signed, with a delivery log.", status: "available" },
+        { feature: "Assignment and priority", detail: "Owner, urgency, and statuses including waiting on user.", status: "available" },
+        { feature: "Ticket history", detail: "Every status change, assignment, note and reply in order, with who did it. Append-only.", status: "available" },
+        { feature: "Log external replies", detail: "Record a reply you sent by email or CRM, with a link to it, so the trail stays continuous.", status: "available" },
+        { feature: "Inbound email capture", detail: "Replies parsed onto the ticket automatically. Today this is recorded by hand.", status: "coming" },
         { feature: "Delivery retry", detail: "A failed escalation is retried on a backoff and stays visible until it lands, rather than being lost.", status: "available" },
       ]},
 
@@ -148,6 +157,7 @@ export const DOCS: Doc[] = [
         { feature: "Gaps view", detail: "What was never answered at all, marked unhelpful, escalated, or ended badly without escalating.", status: "available" },
         { feature: "Knowledge vs data gaps", detail: "Separates missing documentation from failed chain reads, because the fixes have different owners.", status: "available" },
         { feature: "Documentation coverage", detail: "What your docs did not cover, what they covered weakly, and the context cost per answer.", status: "available" },
+        { feature: "What they keep asking", detail: "Ranked phrases from users' own words across conversations that went badly. The write-this-next list.", status: "available" },
       ]},
 
       { type: "h2", text: "Branding and configuration" },

@@ -511,7 +511,24 @@ This shipped once: `case_access_log` blocked `admin_erase_project()`, so no proj
 
 The pattern both tables now use: permit exactly one shape of update, the FK going to NULL with every other column identical, via `to_jsonb(new) - 'project_id' = to_jsonb(old) - 'project_id'`. A reference can be cleared, never repointed, and no content rides along. Deletes stay refused.
 
-### Team access: seats exist, roles do NOT
+### Roles (four, enforced server-side)
+`org_members` (migration `20260804000003`) + `lib/roles.ts` (matrix, labels, CLIENT-SAFE) and `lib/roles-server.ts` (`currentActor`, `requireCapability`, `rolesForOrg`). **The split is not cosmetic**: importing them together pulls `next/headers` into the browser bundle and fails the build.
+
+Admin / Developer / Support / Auditor, expressed as CAPABILITIES (`settings`, `keys`, `billing`, `team`, `destroy`, `tickets`, `records`) rather than role-name checks. Auditor reads and exports and changes nothing, which is the account to hand an external auditor.
+
+- **Clerk owns membership, we own permission.** No mirroring, so no sync problem. A member with no row takes `DEFAULT_ROLE`.
+- **DEFAULT_ROLE is `admin`** so existing teams are not silently demoted on deploy.
+- **`currentActor` returns the default when there is NO org row.** `createProject` upserts the organisation, so failing closed there throws "Unauthenticated" at every new signup. Before the org exists there is nothing to protect.
+- Cannot change your own role; the last Admin cannot be demoted. Both enforced server-side.
+
+### Docs auto-sync and change detection
+`doc_sources` (migration `20260804000004`) holds a content hash + ETag + Last-Modified per page. `crawlAndIngestCore` sends conditional requests, treats 304 as nothing-to-do, and re-embeds ONLY pages whose hash moved. **It also prunes**: a page deleted from the docs used to keep its chunks forever, so the bot answered from documentation that no longer existed, with a citation. An all-304 crawl is a SUCCESS, not the old "no content found" failure. Cron `docs-resync` daily at 03:00; `config.docsSync` opts in.
+
+### Ticket inbox
+`ticket_events` (migration `20260804000005`) is append-only on UPDATE and **deliberately NOT on DELETE**: both FKs cascade, so blocking delete would break ticket deletion and `admin_erase_project()`. Same trap as `case_access_log`, different disguise. Records status changes, assignment, notes, and replies sent OUTSIDE TxID (email/CRM) with a channel and URL, because the trail otherwise stops at "escalated". TxID does not send the reply; inbound email capture is not built.
+
+### Team access
+
 **Do not repeat the claim that this is "one user per org".** It was wrong, it sat in the roadmap for months, and it was quoted at the user. The truth:
 
 - **Built:** `/dashboard/team` invites real people through Clerk as `org:admin` or `org:member` (`lib/actions/team.ts`: `getTeamMembers`, `inviteTeamMember`, `revokeInvitation`). Several people can hold accounts on one org today. There is no `org_users` table; membership lives in Clerk, not our database.
