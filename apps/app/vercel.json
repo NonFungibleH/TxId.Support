@@ -3,6 +3,10 @@
     {
       "path": "/api/cron/escalation-retry",
       "schedule": "*/10 * * * *"
+    },
+    {
+      "path": "/api/cron/docs-resync",
+      "schedule": "0 3 * * *"
     }
   ]
 }

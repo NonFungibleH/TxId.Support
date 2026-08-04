@@ -1,4 +1,5 @@
 import { createServiceClient } from "@/lib/supabase/server"
+import { rankTopics } from "@/lib/topics"
 
 /**
  * Where TxID fell short, split by whose problem it is.
@@ -42,6 +43,12 @@ export interface GapsReport {
   }
   /** Which subject areas the shortfalls cluster in. */
   byCategory: { category: string; count: number }[]
+  /**
+   * What users keep asking that went badly, ranked. The list of conversations
+   * answers "what happened"; this answers "what do we write next", which is
+   * the question a content owner actually has.
+   */
+  topics: { phrase: string; count: number; example: string }[]
   totals: { conversations: number; withProblems: number }
 }
 
@@ -54,14 +61,6 @@ export interface GapItem {
 
 const NEGATIVE_SENTIMENT = new Set(["negative", "frustrated", "angry"])
 
-/**
- * Below this, the documentation technically matched but not well enough to
- * trust. A starting heuristic, not a measured constant: retrieval only returns
- * results above 0.35, so this marks the band just above the floor. Now that
- * scores are recorded, it can be tuned against real data rather than guessed.
- */
-const WEAK_MATCH = 0.5
-
 /** Collapse a failure note to its recognisable prefix so like groups with like. */
 function normaliseFailure(note: string): string {
   const cleaned = note.replace(/\s+/g, " ").trim()
@@ -69,6 +68,15 @@ function normaliseFailure(note: string): string {
   const head = colon > 0 && colon < 60 ? cleaned.slice(0, colon) : cleaned.slice(0, 60)
   return head.charAt(0).toUpperCase() + head.slice(1)
 }
+
+
+/**
+ * Below this, the documentation technically matched but not well enough to
+ * trust. A starting heuristic, not a measured constant: retrieval only returns
+ * results above 0.35, so this marks the band just above the floor. Now that
+ * scores are recorded, it can be tuned against real data rather than guessed.
+ */
+const WEAK_MATCH = 0.5
 
 export async function buildGapsReport(projectId: string, days = 30): Promise<GapsReport> {
   const supabase = createServiceClient()
@@ -78,7 +86,7 @@ export async function buildGapsReport(projectId: string, days = 30): Promise<Gap
   const empty: GapsReport = {
     unanswered: [], thumbsDown: [], escalated: [], silentlyUnhappy: [], dataGaps: [],
     docGaps: [], docCoverage: { answered: 0, noMatch: 0, weakMatch: 0, avgContextChars: 0 },
-    byCategory: [],
+    byCategory: [], topics: [],
     totals: { conversations: 0, withProblems: 0 },
   }
 
@@ -104,12 +112,12 @@ export async function buildGapsReport(projectId: string, days = 30): Promise<Gap
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (supabase as any)
       .from("messages")
-      .select("conversation_id, feedback, role, created_at, evidence")
+      .select("conversation_id, feedback, role, created_at, evidence, content")
       .in("conversation_id", convIds)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .then((res: any) =>
         res.error
-          ? supabase.from("messages").select("conversation_id, feedback, role, created_at").in("conversation_id", convIds)
+          ? supabase.from("messages").select("conversation_id, feedback, role, created_at, content").in("conversation_id", convIds)
           : res,
       ),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -131,6 +139,7 @@ export async function buildGapsReport(projectId: string, days = 30): Promise<Gap
   const thumbsDownIds = new Set<string>()
   const failureCounts = new Map<string, number>()
   const docGapIds = new Set<string>()
+  const questionsByConv = new Map<string, string[]>()
   let answeredWithDocs = 0
   let noMatch = 0
   let weakMatch = 0
@@ -156,6 +165,12 @@ export async function buildGapsReport(projectId: string, days = 30): Promise<Gap
         weakMatch++
         docGapIds.add(m.conversation_id)
       }
+    }
+
+    if (m.role === "user" && typeof m.content === "string" && m.content.trim().length > 3) {
+      const list = questionsByConv.get(m.conversation_id) ?? []
+      list.push(m.content.slice(0, 300))
+      questionsByConv.set(m.conversation_id, list)
     }
 
     const failed = m.evidence?.investigation?.failedLookups
@@ -220,6 +235,12 @@ export async function buildGapsReport(projectId: string, days = 30): Promise<Gap
     byCategory: Array.from(categoryCounts.entries())
       .sort((a, b) => b[1] - a[1])
       .map(([category, count]) => ({ category, count })),
+    // Ranked from the questions in conversations that went badly OR that the
+    // documentation could not cover. Both belong: a question answered from
+    // chain data while the docs said nothing is still a page worth writing.
+    topics: rankTopics(
+      [...new Set([...problemIds, ...docGapIds])].flatMap(id => questionsByConv.get(id) ?? []),
+    ),
     totals: { conversations: convs.length, withProblems: problemIds.size },
   }
 }

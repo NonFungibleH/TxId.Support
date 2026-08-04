@@ -2,6 +2,8 @@ import { getProject } from "@/lib/actions/project"
 import { redirect } from "next/navigation"
 import { createServiceClient } from "@/lib/supabase/server"
 import { DocsForm } from "@/components/settings/DocsForm"
+import { DocsSyncForm } from "@/components/settings/DocsSyncForm"
+import { docsFreshness } from "@/lib/actions/docs-sync"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import type { ProjectConfig } from "@/lib/types/config"
 import type { Database } from "@/lib/supabase/types"
@@ -38,6 +40,7 @@ export default async function DocsPage() {
   }
   const sources = Array.from(sourcesMap.entries()).map(([url, { count, lastIndexedAt }]) => ({ url, count, lastIndexedAt }))
   const totalChunks = (docs ?? []).length
+  const freshness = await docsFreshness(typedProject.id)
 
   return (
     <div className="space-y-6">
@@ -52,7 +55,15 @@ export default async function DocsPage() {
             Indexed content is retrieved via RAG when users ask questions in the widget.
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-6">
+          <DocsSyncForm
+            enabled={config.docsSync?.enabled === true}
+            frequency={config.docsSync?.frequency ?? "daily"}
+            hasDocsUrl={!!config.docsUrl}
+            pages={freshness.pages}
+            lastChecked={freshness.lastChecked}
+            lastChanged={freshness.lastChanged}
+          />
           <DocsForm
             projectId={typedProject.id}
             initialDocsUrl={config.docsUrl}

@@ -1,3 +1,4 @@
+import { createHash } from "crypto"
 import type { createServiceClient } from "@/lib/supabase/server"
 import { chunkText, embedBatch } from "@txid/ai"
 import type { Json } from "@/lib/supabase/types"
@@ -13,7 +14,22 @@ export interface CrawlResult {
   pagesIndexed?: number
   chunksInserted?: number
   discovered?: number
+  /** Pages fetched and found unchanged, so never re-embedded. */
+  unchanged?: number
+  /** Pages that had been indexed and have since disappeared. */
+  pruned?: number
   error?: string
+}
+
+/** Per-page state from the previous crawl, keyed by url. */
+interface SourceState {
+  contentHash: string | null
+  etag: string | null
+  lastModified: string | null
+}
+
+function sha256(text: string): string {
+  return createHash("sha256").update(text).digest("hex")
 }
 
 export async function crawlAndIngestCore(
@@ -33,11 +49,51 @@ export async function crawlAndIngestCore(
   const origin = parsed.origin
   const MAX_PAGES = 60
 
+  // Everything we already know about these pages. Empty on a first crawl, in
+  // which case every page is treated as changed, which is correct.
+  const known = new Map<string, SourceState>()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: priorSources } = await (supabase as any)
+    .from("doc_sources")
+    .select("url, content_hash, etag, last_modified")
+    .eq("project_id", projectId)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  for (const s of (priorSources ?? []) as any[]) {
+    known.set(s.url as string, {
+      contentHash: s.content_hash ?? null,
+      etag: s.etag ?? null,
+      lastModified: s.last_modified ?? null,
+    })
+  }
+
+  /** Validators the server gave us last time, so it can answer 304. */
+  const conditional = (url: string): Record<string, string> => {
+    const prior = known.get(url)
+    if (!prior) return {}
+    const h: Record<string, string> = {}
+    if (prior.etag) h["If-None-Match"] = prior.etag
+    if (prior.lastModified) h["If-Modified-Since"] = prior.lastModified
+    return h
+  }
+
+  /** Validators to store for next time, when the origin supplies them. */
+  const validators = new Map<string, { etag: string | null; lastModified: string | null }>()
+  /** Pages the server told us had not changed, so the body was never sent. */
+  const notModified = new Set<string>()
+
   const fetchPage = async (url: string, withLinks = false): Promise<string | null> => {
     try {
       if (url.endsWith(".md") || url.endsWith(".txt")) {
-        const res = await fetch(url, { signal: AbortSignal.timeout(15_000) })
+        const res = await fetch(url, {
+          signal: AbortSignal.timeout(15_000),
+          headers: conditional(url),
+        })
+        if (res.status === 304) { notModified.add(url); return null }
         if (!res.ok) return null
+        validators.set(url, {
+          etag: res.headers.get("etag"),
+          lastModified: res.headers.get("last-modified"),
+        })
         return await res.text()
       }
       const headers: Record<string, string> = { "Accept": "text/plain", "X-No-Cache": "true" }
@@ -101,13 +157,58 @@ export async function crawlAndIngestCore(
     const text = await fetchPage(url)
     if (text && text.trim().length > 50) pageTexts.push({ url, text: text.trim() })
   }
+  // Every page answering 304 is a SUCCESSFUL crawl that found nothing to do,
+  // which is the expected outcome most of the time once change detection is
+  // working. Only an empty result with no 304s is a real failure.
+  if (pageTexts.length === 0 && notModified.size > 0) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (supabase as any).from("doc_sources").upsert(
+      [...notModified].map(url => ({
+        project_id: projectId,
+        url,
+        content_hash: known.get(url)?.contentHash ?? null,
+        etag: known.get(url)?.etag ?? null,
+        last_modified: known.get(url)?.lastModified ?? null,
+        last_checked_at: new Date().toISOString(),
+      })),
+      { onConflict: "project_id,url" },
+    )
+    return { ok: true, pagesIndexed: 0, chunksInserted: 0, discovered: urls.length, unchanged: notModified.size }
+  }
   if (pageTexts.length === 0) return { ok: false, error: "No content found on any discovered pages" }
 
-  await supabase.from("documents").delete().eq("project_id", projectId).in("source_url", pageTexts.map(p => p.url))
+  // Which pages actually moved. A page whose text hashes to the same value is
+  // left completely alone: its chunks stay, and nothing is re-embedded.
+  const now = new Date().toISOString()
+  const changed: { url: string; text: string; hash: string }[] = []
+  const unchangedUrls: string[] = []
+  for (const { url, text } of pageTexts) {
+    const hash = sha256(text)
+    if (known.get(url)?.contentHash === hash) unchangedUrls.push(url)
+    else changed.push({ url, text, hash })
+  }
+
+  // PRUNE. A page removed from the documentation was previously never fetched
+  // again, so its chunks stayed in the knowledge base forever and the
+  // assistant kept answering from documentation that no longer exists, with a
+  // citation. That is worse than being stale, because it reads as authoritative.
+  const seen = new Set<string>([...pageTexts.map(p => p.url), ...notModified])
+  const vanished = [...known.keys()].filter(u => !seen.has(u))
+  if (vanished.length > 0) {
+    await supabase.from("documents").delete().eq("project_id", projectId).in("source_url", vanished)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (supabase as any).from("doc_sources").delete().eq("project_id", projectId).in("url", vanished)
+  }
+
+  // Only the changed pages lose their chunks, so an unchanged page is never
+  // briefly absent from the knowledge base mid-crawl.
+  if (changed.length > 0) {
+    await supabase.from("documents").delete().eq("project_id", projectId).in("source_url", changed.map(c => c.url))
+  }
 
   type ChunkRow = { url: string; content: string; chunkIndex: number; totalChunks: number }
   const allChunks: ChunkRow[] = []
-  for (const { url, text } of pageTexts) {
+  for (const { url, text } of changed) {
     const chunks = chunkText(text)
     chunks.forEach((c, i) => allChunks.push({ url, content: c, chunkIndex: i, totalChunks: chunks.length }))
   }
@@ -130,8 +231,47 @@ export async function crawlAndIngestCore(
     }
   }
 
-  const { error: insertError } = await supabase.from("documents").insert(rows)
-  if (insertError) return { ok: false, error: insertError.message }
+  if (rows.length > 0) {
+    const { error: insertError } = await supabase.from("documents").insert(rows)
+    if (insertError) return { ok: false, error: insertError.message }
+  }
 
-  return { ok: true, pagesIndexed: pageTexts.length, chunksInserted: rows.length, discovered: urls.length }
+  // Record what we now know about every page still present, including the ones
+  // that did not change: "we looked and it was the same" is the fact that makes
+  // a freshness claim honest.
+  const stateRows = [
+    ...changed.map(c => ({
+      project_id: projectId,
+      url: c.url,
+      content_hash: c.hash,
+      etag: validators.get(c.url)?.etag ?? null,
+      last_modified: validators.get(c.url)?.lastModified ?? null,
+      last_checked_at: now,
+      last_changed_at: now,
+    })),
+    ...[...unchangedUrls, ...notModified].map(url => ({
+      project_id: projectId,
+      url,
+      content_hash: known.get(url)?.contentHash ?? null,
+      etag: validators.get(url)?.etag ?? known.get(url)?.etag ?? null,
+      last_modified: validators.get(url)?.lastModified ?? known.get(url)?.lastModified ?? null,
+      last_checked_at: now,
+      // Deliberately not touched: the page has not changed, so the date it
+      // last did is still true.
+      ...(known.get(url) ? {} : { last_changed_at: now }),
+    })),
+  ]
+  if (stateRows.length > 0) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (supabase as any).from("doc_sources").upsert(stateRows, { onConflict: "project_id,url" })
+  }
+
+  return {
+    ok: true,
+    pagesIndexed: changed.length,
+    chunksInserted: rows.length,
+    discovered: urls.length,
+    unchanged: unchangedUrls.length + notModified.size,
+    ...(vanished.length > 0 ? { pruned: vanished.length } : {}),
+  }
 }

@@ -59,7 +59,11 @@ export async function retrieveContext(
     includedChunks++
     const remaining = MAX_CONTEXT_CHARS - used
     const piece = r.content.length > remaining ? r.content.slice(0, remaining) : r.content
-    parts.push(piece)
+    // The source travels WITH the excerpt. Retrieval always knew which page a
+    // passage came from and dropped it before the prompt, so the assistant
+    // could never say where an answer came from even though the answer was
+    // grounded. Attaching it here is what makes a citation possible at all.
+    parts.push(r.source_url ? `[source: ${r.source_url}]\n${piece}` : piece)
     used += piece.length + SEP.length
   }
   const context = parts.join(SEP)

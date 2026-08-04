@@ -1,6 +1,6 @@
 import Link from "next/link"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { ThumbsDown, Ticket, CloudOff, HeartCrack, MessageSquareOff, BookX } from "lucide-react"
+import { ThumbsDown, Ticket, CloudOff, HeartCrack, MessageSquareOff, BookX, TrendingUp } from "lucide-react"
 import type { GapsReport, GapItem } from "@/lib/gaps"
 
 function GapList({ items, empty }: { items: GapItem[]; empty: string }) {
@@ -89,6 +89,38 @@ export function GapsPanel({ report, days }: { report: GapsReport; days: number }
             />
           </div>
         </div>
+
+        {report.topics.length > 0 && (
+          <div className="space-y-2.5 border-t border-border pt-5">
+            <div className="flex items-center gap-2">
+              <TrendingUp className="size-3.5 text-primary" />
+              <p className="text-xs font-semibold">What they keep asking</p>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Ranked from users&apos; own words across the conversations above. This is the
+              write-this-next list: the lists further up say what happened, this says what to do
+              about it.
+            </p>
+            <ul className="space-y-1.5">
+              {report.topics.map(t => (
+                <li
+                  key={t.phrase}
+                  className="flex items-baseline justify-between gap-3 rounded-lg bg-muted/40 px-3 py-2"
+                >
+                  <div className="min-w-0">
+                    <p className="text-xs font-medium capitalize">{t.phrase}</p>
+                    <p className="line-clamp-1 text-[11px] text-muted-foreground">
+                      e.g. &ldquo;{t.example}&rdquo;
+                    </p>
+                  </div>
+                  <span className="shrink-0 font-mono text-xs tabular-nums text-muted-foreground">
+                    {t.count}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         {report.docCoverage.answered > 0 && (
           <div className="space-y-2.5 border-t border-border pt-5">

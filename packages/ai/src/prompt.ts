@@ -228,6 +228,14 @@ export function buildDocsBlock(ragContext: string | undefined): string {
     return `## Protocol Documentation\n` +
       `The following is drawn directly from this protocol's documentation. ` +
       `Treat it as authoritative.\n\n` +
+      `Each excerpt is preceded by \`[source: URL]\`. When an answer rests on one of them, ` +
+      `link it once at the end as a short markdown link naming the page, for example ` +
+      `"Full detail: [Staking guide](URL)". Use the protocol's own wording for the name ` +
+      `where the excerpt makes it obvious. NEVER invent, guess or reshape a URL, and never ` +
+      `show the \`[source: ...]\` marker itself to the user. If an answer came from live ` +
+      `chain data rather than these excerpts, cite nothing: a citation on a figure the docs ` +
+      `did not provide is worse than none, because it implies the documentation confirmed it. ` +
+      `One link is usually enough, and never more than two.\n\n` +
       ragContext.trim()
   }
   return `## Documentation\n` +

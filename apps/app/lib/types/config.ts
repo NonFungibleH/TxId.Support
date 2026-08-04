@@ -295,6 +295,24 @@ export interface SubaccountsConfig {
   enabled: boolean
 }
 
+/**
+ * Automatic re-crawl of the documentation.
+ *
+ * DAILY IS THE DEFAULT WHEN ENABLED, not weekly. Change detection means a run
+ * only re-embeds pages that actually moved, so the cost of a run is fetching
+ * rather than embedding, and the difference between daily and weekly is close
+ * to nothing. Under-scheduling out of caution buys staleness for no saving.
+ */
+export interface DocsSyncConfig {
+  enabled: boolean
+  frequency: "daily" | "weekly"
+}
+
+export const DOCS_SYNC_INTERVAL_MS: Record<DocsSyncConfig["frequency"], number> = {
+  daily: 24 * 60 * 60 * 1000,
+  weekly: 7 * 24 * 60 * 60 * 1000,
+}
+
 export interface ProjectConfig {
   branding: BrandingConfig
   token: TokenConfig | null
@@ -324,6 +342,7 @@ export interface ProjectConfig {
   publicDemo?: boolean
   actions?: ActionsConfig
   integrations?: Integrations
+  docsSync?: DocsSyncConfig
   subaccounts?: SubaccountsConfig
   telegramBotToken?: string | null
   telegramBotUsername?: string | null
