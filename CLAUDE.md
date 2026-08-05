@@ -554,6 +554,17 @@ Historical note worth keeping: the roadmap claimed "one user per org, no seats, 
 
 One hook on `updateConfig` covers every config change since they all funnel through it, recording only the changed KEYS. Named hooks on top: `integration.saved`, `escalation.redelivered`, `widget.enabled`/`disabled`. Shown on Account as "Change history". Clerk's `orgId` is a Clerk string, NOT our `organisations.id` UUID: callers pass the internal id, the helper never reads Clerk's.
 
+### Anti-hallucination: verify the OUTPUT, do not trust the model
+The claim is never "it does not hallucinate". It is that the class of error which would actually damage a protocol, **a confident specific wrong NUMBER about a user's own position**, is mechanically checkable, because every legitimate figure came from a tool result or a documentation excerpt.
+
+`lib/numeric-check.ts` extracts every significant figure from the answer and traces it back to `mergeToolEvidence().numbers` (harvested from raw AND humanized forms) or the retrieved context. Untraceable figures land in `evidence.unverifiedNumbers`.
+
+**Substring matching, not equality, and that is deliberate.** The model is SUPPOSED to format and round, so "$63,695.70" quoted from a raw `63695700000` shares a digit prefix rather than matching. Requiring equality would flag every correctly formatted number, the signal would be noise, and it would get switched off. Verified against realistic answers including that exact case.
+
+**WE STREAM, so nothing here can suppress an answer.** The check finishes after the last token. What it does instead is append a caveat in the same turn, so the user sees it before acting and the one answer with nothing behind it never looks identical to the verified ones. Same for `grounding === "ungrounded"`.
+
+Roadmapped, not built: policy checks as code (`c-policy-code`), intent classification used to RAISE the evidence bar rather than shortcut it (`k-intent-gate`).
+
 ### Provenance: `evidence.sources` and `evidence.grounding`
 Every named thing an answer rested on, as a typed list (`EvidenceSource` in `packages/ai/src/evidence.ts`): `documentation` (with `version` = the `doc_sources` content hash, so "documentation vX" is real and checkable), `contract`, `transaction`, `price`, `position`, `parameter`.
 

@@ -80,6 +80,12 @@ export interface AnswerEvidence {
    * the one it feels sure about.
    */
   grounding?: "verified" | "documented" | "ungrounded"
+  /**
+   * Figures in the answer that trace to neither a tool result nor a retrieved
+   * excerpt. Non-empty means the model produced a number nobody can check,
+   * which is the failure mode that actually damages a protocol.
+   */
+  unverifiedNumbers?: string[]
   answer?: { sha256: string; characters: number }
   latencyMs?: number
 }

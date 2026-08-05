@@ -1,5 +1,6 @@
 import { createServiceClient } from "@/lib/supabase/server"
 import { answerFingerprint, chainStateAt, coarseDevice, requestGeo, userSuppliedHashes, documentationSources, type AnswerEvidence } from "@/lib/evidence"
+import { unverifiedNumbers } from "@/lib/numeric-check"
 import { mergeToolEvidence, type ToolEvidence } from "@txid/ai"
 import { buildSystemPrompt, buildDocsBlock, retrieveContext, streamChatWithTools, generateSuggestions } from "@txid/ai"
 import { resolveProtocolAccount } from "@/lib/protocol-account"
@@ -737,6 +738,36 @@ export async function POST(request: Request) {
             ...(lastUser ? userSuppliedHashes(lastUser.content, chainId ?? undefined) : []),
           ]
 
+          // Which figures in the answer trace to nothing that was read. The
+          // fatal failure for this product is a confident, specific, wrong
+          // NUMBER about a user's own position, and that class is mechanically
+          // checkable because every legitimate figure came from a tool result
+          // or a documentation excerpt.
+          const unverified = unverifiedNumbers(fullResponseText, merged.numbers, ragContext)
+
+          const grounding: AnswerEvidence["grounding"] = merged.anyReadSucceeded
+            ? "verified"
+            : (retrievalEvidence?.matched ?? 0) > 0
+              ? "documented"
+              : "ungrounded"
+
+          // WE STREAM, so a check that finishes after the last token cannot
+          // retract it. What it can do is refuse to let the answer stand
+          // unqualified: the caveat is appended in the same turn, and the user
+          // sees it before acting. Silence here would mean the one answer with
+          // nothing behind it looked exactly like the ones that were verified.
+          const needsCaveat =
+            projectMode === "support" &&
+            !inspectMode &&
+            (grounding === "ungrounded" || unverified.length > 0)
+          if (needsCaveat && fullResponseText) {
+            const note = unverified.length > 0
+              ? `\n\n_I could not trace ${unverified.length === 1 ? "one figure" : `${unverified.length} figures`} above to a live reading or to ${typedProject.name}'s documentation. Please confirm anything you plan to act on, and I can raise this with the team._`
+              : `\n\n_This one is not from ${typedProject.name}'s documentation or a live reading, so please treat it as general background rather than something confirmed. I can raise it with the team if you need a definitive answer._`
+            fullResponseText += note
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text: note })}\n\n`))
+          }
+
           // The action-update marker is a system-generated status note, not a
           // user turn - persist it as an assistant-side row so it never counts
           // against the per-session user-message cap on subsequent requests.
@@ -745,14 +776,8 @@ export async function POST(request: Request) {
             investigation: merged,
             ...(retrievalEvidence ? { retrieval: retrievalEvidence } : {}),
             ...(provenance.length ? { sources: provenance } : {}),
-            grounding: merged.anyReadSucceeded
-              ? "verified"
-              : (retrievalEvidence?.matched ?? 0) > 0
-                ? "documented"
-                // Nothing read, nothing matched: the model answered from its own
-                // knowledge. On a compliance surface that is the case a protocol
-                // most needs to be able to find.
-                : "ungrounded",
+            ...(unverified.length ? { unverifiedNumbers: unverified } : {}),
+            grounding,
             ...(chainId ? { chainId } : {}),
             surface: "widget",
             ...(config.branding?.language ? { language: config.branding.language } : {}),

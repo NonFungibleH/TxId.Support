@@ -104,6 +104,7 @@ function EvidenceBadge({ evidence }: { evidence: NonNullable<ConversationWithMes
   const prices = (evidence as { pricesAtRead?: Record<string, string> }).pricesAtRead
   const sources = ((evidence as { sources?: EvidenceSource[] }).sources ?? [])
   const grounding = (evidence as { grounding?: "verified" | "documented" | "ungrounded" }).grounding
+  const unverified = (evidence as { unverifiedNumbers?: string[] }).unverifiedNumbers ?? []
 
   return (
     <div className="mt-1 shrink-0">
@@ -165,6 +166,19 @@ function EvidenceBadge({ evidence }: { evidence: NonNullable<ConversationWithMes
                   </span>
                 )}
               </p>
+            </div>
+          )}
+
+          {unverified.length > 0 && (
+            <div className="space-y-1">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-amber-600">
+                Figures with no source
+              </p>
+              <p className="text-[11px] leading-relaxed text-muted-foreground">
+                These appeared in the answer but trace to neither a live reading nor the
+                documentation, so the assistant produced them. The user was told.
+              </p>
+              <p className="font-mono text-[11px] text-amber-600">{unverified.join(", ")}</p>
             </div>
           )}
 

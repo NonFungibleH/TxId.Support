@@ -16,6 +16,11 @@ export interface ToolEvidence {
   failed?: string[]
   /** Named things this read touched, for the provenance list. */
   sources?: EvidenceSource[]
+  /**
+   * Every significant digit-sequence this result contained, so a number in the
+   * answer can be traced back to something that was actually read.
+   */
+  numbers?: string[]
 }
 
 /**
@@ -74,6 +79,7 @@ export function toolEvidenceFrom(tool: string, result: unknown, errored: boolean
   const prices: Record<string, string> = {}
   const failed: string[] = []
   const sources: EvidenceSource[] = []
+  const numbers = new Set<string>()
   const seen = new Set<string>()
   const add = (s: EvidenceSource) => {
     const k = JSON.stringify(s)
@@ -83,6 +89,15 @@ export function toolEvidenceFrom(tool: string, result: unknown, errored: boolean
   }
 
   walk(result, (key, value, parent) => {
+    // Harvest every digit sequence the read returned, in BOTH the raw and the
+    // humanized form, because `humanize()` is what produces the string the
+    // model is meant to quote and the raw integer is what it came from.
+    if (typeof value === "string" || typeof value === "number") {
+      for (const d of String(value).matchAll(/\d[\d,.]*/g)) {
+        const digits = d[0].replace(/[^0-9]/g, "")
+        if (digits.length >= 3 && numbers.size < 400) numbers.add(digits)
+      }
+    }
     // Addresses, hashes and account objects are what a reviewer re-reads.
     if (typeof value === "string") {
       if ((key === "hash" || key === "transactionHash") && /^0x[a-fA-F0-9]{64}$/.test(value)) {
@@ -124,6 +139,7 @@ export function toolEvidenceFrom(tool: string, result: unknown, errored: boolean
   if (Object.keys(prices).length > 0) evidence.prices = prices
   if (failed.length > 0) evidence.failed = failed.slice(0, 6)
   if (sources.length > 0) evidence.sources = sources
+  if (numbers.size > 0) evidence.numbers = [...numbers]
   return evidence
 }
 
@@ -133,6 +149,8 @@ export function mergeToolEvidence(items: ToolEvidence[]): {
   failedLookups: string[]
   prices: Record<string, string>
   sources: EvidenceSource[]
+  /** Digit sequences seen across every read, for numeric verification. */
+  numbers: Set<string>
   /** True when at least one read actually succeeded. Drives grounding. */
   anyReadSucceeded: boolean
 } {
@@ -140,10 +158,12 @@ export function mergeToolEvidence(items: ToolEvidence[]): {
   const failedLookups: string[] = []
   const prices: Record<string, string> = {}
   const sources: EvidenceSource[] = []
+  const numbers = new Set<string>()
   const seenSource = new Set<string>()
   let anyReadSucceeded = false
   for (const item of items) {
     if (item.ok) anyReadSucceeded = true
+    for (const n of item.numbers ?? []) numbers.add(n)
     for (const s of item.sources ?? []) {
       const k = JSON.stringify(s)
       if (!seenSource.has(k) && sources.length < 40) { seenSource.add(k); sources.push(s) }
@@ -155,5 +175,5 @@ export function mergeToolEvidence(items: ToolEvidence[]): {
     for (const f of item.failed ?? []) if (!failedLookups.includes(f)) failedLookups.push(f)
     Object.assign(prices, item.prices ?? {})
   }
-  return { toolsUsed, failedLookups, prices, sources, anyReadSucceeded }
+  return { toolsUsed, failedLookups, prices, sources, numbers, anyReadSucceeded }
 }

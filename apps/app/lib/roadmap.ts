@@ -130,6 +130,27 @@ export const ROADMAP: RoadmapItem[] = [
   },
 
   {
+    id: "c-policy-code",
+    title: "Policy checks as code, not prompt",
+    area: "compliance",
+    phase: 2,
+    complexity: "Medium",
+    effort: "~1 wk",
+    status: "soon",
+    what: "The no-advice guardrail is a prompt instruction, which is guidance rather than enforcement. A post-generation classifier that catches advice-shaped output would make it a control: the rule would hold even if the model ignored the instruction. Same pattern as numeric verification, which already checks the output rather than trusting it.",
+  },
+  {
+    id: "k-intent-gate",
+    title: "Intent classification, to RAISE the evidence bar",
+    area: "knowledge",
+    phase: 3,
+    complexity: "Medium",
+    effort: "~1 wk",
+    status: "later",
+    what: "Classify the question, then REQUIRE the matching evidence before an answer is allowed: 'this is a failed-transaction question, so refuse to answer until get_transaction_by_hash has actually run'. Deliberately NOT used to route to a shortcut path.",
+    care: "A classifier that mislabels produces a confidently wrong answer via the safe path, which is worse than an uncertain one via the general path. It must fail OPEN to the general path, never closed to a specialised one. Also note the tool loop is iterative on purpose: you often cannot know what to fetch until you have fetched something, so this must not flatten multi-round investigation into a single lookup.",
+  },
+  {
     id: "k-failure-trigger",
     title: "Open the assistant when something fails, before the user asks",
     area: "knowledge",
