@@ -175,6 +175,9 @@ export default async function AdminPage() {
           <Link href="/admin/roadmap" className="rounded-lg border border-border px-3 py-1.5 text-sm font-medium hover:border-indigo-500/40 hover:text-indigo-400 transition-colors">
             Product roadmap →
           </Link>
+          <Link href="/admin/architecture" className="rounded-lg border border-border px-3 py-1.5 text-sm font-medium hover:border-indigo-500/40 hover:text-indigo-400 transition-colors">
+            System architecture →
+          </Link>
           <Link href="/admin/eval" className="rounded-lg border border-border px-3 py-1.5 text-sm font-medium hover:border-border/80 transition-colors text-muted-foreground hover:text-foreground">
             Eval →
           </Link>
