@@ -152,6 +152,8 @@ export const DOCS: Doc[] = [
         { feature: "Notifications", detail: "Slack, Discord, Telegram.", status: "available" },
         { feature: "Issue trackers", detail: "Linear, GitHub, Jira. The issue URL is written back to the ticket.", status: "available" },
         { feature: "Outbound webhooks", detail: "HMAC-signed, with a delivery log.", status: "available" },
+        { feature: "Why it reached you", detail: "Each ticket says what actually caused the escalation: a documentation gap, a failed read, an answer with no source. Computed, not the assistant's own account.", status: "available" },
+        { feature: "Triage by verifiability", detail: "Sort the queue so conversations nothing can be checked against come first.", status: "available" },
         { feature: "Assignment and priority", detail: "Owner, urgency, and statuses including waiting on user.", status: "available" },
         { feature: "Ticket history", detail: "Every status change, assignment, note and reply in order, with who did it. Append-only.", status: "available" },
         { feature: "Log external replies", detail: "Record a reply you sent by email or CRM, with a link to it, so the trail stays continuous.", status: "available" },

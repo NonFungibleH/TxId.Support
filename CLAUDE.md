@@ -554,6 +554,15 @@ Historical note worth keeping: the roadmap claimed "one user per org, no seats, 
 
 One hook on `updateConfig` covers every config change since they all funnel through it, recording only the changed KEYS. Named hooks on top: `integration.saved`, `escalation.redelivered`, `widget.enabled`/`disabled`. Shown on Account as "Change history". Clerk's `orgId` is a Clerk string, NOT our `organisations.id` UUID: callers pass the internal id, the helper never reads Clerk's.
 
+### Ticket signals: why it reached you, and how founded it was
+`lib/ticket-signals.ts`, computed in `getTickets` from the conversation's own messages. Works retroactively on every existing ticket, needs no new instrumentation.
+
+**DERIVED, NOT DECLARED.** Tickets already had a `reason`, but the MODEL picks it from an enum, so it is the assistant's account of why it gave up. `ticketSignals()` reads the evidence instead: `docs_gap` (retrieval matched nothing), `read_failed` (failedLookups), `ungrounded`, `untraceable_figures`, `marked_unhelpful`, `no_answer`, `advice_declined`.
+
+**NO CONFIDENCE SCORE, deliberately.** A percentage is a quantitative claim that must be defended when wrong, and it tells a support lead nothing actionable. "Your documentation does not cover withdrawals" is a task; "62%" is decoration. The badge is instead a `basis`: Verified / From docs / Unverified, taken as the **WORST** across the conversation, because averaging is exactly how the one unverifiable answer disappears.
+
+Sortable by `BASIS_RANK` so the least verifiable reach a human first.
+
 ### Service updates (`config.incident`)
 The PROTOCOL's own announcement channel, carried by the assistant. **FRAMING IS LOAD-BEARING IN EVERY STRING**: this is not an emergency switch for TxID and nothing may imply the assistant is broken. The customer is telling their users about their product. Copy says "your protocol", "your users", "your message". User-facing name is "service update", never "incident mode".
 

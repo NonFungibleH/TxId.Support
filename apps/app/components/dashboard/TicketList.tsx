@@ -8,6 +8,9 @@ import { ChevronDown, ChevronRight, Mail } from "lucide-react"
 import { updateTicketStatus, updateTicketNotes } from "@/lib/actions/tickets"
 import { TicketWorkspace } from "./TicketWorkspace"
 import type { TicketStatus, TicketPriority } from "@/lib/actions/ticket-inbox"
+import {
+  REASON_LABEL, REASON_HELP, BASIS_LABEL, BASIS_RANK, type TicketBasis,
+} from "@/lib/ticket-signals"
 import type { Ticket } from "@/lib/actions/tickets"
 
 const STATUS_LABELS: Record<string, { label: string; variant: "default" | "secondary" | "outline" }> = {
@@ -84,6 +87,24 @@ function TicketRow({ ticket, teammates }: { ticket: Ticket; teammates: { userId:
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-xs font-mono text-muted-foreground">{ticket.ref}</span>
+            {ticket.signals && ticket.signals.basis !== "unknown" && (
+              <span
+                title={
+                  ticket.signals.basis === "unverified"
+                    ? "Nothing behind this conversation can be checked against a source. Worth a human first."
+                    : ticket.signals.basis === "documented"
+                      ? "Answered from your documentation."
+                      : "Read live from the chain and verified at the time."
+                }
+                className={`shrink-0 rounded-md border px-1.5 py-0.5 text-[10px] font-medium ${
+                  ticket.signals.basis === "unverified"
+                    ? "border-amber-500/40 bg-amber-500/10 text-amber-600"
+                    : "border-border text-muted-foreground"
+                }`}
+              >
+                {BASIS_LABEL[ticket.signals.basis]}
+              </span>
+            )}
             {ticket.reason && (
               <span className="text-[11px] opacity-50">{REASON_LABELS[ticket.reason] ?? ticket.reason}</span>
             )}
@@ -141,6 +162,26 @@ function TicketRow({ ticket, teammates }: { ticket: Ticket; teammates: { userId:
       {/* Expanded detail */}
       {open && (
         <div className="border-t border-border bg-muted/20 px-4 py-4 space-y-4">
+          {ticket.signals && ticket.signals.reasons.length > 0 && (
+            <div className="space-y-1.5">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Why this reached you
+              </p>
+              <ul className="space-y-1">
+                {ticket.signals.reasons.map(r => (
+                  <li key={r} className="text-xs" title={REASON_HELP[r]}>
+                    <span className="font-medium">{REASON_LABEL[r]}</span>
+                    <span className="block text-muted-foreground">{REASON_HELP[r]}</span>
+                  </li>
+                ))}
+              </ul>
+              <p className="text-[11px] text-muted-foreground/70">
+                Worked out from what the assistant actually read, not from what it said about
+                itself.
+              </p>
+            </div>
+          )}
+
           <TicketWorkspace
             ticketId={ticket.id}
             status={ticket.status as TicketStatus}
@@ -195,11 +236,22 @@ interface TicketListProps {
 }
 
 export function TicketList({ tickets, teammates = [] }: TicketListProps) {
-  const open     = tickets.filter(t => t.status === "open")
+  const [byBasis, setByBasis] = useState(false)
+  // Newest-first is the default because it matches how a queue is worked. By
+  // basis puts the answers nobody can check at the top, which is the order that
+  // matters when you are catching up rather than keeping up.
+  const ordered = byBasis
+    ? [...tickets].sort(
+        (a, b) =>
+          BASIS_RANK[(a.signals?.basis ?? "unknown") as TicketBasis] -
+          BASIS_RANK[(b.signals?.basis ?? "unknown") as TicketBasis],
+      )
+    : tickets
+  const open     = ordered.filter(t => t.status === "open")
   // "Waiting on user" belongs with in-progress: somebody owns it, they are
   // just not the one who has to act next.
-  const progress = tickets.filter(t => t.status === "in_progress" || t.status === "waiting")
-  const resolved = tickets.filter(t => t.status === "resolved" || t.status === "closed")
+  const progress = ordered.filter(t => t.status === "in_progress" || t.status === "waiting")
+  const resolved = ordered.filter(t => t.status === "resolved" || t.status === "closed")
 
   return (
     <div className="space-y-6">
@@ -212,6 +264,28 @@ export function TicketList({ tickets, teammates = [] }: TicketListProps) {
         </div>
       ) : (
         <div className="space-y-6">
+          {tickets.some(t => t.signals) && (
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="text-[11px] uppercase tracking-wide text-muted-foreground">Order</span>
+              {[
+                { id: false, label: "Newest" },
+                { id: true, label: "Least verifiable first" },
+              ].map(o => (
+                <button
+                  key={String(o.id)}
+                  onClick={() => setByBasis(o.id)}
+                  className={`rounded-full border px-2.5 py-1 text-xs font-medium transition-colors ${
+                    byBasis === o.id
+                      ? "border-primary/40 bg-primary/10 text-primary"
+                      : "border-border text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {o.label}
+                </button>
+              ))}
+            </div>
+          )}
+
           {open.length > 0 && (
             <section className="space-y-2">
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
