@@ -58,9 +58,13 @@ export async function recordAudit(entry: AuditEntry): Promise<void> {
     // Best-effort: an email makes the log readable, but its absence must not
     // stop the row being written.
     let actorEmail: string | null = null
+    let actorName: string | null = null
     try {
       const user = await currentUser()
       actorEmail = user?.emailAddresses?.[0]?.emailAddress ?? null
+      // The person's own name, as THEY entered it at sign-up. Never typed in
+      // on their behalf by whoever invited them.
+      actorName = [user?.firstName, user?.lastName].filter(Boolean).join(" ") || null
     } catch { /* ignore */ }
 
     const supabase = createServiceClient()
@@ -72,7 +76,10 @@ export async function recordAudit(entry: AuditEntry): Promise<void> {
       target: entry.target ?? null,
       project_id: entry.projectId ?? null,
       org_id: entry.orgId ?? null,
-      metadata: scrub(entry.metadata),
+      // Carried in metadata rather than a new column: the table already exists
+      // in production and this is not worth a migration. Never scrubbed, since
+      // "actorName" is not credential-shaped.
+      metadata: { ...scrub(entry.metadata), ...(actorName ? { actorName } : {}) },
     })
   } catch {
     // Deliberately silent. See rule 1.
@@ -83,6 +90,13 @@ export interface AuditRow {
   id: string
   actorId: string
   actorEmail: string | null
+  /**
+   * WHY A NAME AND NOT JUST AN EMAIL: six months later a reviewer reads
+   * "ops@protocol.xyz rotated the API key" and learns nothing. Shared and
+   * role-based mailboxes are common on exactly the teams that get audited, and
+   * a change history that cannot name a person is not much of a history.
+   */
+  actorName: string | null
   action: string
   target: string | null
   metadata: Record<string, unknown>
@@ -104,6 +118,7 @@ export async function listAudit(projectId: string, limit = 100): Promise<AuditRo
     id: r.id,
     actorId: r.actor_id,
     actorEmail: r.actor_email ?? null,
+    actorName: typeof r.metadata?.actorName === "string" ? r.metadata.actorName : null,
     action: r.action,
     target: r.target ?? null,
     metadata: (r.metadata ?? {}) as Record<string, unknown>,

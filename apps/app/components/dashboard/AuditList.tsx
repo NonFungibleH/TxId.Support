@@ -75,8 +75,11 @@ export function AuditList({ rows }: { rows: AuditRow[] }) {
                   </div>
                   <div className="shrink-0 text-right">
                     <p className="text-[11px] text-muted-foreground">
-                      {row.actorEmail ?? row.actorId}
+                      {row.actorName ?? row.actorEmail ?? row.actorId}
                     </p>
+                    {row.actorName && row.actorEmail && (
+                      <p className="text-[10px] text-muted-foreground/60">{row.actorEmail}</p>
+                    )}
                     <p className="font-mono text-[10px] tabular-nums text-muted-foreground/70">
                       {when(row.createdAt)}
                     </p>
