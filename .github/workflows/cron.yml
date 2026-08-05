@@ -1,0 +1,70 @@
+# Scheduled workers, run from GitHub rather than Vercel.
+#
+# WHY NOT VERCEL CRON: the Hobby plan allows 2 cron jobs per project and only
+# one run per day each. The escalation retry worker needs to run every few
+# minutes to be worth having, since its whole job is redelivering a promise to
+# a user who was told a human would follow up.
+#
+# The routes were always callable from outside with a Bearer token, so this
+# needs no code change: it is the same endpoint Vercel Cron would have hit.
+# Free, unlimited, and it removes the hosting plan from the critical path.
+#
+# TO MOVE BACK TO VERCEL CRON on a Pro plan: restore the `crons` block in
+# apps/app/vercel.json and delete this file. Do not run both, or every
+# escalation gets two delivery attempts.
+#
+# Two repository secrets are required (Settings > Secrets and variables >
+# Actions): CRON_SECRET, the same value set in Vercel, and APP_URL, e.g.
+# https://app.txid.support
+
+name: Scheduled workers
+
+on:
+  schedule:
+    # GitHub's minimum interval is 5 minutes, and runs can be delayed by a few
+    # more under load. Fine here: the retry worker has its own backoff and
+    # nothing depends on it firing at an exact second.
+    - cron: "*/10 * * * *"
+    - cron: "0 3 * * *"
+  # So a failed delivery can be drained by hand without waiting.
+  workflow_dispatch:
+
+# One at a time: a slow run must never overlap the next tick and double-send.
+concurrency:
+  group: scheduled-workers
+  cancel-in-progress: false
+
+jobs:
+  escalation-retry:
+    if: github.event.schedule == '*/10 * * * *' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Redeliver failed escalations
+        run: |
+          code=$(curl -sS -o /tmp/out.json -w "%{http_code}" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            "${{ secrets.APP_URL }}/api/cron/escalation-retry")
+          cat /tmp/out.json
+          echo
+          # Fail loudly on a non-200 so a broken secret shows up as a red run
+          # rather than as escalations quietly never being retried.
+          if [ "$code" != "200" ]; then
+            echo "::error::escalation-retry returned HTTP $code"
+            exit 1
+          fi
+
+  docs-resync:
+    if: github.event.schedule == '0 3 * * *' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Re-check documentation for changes
+        run: |
+          code=$(curl -sS -o /tmp/out.json -w "%{http_code}" --max-time 300 \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            "${{ secrets.APP_URL }}/api/cron/docs-resync")
+          cat /tmp/out.json
+          echo
+          if [ "$code" != "200" ]; then
+            echo "::error::docs-resync returned HTTP $code"
+            exit 1
+          fi

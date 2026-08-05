@@ -414,16 +414,16 @@ export const HOWARD_TODO: TodoItem[] = [
   },
   {
     id: "t-cron",
-    title: "Add CRON_SECRET and redeploy so the retry worker starts",
+    title: "Add two GitHub secrets so the scheduled workers start",
     urgency: "now",
-    why: "Failed escalations are parked in a table waiting for a worker. The worker exists but Vercel only registers a cron at deploy time, so nothing is draining that queue until the next deploy.",
+    why: "Failed escalations are parked in a table waiting for a worker, and documentation goes stale without a re-check. Both workers exist and are now driven from GitHub Actions rather than Vercel Cron, because the Vercel Hobby plan caps crons at two per project and one run per day, which is useless for a retry worker. They will not run until the two secrets are set.",
     steps: [
-      "Generate a value: openssl rand -base64 32",
-      "Add CRON_SECRET to the APP Vercel project (app.txid.support), not the web one.",
-      "Redeploy the app.",
-      "Vercel > the app project > Settings > Cron Jobs.",
+      "GitHub > the repo > Settings > Secrets and variables > Actions > New repository secret.",
+      "Add CRON_SECRET with the SAME value you put in Vercel.",
+      "Add APP_URL with https://app.txid.support",
+      "Actions tab > Scheduled workers > Run workflow, to test both immediately.",
     ],
-    expect: "TWO jobs listed: /api/cron/escalation-retry every 10 minutes, and /api/cron/docs-resync daily at 03:00. The secret is only needed for manual runs; the schedules work without it.",
+    expect: "Two green jobs. escalation-retry returns counts of due/delivered/retrying, docs-resync returns per-project changed/unchanged/pruned. A red run means the secret is wrong, which is the point: a silent failure here means escalations are never retried.",
   },
   {
     id: "t-reencrypt",
