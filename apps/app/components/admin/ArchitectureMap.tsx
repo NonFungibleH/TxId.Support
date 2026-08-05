@@ -1,5 +1,5 @@
 import {
-  STACK, SCHEDULED, HONEST_GAPS, STATUS_LABEL, type NodeStatus,
+  STACK, SCHEDULED, HONEST_GAPS, MATURITY, STATUS_LABEL, type NodeStatus,
 } from "@/lib/architecture"
 
 /**
@@ -45,6 +45,7 @@ const HUE: Record<NodeStatus, string> = {
 
 const SHORT: Record<string, string> = {
   surfaces: "Surfaces",
+  isolation: "Isolation",
   ingress: "Gates",
   context: "Context",
   intelligence: "Investigate",
@@ -84,6 +85,41 @@ export function ArchitectureMap() {
             as a diff rather than as a surprise in front of a partner.
           </p>
         </header>
+
+        {/* How far along any of this actually is. Read before the detail,
+            because it changes how the detail should be read. */}
+        <section className="border-b py-10" style={{ borderColor: "var(--line)" }}>
+          <Eyebrow>How far along</Eyebrow>
+          <p className="mb-5 max-w-2xl text-sm leading-relaxed" style={{ color: "var(--text-muted)" }}>
+            Built and proven are not the same thing, and an institutional reader hears the second
+            when you say the first. Most of what is on this page is between the first two rungs.
+          </p>
+          <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-4">
+            {MATURITY.map((m, i) => (
+              <div
+                key={m.stage}
+                className="rounded-xl border p-4"
+                style={{
+                  borderColor: i === 3 ? "color-mix(in srgb, var(--red) 25%, transparent)" : "var(--line)",
+                  background: "var(--bg-surface)",
+                }}
+              >
+                <p className="flex items-baseline gap-2 text-sm font-semibold">
+                  <span className="font-mono text-[10px]" style={{ color: "var(--text-muted)" }}>
+                    {i + 1}
+                  </span>
+                  {m.stage}
+                </p>
+                <p className="mt-1.5 text-[13px] leading-relaxed" style={{ color: "var(--text-muted)" }}>
+                  {m.meaning}
+                </p>
+                <p className="mt-2 text-[11px] leading-relaxed" style={{ color: "var(--text-muted)", opacity: 0.75 }}>
+                  {m.where}
+                </p>
+              </div>
+            ))}
+          </div>
+        </section>
 
         {/* The shape, before any detail */}
         <section className="py-10">

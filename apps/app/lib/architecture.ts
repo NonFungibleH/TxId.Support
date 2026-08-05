@@ -97,18 +97,33 @@ export const STACK: StackLayer[] = [
       { name: "Aptos reads", detail: "Fullnode REST and Indexer GraphQL. Move aborts, module ABIs, view functions, .apt names.", status: "aptos", where: "packages/aptos" },
       { name: "Protocol adapters", detail: "Positions, liquidation risk, funding, withdrawal queues. Size decimals read PER MARKET, never assumed.", status: "aptos", where: "packages/aptos/src/protocols.ts" },
       { name: "Solana", detail: "Built end to end, hidden in the interface.", status: "paused", where: "packages/solana" },
-      { name: "Actions", detail: "User-signed swaps and allowlisted calls. TxID never holds keys or signs.", status: "optional", where: "packages/ai/src/actions.ts" },
+      { name: "Actions", detail: "User-signed only: TxID never holds keys or signs. Model proposes, policy gate decides, user signs. Allowlist set by the protocol admin, arguments static and non-payable, per-swap USD cap, fail-closed OFAC screen per invocation, geo gate, full re-gate with a fresh quote before signing.", status: "optional", where: "packages/ai/src/actions.ts" },
     ],
   },
   {
     id: "verification",
     title: "Checking the answer before it stands",
-    purpose: "The output is verified rather than the model trusted. This is what makes hallucination structurally hard rather than merely discouraged.",
+    purpose: "The output is checked against what was read, rather than the model being trusted. Note the limit precisely: this establishes that a figure was SOURCED, not that a claim is TRUE. A perfectly traced number can still support a wrong claim. Claim-level verification is on the roadmap, not built.",
     nodes: [
-      { name: "Numeric tracing", detail: "Every figure in the answer must trace to a tool result or a retrieved excerpt. Untraceable ones are recorded and the user is told.", status: "live", where: "lib/numeric-check.ts" },
+      { name: "Numeric sourcing", detail: "Every figure must trace to a tool result or a retrieved excerpt. Establishes PROVENANCE, not correctness: a number can be correctly sourced and still support a wrong claim.", status: "live", where: "lib/numeric-check.ts" },
       { name: "Grounding", detail: "Verified, documented or ungrounded. COMPUTED from what happened, never asked of the model.", status: "live", where: "app/api/chat/route.ts" },
       { name: "Caveat on the answer", detail: "We stream, so nothing can be retracted. An unfounded answer is qualified in the same turn instead.", status: "live" },
-      { name: "Advice classifier", detail: "Catching advice-shaped output would make the guardrail enforcement rather than instruction.", status: "planned" },
+      { name: "Advice classifier", detail: "Today the rule is a prompt instruction, so \"the safest option is...\" can pass without using advice vocabulary. Catching advice-shaped OUTPUT would make it enforcement.", status: "planned" },
+      { name: "Claim-level verification", detail: "Evidence attaches to the ANSWER, not each claim in it. Fact and inference are not distinguished: \"it reverted\" and \"it reverted BECAUSE of X\" carry equal weight.", status: "planned" },
+    ],
+  },
+  {
+    id: "isolation",
+    title: "Keeping tenants and untrusted text apart",
+    purpose: "Two separations the product rests on, previously absent from this page, which is why an external auditor read them as missing entirely.",
+    nodes: [
+      { name: "Instructions vs data", detail: "Token names, revert strings, event params and memos are DATA written by arbitrary third parties. Text inside them asking for an action is ignored, and flagged to the user as a likely scam.", status: "live", where: "packages/ai/src/prompt.ts" },
+      { name: "No relayed links", detail: "Links and contact details found in chain data are never passed on. Only the protocol's own configured links.", status: "live" },
+      { name: "Identity by address", detail: "Tokens are identified by address, never a self-reported symbol, so a contract calling itself USDC is never confirmed as USDC.", status: "live" },
+      { name: "Instruction confidentiality", detail: "The prompt is never revealed or discussed, whoever the user claims to be. Identity cannot be verified in a chat, so everyone is an end user.", status: "live" },
+      { name: "Documentation trust", detail: "Retrieved docs are still described to the model as authoritative. A compromised documentation site is therefore a weaker boundary than on-chain text, which is treated as hostile. Worth hardening.", status: "planned" },
+      { name: "Tenant scoping", detail: "Every server action resolves org ownership before any read or write. Retrieval, integrations, exports and tickets are all project-scoped.", status: "live" },
+      { name: "Database-level tenancy", detail: "Application code is currently the ONLY tenancy boundary: 43 files use the service-role key. RLS policies scoped by org would add a backstop.", status: "planned" },
     ],
   },
   {
@@ -121,7 +136,7 @@ export const STACK: StackLayer[] = [
       { name: "Transaction provenance", detail: "Hashes recorded and marked: pasted by the user, or found by us. Different claims.", status: "live" },
       { name: "Chain state", detail: "The ledger version or block the answer was true as of, so it can be replayed.", status: "live", where: "lib/evidence.ts" },
       { name: "Prices at read", detail: "The figures a number rested on, without which it is unverifiable.", status: "live" },
-      { name: "Request context", detail: "Country, coarse device, surface, language. No IP is ever stored.", status: "live" },
+      { name: "Request context", detail: "Country, coarse device, surface, language. No IP is persisted in APPLICATION records. The rate limiter keys on one for the window duration, and Vercel, Clerk and Turnstile process them under their own retention.", status: "live" },
       { name: "Append-only", detail: "Enforced by Postgres triggers, not application code.", status: "live", where: "supabase/migrations/20260803000002" },
       { name: "Access log", detail: "Who viewed, exported or erased a record. Itself append-only.", status: "live" },
       { name: "Export", detail: "Carries the evidence and logs itself as a disclosure.", status: "live" },
@@ -168,6 +183,21 @@ export const STACK: StackLayer[] = [
       { name: "Source filter", detail: "Widget, Telegram and preview separated, since they are not the same product.", status: "live" },
     ],
   },
+]
+
+/**
+ * How far along a capability actually is.
+ *
+ * The auditor's most useful single suggestion: "built" and "proven" were doing
+ * the same job on this page, and an institutional reader hears the second when
+ * you say the first. Naming the rungs stops the page implying operational
+ * evidence it does not have.
+ */
+export const MATURITY: { stage: string; meaning: string; where: string }[] = [
+  { stage: "Built", meaning: "The code exists, typechecks and builds.", where: "Most of what shipped this week." },
+  { stage: "Verified", meaning: "Its logic is exercised against realistic inputs.", where: "Roles, numeric sourcing, ticket signals, the migrations." },
+  { stage: "Live", meaning: "Running against real protocol traffic.", where: "The chat pipeline, decoders, escalations. NOT the newest work." },
+  { stage: "Proven", meaning: "Accuracy and reliability demonstrated over meaningful volume.", where: "Nothing yet. This needs the evaluation corpus and a real deployment." },
 ]
 
 export interface ScheduledJob {

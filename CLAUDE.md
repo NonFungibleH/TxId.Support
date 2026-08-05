@@ -580,6 +580,21 @@ The PROTOCOL's own announcement channel, carried by the assistant. **FRAMING IS 
 
 Permission is `tickets`, NOT `settings`: whoever is on support at 3am must be able to reach it. Fully audited (`status_notice.raised`/`cleared`, wording included) which answers "when did you tell your users?" exactly. While one is up, escalations are still RECORDED but not fanned out, because one issue otherwise produces thousands of identical pages and buries the different ones.
 
+### External audit, 2026-08-05 (read before writing a claim on the arch page)
+An auditor reviewed `/admin/architecture`. The findings split cleanly and the split itself is the lesson.
+
+**Claims we overstated, all now corrected:**
+- "The output is VERIFIED" — numeric sourcing establishes a figure came from a tool result. It does NOT establish a claim is true. Say **sourced**, never verified, until claim-level verification exists.
+- "No IP is ever stored" — false at the infrastructure layer. See the Case Record section.
+- A service update "outranks anything you know" — as written that arguably included the safety rules. Now explicitly scoped to operational status, and cannot license advice or waive evidence rules.
+- Documentation was "authoritative" — a softer boundary than on-chain text, which we treat as hostile. Now stated as data, not instructions, with the chain winning on current state.
+
+**Controls that existed but were undocumented**, so the auditor reasonably read them as absent: prompt-injection defences, the Actions policy chain, tenant scoping, and how append-only reconciles with erasure. **The lesson: an undocumented control does not exist to a reviewer.** The architecture page now has an `isolation` layer covering them.
+
+Roadmap items `a-audit-*` carry the rest: claim-level provenance, the evaluation corpus with "% confidently wrong" as the headline metric, deterministic investigation floors, and docs-vs-chain discrepancy detection.
+
+**The `MATURITY` ladder** (Built / Verified / Live / Proven) exists because "built" and "proven" were doing the same job on the page, and an institutional reader hears the second when you say the first.
+
 ### Anti-hallucination: verify the OUTPUT, do not trust the model
 The claim is never "it does not hallucinate". It is that the class of error which would actually damage a protocol, **a confident specific wrong NUMBER about a user's own position**, is mechanically checkable, because every legitimate figure came from a tool result or a documentation excerpt.
 
@@ -652,7 +667,7 @@ The differentiator for institutional buyers, and the part they think they are bu
 - `request` — country + region (Vercel edge headers), coarse device, surface, language
 - `model`, `latencyMs`, `answer.sha256`
 
-**PRIVACY, deliberate:** the raw IP is used for rate limiting and NEVER persisted (personal data under GDPR; only country granularity is ever needed). Device facts stop at platform + browser family and are never combined into an identifier. Do not "improve" this by adding IP or fingerprinting.
+**PRIVACY, deliberate:** the raw IP is used for rate limiting and never persisted IN THE RECORD (personal data under GDPR; only country granularity is ever needed). **Do not state this as "no IP is ever stored"**: the rate limiter keys on `chat:${ip}` in Upstash for the window duration, and Vercel, Clerk and Turnstile process IPs regardless. An external auditor flagged the unqualified claim on 2026-08-05 as the kind a security reviewer tests first. The defensible phrasing is: no IP is persisted in application records; infrastructure processes them under provider retention policies. Device facts stop at platform + browser family and are never combined into an identifier. Do not "improve" this by adding IP or fingerprinting.
 
 **Evidence extraction** lives in `packages/ai/src/evidence.ts`: the tool loop emits a `tool_evidence` StreamEvent per round, consumed server-side in the chat route and never forwarded to the client. Full tool results are far too large to store; only prices + failures are kept.
 
