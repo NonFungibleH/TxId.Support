@@ -1,3 +1,0 @@
-{
-  "_comment": "Cron schedules live in .github/workflows/cron.yml, not here. The Vercel Hobby plan caps crons at two per project and one run per day, which is useless for a retry worker that exists to redeliver a promise made to a user. The routes accept a Bearer CRON_SECRET, so GitHub Actions calls the same endpoints on a real schedule. Restore a crons block here and delete that workflow if this ever moves to Pro, but never run both: every escalation would be delivered twice."
-}
