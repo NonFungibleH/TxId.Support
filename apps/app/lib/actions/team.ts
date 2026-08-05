@@ -146,3 +146,63 @@ export async function setMemberRole(clerkUserId: string, role: Role): Promise<vo
 
   revalidatePath("/dashboard/team")
 }
+
+/**
+ * Remove someone's access.
+ *
+ * WHY THIS MATTERS MORE THAN THE INVITE FLOW: revoking access promptly when
+ * someone leaves is a baseline expectation in any security questionnaire, and
+ * until now the product could invite but not remove. Revoking a pending
+ * invitation was the only path, which does nothing about somebody who has
+ * already accepted and can read every conversation.
+ *
+ * Removes them from the Clerk organisation (membership) and drops their role
+ * row (permission), so nothing is left behind to grant access if they are ever
+ * re-added.
+ */
+export async function removeMember(clerkUserId: string): Promise<void> {
+  const actor = await requireCapability("team")
+  if (clerkUserId === actor.userId) {
+    throw new Error("You cannot remove yourself. Ask another Admin.")
+  }
+
+  const { orgId } = await auth()
+  if (!orgId) throw new Error("No organisation")
+
+  // Refuse to remove the last Admin, for the same reason a demotion is
+  // refused: it locks the organisation out of its own team settings.
+  const clerk = await clerkClient()
+  const list = await clerk.organizations.getOrganizationMembershipList({ organizationId: orgId })
+  const explicit = await rolesForOrg(actor.orgId)
+  const admins = list.data.filter(m => {
+    const uid = m.publicUserData?.userId
+    return uid ? (explicit[uid] ?? DEFAULT_ROLE) === "admin" : false
+  })
+  if (admins.length <= 1 && admins.some(m => m.publicUserData?.userId === clerkUserId)) {
+    throw new Error("This is the only Admin. Promote someone else first.")
+  }
+
+  const membership = list.data.find(m => m.publicUserData?.userId === clerkUserId)
+  const email = membership?.publicUserData?.identifier ?? clerkUserId
+
+  await clerk.organizations.deleteOrganizationMembership({ organizationId: orgId, userId: clerkUserId })
+
+  const supabase = createServiceClient()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await (supabase as any)
+    .from("org_members")
+    .delete()
+    .eq("org_id", actor.orgId)
+    .eq("clerk_user_id", clerkUserId)
+
+  // Dated, and it names them: "when did X lose access" is the question an
+  // auditor asks, and it is unanswerable from a deleted row.
+  void recordAudit({
+    action: "member.removed",
+    target: email,
+    orgId: actor.orgId,
+    metadata: { removedUserId: clerkUserId },
+  })
+
+  revalidatePath("/dashboard/team")
+}

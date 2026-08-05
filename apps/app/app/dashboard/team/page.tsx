@@ -3,6 +3,7 @@ import { getTeamMembers } from "@/lib/actions/team"
 import { TeamInviteForm } from "@/components/dashboard/TeamInviteForm"
 import { RevokeInviteButton } from "@/components/dashboard/RevokeInviteButton"
 import { MemberRoleSelect } from "@/components/dashboard/MemberRoleSelect"
+import { RemoveMemberButton } from "@/components/dashboard/RemoveMemberButton"
 import { ROLES, ROLE_LABEL, ROLE_DESCRIPTION } from "@/lib/roles"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -32,8 +33,16 @@ export default async function TeamPage() {
         <Card>
           <CardHeader>
             <CardTitle>Organisation required</CardTitle>
-            <CardDescription>
-              Team collaboration requires an organisation. Create one in your account settings to invite colleagues.
+            <CardDescription className="space-y-3">
+              <span className="block">
+                You are signed in as an individual, so there is nobody to add yet. An organisation
+                is the container colleagues join: it is what an invitation invites someone into,
+                and what their role applies to.
+              </span>
+              <span className="block">
+                Create one from the account menu at the top right, then come back here. Your
+                project and every conversation move with you, and you stay its Admin.
+              </span>
             </CardDescription>
           </CardHeader>
         </Card>
@@ -60,7 +69,12 @@ export default async function TeamPage() {
             <Users className="size-4 text-muted-foreground" />
             Invite a team member
           </CardTitle>
-          <CardDescription>They&apos;ll receive an email with a link to join your organisation.</CardDescription>
+          <CardDescription>
+            They get an email with a link to join. We ask for their work email and nothing else:
+            their name arrives when they accept, and it is only used to make your change history
+            readable. Choose the role deliberately, because everyone here can read your users&apos;
+            conversations.
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <TeamInviteForm />
@@ -109,6 +123,7 @@ export default async function TeamPage() {
                   <p className="text-xs text-muted-foreground truncate">{m.email}</p>
                 </div>
                 <MemberRoleSelect userId={m.userId} role={m.role} isSelf={m.isSelf} />
+                <RemoveMemberButton userId={m.userId} email={m.email} isSelf={m.isSelf} />
               </li>
             ))}
           </ul>
