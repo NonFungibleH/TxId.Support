@@ -33,8 +33,12 @@ const BATCH = 3
  * configured is already refusing everything.
  */
 function authorised(req: NextRequest): { ok: true } | { ok: false; why: string } {
-  const secret = process.env.CRON_SECRET
-  const auth = req.headers.get("authorization")
+  // TRIMMED ON BOTH SIDES, deliberately. Pasting a generated value into a
+  // secrets field picks up a trailing newline often enough that it is the
+  // most likely cause of a mismatch, and a token is not meaningfully more
+  // secure for having whitespace around it.
+  const secret = process.env.CRON_SECRET?.trim()
+  const auth = req.headers.get("authorization")?.trim()
 
   // Vercel Cron signs its own scheduled calls. Not used now that the schedules
   // live in GitHub Actions, but harmless to keep.
@@ -76,7 +80,29 @@ export async function GET(req: NextRequest) {
   for (const row of (projects ?? []) as unknown as Array<{ id: string; name: string; config: ProjectConfig }>) {
     const config = row.config ?? ({} as ProjectConfig)
     if (config.docsSync?.enabled !== true) continue
-    const docsUrl = config.docsUrl
+
+    // WHAT TO RE-CRAWL COMES FROM WHAT WAS ACTUALLY INDEXED, not from
+    // config.docsUrl. Adding a URL through "Add a URL to index" creates
+    // documents and never sets that field, so keying on it skipped every
+    // project that indexed its docs the normal way: the toggle was on, the
+    // pages were there, and nothing was ever re-checked.
+    let docsUrl = config.docsUrl ?? null
+    if (!docsUrl) {
+      const { data: indexed } = await supabase
+        .from("documents")
+        .select("source_url")
+        .eq("project_id", row.id)
+        .not("source_url", "is", null)
+        .limit(200)
+      // Reduce to origins: the original crawl walked same-origin pages from a
+      // root, so the origin is the closest thing to that root we still hold.
+      const origins = new Set<string>()
+      for (const d of (indexed ?? []) as unknown as Array<{ source_url: string | null }>) {
+        if (!d.source_url) continue
+        try { origins.add(new URL(d.source_url).origin) } catch { /* skip */ }
+      }
+      docsUrl = [...origins][0] ?? null
+    }
     if (!docsUrl) continue
 
     // Due when the OLDEST page has not been checked within the interval. Using

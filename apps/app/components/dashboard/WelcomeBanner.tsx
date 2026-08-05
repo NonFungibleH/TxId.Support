@@ -39,9 +39,10 @@ export function WelcomeBanner({
     if (seen) return
 
     setShow(true)
-    // Long enough to read, short enough not to need dismissing.
-    const fade = setTimeout(() => setLeaving(true), 5000)
-    const hide = setTimeout(() => setShow(false), 5400)
+    // Long enough to read twice without hurrying, short enough that nobody
+    // reaches for the dismiss button.
+    const fade = setTimeout(() => setLeaving(true), 10000)
+    const hide = setTimeout(() => setShow(false), 10600)
     return () => { clearTimeout(fade); clearTimeout(hide) }
   }, [])
 

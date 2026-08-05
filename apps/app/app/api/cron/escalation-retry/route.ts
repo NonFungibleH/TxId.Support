@@ -38,8 +38,12 @@ const BATCH = 25
  * configured is already refusing everything.
  */
 function authorised(req: NextRequest): { ok: true } | { ok: false; why: string } {
-  const secret = process.env.CRON_SECRET
-  const auth = req.headers.get("authorization")
+  // TRIMMED ON BOTH SIDES, deliberately. Pasting a generated value into a
+  // secrets field picks up a trailing newline often enough that it is the
+  // most likely cause of a mismatch, and a token is not meaningfully more
+  // secure for having whitespace around it.
+  const secret = process.env.CRON_SECRET?.trim()
+  const auth = req.headers.get("authorization")?.trim()
 
   // Vercel Cron signs its own scheduled calls. Not used now that the schedules
   // live in GitHub Actions, but harmless to keep.

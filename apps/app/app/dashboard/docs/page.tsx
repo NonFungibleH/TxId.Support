@@ -59,7 +59,7 @@ export default async function DocsPage() {
           <DocsSyncForm
             enabled={config.docsSync?.enabled === true}
             frequency={config.docsSync?.frequency ?? "daily"}
-            hasDocsUrl={!!config.docsUrl}
+            hasDocsUrl={!!config.docsUrl || sources.length > 0}
             pages={freshness.pages}
             lastChecked={freshness.lastChecked}
             lastChanged={freshness.lastChanged}
