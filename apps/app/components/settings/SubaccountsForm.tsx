@@ -38,7 +38,7 @@ export function SubaccountsForm({
     startTransition(async () => {
       try {
         await setSubaccountsEnabled(next)
-        toast.success(next ? "Subaccounts on" : "Subaccounts off")
+        toast.success(next ? "Users will see their sub account" : "Sub accounts off")
       } catch {
         setOn(!next)
         toast.error("Could not save")
@@ -47,40 +47,32 @@ export function SubaccountsForm({
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       <div className="flex items-start justify-between gap-6">
         <div className="space-y-1">
           <Label htmlFor="subaccounts" className="text-sm font-medium">
-            Show users their sub account
+            Sub accounts
           </Label>
-          <p className="max-w-xl text-xs text-muted-foreground">
-            When your protocol holds each user&apos;s funds in a sub account rather than in their
-            wallet, the widget resolves it as soon as they connect and shows both addresses,
-            labelled, with the full form available to copy. Without this, users meet the second
-            address for the first time inside an answer, and it reads as a hijack.
+          <p className="max-w-2xl text-sm text-muted-foreground">
+            {detected ? (
+              <>
+                Your watched contracts hold each user&apos;s funds in a{" "}
+                <span className="font-medium text-foreground">{detected.label}</span> rather than in
+                their wallet. Turn this on and the widget resolves it the moment they connect,
+                showing both addresses labelled and in full. Without it, users meet the second
+                address for the first time inside an answer, where it reads as a hijack.
+              </>
+            ) : (
+              <>
+                For protocols that hold each user&apos;s funds in a sub account rather than in their
+                wallet, such as a perps or margin venue. Your watched contracts do not use them, so
+                there is nothing to resolve yet. Support is added per protocol: get in touch if
+                yours holds user funds in a separate account object.
+              </>
+            )}
           </p>
         </div>
-        <Switch id="subaccounts" checked={on} onCheckedChange={toggle} />
-      </div>
-
-      <div className="rounded-lg border border-border bg-muted/30 px-3 py-2.5">
-        {detected ? (
-          <p className="text-xs">
-            <span className="font-semibold">Ready.</span>{" "}
-            <span className="text-muted-foreground">
-              Your watched contracts use sub accounts, so each user&apos;s own account resolves when
-              they connect. Yours are called{" "}
-              <span className="font-medium text-foreground">{detected.label}s</span>, and that is
-              the word the widget and the assistant will use.
-            </span>
-          </p>
-        ) : (
-          <p className="text-xs text-muted-foreground">
-            Your watched contracts do not use sub accounts, so there is nothing to resolve yet.
-            Support is added per protocol: get in touch if yours holds user funds in a separate
-            account object.
-          </p>
-        )}
+        <Switch id="subaccounts" checked={on} disabled={!detected} onCheckedChange={toggle} />
       </div>
     </div>
   )

@@ -71,21 +71,6 @@ export default async function ContractsPage() {
       </CollapsibleCard>
 
       <CollapsibleCard
-        title="Sub accounts"
-        description="For protocols that hold each user's funds in a sub account rather than in their wallet, such as a perps or margin venue."
-        summary={
-          config.subaccounts?.enabled
-            ? detected
-              ? "On. Users see their sub account when they connect."
-              : "On, but your watched contracts do not use sub accounts."
-            : "Off. Users see only their wallet address."
-        }
-        defaultOpen={false}
-      >
-        <SubaccountsForm enabled={config.subaccounts?.enabled === true} detected={detected} />
-      </CollapsibleCard>
-
-      <CollapsibleCard
         title="Watched contracts"
         description={
           <>
@@ -109,6 +94,12 @@ export default async function ContractsPage() {
       >
         <ContractList projectId={typedProject.id} contracts={contracts} showGlossary />
       </CollapsibleCard>
+
+      <Card>
+        <CardContent className="pt-6">
+          <SubaccountsForm enabled={config.subaccounts?.enabled === true} detected={detected} />
+        </CardContent>
+      </Card>
 
       <Card>
         <CardContent>
