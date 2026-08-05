@@ -28,17 +28,41 @@ export const maxDuration = 60
 const BATCH = 25
 
 /** Vercel Cron signs its own calls; a shared secret covers manual invocation. */
-function authorised(req: NextRequest): boolean {
+/**
+ * Says WHICH side is wrong, without ever revealing the value.
+ *
+ * A bare 401 turned this into a guessing game between "the server has no
+ * secret" and "the caller sent the wrong one", which are opposite fixes: one
+ * is a Vercel variable and a redeploy, the other is a GitHub secret. Naming
+ * the side leaks nothing an attacker can use, because a server with no secret
+ * configured is already refusing everything.
+ */
+function authorised(req: NextRequest): { ok: true } | { ok: false; why: string } {
   const secret = process.env.CRON_SECRET
   const auth = req.headers.get("authorization")
-  if (secret && auth === `Bearer ${secret}`) return true
-  // Vercel Cron sets this on its scheduled invocations.
-  return req.headers.get("x-vercel-cron") !== null
+
+  // Vercel Cron signs its own scheduled calls. Not used now that the schedules
+  // live in GitHub Actions, but harmless to keep.
+  if (req.headers.get("x-vercel-cron") !== null) return { ok: true }
+
+  if (!secret) {
+    return {
+      ok: false,
+      why: "CRON_SECRET is not set on the server. Add it to the APP Vercel project, then REDEPLOY: an environment variable only reaches a new deployment.",
+    }
+  }
+  if (!auth) return { ok: false, why: "No Authorization header was sent." }
+  if (auth === `Bearer ${secret}`) return { ok: true }
+  return {
+    ok: false,
+    why: "The token sent does not match CRON_SECRET on the server. The two values differ, commonly by a trailing newline or space when one of them was pasted.",
+  }
 }
 
 export async function GET(req: NextRequest) {
-  if (!authorised(req)) {
-    return NextResponse.json({ error: "Unauthorised" }, { status: 401 })
+  const auth = authorised(req)
+  if (!auth.ok) {
+    return NextResponse.json({ error: "Unauthorised", detail: auth.why }, { status: 401 })
   }
 
   const supabase = createServiceClient()

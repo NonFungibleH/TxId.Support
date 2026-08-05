@@ -8,6 +8,8 @@ import Link from "next/link"
 import { redirect } from "next/navigation"
 import { GoLiveToggle } from "@/components/dashboard/GoLiveToggle"
 import { ProjectNameEditor } from "@/components/dashboard/ProjectNameEditor"
+import { WelcomeBanner } from "@/components/dashboard/WelcomeBanner"
+import { currentUser } from "@clerk/nextjs/server"
 import type { ProjectConfig } from "@/lib/types/config"
 import { PLAN_CHAIN_LIMITS, PLAN_CONV_LIMITS, PLAN_LABELS, SELECTABLE_CHAINS, SUPPORTED_CHAINS, isPaidPlan } from "@/lib/types/config"
 import type { Database } from "@/lib/supabase/types"
@@ -33,6 +35,21 @@ function timeAgo(dateStr: string): string {
 export default async function DashboardPage() {
   const { project } = await getProject()
   if (!project) redirect("/onboarding")
+
+  // Their own name, as they entered it. Never fails the page: a greeting is
+  // the least important thing on it.
+  const greeting = await currentUser()
+    .then(u => [u?.firstName, u?.lastName].filter(Boolean).join(" ") || null)
+    .catch(() => null)
+
+  // Count only, never the rows: the greeting needs a number, not the tickets.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { count: openTicketCount } = await (createServiceClient() as any)
+    .from("tickets")
+    .select("id", { count: "exact", head: true })
+    .eq("project_id", (project as { id: string }).id)
+    .in("status", ["open", "in_progress", "waiting"])
+  const openTickets = typeof openTicketCount === "number" ? openTicketCount : 0
 
   const typedProject = project as unknown as ProjectRow
   const supabase = createServiceClient()
@@ -158,6 +175,8 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-8">
+      <WelcomeBanner name={greeting} openTickets={openTickets} />
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <ProjectNameEditor projectId={typedProject.id} initialName={typedProject.name} />
