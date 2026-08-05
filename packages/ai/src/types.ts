@@ -91,6 +91,12 @@ export interface StreamChatParams {
    * discovering it mid-conversation, which is how it ends up telling a user
    * their own address is not theirs.
    */
+  /**
+   * The protocol's own status notice, when one is live. Rendered ABOVE the
+   * documentation and declared to outrank it, because the docs are yesterday's
+   * truth and this is today's.
+   */
+  statusNotice?: { level: string; message: string; topics?: string[] } | null
   protocolAccount?: ProtocolAccountContext | null
   /**
    * Omit the retrieved-docs section from the prompt so the caller can place it

@@ -7,7 +7,7 @@ import { resolveProtocolAccount } from "@/lib/protocol-account"
 import type { ChatMessage, ProjectConfigSnapshot, ActionsContext } from "@txid/ai"
 import { actionsGate, effectiveMaxSwapUsd } from "@/lib/actions-gate"
 import type { ProjectConfig, Plan } from "@/lib/types/config"
-import { PLAN_SESSION_MESSAGE_LIMITS } from "@/lib/types/config"
+import { PLAN_SESSION_MESSAGE_LIMITS, activeStatusNotice } from "@/lib/types/config"
 import type { Database } from "@/lib/supabase/types"
 import { verifyPreviewToken } from "@/lib/preview-token"
 import { rateLimit, clientIp } from "@/lib/rate-limit"
@@ -554,6 +554,10 @@ export async function POST(request: Request) {
         ? { address: walletAddress, chainId }
         : null
 
+    // The protocol's own status notice, if their team has one up. Expiry is
+    // resolved on read, so a lapsed notice stops appearing the moment it lapses.
+    const statusNotice = activeStatusNotice(config)
+
     // The user's protocol account, resolved BEFORE the model sees the question.
     // Discovering a second address mid-conversation is how it ends up telling a
     // user their own address is not theirs. Cached for 5 minutes and shared
@@ -611,6 +615,9 @@ export async function POST(request: Request) {
       mode: projectMode as "support" | "token",
       tokenModeAsk: config.tokenModeAsk ?? undefined,
       persona: config.branding?.persona ?? "concise",
+      ...(statusNotice
+        ? { statusNotice: { level: statusNotice.level, message: statusNotice.message, ...(statusNotice.topics?.length ? { topics: statusNotice.topics } : {}) } }
+        : {}),
       ...(protocolAccount.status !== "off" ? { protocolAccount } : {}),
       customTone: config.branding?.customTone ?? undefined,
       ...(config.branding?.language ? { language: config.branding.language } : {}),

@@ -554,6 +554,23 @@ Historical note worth keeping: the roadmap claimed "one user per org, no seats, 
 
 One hook on `updateConfig` covers every config change since they all funnel through it, recording only the changed KEYS. Named hooks on top: `integration.saved`, `escalation.redelivered`, `widget.enabled`/`disabled`. Shown on Account as "Change history". Clerk's `orgId` is a Clerk string, NOT our `organisations.id` UUID: callers pass the internal id, the helper never reads Clerk's.
 
+### Service updates (`config.incident`)
+The PROTOCOL's own announcement channel, carried by the assistant. **FRAMING IS LOAD-BEARING IN EVERY STRING**: this is not an emergency switch for TxID and nothing may imply the assistant is broken. The customer is telling their users about their product. Copy says "your protocol", "your users", "your message". User-facing name is "service update", never "incident mode".
+
+`activeStatusNotice(config)` resolves expiry ON READ, so a lapsed update stops appearing the moment it lapses rather than waiting for a job. Called in the chat route, the widget-config route and the dashboard.
+
+**Three levels** because a binary switch does not get used for a partial issue, which is most issues: `notice` (message shown, assistant answers normally), `restricted` (holds back on named topics, keeps helping elsewhere, THE ONE TEAMS WANT), `announcement_only`.
+
+**The prompt block is emitted FIRST, above the documentation, and explicitly outranks it.** The docs describe normal operation and are wrong the moment the protocol says otherwise. The model is forbidden from softening it, speculating on cause, estimating a fix time, or reassuring anyone their funds are safe: that is the team's to say.
+
+**Scope beats severity.** "Withdrawals are paused" is actionable; "something is wrong" causes a bank run. Naming topics also means the assistant keeps answering the other 80%, so support load falls rather than rises.
+
+**Auto-expiry is not optional** (default 4h). An update left up for weeks teaches users to ignore updates, costing the channel exactly when it is next needed.
+
+**`POST /api/v1/status`** (Bearer `sk_…`, public in middleware) exists because at 3am the team is in their own runbook, not the dashboard. A control needing a browser session gets used an hour late.
+
+Permission is `tickets`, NOT `settings`: whoever is on support at 3am must be able to reach it. Fully audited (`status_notice.raised`/`cleared`, wording included) which answers "when did you tell your users?" exactly. While one is up, escalations are still RECORDED but not fanned out, because one issue otherwise produces thousands of identical pages and buries the different ones.
+
 ### Anti-hallucination: verify the OUTPUT, do not trust the model
 The claim is never "it does not hallucinate". It is that the class of error which would actually damage a protocol, **a confident specific wrong NUMBER about a user's own position**, is mechanically checkable, because every legitimate figure came from a tool result or a documentation excerpt.
 

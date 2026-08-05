@@ -7,6 +7,8 @@ import { WebhookLogList } from "@/components/dashboard/WebhookLogList"
 import { UndeliveredEscalations } from "@/components/dashboard/UndeliveredEscalations"
 import { listFailedDeliveries } from "@/lib/actions/integrations"
 import { getTeamMembers } from "@/lib/actions/team"
+import { StatusNoticeControl } from "@/components/dashboard/StatusNoticeControl"
+import { activeStatusNotice } from "@/lib/types/config"
 import type { IntegrationsStatus } from "@/components/settings/IntegrationsForm"
 import type { Database } from "@/lib/supabase/types"
 import type { ProjectConfig } from "@/lib/types/config"
@@ -53,6 +55,8 @@ export default async function TicketsPage() {
           Escalations raised by users when the bot couldn&apos;t resolve their issue.
         </p>
       </div>
+
+      <StatusNoticeControl active={activeStatusNotice(config)} />
 
       <EscalationRouting
         projectId={typedProject.id}

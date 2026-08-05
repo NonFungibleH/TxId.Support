@@ -313,6 +313,75 @@ export const DOCS_SYNC_INTERVAL_MS: Record<DocsSyncConfig["frequency"], number> 
   weekly: 7 * 24 * 60 * 60 * 1000,
 }
 
+/**
+ * A protocol's own status notice, carried by the assistant.
+ *
+ * FRAMING, AND IT MATTERS IN EVERY STRING BELOW: this is a control the
+ * PROTOCOL uses to speak to its own users about its own service. It is not an
+ * emergency switch for TxID, and nothing here should imply the assistant is
+ * broken or that TxID is having a problem. The customer is announcing
+ * something about their product, through a channel their users already have
+ * open. Copy says "your protocol", "your users", "your message".
+ *
+ * WHY IT EARNS ITS PLACE: without it, an assistant answering from yesterday's
+ * documentation is at its most confident exactly when the protocol's own
+ * position has changed. "Withdrawals settle in 24 hours" is a good answer on
+ * Monday and a harmful one on Tuesday, and only the protocol knows which day
+ * it is.
+ */
+export type IncidentLevel =
+  /** Your message is shown. The assistant still answers everything. */
+  | "notice"
+  /** The assistant holds back on the affected topics and gives your message instead. */
+  | "restricted"
+  /** The assistant gives only your message. */
+  | "announcement_only"
+
+export interface IncidentConfig {
+  level: IncidentLevel
+  /** Your own words. Users read this verbatim, and the assistant never edits it. */
+  message: string
+  /**
+   * What is affected, in your users' vocabulary ("withdrawals", "the APT
+   * market"). SCOPE MATTERS: "withdrawals are paused" is actionable, and
+   * "something is wrong" causes a bank run. Empty means everything.
+   */
+  topics?: string[]
+  raisedAt: string
+  raisedBy?: string | null
+  /**
+   * When it comes down by itself. NOT optional in practice: a message left up
+   * for three weeks teaches users to ignore your messages, which costs you the
+   * channel exactly when you next need it.
+   */
+  expiresAt?: string | null
+}
+
+export const INCIDENT_LEVEL_LABEL: Record<IncidentLevel, string> = {
+  notice: "Show my message",
+  restricted: "Hold back on affected topics",
+  announcement_only: "Only give my message",
+}
+
+export const INCIDENT_LEVEL_HELP: Record<IncidentLevel, string> = {
+  notice: "Your users see your message, and the assistant carries on answering everything as normal.",
+  restricted: "The assistant keeps helping with everything unrelated, and gives only your message on the topics you name. Usually the one you want.",
+  announcement_only: "The assistant sets everything else aside and gives only your message.",
+}
+
+/**
+ * The incident as it stands right now, or null.
+ *
+ * Expiry is resolved HERE rather than by a scheduled job, so a lapsed notice
+ * stops being shown the moment it lapses, even if nothing has run since.
+ */
+export function activeStatusNotice(config: { incident?: IncidentConfig | null } | null | undefined): IncidentConfig | null {
+  const inc = config?.incident
+  if (!inc || !inc.message?.trim()) return null
+  if (inc.expiresAt && Date.parse(inc.expiresAt) < Date.now()) return null
+  return inc
+}
+
 export interface ProjectConfig {
   branding: BrandingConfig
   token: TokenConfig | null
@@ -347,6 +416,7 @@ export interface ProjectConfig {
    * account, instead of "describe your issue". ON by default: the alternative
    * is a blank prompt that makes the user diagnose themselves first.
    */
+  incident?: IncidentConfig | null
   proactiveOpener?: { enabled: boolean }
   docsSync?: DocsSyncConfig
   subaccounts?: SubaccountsConfig

@@ -1,6 +1,6 @@
 import { createServiceClient } from "@/lib/supabase/server"
 import type { ProjectConfig, Plan } from "@/lib/types/config"
-import { isPaidPlan, resolveDisclaimer } from "@/lib/types/config"
+import { isPaidPlan, resolveDisclaimer, activeStatusNotice } from "@/lib/types/config"
 import type { Database } from "@/lib/supabase/types"
 import { verifyPreviewToken } from "@/lib/preview-token"
 import { isActionDemo } from "@/lib/actions-gate"
@@ -151,6 +151,12 @@ export async function GET(
     // Resolved server-side so the widget never has to know the default, and an
     // old cached widget cannot end up showing nothing.
     disclaimer: resolveDisclaimer(config.branding),
+    // Expiry resolved here, so a cached widget can never keep showing a notice
+    // the team has already let lapse.
+    statusNotice: (() => {
+      const n = activeStatusNotice(config)
+      return n ? { level: n.level, message: n.message, topics: n.topics ?? [] } : null
+    })(),
     watchedContracts: (config.watchedContracts ?? []).map((c) => ({
       id: c.id,
       name: c.name,

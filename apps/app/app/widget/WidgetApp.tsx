@@ -134,6 +134,7 @@ interface WidgetConfig {
   subaccounts?: { enabled: boolean }
   /** Resolved server-side. Empty string means the protocol turned it off. */
   disclaimer?: string
+  statusNotice?: { level: string; message: string; topics: string[] } | null
   contentBlocks?: ContentBlockData[]
   /** Paid/hand-provisioned plans hide the "Powered by TxID" badge. */
   hidePoweredBy?: boolean
@@ -1957,6 +1958,21 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
           <XIcon className="size-4" />
         </button>
       </div>
+
+      {config.statusNotice?.message && (
+        <div
+          className="shrink-0 border-b px-4 py-2.5"
+          style={{ borderColor: "var(--w-border)", backgroundColor: "#f59e0b1a" }}
+          role="status"
+        >
+          <p className="text-[11px] font-semibold" style={{ color: adaptiveText }}>
+            {config.projectName} service update
+          </p>
+          <p className="mt-0.5 text-[11px] leading-relaxed" style={{ color: adaptiveText, opacity: 0.85 }}>
+            {config.statusNotice.message}
+          </p>
+        </div>
+      )}
 
       {walletAddress && (
         <IdentityBar

@@ -1,7 +1,7 @@
 import crypto from "crypto"
 import { createServiceClient } from "@/lib/supabase/server"
 import type { ProjectConfig } from "@/lib/types/config"
-import { resolveDisclaimer } from "@/lib/types/config"
+import { resolveDisclaimer, activeStatusNotice } from "@/lib/types/config"
 import type { Database } from "@/lib/supabase/types"
 import { rateLimit, clientIp } from "@/lib/rate-limit"
 import { TICKET_LIMITS } from "@/lib/limits"
@@ -200,6 +200,18 @@ export async function POST(request: Request) {
           text: emailBody,
         }),
       }).catch(() => { /* non-fatal */ })
+    }
+
+    // While a status notice is up, one issue produces thousands of identical
+    // escalations and buries the ones that are actually different. The ticket
+    // is still RECORDED, so nothing is lost and the volume is visible; it just
+    // does not page the team again for something they raised themselves.
+    const notice = activeStatusNotice(config)
+    if (notice) {
+      return new Response(JSON.stringify({ ref, suppressed: true }), {
+        status: 200,
+        headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
+      })
     }
 
     // Fan out to the team's integrations (Slack/Discord/Telegram/Linear/GitHub/Jira).

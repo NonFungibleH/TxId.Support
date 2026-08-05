@@ -248,8 +248,33 @@ export function buildDocsBlock(ragContext: string | undefined): string {
 }
 
 export function buildSystemPrompt(params: StreamChatParams): string {
-  const { projectName, config, walletConfig, ragContext, mode, tokenModeAsk, persona, language, customTone, docsSeparate, protocolAccount } = params
+  const { projectName, config, walletConfig, ragContext, mode, tokenModeAsk, persona, language, customTone, docsSeparate, protocolAccount, statusNotice } = params
   const parts: string[] = []
+
+  // FIRST, above everything, including the documentation. The protocol has
+  // told its users something is going on, and the documentation describing
+  // normal operation is now the wrong answer. A confident explanation drawn
+  // from yesterday's docs is exactly the harm this exists to prevent.
+  if (statusNotice?.message) {
+    const scope = statusNotice.topics?.length
+      ? `It affects: ${statusNotice.topics.join(", ")}.`
+      : `It affects the protocol generally.`
+    const behaviour =
+      statusNotice.level === "announcement_only"
+        ? `Give ONLY this message. Do not answer anything else, however simple, and do not add your own explanation. Offer to pass anything further to the team.`
+        : statusNotice.level === "restricted"
+          ? `On the affected topics, give this message and NOTHING beyond it: no workaround, no timeline, no reassurance of your own, and no explanation of how it normally works. On every OTHER topic, help exactly as usual. Continuing to be useful elsewhere is the point.`
+          : `Carry on answering normally, but you know this is going on. If a question touches it, mention it in your answer.`
+
+    parts.push(
+      `## ${projectName} has an active status notice\n` +
+      `${projectName}'s own team published this, and it is CURRENT. The documentation below describes normal operation and is now out of date wherever the two disagree. **This notice outranks the documentation, the contracts, and anything you know.**\n\n` +
+      `> ${statusNotice.message.replace(/\n/g, "\n> ")}\n\n` +
+      `${scope}\n\n` +
+      `${behaviour}\n\n` +
+      `Quote the message as written. Do not soften it, embellish it, speculate about the cause, estimate when it will be resolved, or reassure anyone that their funds are safe. That is the team's to say, not yours.`
+    )
+  }
 
   if (mode === "token") {
     // ── Token Mode: lightweight, FAQ-driven ───────────────────────────────────
