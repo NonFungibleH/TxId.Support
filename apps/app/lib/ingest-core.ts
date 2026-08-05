@@ -84,6 +84,33 @@ export async function crawlAndIngestCore(
   const fetchPage = async (url: string, withLinks = false): Promise<string | null> => {
     try {
       if (url.endsWith(".md") || url.endsWith(".txt")) {
+        // SSRF: `isPrivateUrl` checks the URL we were GIVEN, and fetch follows
+        // redirects by default, so a public documentation host could 302 us
+        // onto a private address or a cloud metadata endpoint. Handle
+        // redirects manually and re-check every hop against the same guard.
+        let target = url
+        for (let hop = 0; hop < 4; hop++) {
+          if (isPrivateUrl(target)) return null
+          const r = await fetch(target, {
+            signal: AbortSignal.timeout(15_000),
+            headers: conditional(url),
+            redirect: "manual",
+          })
+          if (r.status >= 300 && r.status < 400) {
+            const loc = r.headers.get("location")
+            if (!loc) return null
+            try { target = new URL(loc, target).toString() } catch { return null }
+            continue
+          }
+          if (r.status === 304) { notModified.add(url); return null }
+          if (!r.ok) return null
+          validators.set(url, {
+            etag: r.headers.get("etag"),
+            lastModified: r.headers.get("last-modified"),
+          })
+          return await r.text()
+        }
+        return null
         const res = await fetch(url, {
           signal: AbortSignal.timeout(15_000),
           headers: conditional(url),

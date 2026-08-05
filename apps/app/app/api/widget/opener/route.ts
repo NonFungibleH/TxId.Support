@@ -1,4 +1,5 @@
 import { createServiceClient } from "@/lib/supabase/server"
+import { rateLimit, clientIp } from "@/lib/rate-limit"
 import type { ProjectConfig } from "@/lib/types/config"
 import { buildSessionOpener } from "@/lib/session-opener"
 
@@ -28,6 +29,13 @@ function nothing() {
 }
 
 export async function GET(request: Request) {
+  // Unauthenticated by design (the publishable key is embedded in the page),
+  // so this is an open proxy to chain reads we pay for and are rate limited on
+  // upstream. The cap is per IP, generous enough that a real user never sees
+  // it and tight enough that a script cannot drain the budget.
+  const { allowed } = await rateLimit(`opener:${clientIp(request)}`, 30, 60_000)
+  if (!allowed) return nothing()
+
   const url = new URL(request.url)
   const key = url.searchParams.get("key")
   const address = url.searchParams.get("address")

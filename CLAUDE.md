@@ -543,13 +543,9 @@ Admin / Developer / Support / Auditor, expressed as CAPABILITIES (`settings`, `k
 `ticket_events` (migration `20260804000005`) is append-only on UPDATE and **deliberately NOT on DELETE**: both FKs cascade, so blocking delete would break ticket deletion and `admin_erase_project()`. Same trap as `case_access_log`, different disguise. Records status changes, assignment, notes, and replies sent OUTSIDE TxID (email/CRM) with a channel and URL, because the trail otherwise stops at "escalated". TxID does not send the reply; inbound email capture is not built.
 
 ### Team access
+`/dashboard/team` invites people through Clerk as `org:admin` or `org:member` (`lib/actions/team.ts`). **Clerk membership is not the permission model**: the TxID role in `org_members` is what every server action enforces, and it is what the team page displays. See "Roles (four, enforced server-side)" above.
 
-**Do not repeat the claim that this is "one user per org".** It was wrong, it sat in the roadmap for months, and it was quoted at the user. The truth:
-
-- **Built:** `/dashboard/team` invites real people through Clerk as `org:admin` or `org:member` (`lib/actions/team.ts`: `getTeamMembers`, `inviteTeamMember`, `revokeInvitation`). Several people can hold accounts on one org today. There is no `org_users` table; membership lives in Clerk, not our database.
-- **NOT built:** any difference between those roles. **Not one of the ~60 server actions gates on role.** The single role check in the codebase validates the role string when sending an invite. A Member can rotate keys, rewrite escalation routing, clear the knowledge base and switch the widget off.
-
-Remaining work is a `requireRole()` helper alongside `resolveProjectWithOwnership`, applied to destructive and credential-touching actions first. Roadmap item `f-seats` (id kept, title now "Enforce roles on server actions"). Stated plainly on the Trust page and in the feature list, because a buyer who assumes Member is restricted would be wrong.
+Historical note worth keeping: the roadmap claimed "one user per org, no seats, no roles" for months. Two of those three were false, it was quoted to the user, and it delayed role enforcement on the false premise that seats had to be built first.
 
 ### Audit log
 `audit_logs` (migration `20260804000001`) + `apps/app/lib/audit.ts`. `recordAudit()` NEVER fails the write it accompanies (auditing is a side effect; refusing to save a webhook URL because the log is down is worse than a gap) and **scrubs any metadata key matching `token|secret|key|password|webhookurl|apitoken|apikey|credential`** before writing, so one careless `metadata: patch` cannot put a customer's Jira token in the table we point reviewers at. Record that a credential CHANGED, never its value.
