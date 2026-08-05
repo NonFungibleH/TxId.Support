@@ -210,7 +210,7 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Se
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-2xl font-bold">Analytics</h1>
-          <p className="text-muted-foreground mt-1">Conversation insights for your support widget.</p>
+          <p className="text-muted-foreground mt-1">Conversation insights for your support agent.</p>
           {(previewCount ?? 0) > 0 && (
             <p className="text-xs text-violet-400 mt-1">
               Includes {previewCount} preview session{previewCount === 1 ? "" : "s"} from your dashboard testing - proof it works before you go live. These are flagged in Conversations and never count toward your quota.

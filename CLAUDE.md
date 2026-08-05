@@ -6,7 +6,9 @@
 
 ## What this project is
 
-TxID is a B2B embeddable AI support widget for DeFi protocols. Protocol teams install a JS snippet on their site; their users get a chat assistant that knows the protocol's docs, smart contracts, and can look up live on-chain data for a connected wallet.
+TxID is a B2B embeddable **AI support agent** for DeFi protocols. Protocol teams install a JS snippet on their site; their users get an assistant that knows the protocol's docs, smart contracts, and live on-chain state for a connected wallet, and that records the conditions behind every answer.
+
+> **Naming, user-facing:** never call the product an "AI chatbot" or "support widget". It is an **AI support agent**, or "the assistant". The buyer is an institution, and "chatbot" describes the thing we beat. "Chatbot" stays ONLY in blog copy where it names a competitor.
 
 **Products:**
 - `apps/web` — public marketing site (txid.support)
@@ -551,6 +553,13 @@ Historical note worth keeping: the roadmap claimed "one user per org, no seats, 
 `audit_logs` (migration `20260804000001`) + `apps/app/lib/audit.ts`. `recordAudit()` NEVER fails the write it accompanies (auditing is a side effect; refusing to save a webhook URL because the log is down is worse than a gap) and **scrubs any metadata key matching `token|secret|key|password|webhookurl|apitoken|apikey|credential`** before writing, so one careless `metadata: patch` cannot put a customer's Jira token in the table we point reviewers at. Record that a credential CHANGED, never its value.
 
 One hook on `updateConfig` covers every config change since they all funnel through it, recording only the changed KEYS. Named hooks on top: `integration.saved`, `escalation.redelivered`, `widget.enabled`/`disabled`. Shown on Account as "Change history". Clerk's `orgId` is a Clerk string, NOT our `organisations.id` UUID: callers pass the internal id, the helper never reads Clerk's.
+
+### Provenance: `evidence.sources` and `evidence.grounding`
+Every named thing an answer rested on, as a typed list (`EvidenceSource` in `packages/ai/src/evidence.ts`): `documentation` (with `version` = the `doc_sources` content hash, so "documentation vX" is real and checkable), `contract`, `transaction`, `price`, `position`, `parameter`.
+
+**`transaction.origin` is load-bearing.** `user_supplied` (scraped from the user's own message by `userSuppliedHashes`) versus `looked_up` (found by a tool). A hash the user pasted is a claim about their history; one we found is a finding of ours. Merging them misrepresents who asserted what, which is what a dispute turns on. Shown in amber in the dashboard.
+
+**`grounding` is COMPUTED, never self-reported:** `verified` (a live read succeeded) / `documented` (retrieval matched, no chain read) / `ungrounded` (neither). A model asked to rate its own confidence says it is confident, and the one answer you need flagged is the one it feels sure about. Ungrounded answers get their own bucket in the gaps view, which is the "flag it to the admin" mechanism.
 
 ### Retrieval evidence
 `messages.evidence.retrieval` carries `matched`, `topScore`, `dropped`, `contextChars`, `sources`. WHY: an answer weakened by docs that do not cover a topic and one weakened by docs that cover it badly are identical in a transcript and have opposite fixes. `dropped` matters because a chunk cut by the 24k char budget looks exactly like one that was never retrieved. `contextChars` is prompt spend on every message, so the 24k budget and 0.35 threshold are now tunable against data rather than guesses. Surfaced as "Documentation coverage" in `GapsPanel`. Doc gaps are deliberately NOT counted in `withProblems`: a user can be well served from chain data while the docs covered nothing.

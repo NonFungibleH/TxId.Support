@@ -130,6 +130,18 @@ export const ROADMAP: RoadmapItem[] = [
   },
 
   {
+    id: "k-failure-trigger",
+    title: "Open the assistant when something fails, before the user asks",
+    area: "knowledge",
+    phase: 2,
+    complexity: "Medium",
+    effort: "~1 wk",
+    status: "soon",
+    what: "The proactive opener fires when the user opens the assistant. The stronger version fires when their transaction FAILS: they see the explanation without having to think to ask. Needs a small hook the protocol calls from its own error path, txid.notifyFailure(hash), because only the dApp knows a transaction it submitted has reverted. We cannot watch the mempool for every visitor, and polling every connected wallet does not scale or justify the reads.",
+    depends: "Detecting an unconfirmed transaction (k-opener-stuck) is the harder half.",
+    care: "Must be opt-in per protocol and must never open over a user mid-flow. An assistant that pops up uninvited during a trade is worse than one that waits.",
+  },
+  {
     id: "k-opener-2",
     title: "Proactive opener: the harder scenarios",
     area: "knowledge",

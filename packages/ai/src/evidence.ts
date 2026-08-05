@@ -14,7 +14,36 @@ export interface ToolEvidence {
   prices?: Record<string, string>
   /** Reads that failed, so a thin answer is never mistaken for a complete one. */
   failed?: string[]
+  /** Named things this read touched, for the provenance list. */
+  sources?: EvidenceSource[]
 }
+
+/**
+ * One named thing an answer rested on.
+ *
+ * WHY A TYPED LIST RATHER THAN PROSE: "the assistant looked at the chain" is
+ * not reviewable. "Read `get_position` on 0x50ea… at ledger version 2841…,
+ * oracle price 63695.70" is. A reviewer months later needs to reach the same
+ * conclusion from the same inputs, and that requires the inputs to be named
+ * individually rather than summarised.
+ */
+export type EvidenceSource =
+  /** A documentation page, with the content hash that pins WHICH version. */
+  | { kind: "documentation"; url: string; version?: string; changedAt?: string }
+  /** A contract or Move module, and the function read from it. */
+  | { kind: "contract"; address: string; chain?: string; fn?: string }
+  /**
+   * A transaction. `origin` matters: one the user pasted is a claim about
+   * their own history, one we found is a finding of ours, and conflating them
+   * misrepresents who asserted what.
+   */
+  | { kind: "transaction"; hash: string; chain?: string; origin: "looked_up" | "user_supplied" }
+  /** A price at read time, with where it came from. */
+  | { kind: "price"; asset: string; value: string; via?: string }
+  /** A per-user position or account held by the protocol. */
+  | { kind: "position"; protocol?: string; account: string }
+  /** A protocol parameter: a fee, a cap, a paused flag. */
+  | { kind: "parameter"; name: string; value: string; via?: string }
 
 /** Every string field on an object graph, bounded so a deep result can't run away. */
 function walk(
@@ -44,8 +73,32 @@ export function toolEvidenceFrom(tool: string, result: unknown, errored: boolean
 
   const prices: Record<string, string> = {}
   const failed: string[] = []
+  const sources: EvidenceSource[] = []
+  const seen = new Set<string>()
+  const add = (s: EvidenceSource) => {
+    const k = JSON.stringify(s)
+    if (seen.has(k) || sources.length >= 25) return
+    seen.add(k)
+    sources.push(s)
+  }
 
   walk(result, (key, value, parent) => {
+    // Addresses, hashes and account objects are what a reviewer re-reads.
+    if (typeof value === "string") {
+      if ((key === "hash" || key === "transactionHash") && /^0x[a-fA-F0-9]{64}$/.test(value)) {
+        add({ kind: "transaction", hash: value, origin: "looked_up",
+              ...(typeof parent.chain === "string" ? { chain: parent.chain } : {}) })
+      }
+      if ((key === "contractAddress" || key === "moduleAddress") && value.startsWith("0x")) {
+        add({ kind: "contract", address: value,
+              ...(typeof parent.chain === "string" ? { chain: parent.chain } : {}),
+              ...(typeof parent.functionName === "string" ? { fn: parent.functionName } : {}) })
+      }
+      if (key === "accountAddress" && value.startsWith("0x")) {
+        add({ kind: "position", account: value,
+              ...(typeof parent.protocol === "string" ? { protocol: parent.protocol } : {}) })
+      }
+    }
     // A price quoted against a named market is the pair worth keeping.
     if ((key === "currentPrice" || key === "entryPrice") && typeof value === "string") {
       const market = typeof parent.market === "string" ? parent.market : null
@@ -64,8 +117,13 @@ export function toolEvidenceFrom(tool: string, result: unknown, errored: boolean
     }
   })
 
+  // Prices are provenance too, so they appear in both shapes: the flat map for
+  // the existing pricesAtRead field, and the typed list for the source trail.
+  for (const [asset, value] of Object.entries(prices)) add({ kind: "price", asset, value, via: tool })
+
   if (Object.keys(prices).length > 0) evidence.prices = prices
   if (failed.length > 0) evidence.failed = failed.slice(0, 6)
+  if (sources.length > 0) evidence.sources = sources
   return evidence
 }
 
@@ -74,11 +132,22 @@ export function mergeToolEvidence(items: ToolEvidence[]): {
   toolsUsed: string[]
   failedLookups: string[]
   prices: Record<string, string>
+  sources: EvidenceSource[]
+  /** True when at least one read actually succeeded. Drives grounding. */
+  anyReadSucceeded: boolean
 } {
   const toolsUsed: string[] = []
   const failedLookups: string[] = []
   const prices: Record<string, string> = {}
+  const sources: EvidenceSource[] = []
+  const seenSource = new Set<string>()
+  let anyReadSucceeded = false
   for (const item of items) {
+    if (item.ok) anyReadSucceeded = true
+    for (const s of item.sources ?? []) {
+      const k = JSON.stringify(s)
+      if (!seenSource.has(k) && sources.length < 40) { seenSource.add(k); sources.push(s) }
+    }
     if (!toolsUsed.includes(item.tool)) toolsUsed.push(item.tool)
     if (!item.ok && !failedLookups.includes(`${item.tool}: execution failed`)) {
       failedLookups.push(`${item.tool}: execution failed`)
@@ -86,5 +155,5 @@ export function mergeToolEvidence(items: ToolEvidence[]): {
     for (const f of item.failed ?? []) if (!failedLookups.includes(f)) failedLookups.push(f)
     Object.assign(prices, item.prices ?? {})
   }
-  return { toolsUsed, failedLookups, prices }
+  return { toolsUsed, failedLookups, prices, sources, anyReadSucceeded }
 }

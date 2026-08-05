@@ -25,6 +25,13 @@ export interface GapsReport {
   /** Reads that failed. Infrastructure, not knowledge. */
   dataGaps: { reason: string; count: number }[]
   /**
+   * Answers with no live read and no documentation match behind them: the
+   * assistant answered from its own knowledge. Not necessarily wrong, but the
+   * only category nobody can check, which is what a compliance owner needs to
+   * see. Computed from what happened, never self-reported.
+   */
+  ungrounded: GapItem[]
+  /**
    * Questions the documentation did not cover. Distinct from every other
    * bucket: the user may have been perfectly happy with the answer, and the
    * team still needs to know the assistant had nothing to answer from.
@@ -85,7 +92,7 @@ export async function buildGapsReport(projectId: string, days = 30): Promise<Gap
 
   const empty: GapsReport = {
     unanswered: [], thumbsDown: [], escalated: [], silentlyUnhappy: [], dataGaps: [],
-    docGaps: [], docCoverage: { answered: 0, noMatch: 0, weakMatch: 0, avgContextChars: 0 },
+    docGaps: [], ungrounded: [], docCoverage: { answered: 0, noMatch: 0, weakMatch: 0, avgContextChars: 0 },
     byCategory: [], topics: [],
     totals: { conversations: 0, withProblems: 0 },
   }
@@ -139,6 +146,7 @@ export async function buildGapsReport(projectId: string, days = 30): Promise<Gap
   const thumbsDownIds = new Set<string>()
   const failureCounts = new Map<string, number>()
   const docGapIds = new Set<string>()
+  const ungroundedIds = new Set<string>()
   const questionsByConv = new Map<string, string[]>()
   let answeredWithDocs = 0
   let noMatch = 0
@@ -154,6 +162,8 @@ export async function buildGapsReport(projectId: string, days = 30): Promise<Gap
     // Documentation coverage, read from the same evidence blob. Only answers
     // that actually ran a search carry this, so token-mode and pre-evidence
     // rows are skipped rather than counted as misses.
+    if (m.evidence?.grounding === "ungrounded") ungroundedIds.add(m.conversation_id)
+
     const retrieval = m.evidence?.retrieval
     if (retrieval && typeof retrieval.matched === "number") {
       answeredWithDocs++
@@ -222,6 +232,7 @@ export async function buildGapsReport(projectId: string, days = 30): Promise<Gap
     escalated: Array.from(escalatedIds).filter(id => byId.has(id)).slice(0, 10).map(toItem),
     silentlyUnhappy: silentIds.slice(0, 10).map(toItem),
     docGaps: Array.from(docGapIds).filter(id => byId.has(id)).slice(0, 10).map(toItem),
+    ungrounded: Array.from(ungroundedIds).filter(id => byId.has(id)).slice(0, 10).map(toItem),
     docCoverage: {
       answered: answeredWithDocs,
       noMatch,

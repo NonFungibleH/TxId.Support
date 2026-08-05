@@ -1,6 +1,6 @@
 # TxID
 
-AI-powered Web3 support widget for DeFi protocols.
+AI support agent for DeFi protocols. Answers from the protocol's own documentation and live on-chain state, and records the conditions behind every answer.
 
 ## Apps
 

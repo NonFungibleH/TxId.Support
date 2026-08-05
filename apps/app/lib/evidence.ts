@@ -16,6 +16,8 @@ import { getAptosNetworkStatus } from "@txid/aptos"
  * in its user agent, coarsened to a platform and a browser family. Nothing
  * fingerprints.
  */
+import type { EvidenceSource } from "@txid/ai"
+
 export interface AnswerEvidence {
   /** Chain state the answer rested on, so it can be replayed. */
   chain?: { chainId: string; ledgerVersion?: string; readAt: string }
@@ -56,6 +58,28 @@ export interface AnswerEvidence {
     /** Pages the answer could draw on, deduplicated. */
     sources?: string[]
   }
+  /**
+   * Every named thing the answer rested on, in one list.
+   *
+   * The other fields say what KIND of investigation happened; this says what
+   * it actually touched, so a reviewer can go and look at the same documents,
+   * contracts, transactions and prices rather than take the summary on trust.
+   */
+  sources?: EvidenceSource[]
+  /**
+   * How well founded the answer was, computed from what actually happened
+   * rather than asked of the model.
+   *
+   * `verified`   at least one live read succeeded
+   * `documented` the documentation matched, nothing was read from chain
+   * `ungrounded` neither. The model answered from its own knowledge, which on
+   *              a compliance surface is the case a protocol most needs to see
+   *
+   * DELIBERATELY NOT SELF-REPORTED. A model asked to rate its own confidence
+   * will say it is confident, and the one answer you need flagged is exactly
+   * the one it feels sure about.
+   */
+  grounding?: "verified" | "documented" | "ungrounded"
   answer?: { sha256: string; characters: number }
   latencyMs?: number
 }
@@ -128,4 +152,66 @@ export async function chainStateAt(chainId?: string): Promise<AnswerEvidence["ch
 /** Tamper evidence for the stored answer, without duplicating it. */
 export function answerFingerprint(text: string): { sha256: string; characters: number } {
   return { sha256: createHash("sha256").update(text).digest("hex"), characters: text.length }
+}
+
+/** Transaction hashes are 0x + 64 hex on both EVM and Aptos. */
+const HASH_RE = /0x[a-fA-F0-9]{64}/g
+
+/**
+ * Hashes the USER pasted, as distinct from ones we found.
+ *
+ * WHY THE DISTINCTION IS RECORDED: a hash the user supplied is a claim about
+ * their own history; one we looked up is a finding of ours. Merging them into
+ * "transactions consulted" misrepresents who asserted what, which is the exact
+ * thing a dispute turns on.
+ */
+export function userSuppliedHashes(text: string, chainId?: string): EvidenceSource[] {
+  const out: EvidenceSource[] = []
+  const seen = new Set<string>()
+  for (const m of text.matchAll(HASH_RE)) {
+    const hash = m[0]
+    if (seen.has(hash.toLowerCase())) continue
+    seen.add(hash.toLowerCase())
+    out.push({ kind: "transaction", hash, origin: "user_supplied", ...(chainId ? { chain: chainId } : {}) })
+    if (out.length >= 5) break
+  }
+  return out
+}
+
+/**
+ * Which documentation pages an answer used, pinned to the version that was
+ * live at the time. `content_hash` is what makes "documentation vX" real: it
+ * identifies the exact text, and `doc_sources` already tracks it for change
+ * detection, so the version is a by-product rather than a new concept.
+ */
+export async function documentationSources(
+  supabase: { from: (t: string) => never } | ReturnType<typeof import("@/lib/supabase/server").createServiceClient>,
+  projectId: string,
+  urls: string[],
+): Promise<EvidenceSource[]> {
+  if (urls.length === 0) return []
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data } = await (supabase as any)
+      .from("doc_sources")
+      .select("url, content_hash, last_changed_at")
+      .eq("project_id", projectId)
+      .in("url", urls.slice(0, 8))
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const byUrl = new Map(((data ?? []) as any[]).map(r => [r.url as string, r]))
+    return urls.slice(0, 8).map(url => {
+      const row = byUrl.get(url)
+      return {
+        kind: "documentation" as const,
+        url,
+        // Short hash: enough to pin a version, short enough to read in a table.
+        ...(row?.content_hash ? { version: String(row.content_hash).slice(0, 12) } : {}),
+        ...(row?.last_changed_at ? { changedAt: row.last_changed_at } : {}),
+      }
+    })
+  } catch {
+    // A missing doc_sources row means the page predates change tracking, so the
+    // URL is still worth recording without a version.
+    return urls.slice(0, 8).map(url => ({ kind: "documentation" as const, url }))
+  }
 }

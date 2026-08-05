@@ -1,5 +1,5 @@
 import { createServiceClient } from "@/lib/supabase/server"
-import { answerFingerprint, chainStateAt, coarseDevice, requestGeo, type AnswerEvidence } from "@/lib/evidence"
+import { answerFingerprint, chainStateAt, coarseDevice, requestGeo, userSuppliedHashes, documentationSources, type AnswerEvidence } from "@/lib/evidence"
 import { mergeToolEvidence, type ToolEvidence } from "@txid/ai"
 import { buildSystemPrompt, buildDocsBlock, retrieveContext, streamChatWithTools, generateSuggestions } from "@txid/ai"
 import { resolveProtocolAccount } from "@/lib/protocol-account"
@@ -726,13 +726,33 @@ export async function POST(request: Request) {
           controller.enqueue(encoder.encode("data: [DONE]\n\n"))
 
           // Persist user message + assistant response after stream completes
+          // Assemble the provenance list: what the tools touched, which
+          // documentation pages backed it and at which version, and any hash
+          // the USER supplied, kept distinct from ones we found.
+          const merged = mergeToolEvidence(toolEvidence)
+          const lastUser = [...safeMessages].reverse().find(m => m.role === "user")
+          const provenance = [
+            ...merged.sources,
+            ...(await documentationSources(supabase, typedProject.id, retrievalEvidence?.sources ?? []).catch(() => [])),
+            ...(lastUser ? userSuppliedHashes(lastUser.content, chainId ?? undefined) : []),
+          ]
+
           // The action-update marker is a system-generated status note, not a
           // user turn - persist it as an assistant-side row so it never counts
           // against the per-session user-message cap on subsequent requests.
           void persistMessages(supabase, typedProject.id, sessionId, validActionResult ? [...safeMessages, { role: "assistant" as const, content: `⚙️ Action update: ${validActionResult.row.summary ?? "transaction"} ${validActionResult.confirmed ? "confirmed" : "failed"} (${validActionResult.txHash})` }] : safeMessages, walletAddress, chainId, fullResponseText || undefined, usage, {
             ...requestEvidence,
-            investigation: mergeToolEvidence(toolEvidence),
+            investigation: merged,
             ...(retrievalEvidence ? { retrieval: retrievalEvidence } : {}),
+            ...(provenance.length ? { sources: provenance } : {}),
+            grounding: merged.anyReadSucceeded
+              ? "verified"
+              : (retrievalEvidence?.matched ?? 0) > 0
+                ? "documented"
+                // Nothing read, nothing matched: the model answered from its own
+                // knowledge. On a compliance surface that is the case a protocol
+                // most needs to be able to find.
+                : "ungrounded",
             ...(chainId ? { chainId } : {}),
             surface: "widget",
             ...(config.branding?.language ? { language: config.branding.language } : {}),
@@ -778,6 +798,8 @@ interface EvidenceContext {
   startedAt?: number
   investigation?: { toolsUsed: string[]; failedLookups: string[]; prices: Record<string, string> }
   retrieval?: AnswerEvidence["retrieval"]
+  sources?: AnswerEvidence["sources"]
+  grounding?: AnswerEvidence["grounding"]
 }
 
 async function persistMessages(
@@ -834,6 +856,8 @@ async function persistMessages(
           },
           ...(usage?.model ? { model: { name: usage.model } } : {}),
           ...(evidenceContext?.retrieval ? { retrieval: evidenceContext.retrieval } : {}),
+          ...(evidenceContext?.sources?.length ? { sources: evidenceContext.sources } : {}),
+          ...(evidenceContext?.grounding ? { grounding: evidenceContext.grounding } : {}),
           ...(evidenceContext?.investigation
             ? {
                 investigation: {

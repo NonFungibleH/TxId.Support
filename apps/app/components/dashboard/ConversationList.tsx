@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react"
 import { sourceOf, SOURCE_LABEL, type ConversationSource } from "@/lib/conversation-source"
+import type { EvidenceSource } from "@txid/ai"
 import { useRouter } from "next/navigation"
 import { ChevronDown, ChevronUp, ThumbsUp, ThumbsDown, Wallet, Download, Globe, MessageSquare, Bot, Ticket, Loader2, CheckCircle2, ShieldCheck } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
@@ -101,6 +102,8 @@ function EvidenceBadge({ evidence }: { evidence: NonNullable<ConversationWithMes
   const req = evidence.request
   const inv = evidence.investigation
   const prices = (evidence as { pricesAtRead?: Record<string, string> }).pricesAtRead
+  const sources = ((evidence as { sources?: EvidenceSource[] }).sources ?? [])
+  const grounding = (evidence as { grounding?: "verified" | "documented" | "ungrounded" }).grounding
 
   return (
     <div className="mt-1 shrink-0">
@@ -109,7 +112,9 @@ function EvidenceBadge({ evidence }: { evidence: NonNullable<ConversationWithMes
         title="What this answer rested on"
         className="flex h-5 w-5 items-center justify-center rounded-full border border-border text-muted-foreground transition-colors hover:border-primary hover:text-primary"
       >
-        <ShieldCheck className="h-3 w-3" />
+        <ShieldCheck
+          className={`h-3 w-3 ${grounding === "ungrounded" ? "text-amber-600" : ""}`}
+        />
       </button>
       {open && (
         <div className="absolute right-4 z-20 mt-1 w-[22rem] space-y-2.5 rounded-xl border border-border bg-background p-3 shadow-lg">
@@ -143,6 +148,80 @@ function EvidenceBadge({ evidence }: { evidence: NonNullable<ConversationWithMes
               <p className="text-[10px] font-semibold uppercase tracking-wider text-amber-600">Failed lookups</p>
               {inv.failedLookups.slice(0, 3).map(fl => (
                 <p key={fl} className="text-[11px] text-muted-foreground">{fl}</p>
+              ))}
+            </div>
+          )}
+
+          {grounding && (
+            <div className="space-y-1">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-primary">Basis</p>
+              <p className="text-[11px] leading-relaxed">
+                {grounding === "verified" && "Read live from the chain and verified at the time."}
+                {grounding === "documented" && "Answered from the protocol's own documentation."}
+                {grounding === "ungrounded" && (
+                  <span className="text-amber-600">
+                    No live read and no documentation match. Answered from general knowledge, so
+                    nothing here can be checked against a source.
+                  </span>
+                )}
+              </p>
+            </div>
+          )}
+
+          {sources.length > 0 && (
+            <div className="space-y-1">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-primary">
+                Answer generated from
+              </p>
+              {sources.map((s, i) => (
+                <p key={i} className="text-[11px] leading-relaxed text-muted-foreground">
+                  {s.kind === "documentation" && (
+                    <>
+                      <span className="text-foreground">Documentation</span>{" "}
+                      {s.version ? <span className="font-mono">v{s.version}</span> : "(version not tracked)"}
+                      <br />
+                      <span className="break-all">{s.url}</span>
+                    </>
+                  )}
+                  {s.kind === "contract" && (
+                    <>
+                      <span className="text-foreground">Contract</span>{" "}
+                      <span className="break-all font-mono">{s.address}</span>
+                      {s.fn && <> · {s.fn}</>}
+                    </>
+                  )}
+                  {s.kind === "transaction" && (
+                    <>
+                      <span className="text-foreground">Transaction</span>{" "}
+                      {/* Who supplied it decides what it proves. */}
+                      <span className={s.origin === "user_supplied" ? "text-amber-600" : ""}>
+                        {s.origin === "user_supplied" ? "(pasted by user)" : "(looked up)"}
+                      </span>
+                      <br />
+                      <span className="break-all font-mono">{s.hash}</span>
+                    </>
+                  )}
+                  {s.kind === "price" && (
+                    <>
+                      <span className="text-foreground">Price</span> {s.asset}:{" "}
+                      <span className="font-mono">{s.value}</span>
+                      {s.via && <> · via {s.via}</>}
+                    </>
+                  )}
+                  {s.kind === "position" && (
+                    <>
+                      <span className="text-foreground">Position</span>{" "}
+                      {s.protocol ? `${s.protocol} ` : ""}
+                      <span className="break-all font-mono">{s.account}</span>
+                    </>
+                  )}
+                  {s.kind === "parameter" && (
+                    <>
+                      <span className="text-foreground">Parameter</span> {s.name}:{" "}
+                      <span className="font-mono">{s.value}</span>
+                    </>
+                  )}
+                </p>
               ))}
             </div>
           )}

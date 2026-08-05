@@ -1,6 +1,6 @@
 import Link from "next/link"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { ThumbsDown, Ticket, CloudOff, HeartCrack, MessageSquareOff, BookX, TrendingUp } from "lucide-react"
+import { ThumbsDown, Ticket, CloudOff, HeartCrack, MessageSquareOff, BookX, TrendingUp, HelpCircle } from "lucide-react"
 import type { GapsReport, GapItem } from "@/lib/gaps"
 
 function GapList({ items, empty }: { items: GapItem[]; empty: string }) {
@@ -89,6 +89,21 @@ export function GapsPanel({ report, days }: { report: GapsReport; days: number }
             />
           </div>
         </div>
+
+        {report.ungrounded.length > 0 && (
+          <div className="space-y-2.5 border-t border-border pt-5">
+            <div className="flex items-center gap-2">
+              <HelpCircle className="size-3.5 text-amber-600" />
+              <p className="text-xs font-semibold">Answered without a source</p>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              No live read and no documentation match behind these, so the assistant answered from
+              general knowledge. Not necessarily wrong, but the only category nobody can check.
+              Determined from what actually happened, not from asking the model how sure it was.
+            </p>
+            <GapList items={report.ungrounded} empty="" />
+          </div>
+        )}
 
         {report.topics.length > 0 && (
           <div className="space-y-2.5 border-t border-border pt-5">
