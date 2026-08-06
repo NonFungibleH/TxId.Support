@@ -209,8 +209,8 @@ export interface ScheduledJob {
 export const SCHEDULED: ScheduledJob[] = [
   {
     path: "/api/cron/escalation-retry",
-    cadence: "every 10 min",
-    what: "Redelivers escalations that never arrived. Backs off 1m to 6h, then marks abandoned rather than deleting, because a user was promised a human.",
+    cadence: "daily 03:00",
+    what: "Redelivers escalations that never arrived. Backs off 1m to 6h, then marks abandoned rather than deleting, because a user was promised a human. On a daily tick the backoff no longer paces the attempts, so redelivery takes days: run it by hand when something is actually waiting.",
   },
   {
     path: "/api/cron/docs-resync",

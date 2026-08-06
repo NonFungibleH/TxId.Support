@@ -1,13 +1,9 @@
 # Scheduled workers, run from GitHub rather than Vercel.
 #
-# WHY NOT VERCEL CRON: the Hobby plan allows 2 cron jobs per project and only
-# one run per day each. The escalation retry worker needs to run every few
-# minutes to be worth having, since its whole job is redelivering a promise to
-# a user who was told a human would follow up.
-#
-# The routes were always callable from outside with a Bearer token, so this
-# needs no code change: it is the same endpoint Vercel Cron would have hit.
-# Free, unlimited, and it removes the hosting plan from the critical path.
+# WHY NOT VERCEL CRON: the Hobby plan allows 2 cron jobs per project. The
+# routes were always callable from outside with a Bearer token, so this needs
+# no code change: it is the same endpoint Vercel Cron would have hit. Free, and
+# it removes the hosting plan from the critical path.
 #
 # TO MOVE BACK TO VERCEL CRON on a Pro plan: restore the `crons` block in
 # apps/app/vercel.json and delete this file. Do not run both, or every
@@ -19,14 +15,16 @@
 
 name: Scheduled workers
 
+# ONCE A DAY, both jobs, one run. It was every 10 minutes for the retry worker,
+# which is the cadence that job actually wants: its backoff is 1m/5m/30m/2h/6h,
+# so on a daily tick five attempts take five days rather than nine hours. That
+# is a deliberate trade while there is no live escalation traffic to drain, and
+# `workflow_dispatch` covers the case where something is genuinely stuck. Put
+# the frequent schedule back the moment redelivery latency starts mattering.
 on:
   schedule:
-    # GitHub's minimum interval is 5 minutes, and runs can be delayed by a few
-    # more under load. Fine here: the retry worker has its own backoff and
-    # nothing depends on it firing at an exact second.
-    - cron: "*/10 * * * *"
     - cron: "0 3 * * *"
-  # So a failed delivery can be drained by hand without waiting.
+  # So a failed delivery can be drained by hand without waiting a day.
   workflow_dispatch:
 
 # One at a time: a slow run must never overlap the next tick and double-send.
@@ -36,7 +34,6 @@ concurrency:
 
 jobs:
   escalation-retry:
-    if: github.event.schedule == '*/10 * * * *' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - name: Redeliver failed escalations
@@ -54,7 +51,6 @@ jobs:
           fi
 
   docs-resync:
-    if: github.event.schedule == '0 3 * * *' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - name: Re-check documentation for changes
