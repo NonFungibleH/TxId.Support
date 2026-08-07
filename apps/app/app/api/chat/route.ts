@@ -908,13 +908,13 @@ async function persistMessages(
       .select("id")
       .single()
 
-    let { data: conv, error: convError } = visitorId
+    const first = visitorId
       ? await upsertConv({ ...base, visitor_id: visitorId })
       : await upsertConv(base)
 
-    if (convError && visitorId) {
-      ({ data: conv } = await upsertConv(base))
-    }
+    // Retry without the column if it is not there yet, never without the row.
+    let conv = first.data
+    if (first.error && visitorId) conv = (await upsertConv(base)).data
 
     if (!conv) return
 
