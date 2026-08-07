@@ -70,7 +70,7 @@ export const ROADMAP: RoadmapItem[] = [
     complexity: "Low",
     effort: "~0.5 wk",
     status: "done",
-    what: "DONE. apps/app/vercel.json runs /api/cron/escalation-retry every 10 minutes, authorised by Vercel's cron header or CRON_SECRET. Adding another scheduled job is now a route plus a line of config.",
+    what: "DONE, but NOT via Vercel Cron: scheduled from .github/workflows/cron.yml, because the Hobby plan caps crons at two per project. apps/app/vercel.json no longer exists and must not come back (a stray comment key in it fails the BUILD, which once looked like unrelated features silently not updating). Both jobs run daily at 03:00 and authorise with CRON_SECRET. Adding another scheduled job is a route plus a step in that workflow.",
     depends: "Unblocked: knowledge auto-sync, compliance retention purge.",
   },
   {
