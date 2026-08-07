@@ -54,6 +54,15 @@
     "overflow:hidden;display:none;background-color:#0a0a0f;" +
     "}" +
     "#txid-widget-frame-wrap.open{display:block}" +
+    /* Beta spotlight arrival: the panel opens CENTRED over a dimmed page, so
+       the introduction is read as a moment rather than noticed in a corner,
+       then docks to the launcher so the tester learns where help lives. */
+    "#txid-widget-backdrop{position:fixed;inset:0;z-index:2147483644;background:rgba(8,8,16,.5);opacity:0;transition:opacity .3s}" +
+    "#txid-widget-backdrop.show{opacity:1}" +
+    "#txid-widget-frame-wrap.txid-center{left:50%;top:50%;right:auto;bottom:auto;transform:translate(-50%,-50%);box-shadow:0 24px 80px rgba(0,0,0,.6)}" +
+    "#txid-widget-frame-wrap.txid-docking{transition:left .45s cubic-bezier(.2,.8,.2,1),top .45s cubic-bezier(.2,.8,.2,1)}" +
+    "#txid-widget-caption{position:fixed;z-index:2147483646;background:#17172a;color:#fff;font:500 13px/1.4 system-ui,-apple-system,sans-serif;padding:8px 12px;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.35);opacity:0;transition:opacity .3s;pointer-events:none;max-width:240px}" +
+    "#txid-widget-caption.show{opacity:1}" +
     "#txid-widget-frame{width:100%;height:100%;border:none;display:block}" +
     /* Mobile: full-width bottom sheet, respects safe areas */
     "@media(max-width:440px){" +
@@ -131,6 +140,9 @@
       btn.innerHTML = CLOSE_ICON;
       btn.setAttribute("aria-label", "Close support chat");
     } else {
+      // Closing mid-spotlight: no dock animation possible on a hidden panel,
+      // so just clean up and still show the caption, which is the lesson.
+      if (spotlight) { endSpotlight(); showCaption(); }
       wrap.classList.remove("open");
       btn.innerHTML = CHAT_ICON;
       btn.setAttribute("aria-label", "Open support chat");
@@ -162,7 +174,80 @@
       if (sessionStorage.getItem(AUTO_OPEN_FLAG)) return;
       sessionStorage.setItem(AUTO_OPEN_FLAG, "1");
     } catch (e) { return; }
+    openSpotlight();
+  }
+
+  // ── Beta spotlight arrival ─────────────────────────────────────────────────
+  // Centre-stage introduction, then dock to the corner. The dock is the point:
+  // watching the panel travel to the launcher teaches the tester where help
+  // lives, which one static corner popup never does. Dismissal is the
+  // backdrop click or the close button; either way the caption appears by the
+  // launcher so the lesson survives even an immediate dismissal.
+
+  var spotlight = false;
+  var backdrop = null;
+
+  function openSpotlight() {
+    spotlight = true;
+    backdrop = document.createElement("div");
+    backdrop.id = "txid-widget-backdrop";
+    backdrop.addEventListener("click", dockSpotlight);
+    root.appendChild(backdrop);
+    requestAnimationFrame(function () { if (backdrop) backdrop.classList.add("show"); });
+    wrap.classList.add("txid-center");
     setOpen(true);
+  }
+
+  function endSpotlight() {
+    spotlight = false;
+    wrap.classList.remove("txid-center");
+    if (backdrop) {
+      var bd = backdrop;
+      backdrop = null;
+      bd.classList.remove("show");
+      setTimeout(function () { if (bd.parentNode) bd.parentNode.removeChild(bd); }, 350);
+    }
+  }
+
+  function dockSpotlight() {
+    if (!spotlight) return;
+    // FLIP: freeze the centred position in pixels, drop the centering class,
+    // then transition to where the stylesheet corner would put it. Inline
+    // styles are cleared after the ride so the normal CSS owns it again.
+    var r = wrap.getBoundingClientRect();
+    endSpotlight();
+    wrap.style.left = r.left + "px";
+    wrap.style.top = r.top + "px";
+    wrap.style.right = "auto";
+    wrap.style.bottom = "auto";
+    void wrap.offsetWidth; // commit the frozen position before transitioning
+    wrap.classList.add("txid-docking");
+    wrap.style.left = Math.max(8, window.innerWidth - r.width - 24) + "px";
+    wrap.style.top = Math.max(8, window.innerHeight - r.height - 92) + "px";
+    setTimeout(function () {
+      wrap.classList.remove("txid-docking");
+      wrap.style.left = ""; wrap.style.top = ""; wrap.style.right = ""; wrap.style.bottom = "";
+      if (customPos) positionPanel();
+      showCaption();
+    }, 500);
+  }
+
+  function showCaption() {
+    var r = btn.getBoundingClientRect();
+    var cap = document.createElement("div");
+    cap.id = "txid-widget-caption";
+    cap.textContent = "I'll be here if you need me.";
+    // To the LEFT of the launcher, not above it: after the dock the open panel
+    // occupies the space above, and a caption on top of the panel reads as a
+    // glitch. Left of the launcher is reliably empty.
+    cap.style.right = Math.max(8, window.innerWidth - r.left + 10) + "px";
+    cap.style.bottom = Math.max(8, window.innerHeight - r.bottom + 14) + "px";
+    root.appendChild(cap);
+    requestAnimationFrame(function () { cap.classList.add("show"); });
+    setTimeout(function () {
+      cap.classList.remove("show");
+      setTimeout(function () { if (cap.parentNode) cap.parentNode.removeChild(cap); }, 350);
+    }, 4500);
   }
 
   // Base panel size (kept in sync with the CSS above). Text-scale grows it.
@@ -199,6 +284,9 @@
   // before any drag, clear inline positioning so the CSS (bottom-right on
   // desktop, full-width sheet on mobile) takes over.
   function positionPanel() {
+    // While the spotlight holds the panel centred, inline anchoring would
+    // silently win over the centering class. Hands off until it docks.
+    if (spotlight) return;
     if (window.innerWidth <= 440 || !customPos) {
       wrap.style.left = ""; wrap.style.top = ""; wrap.style.right = ""; wrap.style.bottom = "";
       return;

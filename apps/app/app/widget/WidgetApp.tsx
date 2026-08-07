@@ -1900,6 +1900,17 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
         )}
         <span className="min-w-0 flex-1 truncate text-sm font-semibold" style={{ color: onPrimary }}>
           {b.agentName?.trim() || config.projectName}
+          {/* The pill reframes every rough edge a tester meets: this is a
+              beta and they are part of testing it. Server-resolved, so it
+              disappears the moment the programme ends. */}
+          {config.beta && (
+            <span
+              className="ml-1.5 inline-block rounded-full px-1.5 py-px align-middle text-[9px] font-bold uppercase tracking-wider"
+              style={{ backgroundColor: `${onPrimary}22`, color: onPrimary }}
+            >
+              Beta
+            </span>
+          )}
         </span>
         {!isTokenMode && !b.hideWallet && (
           walletAddress ? (
