@@ -763,6 +763,9 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
   const params = useSearchParams()
   const apiKey = params?.get("key") ?? ""
   const isPreview = params?.get("preview") === "1"
+  // A bookmarklet launch: the owner deliberately opening the widget on a real
+  // page. The one preview case where the beta arrival SHOULD play.
+  const isFreshLaunch = params?.get("fresh") === "1"
   const previewToken = params?.get("pt") ?? undefined
 
   const [config, setConfig] = useState<WidgetConfig | null>(null)
@@ -954,10 +957,13 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
   // twice is harmless: the embed ignores a repeat.
   useEffect(() => {
     if (!config?.beta?.autoOpen) return
-    if (isPreview) return
+    // Suppressed in the DASHBOARD preview (auto-opening while someone edits
+    // branding would be maddening) but not for a bookmarklet launch, which
+    // exists precisely to show the real arrival on a real page.
+    if (isPreview && !isFreshLaunch) return
     if (typeof window === "undefined" || window.parent === window) return
     window.parent.postMessage("txid-autoopen", "*")
-  }, [config, isPreview])
+  }, [config, isPreview, isFreshLaunch])
 
   // ── Auto-scroll to latest message ───────────────────────────────────────
   // Chips and the ticket form shrink the scroller, so they scroll too: without

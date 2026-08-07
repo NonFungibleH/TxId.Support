@@ -11,7 +11,7 @@ export function DemoBookmarklet({ appUrl, demoKey, name, accent }: { appUrl: str
     const href =
       "javascript:(function(){if(document.getElementById('txid-widget-root'))return;" +
       "var s=document.createElement('script');s.id='txid-widget-script';" +
-      `s.src='${appUrl}/widget.js';s.setAttribute('data-key','${demoKey}');` +
+      `s.src='${appUrl}/widget.js';s.setAttribute('data-fresh','1');s.setAttribute('data-key','${demoKey}');` +
       "document.body.appendChild(s);" +
       "setTimeout(function(){if(!document.getElementById('txid-widget-root')){" +
       "alert('This site blocks third-party embeds via its security policy (Content-Security-Policy) \\u2014 common on hardened apps like Uniswap. Try it on a site that allows it.')" +

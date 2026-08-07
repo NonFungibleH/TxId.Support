@@ -121,6 +121,10 @@
   var previewToken = script.getAttribute("data-pt");
   iframe.src = BASE + "/widget?key=" + encodeURIComponent(key) +
     (script.getAttribute("data-preview") === "1" ? "&preview=1" : "") +
+    // Forwarded so the iframe knows this is a deliberate owner launch: the
+    // widget suppresses auto-open in preview mode, and without this flag the
+    // preview bookmarklet could never demonstrate the beta arrival at all.
+    (script.getAttribute("data-fresh") === "1" ? "&fresh=1" : "") +
     (previewToken ? "&pt=" + encodeURIComponent(previewToken) : "");
 
   wrap.appendChild(iframe);
@@ -167,6 +171,14 @@
    * opening every time.
    */
   var AUTO_OPEN_FLAG = "txid_auto_opened_" + key;
+  // A bookmarklet click is the OWNER deliberately launching a demo, not a
+  // tester browsing, so it always replays the arrival. Without this, testing
+  // twice in the same tab silently downgraded the spotlight to a corner open,
+  // which reads as broken. Bookmarklets set data-fresh; pasted embeds never do,
+  // so real testers keep the once-per-tab guard untouched.
+  if (script.getAttribute("data-fresh") === "1") {
+    try { sessionStorage.removeItem(AUTO_OPEN_FLAG); } catch (e) { /* keep guard */ }
+  }
   function autoOpenOnce() {
     if (open) return;
     if (window.innerWidth <= 440) return;

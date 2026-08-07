@@ -37,7 +37,7 @@ function buildBookmarklet(origin: string, key: string): string {
   return (
     "javascript:(function(){if(document.getElementById('txid-widget-root'))return;" +
     "var s=document.createElement('script');s.id='txid-widget-script';" +
-    `s.src='${origin}/widget.js';s.setAttribute('data-key','${key}');` +
+    `s.src='${origin}/widget.js';s.setAttribute('data-fresh','1');s.setAttribute('data-key','${key}');` +
     "document.body.appendChild(s);" +
     "setTimeout(function(){if(!document.getElementById('txid-widget-root')){" +
     "alert('This site blocks embedded widgets via its security policy (Content-Security-Policy) \\u2014 common on hardened dapps like Uniswap. Use the TxID share link to demo instead.')" +
