@@ -1908,7 +1908,7 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
               className="ml-1.5 inline-block rounded-full px-1.5 py-px align-middle text-[9px] font-bold uppercase tracking-wider"
               style={{ backgroundColor: `${onPrimary}22`, color: onPrimary }}
             >
-              Beta
+              Beta tester
             </span>
           )}
         </span>
