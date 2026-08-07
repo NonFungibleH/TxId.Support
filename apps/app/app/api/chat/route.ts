@@ -98,9 +98,10 @@ export async function POST(request: Request) {
       actionResult?: { actionId?: string; txHash?: string; status?: string; gasUsed?: string; blockNumber?: string }
       /** Host page context from the embed. Untrusted: validated below. */
       pageContext?: { url?: string; vw?: number; vh?: number }
+      visitorId?: string
     }
 
-    const { key, sessionId, messages, walletAddress, chainId, preview, previewToken, turnstileToken, contractAddress, demoProtocol, walletMode, actionResult, pageContext } = body
+    const { key, sessionId, messages, walletAddress, chainId, preview, previewToken, turnstileToken, contractAddress, demoProtocol, walletMode, actionResult, pageContext, visitorId } = body
 
     // Host page context, client-supplied and therefore validated: an http(s)
     // URL only, length-capped, viewport reduced to "WxH". It records where the
@@ -826,7 +827,7 @@ export async function POST(request: Request) {
             ...(chainId ? { chainId } : {}),
             surface: "widget",
             ...(config.branding?.language ? { language: config.branding.language } : {}),
-          }))
+          }, visitorId))
         } catch (err) {
           log.error("Chat stream error", err, { event: "chat.stream_error", projectId: typedProject.id })
           // For our own demo/publicDemo projects, surface the real reason to make
@@ -884,16 +885,36 @@ async function persistMessages(
   assistantResponse?: string,
   usage?: { inputTokens: number; outputTokens: number; cacheReadTokens: number; cacheWriteTokens: number; model: string } | null,
   evidenceContext?: EvidenceContext,
+  visitorId?: string,
 ) {
   try {
-    const { data: conv } = await supabase
+    const base = {
+      project_id: projectId,
+      session_id: sessionId,
+      wallet_address: walletAddress ?? null,
+      chain_id: chainId ?? null,
+    }
+
+    // DEPLOY-SAFE, and not theoretically. Production has repeatedly run code
+    // ahead of its migrations, and the last time an unknown column reached this
+    // upsert the row was never created, so NO CONVERSATION RECORDED AT ALL for
+    // as long as it took to notice. A visitor id is a nice-to-have; the
+    // transcript is the product. If the column is not there yet, drop it and
+    // write the conversation anyway.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const upsertConv = (row: Record<string, unknown>) => (supabase as any)
       .from("conversations")
-      .upsert(
-        { project_id: projectId, session_id: sessionId, wallet_address: walletAddress ?? null, chain_id: chainId ?? null },
-        { onConflict: "project_id,session_id" },
-      )
+      .upsert(row, { onConflict: "project_id,session_id" })
       .select("id")
       .single()
+
+    let { data: conv, error: convError } = visitorId
+      ? await upsertConv({ ...base, visitor_id: visitorId })
+      : await upsertConv(base)
+
+    if (convError && visitorId) {
+      ({ data: conv } = await upsertConv(base))
+    }
 
     if (!conv) return
 

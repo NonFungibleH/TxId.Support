@@ -147,6 +147,79 @@ export default async function ConversationsPage({
     }
   } catch { /* migration not applied yet - summaries are optional */ }
 
+  // ── Same user, across conversations ──────────────────────────────────────
+  // A support conversation is almost never the whole story: the person asking
+  // "it still hasn't arrived" had a different session yesterday where they
+  // explained what "it" was. Nothing was joining those up, even though the
+  // wallet has been stored on every row since the beginning.
+  //
+  // TWO SIGNALS, AND THEY ARE NOT EQUAL. A wallet is an identity the user
+  // proved by connecting it, so it links across devices and browsers and is
+  // preferred wherever present. A visitor id only says "same browser", is
+  // cleared with site data, and is absent in private browsing. They are
+  // labelled differently in the interface for exactly that reason: telling a
+  // support agent two people are the same when they are not is worse than
+  // telling them nothing.
+  //
+  // Best-effort throughout: visitor_id post-dates this page's migration, and a
+  // missing column must not take the transcript list down with it.
+  const related = new Map<string, { key: string; kind: "wallet" | "browser"; total: number; others: { id: string; created_at: string }[] }>()
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const shown = conversations as any[]
+    const wallets = [...new Set(shown.map(c => c.wallet_address).filter(Boolean).map((w: string) => w.toLowerCase()))]
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const withVisitor = await (supabase as any)
+      .from("conversations")
+      .select("id, wallet_address, visitor_id, created_at")
+      .eq("project_id", typedProject.id)
+    const universe = withVisitor.error
+      // No visitor_id column yet: wallet linking still works on its own.
+      ? (await supabase
+          .from("conversations")
+          .select("id, wallet_address, created_at")
+          .eq("project_id", typedProject.id)).data ?? []
+      : withVisitor.data ?? []
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const visitorOf = new Map<string, string>((universe as any[]).map(r => [r.id, r.visitor_id ?? ""]))
+    const visitors = [...new Set(shown.map(c => visitorOf.get(c.id)).filter(Boolean))] as string[]
+
+    // Group the project's whole history by each identity we care about.
+    const byWallet = new Map<string, { id: string; created_at: string }[]>()
+    const byVisitor = new Map<string, { id: string; created_at: string }[]>()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    for (const r of universe as any[]) {
+      const w = r.wallet_address ? String(r.wallet_address).toLowerCase() : null
+      if (w && wallets.includes(w)) {
+        byWallet.set(w, [...(byWallet.get(w) ?? []), { id: r.id, created_at: r.created_at }])
+      }
+      const v = r.visitor_id ? String(r.visitor_id) : null
+      if (v && visitors.includes(v)) {
+        byVisitor.set(v, [...(byVisitor.get(v) ?? []), { id: r.id, created_at: r.created_at }])
+      }
+    }
+
+    for (const c of shown) {
+      const w = c.wallet_address ? String(c.wallet_address).toLowerCase() : null
+      const v = visitorOf.get(c.id) || null
+      // Wallet wins: it is the stronger claim, and a user who connected the
+      // same wallet from two browsers is one person, not two.
+      const group = (w && byWallet.get(w)) || (v && byVisitor.get(v)) || []
+      if (group.length < 2) continue
+      related.set(c.id, {
+        key: w ?? v ?? "",
+        kind: w && byWallet.get(w) ? "wallet" : "browser",
+        total: group.length,
+        others: group
+          .filter(g => g.id !== c.id)
+          .sort((a, b) => (a.created_at < b.created_at ? 1 : -1))
+          .slice(0, 5),
+      })
+    }
+  } catch { /* linking is additive: never break the list over it */ }
+
   // Reading client case records is itself an event a reviewer will ask about.
   // Fire-and-forget so it never delays or breaks the page.
   void recordCaseAccess({
@@ -244,7 +317,7 @@ export default async function ConversationsPage({
         )}
       </div>
       {filters}
-      <ConversationList conversations={data} existingTickets={ticketByConvId} />
+      <ConversationList conversations={data} existingTickets={ticketByConvId} related={Object.fromEntries(related)} />
       {total > conversations.length && (
         <div className="flex flex-col items-center gap-2 py-4">
           <p className="text-xs text-muted-foreground">Showing {conversations.length} of {total} sessions</p>

@@ -316,12 +316,22 @@ function EvidenceBadge({ evidence }: { evidence: NonNullable<ConversationWithMes
   )
 }
 
+/** Other conversations from the same user. See the page for how it is derived. */
+type RelatedInfo = {
+  key: string
+  kind: "wallet" | "browser"
+  total: number
+  others: { id: string; created_at: string }[]
+}
+
 export function ConversationList({
   conversations,
   existingTickets = {},
+  related = {},
 }: {
   conversations: ConversationWithMessages[]
   existingTickets?: Record<string, { ref: string; status: string }>
+  related?: Record<string, RelatedInfo>
 }) {
   const router = useRouter()
   const [expanded, setExpanded] = useState<string | null>(null)
@@ -497,6 +507,34 @@ export function ConversationList({
                       <Globe className="size-3" />
                       {chainName}
                     </span>
+                  )}
+                  {/* SAME USER, EARLIER. A wallet is an identity the person
+                      proved by connecting it, so it links across devices; a
+                      visitor id only says same browser and is gone the moment
+                      site data is cleared. The two are labelled differently
+                      because overstating the second would have a support agent
+                      reading one person's history as another's. */}
+                  {related[conv.id] && (
+                    <Badge
+                      title={
+                        related[conv.id]!.kind === "wallet"
+                          ? `Same wallet as ${related[conv.id]!.total - 1} other conversation${related[conv.id]!.total === 2 ? "" : "s"}. Click to see them all.`
+                          : `Same browser as ${related[conv.id]!.total - 1} other conversation${related[conv.id]!.total === 2 ? "" : "s"}. Not proof of the same person: a shared or reset browser looks identical.`
+                      }
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        if (related[conv.id]!.kind === "wallet") {
+                          router.push(`/dashboard/conversations?wallet=${encodeURIComponent(related[conv.id]!.key)}`)
+                        }
+                      }}
+                      className={
+                        related[conv.id]!.kind === "wallet"
+                          ? "text-[10px] px-1.5 py-0.5 leading-none shrink-0 cursor-pointer bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
+                          : "text-[10px] px-1.5 py-0.5 leading-none shrink-0 bg-muted text-muted-foreground border-border"
+                      }
+                    >
+                      {related[conv.id]!.kind === "wallet" ? "Returning" : "Same browser"} · {related[conv.id]!.total}
+                    </Badge>
                   )}
                   {outcome === "unanswered" && (
                     <Badge

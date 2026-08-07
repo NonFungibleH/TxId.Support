@@ -781,6 +781,22 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
   // Preview sessions carry a "preview-" prefix so the dashboard can flag them
   // (like Telegram's "tg-") and the route can keep them out of the paid quota.
   const sessionId = useRef<string>(isPreview ? `preview-${nanoid()}` : nanoid())
+  // WHO IS COMING BACK, as distinct from WHICH VISIT this is. sessionId must
+  // stay per-visit because the message cap and the conversation count key on
+  // it, so a durable one would lock a returning tester out for good. This is a
+  // separate random value that survives a reload, scoped per project key so two
+  // protocols on the same site never share it. Private mode and blocked storage
+  // throw, and the correct outcome there is no visitor id at all rather than a
+  // fresh one every load, which would inflate the count with ghosts.
+  const visitorId = useRef<string | null>(null)
+  if (visitorId.current === null && typeof window !== "undefined" && !isPreview) {
+    try {
+      const k = `txid_visitor_${apiKey}`
+      let v = localStorage.getItem(k)
+      if (!v) { v = nanoid(); localStorage.setItem(k, v) }
+      visitorId.current = v
+    } catch { visitorId.current = "" }
+  }
   const messagesContainerRef = useRef<HTMLDivElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -1651,6 +1667,7 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
           previewToken: isPreview ? previewToken : undefined,
           walletMode: walletAddress ? (walletSetup === "connected" ? "connected" : "manual") : undefined,
           pageContext: hostContext.current.url ? hostContext.current : undefined,
+          ...(visitorId.current ? { visitorId: visitorId.current } : {}),
         }),
       })
 

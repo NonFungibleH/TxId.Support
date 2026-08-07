@@ -228,6 +228,16 @@ export const ROADMAP: RoadmapItem[] = [
     care: "Nothing evaluative and no amounts in an unprompted greeting. Unsolicited financial commentary is a stronger form of advice than answering a question.",
   },
   {
+    id: "k-live-protocol-data",
+    title: "Answer from the protocol's LIVE application data, not just its docs",
+    area: "foundation",
+    phase: 2,
+    complexity: "Medium",
+    effort: "~1-2 wks",
+    status: "soon",
+    what: "The assistant knows a protocol's documentation and its chain state, and neither covers what the application is showing RIGHT NOW: open markets, current odds, live listings, what is actually available to trade. Asked 'what football markets are open', it correctly declines, which is honest and unsatisfying. Two routes. A protocol-supplied endpoint registered as a tool is the real answer: accurate, cacheable, and it stays right when the page changes. Having widget.js read the visible page and pass it as context works today with no cooperation from the protocol, but it only ever sees what is on screen, and page content is untrusted input that would need treating as data rather than instructions. Raised by the Yamata pilot, where the upstream venues (Predict.fun, Myriad Markets) change constantly.",
+  },
+  {
     id: "k-opener-stuck",
     title: "Detect stuck and pending transactions",
     area: "foundation",
