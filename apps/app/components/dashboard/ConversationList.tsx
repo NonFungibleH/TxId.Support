@@ -624,6 +624,14 @@ export function ConversationList({
                             className={`mt-1 text-[9px] tabular-nums opacity-60 ${msg.role === "user" ? "text-right" : ""}`}
                             title={new Date(msg.created_at).toLocaleString()}
                           >
+                            {/* DATE SHOWN whenever the message is not from the
+                                day the session started. A support conversation
+                                can span midnight or be picked up days later,
+                                and a bare time then silently misdates the
+                                record an auditor is reading. */}
+                            {new Date(msg.created_at).toDateString() !== new Date(conv.created_at).toDateString() && (
+                              <>{new Date(msg.created_at).toLocaleDateString([], { day: "2-digit", month: "short" })}{" "}</>
+                            )}
                             {new Date(msg.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
                           </div>
                         )}
