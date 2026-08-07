@@ -230,6 +230,8 @@ interface Message {
   walletAction?: WalletActionPayload
   /** Client-only line (e.g. a switch confirmation) - never persisted, not ratable */
   local?: boolean
+  /** The instant wallet-connected note. A PLACEHOLDER: the opener replaces it. */
+  connectNote?: boolean
   /** User's 👍/👎 on this assistant answer: 1 up, -1 down, 0/undefined none */
   feedback?: number
 }
@@ -820,7 +822,17 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
           // has passed: interrupting with an unprompted greeting is worse than
           // staying quiet.
           if (prev.some(m => m.role === "user")) return prev
-          return [...prev, { id: nanoid(), role: "assistant", content: d.message!, local: true }]
+          // REPLACE the wallet-connected placeholder rather than stacking a
+          // third bot bubble. Three unprompted messages before the user has
+          // said a word reads as spam; the address is in the header anyway.
+          const opener = { id: nanoid(), role: "assistant" as const, content: d.message!, local: true }
+          const idx = prev.findIndex(m => m.connectNote)
+          if (idx >= 0) {
+            const next = [...prev]
+            next[idx] = opener
+            return next
+          }
+          return [...prev, opener]
         })
         // Curated chips are the protocol's deliberate choice and keep winning;
         // these only fill the slot when nothing was curated.
@@ -1272,8 +1284,9 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
       setMessages((prev) => [...prev, {
         id: nanoid(),
         role: "assistant",
-        content: `Wallet connected: ${shortAddr(address)}. I can look up your balance and transactions now.`,
+        content: `Wallet connected: ${shortAddr(address)}.`,
         local: true,
+        connectNote: true,
       }])
     }
     try {
