@@ -96,6 +96,11 @@ function Field({ label, value }: { label: string; value: React.ReactNode }) {
  * transcript says what was said, the record says under what conditions and
  * whether it can be reproduced.
  */
+/** The path a URL points at, for display: the host is always the protocol's own site. */
+function pagePath(u: string): string {
+  try { return new URL(u).pathname || "/" } catch { return u }
+}
+
 function EvidenceBadge({ evidence }: { evidence: NonNullable<ConversationWithMessages["messages"][number]["evidence"]> }) {
   const [open, setOpen] = useState(false)
   const chain = evidence.chain
@@ -118,7 +123,7 @@ function EvidenceBadge({ evidence }: { evidence: NonNullable<ConversationWithMes
         />
       </button>
       {open && (
-        <div className="absolute right-4 z-20 mt-1 w-[22rem] space-y-2.5 rounded-xl border border-border bg-background p-3 shadow-lg">
+        <div className="absolute right-4 z-20 mt-1 max-h-[70vh] w-[22rem] space-y-2.5 overflow-y-auto rounded-xl border border-border bg-background p-3 shadow-lg">
           <p className="text-[11px] font-semibold text-foreground">Case record</p>
 
           {chain && (
@@ -247,6 +252,12 @@ function EvidenceBadge({ evidence }: { evidence: NonNullable<ConversationWithMes
               {req.deviceType && <Field label="Device" value={[req.deviceType, req.platform, req.browser].filter(Boolean).join(" · ")} />}
               {req.surface && <Field label="Surface" value={req.surface} />}
               {req.language && <Field label="Language" value={req.language} />}
+              {(req as { pageUrl?: string }).pageUrl && (
+                <Field label="Page" value={pagePath((req as { pageUrl?: string }).pageUrl!)} />
+              )}
+              {(req as { viewport?: string }).viewport && (
+                <Field label="Viewport" value={(req as { viewport?: string }).viewport!} />
+              )}
             </div>
           )}
 
@@ -418,7 +429,10 @@ export function ConversationList({
         return (
           <div
             key={conv.id}
-            className="rounded-lg border border-border bg-card overflow-hidden"
+            // overflow-hidden only while COLLAPSED: it exists for the rounded
+            // corners, but on an expanded card it clipped the Case record
+            // popover mid-sentence at the card edge.
+            className={`rounded-lg border border-border bg-card ${isOpen ? "" : "overflow-hidden"}`}
           >
             <button
               onClick={() => setExpanded(isOpen ? null : conv.id)}
@@ -565,6 +579,14 @@ export function ConversationList({
                         }`}
                       >
                         {msg.content}
+                        {msg.created_at && (
+                          <div
+                            className={`mt-1 text-[9px] tabular-nums opacity-60 ${msg.role === "user" ? "text-right" : ""}`}
+                            title={new Date(msg.created_at).toLocaleString()}
+                          >
+                            {new Date(msg.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+                          </div>
+                        )}
                       </div>
                       {msg.role === "assistant" && msg.evidence && (
                         <EvidenceBadge evidence={msg.evidence} />

@@ -1,0 +1,13 @@
+<!doctype html>
+<!-- Embed test harness. Served by e2e/embed-smoke.mjs with a fresh copy of
+     public/widget.js beside it; the fake key never reaches a real project
+     because the smoke drives the embed's message API directly and the iframe's
+     failed config fetch is irrelevant to the geometry under test. -->
+<html>
+<head><title>widget embed harness</title></head>
+<body style="margin:0;background:#111;color:#eee;font-family:sans-serif">
+<h1 style="padding:40px">Host page</h1>
+<p style="padding:0 40px">Content, so the spotlight dim is observable.</p>
+<script id="txid-widget-script" src="/widget.js" data-key="pk_test_harness"></script>
+</body>
+</html>
