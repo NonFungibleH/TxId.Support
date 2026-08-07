@@ -53,22 +53,9 @@ export default async function ContractsPage() {
       <div>
         <h1 className="text-2xl font-bold">Smart Contracts</h1>
         <p className="text-muted-foreground mt-1">
-          Your protocol&apos;s own token has its own section below. Add any other contracts or modules the AI should be able to look up: the markets, vaults, or pools users interact with, plus treasury wallets, staking, vesting, and anything else on chain. The AI uses the name and description to decide when to query each one.
+          Your protocol&apos;s own token has its own section at the foot of this page. Add any other contracts or modules the AI should be able to look up: the markets, vaults, or pools users interact with, plus treasury wallets, staking, vesting, and anything else on chain. The AI uses the name and description to decide when to query each one.
         </p>
       </div>
-
-      <CollapsibleCard
-        title="Token contract"
-        description="Your protocol's own token. Powers live price, the buy link, and token questions in the widget. Kept separate from the watched contracts below."
-        summary={
-          config.token?.address
-            ? <>Set: <span className="font-mono">{shortAddr(config.token.address)}</span>{config.token.chain ? ` · ${chainName(config.token.chain)}` : ""}</>
-            : "Not configured yet (optional)."
-        }
-        defaultOpen={false}
-      >
-        <TokenForm projectId={typedProject.id} initial={config.token} />
-      </CollapsibleCard>
 
       <CollapsibleCard
         title="Watched contracts"
@@ -106,6 +93,19 @@ export default async function ContractsPage() {
           <AuditsManager projectId={typedProject.id} audits={config.audits ?? []} />
         </CardContent>
       </Card>
+
+      <CollapsibleCard
+        title="Token contract"
+        description="Your protocol's own token. Powers live price, the buy link, and token questions in the widget. Kept separate from the watched contracts above."
+        summary={
+          config.token?.address
+            ? <>Set: <span className="font-mono">{shortAddr(config.token.address)}</span>{config.token.chain ? ` · ${chainName(config.token.chain)}` : ""}</>
+            : "Not configured yet (optional)."
+        }
+        defaultOpen={false}
+      >
+        <TokenForm projectId={typedProject.id} initial={config.token} />
+      </CollapsibleCard>
 
       {/* NO STANDALONE "Error glossary" CARD. There used to be one here: four
           bullets explaining the feature, no control, ending in "set these up on
