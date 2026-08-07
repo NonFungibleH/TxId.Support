@@ -805,6 +805,25 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
   // them: this iframe's own location is app.txid.support). Attached to every
   // chat turn so findings and conversations carry WHERE the tester was.
   // Treated as data: length-capped here and validated again server-side.
+  // Orientation is a ONE-TIME arrival, not a state of the conversation. It
+  // used to render whenever no user message existed, so a tester who read it,
+  // pressed Let's go and reopened later met the onboarding screen again, and
+  // again: an inescapable loop back to the introduction. Remembered per
+  // project in localStorage so it survives closing the panel and reloading
+  // the page; if storage is unavailable it simply shows each visit rather
+  // than breaking.
+  const ORIENTED_KEY = `txid_oriented_${apiKey}`
+  const [oriented, setOriented] = useState(false)
+  useEffect(() => {
+    try { if (localStorage.getItem(ORIENTED_KEY)) setOriented(true) } catch { /* private mode */ }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+  const markOriented = useCallback(() => {
+    setOriented(true)
+    try { localStorage.setItem(ORIENTED_KEY, "1") } catch { /* fine */ }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   const hostContext = useRef<{ url?: string; vw?: number; vh?: number }>({})
   useEffect(() => {
     const onMsg = (e: MessageEvent) => {
@@ -1611,6 +1630,7 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
 
     // First engagement docks the beta spotlight: the embed no-ops this when
     // no spotlight is up, so it is safe to send on every message.
+    markOriented()
     if (typeof window !== "undefined" && window.parent !== window) {
       window.parent.postMessage("txid-engaged", "*")
     }
@@ -2503,7 +2523,7 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
                   "Let's go", which docks and closes via the embed so the
                   tester watches it settle where it lives. Gone forever after
                   their first message. */}
-              {config?.beta && !escalation && !messages.some(m => m.role === "user") && (
+              {config?.beta && !escalation && !oriented && !messages.some(m => m.role === "user") && (
                 <div
                   className="mx-auto mt-5 w-[92%] rounded-xl border p-4 text-center"
                   style={{ background: `${b.primaryColor}14`, borderColor: `${b.primaryColor}33` }}
@@ -2515,7 +2535,10 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
                       : null}
                   </p>
                   <button
-                    onClick={() => { if (window.parent !== window) window.parent.postMessage("txid-letsgo", "*") }}
+                    onClick={() => {
+                      markOriented()
+                      if (window.parent !== window) window.parent.postMessage("txid-letsgo", "*")
+                    }}
                     className="mt-3.5 w-full rounded-lg px-4 py-2 text-sm font-bold transition-opacity hover:opacity-90 active:scale-[0.98]"
                     style={{ backgroundColor: b.primaryColor, color: onPrimary }}
                   >
