@@ -758,22 +758,30 @@ export async function POST(request: Request) {
               ? "documented"
               : "ungrounded"
 
-          // WE STREAM, so a check that finishes after the last token cannot
-          // retract it. What it can do is refuse to let the answer stand
-          // unqualified: the caveat is appended in the same turn, and the user
-          // sees it before acting. Silence here would mean the one answer with
-          // nothing behind it looked exactly like the ones that were verified.
-          const needsCaveat =
-            projectMode === "support" &&
-            !inspectMode &&
-            (grounding === "ungrounded" || unverified.length > 0)
-          if (needsCaveat && fullResponseText) {
-            const note = unverified.length > 0
-              ? `\n\n_I could not trace ${unverified.length === 1 ? "one figure" : `${unverified.length} figures`} above to a live reading or to ${typedProject.name}'s documentation. Please confirm anything you plan to act on, and I can raise this with the team._`
-              : `\n\n_This one is not from ${typedProject.name}'s documentation or a live reading, so please treat it as general background rather than something confirmed. I can raise it with the team if you need a definitive answer._`
-            fullResponseText += note
-            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text: note })}\n\n`))
-          }
+          // NO CAVEAT IS APPENDED TO THE ANSWER. Removed 2026-08-07.
+          //
+          // There used to be one, on two triggers: an ungrounded answer, and
+          // any figure numeric-check could not trace. It misfired on correct
+          // answers twice in one afternoon, once on a RECOMMENDED gas limit
+          // (untraceable by definition, the user has not set it yet) and once
+          // on a swap's output amount (no transaction-list endpoint returns
+          // token amounts, so it is read from logs or derived, never quoted).
+          // A warning that appears under correct answers reads as the product
+          // doubting itself, and it teaches people to ignore warnings, which
+          // costs exactly the one occasion it matters.
+          //
+          // NOTHING ABOUT THE DETECTION CHANGED. `grounding` and
+          // `unverifiedNumbers` are still computed and still written to
+          // messages.evidence below, still drive the `untraceable_figures` and
+          // `ungrounded` ticket signals, the basis badge and the gaps view. The
+          // team still sees every one of these; the end user no longer does.
+          //
+          // WHAT IT GIVES UP, PLAINLY: an ungrounded answer now looks
+          // identical to a verified one to the person reading it. That was the
+          // reason the caveat existed, and it is a real loss. Earning it back
+          // needs claim-level provenance (roadmap a-audit-*) so the warning
+          // attaches to the specific claim that lacks support, rather than a
+          // blanket line under an answer that is mostly sourced.
 
           // The action-update marker is a system-generated status note, not a
           // user turn - persist it as an assistant-side row so it never counts
