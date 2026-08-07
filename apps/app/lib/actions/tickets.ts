@@ -37,12 +37,12 @@ export async function getTickets(projectId: string): Promise<Ticket[]> {
   if (!project || (project as unknown as { id: string }).id !== projectId) return []
 
   const supabase = createServiceClient()
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   // BETA FINDINGS ARE NOT SUPPORT TICKETS. A tester saying "the fee display
   // is confusing" is not someone waiting for a reply, and mixing the two turns
   // the support inbox into a suggestions box: the queue stops meaning "people
   // who need help", which is the only thing it is useful for. Findings have
   // their own home on /dashboard/beta.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data } = await (supabase as any).from("tickets")
     .select("*")
     .eq("project_id", projectId)
