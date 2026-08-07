@@ -56,16 +56,14 @@ export function WidgetPreview({
     </div>
   )
 
-  const positionClass =
-    branding.position === "bottom-left"
-      ? "items-end justify-start"
-      : branding.position === "inline"
-      ? "items-center justify-center"
-      : "items-end justify-end"
-
+  // The frame HUGS the widget. It used to be a fixed 480px mock page with the
+  // widget anchored in a corner to demonstrate the position setting, which
+  // meant a huge empty field with a small widget floating in it: the emptiness
+  // was the feature, and it read as a layout bug. Position is a three-option
+  // select that needs no diorama; the preview's job is the widget itself.
   return (
     <div
-      className={`relative flex h-[480px] w-full overflow-hidden rounded-xl border border-border p-4 ${positionClass} ${isDark ? "bg-zinc-950" : "bg-zinc-100"}`}
+      className={`relative flex w-full items-center justify-center overflow-hidden rounded-xl border border-border p-5 ${isDark ? "bg-zinc-950" : "bg-zinc-100"}`}
       aria-label="Widget preview"
     >
       {/* Grid texture */}
