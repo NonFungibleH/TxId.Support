@@ -39,10 +39,12 @@ export const PLAN_SESSION_MESSAGE_LIMITS: Record<Plan, number> = {
   pro:        20,
   enterprise: 40,
   custom:     40,
-  // Unreachable in practice, and deliberately left at the strict value so it
-  // can't mislead: the chat route's isDemo check covers plan === "demo" and
-  // applies CHAT_LIMITS.demoSessionMessages before consulting this table.
-  demo:       8,
+  // REACHABLE since the cap split (2026-08-07): the route's hard cap now keys
+  // on the public demo key and publicDemo projects only, so plan "demo",
+  // hand-provisioned pilots and our own accounts, reads this table. 40 is
+  // invisible to a genuine tester and still bounds a runaway session; the
+  // daily spend guard is the real backstop behind it.
+  demo:       40,
 }
 
 export const PLAN_LABELS: Record<Plan, string> = {

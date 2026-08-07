@@ -139,7 +139,13 @@ export async function POST(request: Request) {
     // tester was, which is the difference between a finding a team can act on
     // and one they first have to reproduce.
     if (typeof pageContext?.url === "string" && /^https?:\/\//i.test(pageContext.url)) {
-      requestEvidence.pageUrl = pageContext.url.slice(0, 300)
+      // Origin + path ONLY. Dapp query strings carry referral codes and
+      // occasionally worse, and the record needs WHERE the tester was, not
+      // what parameters they arrived with.
+      try {
+        const u = new URL(pageContext.url)
+        requestEvidence.pageUrl = (u.origin + u.pathname).slice(0, 300)
+      } catch { /* unparseable input from an untrusted page: store nothing */ }
     }
     if (Number.isFinite(pageContext?.vw) && Number.isFinite(pageContext?.vh)) {
       requestEvidence.viewport = `${Math.round(pageContext!.vw!)}x${Math.round(pageContext!.vh!)}`
@@ -330,6 +336,12 @@ export async function POST(request: Request) {
     // in /admin. This means /check works without mirroring the demo key env var
     // from the marketing site onto this API deployment.
     const isDemo = isDemoKey(key) || plan === "demo" || rawConfig.publicDemo === true
+    // The HARD session cap is for anonymous, public surfaces only: the shared
+    // demo key and publicDemo projects, where any browser on the internet can
+    // burn spend. plan === "demo" is the opposite population, hand-provisioned
+    // pilots and our own accounts, and lumping them in here once capped a
+    // customer's beta testers at 8 messages, sized for drive-by traffic.
+    const isPublicDemo = isDemoKey(key) || rawConfig.publicDemo === true
 
     // Domain allowlist - reject before claiming a conversation slot or calling
     // the LLM, so a copied key from a non-registered origin can't drain quota.
@@ -413,7 +425,7 @@ export async function POST(request: Request) {
       // The public demo key stays on the tightest cap; everyone else scales
       // with their plan, so a hand-provisioned customer isn't cut off
       // mid-diagnosis by a limit sized for anonymous traffic.
-      const sessionCap = isDemo
+      const sessionCap = isPublicDemo
         ? CHAT_LIMITS.demoSessionMessages
         : (PLAN_SESSION_MESSAGE_LIMITS[plan] ?? CHAT_LIMITS.sessionMessages)
       const { count: msgCount } = await supabase
