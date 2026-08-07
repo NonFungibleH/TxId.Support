@@ -1609,6 +1609,12 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
     setSuggestions([])
     setIsStreaming(true)
 
+    // First engagement docks the beta spotlight: the embed no-ops this when
+    // no spotlight is up, so it is safe to send on every message.
+    if (typeof window !== "undefined" && window.parent !== window) {
+      window.parent.postMessage("txid-engaged", "*")
+    }
+
     try {
       const res = await fetch("/api/chat", {
         method: "POST",

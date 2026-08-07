@@ -146,6 +146,10 @@
   function setOpen(next) {
     open = next;
     if (open) {
+      // A normal open is never centred. If a previous spotlight's class
+      // survived any path we have not thought of, strip it rather than let
+      // the panel reopen mid-screen.
+      if (!spotlight) wrap.classList.remove("txid-center");
       wrap.classList.add("open");
       postHostContext();
       positionPanel();
@@ -524,12 +528,17 @@
     // because the loader never sees the project config.
     if (e.data === "txid-autoopen") { autoOpenOnce(); return; }
 
+    // The tester sent their first message: the introduction has done its job,
+    // so the panel docks to the corner on its own and the conversation
+    // continues there. No-op outside a spotlight.
+    if (e.data === "txid-engaged") { dockSpotlight(); return; }
+
     if (e.data === "txid-close") {
-      // Force-close regardless of open state to guard against any state drift
-      open = false;
-      wrap.classList.remove("open");
-      btn.innerHTML = CHAT_ICON;
-      btn.setAttribute("aria-label", "Open support chat");
+      // THROUGH setOpen, not a hand-rolled copy of it. This handler predated
+      // the spotlight and hid the panel without running its cleanup, so
+      // closing via the widget's own X left the centering class and the
+      // backdrop orphaned: every reopen was centred, no dock, no caption.
+      setOpen(false);
       return;
     }
     // Size the frame. The scale carries BOTH the text scale (so larger fonts
