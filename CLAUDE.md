@@ -655,6 +655,15 @@ It started as a toggle at the bottom of the Persona page and that was wrong: the
 
 Routing feedback through the normal message path is deliberate: the finding keeps the conversation that produced it, which is exactly what a standalone feedback form throws away.
 
+### Origin guard (`lib/origin-guard.ts`)
+One shared implementation, used by `/api/chat` and the four previously unguarded public endpoints (`widget/opener`, `widget/protocol-account`, `widget/feedback`, `tickets`). Publishable keys sit in plain HTML on the customer's page, so an unguarded key let anyone drive chain reads, poison the feedback signal, and spam a customer's Slack/Linear from any origin.
+
+**EMPTY MEANS OPEN, and that is deliberate**: a project with no domains set must keep working, or shipping the guard would have taken live widgets down. **Public surfaces bypass it by design** (the shared demo key and `publicDemo` projects exist to be embedded anywhere) and are defended by tighter rate limits plus Turnstile instead.
+
+**`allowedDomains` had no writer and no UI until 2026-08-07**, so it was empty for every project that has ever existed and the guard had never once refused a request. `lib/actions/domains.ts` + `AllowedDomainsForm` on `/dashboard/embed` fix that, and the card sits ABOVE the embed code because the domains decide whether the key you are copying is a key or a liability.
+
+**Turnstile is now MANDATORY on public surfaces** when `TURNSTILE_SECRET_KEY` is set. It previously ran only `if (turnstileToken && SECRET)`, so a scripted caller omitted the field and skipped the bot check entirely: the defence protected exactly the people who were not attacking.
+
 ### Widget disclaimer
 `branding.disclaimer`, `DEFAULT_DISCLAIMER` + `resolveDisclaimer()` in `lib/types/config.ts`. **Unset means the DEFAULT, not silence**; empty string is the explicit opt-out. Rendered under the composer in BOTH modes (one and not the other looks deliberate) and appended in `plainBody`, so all six escalation integrations carry it without touching an adapter. All three escalation paths pass it: widget, dashboard, Telegram.
 

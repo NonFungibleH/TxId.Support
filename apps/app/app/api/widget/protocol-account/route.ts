@@ -1,6 +1,7 @@
 import { createServiceClient } from "@/lib/supabase/server"
 import { rateLimit, clientIp } from "@/lib/rate-limit"
 import type { ProjectConfig } from "@/lib/types/config"
+import { originAllowed, originRefused } from "@/lib/origin-guard"
 import { resolveProtocolAccount } from "@/lib/protocol-account"
 import { isAptosAddress } from "@txid/aptos"
 
@@ -36,6 +37,12 @@ export async function OPTIONS() {
   return new Response(null, { status: 204, headers: CORS_HEADERS })
 }
 
+function isPublicSurface(key: string, config: { publicDemo?: boolean } | null | undefined): boolean {
+  const a = process.env.DEMO_WIDGET_KEY
+  const b = process.env.NEXT_PUBLIC_DEMO_WIDGET_KEY
+  return (!!a && key === a) || (!!b && key === b) || config?.publicDemo === true
+}
+
 export async function GET(request: Request) {
   // Unauthenticated by design (the publishable key is embedded in the page),
   // so this is an open proxy to chain reads we pay for and are rate limited on
@@ -63,6 +70,9 @@ export async function GET(request: Request) {
   if (!project) return json({ status: "off" })
 
   const config = (project as unknown as { config: ProjectConfig }).config
+  if (!originAllowed(request, config.allowedDomains, { publicSurface: isPublicSurface(key, config) })) {
+    return originRefused(CORS_HEADERS)
+  }
   const result = await resolveProtocolAccount(config, address)
 
   return new Response(JSON.stringify(result), {

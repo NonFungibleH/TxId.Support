@@ -1,6 +1,7 @@
 import { createServiceClient } from "@/lib/supabase/server"
 import { rateLimit, clientIp } from "@/lib/rate-limit"
 import type { ProjectConfig } from "@/lib/types/config"
+import { originAllowed } from "@/lib/origin-guard"
 import { buildSessionOpener } from "@/lib/session-opener"
 
 /**
@@ -28,6 +29,12 @@ function nothing() {
   return new Response(null, { status: 204, headers: CORS_HEADERS })
 }
 
+function isPublicSurface(key: string, config: { publicDemo?: boolean } | null | undefined): boolean {
+  const a = process.env.DEMO_WIDGET_KEY
+  const b = process.env.NEXT_PUBLIC_DEMO_WIDGET_KEY
+  return (!!a && key === a) || (!!b && key === b) || config?.publicDemo === true
+}
+
 export async function GET(request: Request) {
   // Unauthenticated by design (the publishable key is embedded in the page),
   // so this is an open proxy to chain reads we pay for and are rate limited on
@@ -53,6 +60,11 @@ export async function GET(request: Request) {
 
   const typed = project as unknown as { name: string; config: ProjectConfig }
   const config = typed.config ?? ({} as ProjectConfig)
+  // Chain reads on an unauthenticated endpoint: a lifted key could burn the
+  // project's RPC quota from anywhere, throttling the paying customer.
+  if (!originAllowed(request, config.allowedDomains, { publicSurface: isPublicSurface(key, config) })) {
+    return nothing()
+  }
   if (config.proactiveOpener?.enabled === false) return nothing()
 
   try {

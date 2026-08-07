@@ -2,6 +2,7 @@ import crypto from "crypto"
 import { createServiceClient } from "@/lib/supabase/server"
 import type { ProjectConfig } from "@/lib/types/config"
 import { resolveDisclaimer, activeStatusNotice } from "@/lib/types/config"
+import { originAllowed, originRefused } from "@/lib/origin-guard"
 import type { Database } from "@/lib/supabase/types"
 import { rateLimit, clientIp } from "@/lib/rate-limit"
 import { TICKET_LIMITS } from "@/lib/limits"
@@ -27,6 +28,12 @@ export async function OPTIONS() {
 
 function makeRef(): string {
   return "TKT-" + Math.random().toString(36).slice(2, 8).toUpperCase()
+}
+
+function isPublicSurface(key: string, config: { publicDemo?: boolean } | null | undefined): boolean {
+  const a = process.env.DEMO_WIDGET_KEY
+  const b = process.env.NEXT_PUBLIC_DEMO_WIDGET_KEY
+  return (!!a && key === a) || (!!b && key === b) || config?.publicDemo === true
 }
 
 export async function POST(request: Request) {
@@ -78,6 +85,12 @@ export async function POST(request: Request) {
 
     const typedProject = project as unknown as ProjectRow & { name: string; is_active: boolean }
     const config = typedProject.config as unknown as ProjectConfig
+
+    // Ticket creation writes rows and fans out to the customer's Slack, Linear
+    // and email. An unguarded key made that a spam channel into their tools.
+    if (!originAllowed(request, config.allowedDomains, { publicSurface: isPublicSurface(key, config) })) {
+      return originRefused(CORS_HEADERS)
+    }
 
     if (!typedProject.is_active) {
       return new Response(JSON.stringify({ error: "Project inactive" }), {

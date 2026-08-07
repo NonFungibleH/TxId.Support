@@ -299,6 +299,10 @@ export const DOCS: Doc[] = [
         "Inline: embeds the widget directly in your page layout rather than as a floating overlay",
       ]},
       { type: "callout", variant: "info", title: "Test in Preview first", text: "Use the Preview page to confirm branding looks correct on a dark background before going live. Branding changes take effect immediately for all live users the moment you save." },
+      { type: "h2", text: "Content Security Policy" },
+      { type: "p", text: "If your site sends a Content-Security-Policy header, the widget is a third-party script and an iframe, so it will be blocked silently: no error, no widget, nothing in the console for most users. This is common on hardened DeFi frontends. Add these sources before you go live rather than debugging it afterwards." },
+      { type: "code", lang: "text", text: "script-src  https://app.txid.support;\nframe-src   https://app.txid.support;\nconnect-src https://app.txid.support;\nimg-src     https://app.txid.support data:;" },
+      { type: "callout", variant: "warning", title: "Use the script tag, not a bare iframe", text: "Wallet extensions cannot show their approval popup for a cross-origin iframe, so the connect button silently does nothing if you embed the iframe directly. The script tag runs a small bridge on your page that makes wallet connection work. Use the inline iframe only for a docs-style assistant with no wallet features." },
     ],
   },
 

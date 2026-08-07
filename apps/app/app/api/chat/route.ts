@@ -179,6 +179,11 @@ export async function POST(request: Request) {
     // ── Layer 2: Turnstile bot validation (when token provided by client) ──────
     // Only enforced when TURNSTILE_SECRET_KEY is configured. Requests without a
     // token are allowed through so embedded protocol widgets aren't affected.
+    // MANDATORY on public surfaces once configured. It used to run only when a
+    // token happened to be present, so a scripted caller simply omitted the
+    // field and skipped the bot check entirely: the defence protected exactly
+    // the people who were not attacking. Enforced below, after the project is
+    // known; this block still validates any token that IS supplied.
     if (turnstileToken && process.env.TURNSTILE_SECRET_KEY) {
       const verifyRes = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
         method: "POST",
@@ -361,6 +366,18 @@ export async function POST(request: Request) {
     // abused or run up LLM/RPC cost. Real project keys never enter this mode, so
     // the normal scope guard is untouched for them.
     // EVM-only by design: the public /check inspect tool stays EVM (Aptos unsupported here).
+    // A public surface with Turnstile configured must PRESENT a token, not
+    // merely pass one if it feels like it.
+    if (isPublicDemo && process.env.TURNSTILE_SECRET_KEY && !turnstileToken && !previewVerified) {
+      log.warn("Public surface request without a bot check", {
+        event: "chat.turnstile_missing", key: key.slice(0, 12),
+      })
+      return new Response(JSON.stringify({ error: "Bot check required." }), {
+        status: 403,
+        headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
+      })
+    }
+
     inspectMode = isDemo && (!!demoProtocolId || /^0x[0-9a-fA-F]{40}$/.test(inspectAddress))
     if (inspectMode) {
       // Require a bot-check token when Turnstile is configured.

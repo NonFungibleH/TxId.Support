@@ -2,6 +2,7 @@ import { getProject } from "@/lib/actions/project"
 import { toggleActive } from "@/lib/actions/project"
 import { redirect } from "next/navigation"
 import { EmbedCodeDisplay } from "@/components/settings/EmbedCodeDisplay"
+import { AllowedDomainsForm } from "@/components/settings/AllowedDomainsForm"
 import { ApiAccessDisplay } from "@/components/settings/ApiAccessDisplay"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -65,6 +66,21 @@ export default async function EmbedPage() {
           </Button>
         </form>
       </div>
+
+      {/* ABOVE the embed code: the domains decide whether the key you are
+          about to copy is a key or a liability, so it is the first thing on
+          the page you visit at go-live. */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Allowed domains</CardTitle>
+          <CardDescription>Where this key may be used. Set this before you go live.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <AllowedDomainsForm
+            initial={((typedProject.config ?? {}) as { allowedDomains?: string[] }).allowedDomains ?? []}
+          />
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
