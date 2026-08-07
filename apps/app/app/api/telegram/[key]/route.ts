@@ -440,8 +440,8 @@ export async function POST(
   if (escalation) {
     if (integrationsConfigured) {
       const ref = `TG-${Date.now().toString(36).toUpperCase()}`
-      void dispatchEscalation(
-        supabase,
+      waitUntil(dispatchEscalation(
+      supabase,
         project.id,
         null,
         {
@@ -455,7 +455,7 @@ export async function POST(
         },
         integrations,
         botToken,
-      )
+      ))
       reply += `\n\nI've flagged this to the team (ref ${ref}). They can see this conversation and will follow up.`
     } else {
       reply += "\n\nThis needs someone from the team: please reach them through their official channels and share this conversation."

@@ -1,3 +1,4 @@
+import { waitUntil } from "@vercel/functions"
 import crypto from "crypto"
 import { createServiceClient } from "@/lib/supabase/server"
 import type { ProjectConfig } from "@/lib/types/config"
@@ -254,7 +255,14 @@ export async function POST(request: Request) {
     }
 
     // Fan out to the team's integrations (Slack/Discord/Telegram/Linear/GitHub/Jira).
-    void dispatchEscalation(
+    //
+    // waitUntil, NOT a bare `void`. On Vercel the function can be frozen the
+    // instant the response is sent, so fire-and-forget work started just before
+    // a return may never run. For a support product that is the worst possible
+    // shape of failure: the ticket is in the database and looks fine, and
+    // nobody was ever told about it. Same reason the chat route persists its
+    // messages this way.
+    waitUntil(dispatchEscalation(
       supabase,
       typedProject.id,
       ticketDbId,
@@ -270,7 +278,7 @@ export async function POST(request: Request) {
       },
       config.integrations,
       config.telegramBotToken ?? undefined,
-    )
+    ))
 
     return new Response(JSON.stringify({ ref }), {
       headers: { ...CORS_HEADERS, "Content-Type": "application/json" },

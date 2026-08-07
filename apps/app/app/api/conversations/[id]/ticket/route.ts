@@ -1,3 +1,4 @@
+import { waitUntil } from "@vercel/functions"
 import { NextRequest } from "next/server"
 import { auth } from "@clerk/nextjs/server"
 import { createServiceClient } from "@/lib/supabase/server"
@@ -86,8 +87,8 @@ export async function POST(
 
   // Dashboard-raised tickets fan out to integrations too (not just widget ones).
   const config = typedProject.config as unknown as ProjectConfig
-  void dispatchEscalation(
-    supabase,
+  waitUntil(dispatchEscalation(
+      supabase,
     typedProject.id,
     ticket.id,
     {
@@ -101,7 +102,7 @@ export async function POST(
     },
     config.integrations,
     config.telegramBotToken ?? undefined,
-  )
+  ))
 
   return Response.json({ ref: ticket.ref })
 }
