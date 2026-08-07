@@ -111,9 +111,42 @@ function EvidenceBadge({ evidence }: { evidence: NonNullable<ConversationWithMes
   const grounding = (evidence as { grounding?: "verified" | "documented" | "ungrounded" }).grounding
   const unverified = (evidence as { unverifiedNumbers?: string[] }).unverifiedNumbers ?? []
 
+  // FIXED positioning, measured from the trigger. Absolute placement kept it
+  // inside the page's scroll flow, so on the last message of a transcript the
+  // panel ran past the fold and the record was unreadable exactly when it
+  // mattered. Fixed takes it out of the flow entirely; the anchor maths flips
+  // it above the badge when there is no room below, and clamps it on screen.
+  const btnRef = useRef<HTMLButtonElement>(null)
+  const [pos, setPos] = useState<{ top: number; left: number } | null>(null)
+
+  const place = () => {
+    const el = btnRef.current
+    if (!el) return
+    const r = el.getBoundingClientRect()
+    const W = 352, H = Math.min(window.innerHeight * 0.7, 440), gap = 8
+    const below = window.innerHeight - r.bottom
+    const top = below >= H + gap ? r.bottom + gap : Math.max(gap, r.top - H - gap)
+    const left = Math.min(Math.max(gap, r.right - W), window.innerWidth - W - gap)
+    setPos({ top, left })
+  }
+
+  useEffect(() => {
+    if (!open) return
+    place()
+    const onChange = () => setOpen(false) // scrolling away should not drag a fixed panel along
+    window.addEventListener("scroll", onChange, true)
+    window.addEventListener("resize", onChange)
+    return () => {
+      window.removeEventListener("scroll", onChange, true)
+      window.removeEventListener("resize", onChange)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open])
+
   return (
     <div className="mt-1 shrink-0">
       <button
+        ref={btnRef}
         onClick={() => setOpen(o => !o)}
         title="What this answer rested on"
         className="flex h-5 w-5 items-center justify-center rounded-full border border-border text-muted-foreground transition-colors hover:border-primary hover:text-primary"
@@ -122,8 +155,14 @@ function EvidenceBadge({ evidence }: { evidence: NonNullable<ConversationWithMes
           className={`h-3 w-3 ${grounding === "ungrounded" ? "text-amber-600" : ""}`}
         />
       </button>
-      {open && (
-        <div className="absolute right-4 z-20 mt-1 max-h-[70vh] w-[22rem] space-y-2.5 overflow-y-auto rounded-xl border border-border bg-background p-3 shadow-lg">
+      {open && pos && (
+        <>
+          {/* Click-away, and it keeps the panel dismissible on touch. */}
+          <div className="fixed inset-0 z-30" onClick={() => setOpen(false)} />
+        <div
+          className="fixed z-40 max-h-[70vh] w-[22rem] space-y-2.5 overflow-y-auto rounded-xl border border-border bg-background p-3 shadow-lg"
+          style={{ top: pos.top, left: pos.left }}
+        >
           <p className="text-[11px] font-semibold text-foreground">Case record</p>
 
           {chain && (
@@ -271,6 +310,7 @@ function EvidenceBadge({ evidence }: { evidence: NonNullable<ConversationWithMes
             No IP address is stored. Country is resolved at the edge and the address discarded.
           </p>
         </div>
+        </>
       )}
     </div>
   )
