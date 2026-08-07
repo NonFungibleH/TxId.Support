@@ -197,8 +197,13 @@ export function Sidebar({ mode = "support", plan = "free", isAdmin = false, beta
           appearance={{
             elements: {
               rootBox: "w-full",
+              // text-foreground on BOTH: Clerk ships its own light-theme text
+              // colour, which rendered the company name dark-on-dark the
+              // moment night mode was on. Inheriting our token makes it track
+              // the theme like everything else in the sidebar.
               organizationSwitcherTrigger:
-                "w-full justify-between rounded-lg border border-border px-3 py-2 text-sm hover:bg-accent/50",
+                "w-full justify-between rounded-lg border border-border px-3 py-2 text-sm text-foreground hover:bg-accent/50",
+              organizationPreviewMainIdentifier: "text-foreground",
             },
           }}
         />
