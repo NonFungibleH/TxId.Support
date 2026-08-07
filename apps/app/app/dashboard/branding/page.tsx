@@ -18,13 +18,14 @@ export default async function BrandingPage() {
       <div>
         <h1 className="text-2xl font-bold">Branding</h1>
         <p className="text-muted-foreground mt-1">
-          Customise how your widget looks and speaks.
+          Customise how your widget looks. How it speaks lives under Persona.
         </p>
       </div>
       <BrandingPageClient
         projectId={typedProject.id}
         projectName={typedProject.name}
         initial={config.branding}
+        section="design"
       />
     </div>
   )

@@ -238,6 +238,16 @@ export const ROADMAP: RoadmapItem[] = [
     what: "The highest-value opener is 'your transaction has not confirmed', and it is the one we cannot produce: history endpoints return only MINED transactions, so an unconfirmed one is invisible without a hash or mempool access. Needs a per-chain pending source. Until then the opener stays silent about it rather than guessing.",
   },
   {
+    id: "k-email-status",
+    title: "Email notifications: say whether they actually work",
+    area: "foundation",
+    phase: 2,
+    complexity: "Low",
+    effort: "~2 days",
+    what: "Escalation routing lets a customer save a notification address whether or not our mail provider is configured, so the field can be filled in and silently do nothing. The card used to admit this by naming RESEND_API_KEY in the copy, which pushed our infrastructure problem onto the customer and read as a broken feature. That line is gone. What replaces it: check the provider server-side and either show the address as live, or disable the field with an honest 'not available yet, use Slack, Discord or a webhook'. Same rule as the sub accounts card, never a control that cannot do anything.",
+    status: "soon",
+  },
+  {
     id: "k-opener-measure",
     title: "Measure whether openers land",
     area: "knowledge",

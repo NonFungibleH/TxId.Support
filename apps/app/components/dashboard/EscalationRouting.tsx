@@ -93,9 +93,12 @@ export function EscalationRouting({ projectId, notificationEmail, webhookUrl, in
           <div className="rounded-lg border border-border p-4 space-y-3">
             <div>
               <p className="text-sm font-semibold">Email notifications</p>
+              {/* DO NOT name the env var here. Whether OUR mail provider is
+                  configured is our problem, not the customer's, and a variable
+                  they cannot set reads as a broken feature. Roadmap
+                  `k-email-status` covers surfacing the real state. */}
               <p className="text-xs text-muted-foreground mt-0.5">
-                Get notified when a new ticket is raised. Requires{" "}
-                <code className="text-xs bg-muted px-1 rounded">RESEND_API_KEY</code> to be set.
+                Get notified when a new ticket is raised.
               </p>
             </div>
             <div className="flex gap-2">

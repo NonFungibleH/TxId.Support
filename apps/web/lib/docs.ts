@@ -269,7 +269,7 @@ export const DOCS: Doc[] = [
     category: "configuration",
     order: 0,
     content: [
-      { type: "p", text: "The Branding page controls everything visible in the widget: colours, font, logo, and position. Changes are reflected immediately in the live preview on the right side of the page." },
+      { type: "p", text: "The Branding page controls everything visible in the widget: colours, font, logo, and position. Changes are reflected immediately in the live preview on the right side of the page. How the assistant SPEAKS is a separate page: see Persona." },
       { type: "h2", text: "Colours" },
       { type: "p", text: "The widget uses four colour values that control every visible element:" },
       { type: "grid", items: [
@@ -303,11 +303,37 @@ export const DOCS: Doc[] = [
   },
 
   {
+    slug: "persona",
+    title: "Persona",
+    description: "Define how the assistant speaks and what it offers before anyone types",
+    category: "configuration",
+    order: 1,
+    content: [
+      { type: "p", text: "Branding controls how the widget looks. Persona controls how it sounds. The two are separate pages because they are separate jobs, and the Persona page keeps the same live preview so you can see the agent name, avatar and opening message as you write them." },
+      { type: "callout", variant: "info", title: "Wording only, never the facts", text: "Everything on this page shapes how an answer is phrased. None of it changes what the assistant is allowed to claim, where it gets its data, or the rules it will not break. A persona cannot talk the assistant into giving financial advice or into stating something it did not read." },
+      { type: "h2", text: "Tone" },
+      { type: "p", text: "Pick a starting voice. This sets the default register: how long answers run, how formal they are, how much hand-holding they include." },
+      { type: "h2", text: "Custom tone of voice" },
+      { type: "p", text: "Optional, and it layers on top of the tone above. Describe how your assistant should talk in your own words: personality, warmth, phrases to use or avoid, British or American spelling, emoji or none. Be specific. \"Warm and a little playful, British spelling, never corporate, no exclamation marks\" produces a far more consistent voice than \"friendly\"." },
+      { type: "h2", text: "Agent name and avatar" },
+      { type: "p", text: "The name shown as the widget's title, and used for the avatar initials when no image is set. Leave it blank to use your project name. The avatar takes any square image URL." },
+      { type: "h2", text: "Opening message" },
+      { type: "p", text: "The first thing a user sees. Leave it blank for the default greeting. Note that when a user connects a wallet, the assistant may lead with what it can already see rather than this greeting: if their last transaction failed, it says so instead of waiting to be asked." },
+      { type: "h2", text: "Disclaimer" },
+      { type: "p", text: "Shown under the chat box and attached to every escalation, so it reaches whoever reads the ticket later. Unlike every other field here, blank does not mean \"use the default\": clearing it removes the disclaimer entirely. Leave it as it is unless your own legal wording says otherwise." },
+      { type: "callout", variant: "warning", title: "Clearing the disclaimer removes it", text: "The assistant still refuses financial, tax and legal advice, which is not switchable by any protocol, but nothing on screen will say so." },
+      { type: "h2", text: "Suggested questions" },
+      { type: "p", text: "Starter questions shown as tappable chips in the chat. Set your own and they replace the assistant's automatic suggestions, so users are only ever offered questions you already know it can answer. This is the cheapest way to steer people towards what you have documented and away from what you have not." },
+      { type: "callout", variant: "tip", title: "Write them as a user would", text: "\"Why did my transaction fail?\" beats \"Transaction troubleshooting\". The chips become the user's first message, so they should read like something a person would actually type." },
+    ],
+  },
+
+  {
     slug: "smart-contracts",
     title: "Smart Contracts",
     description: "Add your contracts so the AI can look up live on-chain state",
     category: "configuration",
-    order: 1,
+    order: 2,
     content: [
       { type: "p", text: "Smart contracts are what make TxID different from a generic chatbot. When you add your contracts, the AI can read live on-chain data, answering questions like 'is my token locked?', 'when does my vesting cliff end?', and 'what's my pending staking reward?' with real blockchain data rather than approximations." },
       { type: "h2", text: "What the AI can do with contracts" },
@@ -343,7 +369,7 @@ export const DOCS: Doc[] = [
     title: "Sub Accounts",
     description: "For protocols that hold user funds in a per-user account rather than the wallet",
     category: "configuration",
-    order: 2,
+    order: 3,
     content: [
       { type: "p", text: "Some protocols do not hold a user's funds in their wallet. A perps or margin venue gives each user a sub account, an on-chain object owned by their wallet, and that is where collateral and open positions actually live. Those users have two addresses, and the two are not interchangeable." },
       { type: "p", text: "This matters more than it sounds. A trader who connects their wallet and then sees a second address they do not recognise usually assumes something has gone wrong, and support gets \"why is a different address showing as connected?\". Turning sub accounts on removes that question instead of answering it." },
@@ -381,7 +407,7 @@ export const DOCS: Doc[] = [
     title: "Docs & Knowledge Base",
     description: "Index your documentation so the AI can search and reference it",
     category: "configuration",
-    order: 3,
+    order: 4,
     content: [
       { type: "p", text: "The Knowledge Base is a list of URLs that TxID indexes and searches when answering questions. When a user asks something the AI can't answer from on-chain data alone, such as how your governance works, what your tokenomics are, or how to bridge, it searches your indexed pages to find the answer." },
       { type: "h2", text: "How indexing works" },
@@ -423,7 +449,7 @@ export const DOCS: Doc[] = [
     title: "Chains",
     description: "Configure which blockchains the AI scans for wallet activity",
     category: "configuration",
-    order: 4,
+    order: 5,
     content: [
       { type: "p", text: "Chains control which blockchains the AI scans when a user connects their wallet. Enable only the chains your protocol is deployed on. The AI will scan those networks when looking up wallet history and querying contract state." },
       { type: "h2", text: "Supported chains" },

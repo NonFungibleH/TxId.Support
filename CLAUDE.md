@@ -350,7 +350,8 @@ Never read `projects` without verifying org membership first.
 
 ### Dashboard routes
 - `/dashboard/contracts` — watched contracts, ABI/IDL upload, error glossary
-- `/dashboard/branding` — widget appearance, persona, language, positioning
+- `/dashboard/branding` — widget APPEARANCE only: colours, font, logo, positioning, language
+- `/dashboard/persona` — how the assistant SPEAKS: tone, custom tone of voice, agent name/avatar, opening message, disclaimer, plus suggested questions (moved off Content)
 - `/dashboard/conversations` — conversation history (includes Telegram sessions, prefixed `tg-{chatId}`)
 - `/dashboard/docs` — documentation ingest for RAG
 - `/dashboard/telegram` — Telegram bot setup (connect/disconnect via BotFather token)
@@ -371,7 +372,7 @@ Never read `projects` without verifying org membership first.
 ## Docs (two separate systems — don't conflate)
 
 1. **`apps/docs`** — standalone docs site. ⚠️ **NOT DEPLOYED**: `docs.txid.support` does not resolve, so nothing here reaches a user. Verify before writing docs into it. Hardcoded JSX pages: quickstart, dashboard, embed, contracts, api, features. Sidebar: `apps/docs/components/Sidebar.tsx`.
-2. **`apps/web/lib/docs.ts`** — data-driven help centre at txid.support/docs (`apps/web/app/docs/[slug]/page.tsx`). **This is the live one.** 16 docs: features (the full capability table), introduction, quick-start, branding, smart-contracts, sub-accounts, knowledge-base, chains, content-blocks, preview, embed, actions, integrations, conversations, tickets, analytics. Linked from the dashboard footer (`apps/app/app/dashboard/layout.tsx`), so a customer can reach it without leaving the product. Block types include `features`, a three-column table whose `status` field (`available`/`optional`/`coming`/`paused`) is REQUIRED, so a capability cannot be listed without stating whether it exists.
+2. **`apps/web/lib/docs.ts`** — data-driven help centre at txid.support/docs (`apps/web/app/docs/[slug]/page.tsx`). **This is the live one.** 17 docs: features (the full capability table), introduction, quick-start, branding, persona, smart-contracts, sub-accounts, knowledge-base, chains, content-blocks, preview, embed, actions, integrations, conversations, tickets, analytics. Linked from the dashboard footer (`apps/app/app/dashboard/layout.tsx`), so a customer can reach it without leaving the product. Block types include `features`, a three-column table whose `status` field (`available`/`optional`/`coming`/`paused`) is REQUIRED, so a capability cannot be listed without stating whether it exists.
 
 When a product fact changes (chains, plans, limits), update BOTH systems plus the marketing FAQ (`apps/web/components/sections/FAQ.tsx`).
 
@@ -615,6 +616,13 @@ Every named thing an answer rested on, as a typed list (`EvidenceSource` in `pac
 
 ### Retrieval evidence
 `messages.evidence.retrieval` carries `matched`, `topScore`, `dropped`, `contextChars`, `sources`. WHY: an answer weakened by docs that do not cover a topic and one weakened by docs that cover it badly are identical in a transcript and have opposite fixes. `dropped` matters because a chunk cut by the 24k char budget looks exactly like one that was never retrieved. `contextChars` is prompt spend on every message, so the 24k budget and 0.35 threshold are now tunable against data rather than guesses. Surfaced as "Documentation coverage" in `GapsPanel`. Doc gaps are deliberately NOT counted in `withProblems`: a user can be well served from chain data while the docs covered nothing.
+
+### Branding vs Persona (one form, two routes)
+`BrandingForm` takes `section: "design" | "persona"` and renders only that half. **Both halves stay in ONE component deliberately**: they edit the same `branding` object through one debounced `updateConfig(projectId, { branding })`, which writes the WHOLE object. Two components each holding their own copy would mean whichever saved last silently reverted the other's fields. Only one section is mounted at a time because they are separate routes.
+
+`BrandingPageClient` is shared by both and keeps the live `WidgetPreview`, which already reacts to agent name, avatar and opening message, so the persona fields are visible while being edited. Its `children` render under the form in the left column, which is how `/dashboard/persona` adds the suggested-questions card without losing the sticky preview.
+
+Suggested questions moved off `/dashboard/content`: they are what the assistant OFFERS to say, which belongs with how it speaks, not with the widget's content tab.
 
 ### Widget disclaimer
 `branding.disclaimer`, `DEFAULT_DISCLAIMER` + `resolveDisclaimer()` in `lib/types/config.ts`. **Unset means the DEFAULT, not silence**; empty string is the explicit opt-out. Rendered under the composer in BOTH modes (one and not the other looks deliberate) and appended in `plainBody`, so all six escalation integrations carry it without touching an adapter. All three escalation paths pass it: widget, dashboard, Telegram.

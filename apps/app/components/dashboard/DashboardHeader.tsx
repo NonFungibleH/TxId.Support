@@ -7,6 +7,7 @@ import { AccountMenu } from "@/components/dashboard/AccountMenu"
 const PAGE_LABELS: Record<string, string> = {
   "/dashboard":              "Overview",
   "/dashboard/branding":     "Branding",
+  "/dashboard/persona":      "Persona",
   "/dashboard/contracts":    "Smart Contracts",
   "/dashboard/docs":         "Docs & KB",
   "/dashboard/chains":       "Chains",

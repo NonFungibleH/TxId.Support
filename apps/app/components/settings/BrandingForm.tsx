@@ -22,13 +22,23 @@ const PRESETS: Array<{ name: string } & ColorPreset> = [
   { name: "Violet",  primaryColor: "#a78bfa", secondaryColor: "#7c3aed", backgroundColor: "#0d0a1a", textColor: "#f5f3ff" },
 ]
 
+/**
+ * Which half of the form to render. Both halves live in ONE component on
+ * purpose: they edit the same `branding` object and share one debounced save,
+ * so splitting them into two components would mean two states each writing the
+ * whole object back, and whichever saved last would silently revert the other.
+ * Only one section is mounted at a time, since they are separate routes.
+ */
+export type BrandingSection = "design" | "persona"
+
 interface BrandingFormProps {
   projectId: string
   initial: BrandingConfig
+  section: BrandingSection
   onBrandingChange?: (branding: BrandingConfig) => void
 }
 
-export function BrandingForm({ projectId, initial, onBrandingChange }: BrandingFormProps) {
+export function BrandingForm({ projectId, initial, section, onBrandingChange }: BrandingFormProps) {
   const [branding, setBranding] = useState<BrandingConfig>(initial)
   const [isPending, startTransition] = useTransition()
   const [fetchingColors, setFetchingColors] = useState(false)
@@ -65,9 +75,9 @@ export function BrandingForm({ projectId, initial, onBrandingChange }: BrandingF
     startTransition(async () => {
       try {
         await updateConfig(projectId, { branding })
-        toast.success("Branding saved")
+        toast.success(section === "persona" ? "Persona saved" : "Branding saved")
       } catch {
-        toast.error("Failed to save branding")
+        toast.error("Failed to save")
       }
     })
   }
@@ -106,6 +116,7 @@ export function BrandingForm({ projectId, initial, onBrandingChange }: BrandingF
     <div className="space-y-8">
 
       {/* ── Design ─────────────────────────────────────── */}
+      {section === "design" && (
       <div className="space-y-5">
         <div className="border-b border-border pb-2">
           <h2 className="text-base font-semibold">Design</h2>
@@ -264,8 +275,10 @@ export function BrandingForm({ projectId, initial, onBrandingChange }: BrandingF
           </div>
         </div>
       </div>
+      )}
 
       {/* ── Persona ─────────────────────────────────────── */}
+      {section === "persona" && (
       <div className="space-y-5">
         <div className="border-b border-border pb-2">
           <h2 className="text-base font-semibold">Persona</h2>
@@ -395,10 +408,11 @@ export function BrandingForm({ projectId, initial, onBrandingChange }: BrandingF
           )}
         </div>
       </div>
+      )}
 
       <div className="flex items-center gap-3 pt-2">
         <Button onClick={save} disabled={isPending}>
-          {isPending ? "Saving…" : "Save branding"}
+          {isPending ? "Saving…" : section === "persona" ? "Save persona" : "Save branding"}
         </Button>
         <p className="text-xs text-muted-foreground">Changes save automatically</p>
       </div>
