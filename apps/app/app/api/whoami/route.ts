@@ -27,7 +27,7 @@ export async function GET() {
     })
   }
 
-  const { userId, orgId, orgSlug, orgRole } = await auth()
+  const { userId, orgId, orgSlug, orgRole, sessionClaims } = await auth()
   const orgKey = orgId ?? userId
   const supabase = createServiceClient()
 
@@ -48,6 +48,15 @@ export async function GET() {
       {
         session: { userId, orgId: orgId ?? null, orgSlug: orgSlug ?? null, orgRole: orgRole ?? null },
         resolvedWith: orgId ? "organisation" : "personal (orgId was null)",
+        // THE RAW TOKEN CLAIMS, because two rounds of hypothesising did not
+        // settle why orgId is absent. If the org data is present here under a
+        // claim the SDK is not reading (e.g. an "o" object rather than
+        // top-level org_id), the fix is an SDK upgrade, not a Clerk migration.
+        tokenClaimKeys: Object.keys((sessionClaims ?? {}) as Record<string, unknown>),
+        orgShapedClaims: Object.fromEntries(
+          Object.entries((sessionClaims ?? {}) as Record<string, unknown>)
+            .filter(([k]) => k === "o" || k.startsWith("org"))
+        ),
         orgKey,
         organisationRow: orgRow,
         projects: (projects ?? []) as unknown as Array<{ id: string; name: string }>,
