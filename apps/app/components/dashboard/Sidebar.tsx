@@ -8,6 +8,7 @@ import {
   Sun, Moon, Zap, Send, Wallet, ShieldCheck, Users, FlaskConical,
 } from "lucide-react"
 import { useTheme } from "next-themes"
+import { OrganizationSwitcher } from "@clerk/nextjs"
 import { cn } from "@/lib/utils"
 
 type NavItem = { href: string; label: string; icon: React.ElementType; beta?: boolean }
@@ -178,6 +179,30 @@ export function Sidebar({ mode = "support", plan = "free", isAdmin = false, beta
       </nav>
 
       <div className="border-t border-border px-3 py-3 space-y-2">
+        {/* WHICH COMPANY AM I IN.
+            Everything server-side was already org-aware (getProject keys on
+            Clerk's orgId, invites go through the org APIs, roles live in
+            org_members) but nothing in the interface could create or switch an
+            organisation, so the whole model was unreachable. This is the door.
+
+            A new organisation has no project, so /dashboard sends it to
+            /onboarding, which is why afterCreateOrganizationUrl points there:
+            create the company, then create its project. Selecting an existing
+            one goes to /dashboard, which resolves that org's own project. */}
+        <OrganizationSwitcher
+          afterCreateOrganizationUrl="/onboarding"
+          afterSelectOrganizationUrl="/dashboard"
+          afterSelectPersonalUrl="/dashboard"
+          afterLeaveOrganizationUrl="/dashboard"
+          appearance={{
+            elements: {
+              rootBox: "w-full",
+              organizationSwitcherTrigger:
+                "w-full justify-between rounded-lg border border-border px-3 py-2 text-sm hover:bg-accent/50",
+            },
+          }}
+        />
+
         {/* Plan + mode badge */}
         <div className="rounded-lg border border-border px-3 py-2 space-y-1.5">
           <div className="flex items-center justify-between">

@@ -546,6 +546,15 @@ Admin / Developer / Support / Auditor, expressed as CAPABILITIES (`settings`, `k
 ### Ticket inbox
 `ticket_events` (migration `20260804000005`) is append-only on UPDATE and **deliberately NOT on DELETE**: both FKs cascade, so blocking delete would break ticket deletion and `admin_erase_project()`. Same trap as `case_access_log`, different disguise. Records status changes, assignment, notes, and replies sent OUTSIDE TxID (email/CRM) with a channel and URL, because the trail otherwise stops at "escalated". TxID does not send the reply; inbound email capture is not built.
 
+### Multiple companies under one login
+**Clerk Organizations, exposed at last.** Every server path was already org-aware: `getProject()` keys on `orgId ?? userId`, `/dashboard/team` invites through the Clerk org APIs, roles live in `org_members`. What was missing was any way to CREATE or SWITCH an organisation, so the whole multi-tenant model was unreachable from the interface.
+
+`<OrganizationSwitcher />` now sits at the bottom of the sidebar. `afterCreateOrganizationUrl="/onboarding"` because a new org has no project and `/dashboard` bounces it there anyway; making that explicit means the flow reads as create the company, then create its project.
+
+**One org, one project, one plan.** The plan lives in `projects.config`, so each company is billed and limited independently. Inviting people into a company is the existing Team page, which always acts on the ACTIVE organisation.
+
+**Requires Organizations to be enabled in the Clerk instance** (Configure > Organizations). Without it the switcher renders nothing, which looks like a broken component rather than a missing setting.
+
 ### Team access
 `/dashboard/team` invites people through Clerk as `org:admin` or `org:member` (`lib/actions/team.ts`). **Clerk membership is not the permission model**: the TxID role in `org_members` is what every server action enforces, and it is what the team page displays. See "Roles (four, enforced server-side)" above.
 
