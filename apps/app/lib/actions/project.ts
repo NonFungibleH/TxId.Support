@@ -13,24 +13,39 @@ import type { Database, Json } from "@/lib/supabase/types"
 type OrgRow = Database["public"]["Tables"]["organisations"]["Row"]
 
 export async function getProject() {
-  const { orgId, userId } = await auth()
+  const { orgId, userId, orgSlug } = await auth()
   if (!userId) throw new Error("Unauthenticated")
   const orgKey = orgId ?? userId
 
   const supabase = createServiceClient()
 
-  const upsertOrgResult = await supabase
+  // SELECT BEFORE INSERT, and NEVER write `name` on an existing row.
+  // This was an upsert of { clerk_org_id, name: "My Protocol" }, which runs on
+  // every page load, so onConflict rewrote the name back to "My Protocol"
+  // every time. No organisation could ever be renamed: any change survived
+  // until the next request. That is why every account header read "My
+  // Protocol" regardless of what the company was called.
+  const existing = await supabase
     .from("organisations")
-    .upsert(
-      { clerk_org_id: orgKey, name: "My Protocol" },
-      { onConflict: "clerk_org_id" }
-    )
     .select()
-    .single()
+    .eq("clerk_org_id", orgKey)
+    .maybeSingle()
 
-  const org = upsertOrgResult.data as unknown as OrgRow | null
-  const orgError = upsertOrgResult.error
-  if (orgError || !org) throw new Error(`Org upsert failed: ${orgError?.message}`)
+  let org = existing.data as unknown as OrgRow | null
+
+  if (!org) {
+    // Only on FIRST sight. Clerk's slug is a far better starting name than a
+    // placeholder, and it is already in the session so it costs no API call.
+    const created = await supabase
+      .from("organisations")
+      .insert({ clerk_org_id: orgKey, name: orgSlug ?? "My Protocol" })
+      .select()
+      .single()
+    if (created.error || !created.data) {
+      throw new Error(`Org create failed: ${created.error?.message}`)
+    }
+    org = created.data as unknown as OrgRow
+  }
 
   const { data: project } = await supabase
     .from("projects")
