@@ -2522,31 +2522,6 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
               </div>
             )}
 
-            {/* Beta: leave feedback.
-                A BUTTON, NOT INTENT DETECTION. "The fee display is confusing"
-                is not a question, and a support assistant asked to guess will
-                helpfully explain the fee display, which is exactly wrong.
-                Pressing this sends an unambiguous opener, so the model never
-                has to classify anything, and the beta prompt block tells it to
-                capture rather than solve. Routing through the normal message
-                path is deliberate: the finding keeps the conversation that
-                produced it, which is what a bare feedback form throws away. */}
-            {config?.beta?.feedback && !isStreaming && !escalation && (
-              <div className="shrink-0 px-3 pt-2.5">
-                <button
-                  onClick={() => sendMessage(FEEDBACK_OPENER)}
-                  className="text-[11px] rounded-full px-3 py-1.5 border transition-opacity hover:opacity-100 active:scale-95"
-                  style={{
-                    borderColor: `${b.primaryColor}55`,
-                    color: adaptiveText,
-                    background: `${b.primaryColor}14`,
-                    opacity: 0.9,
-                  }}
-                >
-                  Leave feedback
-                </button>
-              </div>
-            )}
 
             {/* Quick-reply chips - appear after each AI response, cleared on send */}
             {visibleChips.length > 0 && !isStreaming && !escalation && (
@@ -2569,16 +2544,37 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
               </div>
             )}
 
-            {/* Speak to a person - always available once conversation has started */}
-            {!escalation && messages.length > 1 && !isStreaming && (
-              <div className="shrink-0 flex justify-center pb-1">
-                <button
-                  onClick={() => setEscalation({ summary: "User requested to speak with a person.", reason: "user_requested" })}
-                  className="text-[10px] transition-opacity hover:opacity-70"
-                  style={{ color: adaptiveText, opacity: 0.45 }}
-                >
-                  Speak to a person →
-                </button>
+            {/* Persistent actions row. Leave feedback USED to render as a pill
+                in the chip stack, where it read as a question you could ask
+                rather than a thing you could do. It lives here now, beside the
+                other always-available action, and is styled as a FILLED button
+                with an icon so it cannot be mistaken for a chip. Still a
+                button, never intent detection: it sends the fixed opener so
+                the model never has to guess that a message was feedback, and
+                the finding keeps its conversation. */}
+            {!escalation && !isStreaming && (config?.beta?.feedback || messages.length > 1) && (
+              <div className="shrink-0 flex items-center justify-center gap-3 pb-1">
+                {config?.beta?.feedback && (
+                  <button
+                    onClick={() => sendMessage(FEEDBACK_OPENER)}
+                    className="flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[11px] font-semibold transition-opacity hover:opacity-90 active:scale-95"
+                    style={{ backgroundColor: b.primaryColor, color: onPrimary }}
+                  >
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M12 20h9" /><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z" />
+                    </svg>
+                    Leave feedback
+                  </button>
+                )}
+                {messages.length > 1 && (
+                  <button
+                    onClick={() => setEscalation({ summary: "User requested to speak with a person.", reason: "user_requested" })}
+                    className="text-[10px] transition-opacity hover:opacity-70"
+                    style={{ color: adaptiveText, opacity: 0.45 }}
+                  >
+                    Speak to a person →
+                  </button>
+                )}
               </div>
             )}
 
