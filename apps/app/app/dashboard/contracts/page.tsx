@@ -107,24 +107,12 @@ export default async function ContractsPage() {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardContent>
-          <div className="space-y-3">
-            <p className="text-sm font-medium">Error glossary</p>
-            <p className="text-sm text-muted-foreground">
-              When a user&apos;s transaction fails, the AI decodes the failure reason automatically. Add error
-              explanations per contract so the AI uses your exact wording, not a generic guess. Set these up on each
-              contract in the Watched contracts section above.
-            </p>
-            <ul className="text-sm text-muted-foreground space-y-1.5 list-disc list-inside">
-              <li>Matched by error name, e.g. <code className="font-mono text-xs">SlippageTooHigh</code> on EVM chains, or a Move abort like <code className="font-mono text-xs">EINVALID_TP_SL_ORDER_ID</code> on Aptos</li>
-              <li>Your explanation replaces any AI-generated guess</li>
-              <li>Works across chains: Solidity custom errors, revert strings and panic codes, and Aptos Move abort codes</li>
-              <li>Known protocols such as Decibel are already covered automatically, no setup needed</li>
-            </ul>
-          </div>
-        </CardContent>
-      </Card>
+      {/* NO STANDALONE "Error glossary" CARD. There used to be one here: four
+          bullets explaining the feature, no control, ending in "set these up on
+          each contract in the section above". ErrorGlossaryManager already
+          lists each contract's unlabelled ABI errors and asks what users should
+          see, in the row where the work is done. An explanation that points
+          somewhere else reads as a step the reader has missed. */}
     </div>
   )
 }
