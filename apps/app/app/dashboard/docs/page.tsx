@@ -56,14 +56,9 @@ export default async function DocsPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          <DocsSyncForm
-            enabled={config.docsSync?.enabled === true}
-            frequency={config.docsSync?.frequency ?? "daily"}
-            hasDocsUrl={!!config.docsUrl || sources.length > 0}
-            pages={freshness.pages}
-            lastChecked={freshness.lastChecked}
-            lastChanged={freshness.lastChanged}
-          />
+          {/* Content first, THEN how it is kept current. The sync form is
+              disabled until something is indexed, so leading with it put a
+              dead control above the thing that enables it. */}
           <DocsForm
             projectId={typedProject.id}
             initialDocsUrl={config.docsUrl}
@@ -72,6 +67,14 @@ export default async function DocsPage() {
             sources={sources}
             pastedLastIndexedAt={nullLastIndexed}
             voyageKeySet={!!process.env.VOYAGE_API_KEY}
+          />
+          <DocsSyncForm
+            enabled={config.docsSync?.enabled === true}
+            frequency={config.docsSync?.frequency ?? "daily"}
+            hasDocsUrl={!!config.docsUrl || sources.length > 0}
+            pages={freshness.pages}
+            lastChecked={freshness.lastChecked}
+            lastChanged={freshness.lastChanged}
           />
         </CardContent>
       </Card>

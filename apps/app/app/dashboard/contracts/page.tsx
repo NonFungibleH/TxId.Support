@@ -96,7 +96,7 @@ export default async function ContractsPage() {
       </CollapsibleCard>
 
       <Card>
-        <CardContent className="pt-6">
+        <CardContent>
           <SubaccountsForm enabled={config.subaccounts?.enabled === true} detected={detected} />
         </CardContent>
       </Card>

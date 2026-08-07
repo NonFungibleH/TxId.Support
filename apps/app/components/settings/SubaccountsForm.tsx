@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react"
 import { toast } from "sonner"
+import { Layers } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 import { setSubaccountsEnabled } from "@/lib/actions/subaccounts"
@@ -50,7 +51,12 @@ export function SubaccountsForm({
     <div className="space-y-3">
       <div className="flex items-start justify-between gap-6">
         <div className="space-y-1">
-          <Label htmlFor="subaccounts" className="text-sm font-medium">
+          {/* Icon inside the Label, not beside it, so the whole row stays the
+              switch's click target. Muted rather than coloured: the audit
+              shield is green because it asserts something, this only names a
+              section. */}
+          <Label htmlFor="subaccounts" className="flex items-center gap-2 text-sm font-medium">
+            <Layers className="size-4 text-muted-foreground" />
             Sub accounts
           </Label>
           <p className="max-w-2xl text-sm text-muted-foreground">

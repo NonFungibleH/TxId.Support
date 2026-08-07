@@ -88,7 +88,7 @@ export function DocsSyncForm({
 
       {!hasDocsUrl && (
         <p className="text-xs text-amber-600">
-          Index a documentation URL below first. There is nothing to re-check yet.
+          Index a documentation URL above first. There is nothing to re-check yet.
         </p>
       )}
 
