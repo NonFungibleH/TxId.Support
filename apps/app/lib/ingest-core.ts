@@ -67,10 +67,27 @@ export async function crawlAndIngestCore(
   }
 
   /** Validators the server gave us last time, so it can answer 304. */
+  /**
+   * IDENTIFY OURSELVES. We sent NO User-Agent at all, and a request with no UA
+   * from a datacentre IP is what bot protection is built to stop: crawling a
+   * Cloudflare-fronted documentation site returned 403 from Vercel while the
+   * same request succeeded from a laptop. Nothing was wrong with the crawler,
+   * it just looked like something worth blocking.
+   *
+   * An honest UA with a contact URL, rather than a browser impersonation: a
+   * documentation host that would rather not be crawled should be able to say
+   * so, and pretending to be Chrome takes that choice away.
+   */
+  const CRAWLER_HEADERS: Record<string, string> = {
+    "User-Agent": "TxID-Docs-Indexer/1.0 (+https://txid.support; documentation indexing on behalf of the site owner)",
+    Accept: "text/html,application/xhtml+xml,text/plain;q=0.9,*/*;q=0.8",
+    "Accept-Language": "en",
+  }
+
   const conditional = (url: string): Record<string, string> => {
     const prior = known.get(url)
-    if (!prior) return {}
-    const h: Record<string, string> = {}
+    const h: Record<string, string> = { ...CRAWLER_HEADERS }
+    if (!prior) return h
     if (prior.etag) h["If-None-Match"] = prior.etag
     if (prior.lastModified) h["If-Modified-Since"] = prior.lastModified
     return h
@@ -136,7 +153,7 @@ export async function crawlAndIngestCore(
   // Step 1: llms.txt (Gitbook / modern doc sites list all pages here)
   let usedLlmsTxt = false
   try {
-    const llmsRes = await fetch(`${origin}/llms.txt`, { signal: AbortSignal.timeout(8_000) })
+    const llmsRes = await fetch(`${origin}/llms.txt`, { headers: CRAWLER_HEADERS, signal: AbortSignal.timeout(8_000) })
     if (llmsRes.ok) {
       const llmsText = await llmsRes.text()
       for (const match of llmsText.matchAll(/\((https?:\/\/[^)]+\.md)\)/g)) {
@@ -153,7 +170,7 @@ export async function crawlAndIngestCore(
     for (const candidate of sitemapCandidates) {
       if (discovered.size > 0) break
       try {
-        const r = await fetch(candidate, { signal: AbortSignal.timeout(8_000) })
+        const r = await fetch(candidate, { headers: CRAWLER_HEADERS, signal: AbortSignal.timeout(8_000) })
         if (r.ok) {
           const xml = await r.text()
           if (xml.includes("<loc>")) {
