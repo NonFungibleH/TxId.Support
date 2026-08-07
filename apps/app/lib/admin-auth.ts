@@ -32,5 +32,5 @@ export async function isCurrentUserAdmin(): Promise<boolean> {
 
 /** Throws "Forbidden" unless the caller is an admin. For server actions. */
 export async function assertAdmin(): Promise<void> {
-  if (!(await isCurrentUserAdmin())) throw new Error("Forbidden")
+  if (!(await isCurrentUserAdmin())) throw new Error("Forbidden [requireAdmin]: this action is restricted to ADMIN_EMAILS")
 }

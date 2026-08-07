@@ -67,6 +67,7 @@ export async function currentActor(): Promise<Actor | null> {
 export class ForbiddenError extends Error {
   constructor(capability: Capability, role: Role) {
     super(
+      `Forbidden [requireCapability:${capability}]. ` +
       `Your role (${ROLE_LABEL[role]}) cannot do this. ` +
       `Ask an Admin${capability === "team" ? "" : ", or ask them to change your role"}.`,
     )

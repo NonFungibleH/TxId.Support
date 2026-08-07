@@ -207,7 +207,13 @@ export async function updateConfig(
     .eq("clerk_org_id", orgKey)
     .single()
 
-  if (!org || current.org_id !== org.id) throw new Error("Forbidden")
+  if (!org || current.org_id !== org.id) {
+    throw new Error(
+      `Forbidden [updateConfig]: project ${projectId} belongs to org ${current.org_id ?? "null"}, ` +
+      `but you are in ${org?.id ?? "no org row"} (clerk ${orgKey}). ` +
+      `This usually means the page was loaded under a different company.`,
+    )
+  }
 
   // Validate webhookUrl before persisting - must be HTTPS + public IP
   if (partial.webhookUrl) {
