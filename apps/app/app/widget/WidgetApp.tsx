@@ -916,7 +916,10 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
               {
                 id: nanoid(),
                 role: "assistant",
-                content: data.welcomeMessage?.trim() || fallback,
+                // Beta introduction wins over the normal welcome: a tester
+                // needs to be told what this IS and what to try, which is a
+                // different job from greeting a customer who already knows.
+                content: data.beta?.intro?.trim() || data.welcomeMessage?.trim() || fallback,
                 // The greeting is not an answer, so it carries no 👍/👎.
                 local: true,
               },

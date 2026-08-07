@@ -325,6 +325,15 @@ export const DOCS: Doc[] = [
       { type: "h2", text: "Suggested questions" },
       { type: "p", text: "Starter questions shown as tappable chips in the chat. Set your own and they replace the assistant's automatic suggestions, so users are only ever offered questions you already know it can answer. This is the cheapest way to steer people towards what you have documented and away from what you have not." },
       { type: "callout", variant: "tip", title: "Write them as a user would", text: "\"Why did my transaction fail?\" beats \"Transaction troubleshooting\". The chips become the user's first message, so they should read like something a person would actually type." },
+      { type: "h2", text: "Beta programme" },
+      { type: "p", text: "For running the assistant with testers rather than customers. It keeps everything it already does, including live transaction diagnosis, and adds two things testers need. It is off by default and changes nothing until you turn it on." },
+      { type: "grid", items: [
+        { title: "Introduces itself", description: "The panel opens once per visit and leads with your introduction, so a tester who has just landed is told what to try instead of facing an empty page. Desktop only, and never if they have already opened it themselves." },
+        { title: "Leave feedback", description: "A button, not a guess. The assistant stops trying to solve, asks only what the tester expected to happen, and records it with the conversation attached. It never promises anyone will reply, because you cannot answer every tester individually." },
+        { title: "Introduction", description: "What testers see when it opens itself. Leave it blank to use your normal opening message. The tappable starter questions come from Suggested questions above." },
+        { title: "End date", description: "Optional and recommended. After it passes the assistant goes back to normal on its own, so a welcome to the beta never greets someone months later." },
+      ]},
+      { type: "callout", variant: "info", title: "Feedback lands where your team works", text: "A recorded finding becomes a ticket, so it routes into Slack, Linear, GitHub or Jira like any other escalation, with the conversation, wallet and chain attached. That context is what a feedback spreadsheet cannot carry." },
     ],
   },
 

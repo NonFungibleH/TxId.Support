@@ -2,6 +2,7 @@ import { getProject } from "@/lib/actions/project"
 import { redirect } from "next/navigation"
 import { BrandingPageClient } from "@/components/settings/BrandingPageClient"
 import { SuggestedQuestionsEditor } from "@/components/settings/SuggestedQuestionsEditor"
+import { BetaProgrammeForm } from "@/components/settings/BetaProgrammeForm"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import type { ProjectConfig } from "@/lib/types/config"
 import type { Database } from "@/lib/supabase/types"
@@ -49,11 +50,15 @@ export default async function PersonaPage() {
               it can answer.
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-6">
             <SuggestedQuestionsEditor
               projectId={typedProject.id}
               initial={config.suggestedQuestions ?? []}
             />
+            {/* Directly under the starter questions, because the beta
+                introduction and those questions are the same conversation:
+                what a tester is greeted with, and what they are offered. */}
+            <BetaProgrammeForm initial={config.beta} />
           </CardContent>
         </Card>
       </BrandingPageClient>

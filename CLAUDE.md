@@ -624,6 +624,19 @@ Every named thing an answer rested on, as a typed list (`EvidenceSource` in `pac
 
 Suggested questions moved off `/dashboard/content`: they are what the assistant OFFERS to say, which belongs with how it speaks, not with the widget's content tab.
 
+### Beta programme (`config.beta`)
+Running the assistant for TESTERS rather than customers. `/dashboard/persona`, under Suggested questions. Off by default.
+
+**NOT A MODE, and the interface never calls it one.** `projectMode` values REPLACE each other, so a beta mode would swap out support mode and take the transaction diagnosis with it, which is the most valuable thing a tester can be given. It layers on top, exactly like `incident` and `subaccounts`.
+
+`activeBeta(config)` resolves `endsAt` ON READ, same as `activeStatusNotice`. A finished beta stops behaving like one the moment it ends, not when a job notices. The dashboard card says so itself when the date has passed, because the settings still render.
+
+**Auto-open splits decision from enforcement.** The widget DECIDES (only it has read the project config) and posts `txid-autoopen`; `widget.js` ENFORCES, owning the once-per-tab `sessionStorage` flag, the `innerWidth <= 440` exclusion and the already-open check. If `sessionStorage` throws (private mode, blocked cookies) it degrades to NOT opening rather than opening on every page.
+
+**Feedback is a BUTTON, never intent detection.** "The fee display is confusing" is an opinion, and explaining the fee display to someone who just called it confusing is the most irritating possible reply. The button sends a fixed opener (`FEEDBACK_OPENER` in `WidgetApp.tsx`, quoted verbatim in the prompt block) so the model never has to classify. The prompt tells it to acknowledge, ask ONLY what they expected to happen, record via `create_support_ticket` with reason `feedback`, and **never promise a reply**: a team cannot answer 200 testers individually. Genuinely ambiguous messages are asked about, never guessed.
+
+Routing feedback through the normal message path is deliberate: the finding keeps the conversation that produced it, which is exactly what a standalone feedback form throws away.
+
 ### Widget disclaimer
 `branding.disclaimer`, `DEFAULT_DISCLAIMER` + `resolveDisclaimer()` in `lib/types/config.ts`. **Unset means the DEFAULT, not silence**; empty string is the explicit opt-out. Rendered under the composer in BOTH modes (one and not the other looks deliberate) and appended in `plainBody`, so all six escalation integrations carry it without touching an adapter. All three escalation paths pass it: widget, dashboard, Telegram.
 
