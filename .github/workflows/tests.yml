@@ -1,0 +1,31 @@
+# Unit tests + the embed smoke, on every push and PR.
+#
+# Exists because 38 commits shipped in one day with a human as the only QA:
+# the spotlight broke twice through paths reading-the-code missed, and both
+# were caught only when a browser actually ran it. The smoke IS that browser.
+name: Tests
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Unit tests
+        run: pnpm --filter @txid/app exec vitest run
+      - name: Install Chromium
+        run: pnpm --filter @txid/app exec playwright install --with-deps chromium
+      - name: Embed smoke (spotlight choreography)
+        run: pnpm --filter @txid/app run smoke:embed
