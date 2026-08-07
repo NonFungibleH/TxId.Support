@@ -1590,6 +1590,8 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
           summary: escalation.summary,
           reason: escalation.reason,
           conversation: messages.map(m => ({ role: m.role, content: m.content })),
+          ...(hostContext.current.url ? { pageUrl: hostContext.current.url } : {}),
+          ...(isPreview ? { preview: true, previewToken } : {}),
         }),
       })
       const data = res.ok ? (await res.json()) as { ref?: string; error?: string } : null
@@ -1610,7 +1612,7 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
     } finally {
       setTicketSubmitting(false)
     }
-  }, [escalation, ticketName, ticketEmail, apiKey, messages])
+  }, [isPreview, previewToken, escalation, ticketName, ticketEmail, apiKey, messages])
 
 
   // ── Send message ─────────────────────────────────────────────────────────

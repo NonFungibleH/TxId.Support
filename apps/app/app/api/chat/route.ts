@@ -1,4 +1,5 @@
 import { waitUntil } from "@vercel/functions"
+import { originAllowed } from "@/lib/origin-guard"
 import { createServiceClient } from "@/lib/supabase/server"
 import { answerFingerprint, chainStateAt, coarseDevice, requestGeo, userSuppliedHashes, documentationSources, type AnswerEvidence } from "@/lib/evidence"
 import { unverifiedNumbers } from "@/lib/numeric-check"
@@ -48,39 +49,6 @@ const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
   "Access-Control-Allow-Headers": "Content-Type",
-}
-
-const EXEMPT_HOSTS = new Set(["localhost", "127.0.0.1", "::1"])
-
-function extractHostname(originOrReferer: string): string | null {
-  try {
-    return new URL(originOrReferer).hostname.toLowerCase()
-  } catch {
-    return null
-  }
-}
-
-/**
- * Domain allowlist enforcement - mirrors /api/widget-config so the expensive
- * chat endpoint is gated the same way the config endpoint is. Without this a
- * copied publishable key lets any browser origin burn a project's conversation
- * quota + LLM spend. Empty allowedDomains = not yet restricted (open); once the
- * protocol adds at least one domain, only those origins may call chat. Preview
- * requests are exempt (they carry a server-signed token, checked separately).
- */
-function originAllowed(
-  request: Request,
-  allowedDomains: string[] | undefined,
-  preview: boolean,
-): boolean {
-  if (preview) return true
-  const originHeader = request.headers.get("origin") ?? request.headers.get("referer")
-  const requestHost = originHeader ? extractHostname(originHeader) : null
-  if (!requestHost || EXEMPT_HOSTS.has(requestHost)) return true
-  const allowed = allowedDomains ?? []
-  if (allowed.length === 0) return true
-  const normalised = allowed.map((d) => d.replace(/^https?:\/\//, "").toLowerCase())
-  return normalised.includes(requestHost)
 }
 
 export async function OPTIONS() {
@@ -353,7 +321,10 @@ export async function POST(request: Request) {
     // Exempt OUR own demo project: it powers the /demo + /check pages on the
     // marketing site (any origin by design) and is protected by the per-IP rate
     // cap + Turnstile, not the per-customer domain allowlist.
-    if (!isDemo && !originAllowed(request, rawConfig.allowedDomains, previewVerified)) {
+    if (!isDemo && !originAllowed(request, rawConfig.allowedDomains, {
+      preview: previewVerified,
+      ...(pageContext?.url ? { hostPage: pageContext.url } : {}),
+    })) {
       return new Response(JSON.stringify({ error: "Domain not registered for this key" }), {
         status: 403,
         headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
@@ -926,10 +897,24 @@ async function persistMessages(
 
     if (!conv) return
 
+    // EACH ROW CARRIES ITS OWN TIME. Both rows are written in one statement
+    // after the answer has streamed, and Postgres `now()` is transaction-start
+    // time, so relying on the column default stamped the question and the
+    // answer with the SAME instant, to the second. Two consequences, both
+    // visible in the transcript: every exchange looked instantaneous, and the
+    // tie was broken by insertion order rather than by time, so an answer could
+    // render above the question that prompted it.
+    //
+    // The user's row is stamped when their request ARRIVED, the assistant's
+    // when the response finished, which is also the real latency they waited.
+    const askedAt = new Date(evidenceContext?.startedAt ?? Date.now()).toISOString()
+    const answeredAt = new Date().toISOString()
+
     const toInsert: {
       conversation_id: string
       role: "user" | "assistant"
       content: string
+      created_at: string
       evidence?: AnswerEvidence
     }[] = []
 
@@ -938,7 +923,7 @@ async function persistMessages(
     // (Prior history is already stored from earlier turns - only the latest.)
     const latest = messages[messages.length - 1]
     if (latest?.role === "user" || latest?.role === "assistant") {
-      toInsert.push({ conversation_id: conv.id, role: latest.role, content: latest.content })
+      toInsert.push({ conversation_id: conv.id, role: latest.role, content: latest.content, created_at: askedAt })
     }
     if (assistantResponse) {
       // Evidence rides on the assistant row: it describes the conditions that
@@ -987,6 +972,7 @@ async function persistMessages(
       toInsert.push({
         conversation_id: conv.id,
         role: "assistant",
+        created_at: answeredAt,
         content: assistantResponse,
         ...(evidence ? { evidence } : {}),
       })

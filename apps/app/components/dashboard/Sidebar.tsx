@@ -5,10 +5,8 @@ import { usePathname } from "next/navigation"
 import {
   LayoutDashboard, Paintbrush, FileCode2, BookOpen,
   LayoutList, Code2, BarChart3, Globe, MessageSquare, MessageCircle, Eye, Ticket, MessagesSquare,
-  Sun, Moon, Zap, Send, Wallet, ShieldCheck, Users, FlaskConical,
+  Send, Wallet, Users, FlaskConical,
 } from "lucide-react"
-import { useTheme } from "next-themes"
-import { OrganizationSwitcher } from "@clerk/nextjs"
 import { cn } from "@/lib/utils"
 
 type NavItem = { href: string; label: string; icon: React.ElementType; beta?: boolean }
@@ -90,28 +88,17 @@ const TOKEN_GROUPS: NavGroup[] = [
   },
 ]
 
-const PLAN_BADGE: Record<string, { label: string; cls: string }> = {
-  free:       { label: "Free",       cls: "bg-muted text-muted-foreground" },
-  starter:    { label: "Starter",    cls: "bg-indigo-500/20 text-indigo-400" },
-  pro:        { label: "Pro",        cls: "bg-amber-500/20 text-amber-400" },
-  enterprise: { label: "Enterprise", cls: "bg-purple-500/20 text-purple-400" },
-  custom:     { label: "Custom",     cls: "bg-emerald-500/20 text-emerald-400" },
-  demo:       { label: "Demo",       cls: "bg-sky-500/20 text-sky-400" },
-}
 
 interface SidebarProps {
   mode?: string
-  plan?: string
-  isAdmin?: boolean
   /** A beta programme is configured. Reveals its tab; hidden otherwise. */
   beta?: boolean
   isOpen?: boolean
   onClose?: () => void
 }
 
-export function Sidebar({ mode = "support", plan = "free", isAdmin = false, beta = false, isOpen = false, onClose }: SidebarProps) {
+export function Sidebar({ mode = "support", beta = false, isOpen = false, onClose }: SidebarProps) {
   const pathname = usePathname()
-  const { resolvedTheme, setTheme } = useTheme()
   // The Beta programme tab appears only once one is set up, so the menu is not
   // carrying a feature most protocols will never use. It is NOT how you turn
   // it on: that would be a switch you can only reach after flipping it. The
@@ -120,8 +107,6 @@ export function Sidebar({ mode = "support", plan = "free", isAdmin = false, beta
   const GROUPS = beta
     ? base
     : base.map(g => ({ ...g, items: g.items.filter(i => i.href !== "/dashboard/beta") }))
-  const badge = PLAN_BADGE[plan] ?? PLAN_BADGE.free
-  const showUpgrade = plan === "free" || plan === "starter"
 
   return (
     <aside
@@ -136,7 +121,7 @@ export function Sidebar({ mode = "support", plan = "free", isAdmin = false, beta
         <span className="font-semibold text-sm">TxID</span>
       </div>
 
-      <nav className="flex flex-1 flex-col overflow-y-auto px-2 py-3 gap-4">
+      <nav className="flex flex-1 flex-col gap-4 overflow-y-auto px-2 py-3 pb-14">
         {GROUPS.map((group, gi) => (
           <div key={gi} className="flex flex-col gap-0.5">
             {group.label && (
@@ -178,92 +163,6 @@ export function Sidebar({ mode = "support", plan = "free", isAdmin = false, beta
         ))}
       </nav>
 
-      <div className="border-t border-border px-3 py-3 space-y-2">
-        {/* WHICH COMPANY AM I IN.
-            Everything server-side was already org-aware (getProject keys on
-            Clerk's orgId, invites go through the org APIs, roles live in
-            org_members) but nothing in the interface could create or switch an
-            organisation, so the whole model was unreachable. This is the door.
-
-            A new organisation has no project, so /dashboard sends it to
-            /onboarding, which is why afterCreateOrganizationUrl points there:
-            create the company, then create its project. Selecting an existing
-            one goes to /dashboard, which resolves that org's own project. */}
-        <OrganizationSwitcher
-          afterCreateOrganizationUrl="/onboarding"
-          afterSelectOrganizationUrl="/dashboard"
-          afterSelectPersonalUrl="/dashboard"
-          afterLeaveOrganizationUrl="/dashboard"
-          appearance={{
-            elements: {
-              rootBox: "w-full",
-              // text-foreground on BOTH: Clerk ships its own light-theme text
-              // colour, which rendered the company name dark-on-dark the
-              // moment night mode was on. Inheriting our token makes it track
-              // the theme like everything else in the sidebar.
-              organizationSwitcherTrigger:
-                "w-full justify-between rounded-lg border border-border px-3 py-2 text-sm text-foreground hover:bg-accent/50",
-              organizationPreviewMainIdentifier: "text-foreground",
-            },
-          }}
-        />
-
-        {/* Plan + mode badge. HIDDEN on the demo plan: demo is hand-provisioned
-            for our own and early accounts, so the label is internal
-            bookkeeping rather than information, and it reads as clutter to
-            exactly the people it was set for. Paying and trial plans keep it,
-            because "what am I on" and the upgrade path are real information
-            there. */}
-        {plan !== "demo" && (
-        <div className="rounded-lg border border-border px-3 py-2 space-y-1.5">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className={cn("rounded-full px-2 py-0.5 text-[11px] font-semibold", badge.cls)}>
-                {badge.label}
-              </span>
-              <span className="text-xs text-muted-foreground">plan</span>
-            </div>
-            {showUpgrade && (
-              <Link
-                href="/dashboard/upgrade"
-                onClick={onClose}
-                className="flex items-center gap-1 text-[11px] font-medium text-primary hover:text-primary/80 transition-colors"
-              >
-                <Zap className="size-3" />
-                Upgrade
-              </Link>
-            )}
-          </div>
-        </div>
-        )}
-
-        {isAdmin && (
-          <Link
-            href="/admin"
-            onClick={onClose}
-            className={cn(
-              "flex items-center gap-2 rounded-md px-2.5 py-1.5 text-xs transition-colors w-full",
-              (pathname ?? "").startsWith("/admin")
-                ? "bg-primary/10 text-primary font-semibold"
-                : "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
-            )}
-          >
-            <ShieldCheck className="size-3.5 shrink-0" />
-            Admin console
-          </Link>
-        )}
-
-        <button
-          type="button"
-          onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
-          className="flex items-center gap-2 rounded-md px-2.5 py-1.5 text-xs text-muted-foreground hover:bg-accent/50 hover:text-foreground transition-colors w-full"
-        >
-          {resolvedTheme === "dark"
-            ? <><Sun className="size-3.5 shrink-0" /> Light mode</>
-            : <><Moon className="size-3.5 shrink-0" /> Dark mode</>
-          }
-        </button>
-      </div>
     </aside>
   )
 }

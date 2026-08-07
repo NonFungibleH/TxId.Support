@@ -27,8 +27,9 @@ function hostOf(originOrReferer: string): string | null {
 export function originAllowed(
   request: Request,
   allowedDomains: string[] | undefined,
-  opts: { preview?: boolean; publicSurface?: boolean } = {},
+  opts: { preview?: boolean; publicSurface?: boolean; hostPage?: string } = {},
 ): boolean {
+  const hostPage = opts.hostPage
   // Preview carries a server-signed token, checked by the caller. Public
   // surfaces (the shared demo key, publicDemo projects) are open by design:
   // they exist to be embedded anywhere, and are defended by tighter rate
@@ -36,7 +37,28 @@ export function originAllowed(
   if (opts.preview || opts.publicSurface) return true
 
   const header = request.headers.get("origin") ?? request.headers.get("referer")
-  const host = header ? hostOf(header) : null
+  let host = header ? hostOf(header) : null
+
+  // OUR OWN ORIGIN CARRIES NO INFORMATION, and treating it as evidence was a
+  // real outage: the widget runs in an iframe on app.txid.support and fetches
+  // /api/chat and /api/tickets SAME-ORIGIN, so the Origin header is always
+  // ours, never the embedding site's. The moment a customer set their first
+  // allowed domain, every request failed the check and the widget stopped
+  // answering. The allowlist had never been set before, which is the only
+  // reason this had not already happened.
+  //
+  // A same-origin request is therefore treated as "no usable origin" and falls
+  // through to the host page reported by the embed below.
+  try {
+    if (host && host === new URL(request.url).hostname) host = null
+  } catch { /* keep whatever we parsed */ }
+
+  // The EMBEDDING page, reported by widget.js, which is the only party that can
+  // see it. Client-supplied and therefore a soft control: it raises the bar for
+  // casual key reuse, it does not stop a determined forger, and the rate limits
+  // and spend guard are what bound the damage. Being honest about that is
+  // better than a guard that looks strong and is bypassed by one header.
+  if (!host && hostPage) host = hostOf(hostPage)
   // No Origin/Referer at all: a server-to-server or privacy-stripped caller.
   // Not evidence of abuse on its own, and blocking it would break legitimate
   // integrations, so it passes here and the rate limiter carries the weight.

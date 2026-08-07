@@ -166,6 +166,12 @@ export default async function ConversationsPage({
       .select("id, conversation_id, role, content, feedback, created_at, evidence")
       .in("conversation_id", convIds)
       .order("created_at", { ascending: true })
+      // TIE-BREAK, for every row written before each message carried its own
+      // time. They share a timestamp to the second, and a uuid id is not an
+      // insertion order, so without this the answer can render above the
+      // question. "user" sorts before "assistant" alphabetically, which is
+      // also the order a turn actually happens in.
+      .order("role", { ascending: true })
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .then((res: any) =>
         res.error

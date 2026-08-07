@@ -500,9 +500,13 @@ async function persistTelegramMessages(
 
     if (!conv) return
 
+    // Distinct times per row: a single insert takes one transaction timestamp
+    // for both, which made every exchange look instantaneous and left the sort
+    // order to break ties by insertion rather than by time.
+    const tgAnsweredAt = new Date()
     await supabase.from("messages").insert([
-      { conversation_id: conv.id, role: "user" as const, content: userText },
-      { conversation_id: conv.id, role: "assistant" as const, content: assistantReply },
+      { conversation_id: conv.id, role: "user" as const, content: userText, created_at: new Date(tgAnsweredAt.getTime() - 1000).toISOString() },
+      { conversation_id: conv.id, role: "assistant" as const, content: assistantReply, created_at: tgAnsweredAt.toISOString() },
     ])
     // Stamp last_message_at so the conversation is flagged for (re-)summary.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

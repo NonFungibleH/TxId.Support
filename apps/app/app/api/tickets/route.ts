@@ -3,6 +3,7 @@ import { createServiceClient } from "@/lib/supabase/server"
 import type { ProjectConfig } from "@/lib/types/config"
 import { resolveDisclaimer, activeStatusNotice } from "@/lib/types/config"
 import { originAllowed, originRefused } from "@/lib/origin-guard"
+import { verifyPreviewToken } from "@/lib/preview-token"
 import type { Database } from "@/lib/supabase/types"
 import { rateLimit, clientIp } from "@/lib/rate-limit"
 import { TICKET_LIMITS } from "@/lib/limits"
@@ -57,6 +58,10 @@ export async function POST(request: Request) {
       summary: string
       reason?: string
       conversation?: Array<{ role: string; content: string }>
+      /** The page the widget is embedded on, for the domain allowlist. */
+      pageUrl?: string
+      preview?: boolean
+      previewToken?: string
     }
 
     const { key, name, email, summary, reason, conversation } = body
@@ -88,11 +93,23 @@ export async function POST(request: Request) {
 
     // Ticket creation writes rows and fans out to the customer's Slack, Linear
     // and email. An unguarded key made that a spam channel into their tools.
-    if (!originAllowed(request, config.allowedDomains, { publicSurface: isPublicSurface(key, config) })) {
+    // A DASHBOARD PREVIEW MUST BE ABLE TO RAISE A TICKET. /api/chat has always
+    // exempted a signed preview from the is_active check, and this route never
+    // did, so a customer testing before go-live could hold a whole conversation
+    // and then hit "Couldn't submit your ticket" at the one step that proves
+    // the escalation path works. Preview is the only place they can test it,
+    // since the widget is not installed anywhere yet.
+    const previewVerified = body.preview === true && verifyPreviewToken(typedProject.id, body.previewToken)
+
+    if (!originAllowed(request, config.allowedDomains, {
+      preview: previewVerified,
+      publicSurface: isPublicSurface(key, config),
+      ...(typeof body.pageUrl === "string" ? { hostPage: body.pageUrl } : {}),
+    })) {
       return originRefused(CORS_HEADERS)
     }
 
-    if (!typedProject.is_active) {
+    if (!typedProject.is_active && !previewVerified) {
       return new Response(JSON.stringify({ error: "Project inactive" }), {
         status: 403,
         headers: { ...CORS_HEADERS, "Content-Type": "application/json" },

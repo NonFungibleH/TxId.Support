@@ -10,11 +10,6 @@ import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { Users } from "lucide-react"
 
-function roleLabel(role: string) {
-  if (role === "org:admin") return "Admin"
-  return "Member"
-}
-
 function initials(name: string | null, email: string) {
   if (name) return name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase()
   return email.slice(0, 2).toUpperCase()
@@ -146,7 +141,7 @@ export default async function TeamPage() {
                   <div className="flex-1 min-w-0">
                     <p className="text-sm text-muted-foreground truncate">{inv.email}</p>
                   </div>
-                  <Badge variant="outline" className="text-xs shrink-0">{roleLabel(inv.role)}</Badge>
+                  <Badge variant="outline" className="text-xs shrink-0">{ROLE_LABEL[inv.role]}</Badge>
                   <RevokeInviteButton invitationId={inv.id} />
                 </li>
               ))}

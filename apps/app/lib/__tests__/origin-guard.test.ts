@@ -44,4 +44,23 @@ describe("originAllowed", () => {
   it("port and path on the request origin do not defeat the match", () => {
     expect(originAllowed(req("https://app.yamata.pm:443/some/path"), ["app.yamata.pm"])).toBe(true)
   })
+
+  it("ignores our own origin, which is what the widget iframe always sends", () => {
+    // THE OUTAGE THIS ENCODES: the widget is served from app.txid.support and
+    // fetches /api/chat and /api/tickets same-origin, so Origin is always ours.
+    // Treating that as the embedding site meant the first customer to set a
+    // domain silently broke their own widget.
+    const req = new Request("https://app.txid.support/api/tickets", {
+      headers: { origin: "https://app.txid.support" },
+    })
+    expect(originAllowed(req, ["app.yamata.pm"])).toBe(true)
+  })
+
+  it("checks the host page the embed reports, not the iframe's origin", () => {
+    const req = new Request("https://app.txid.support/api/tickets", {
+      headers: { origin: "https://app.txid.support" },
+    })
+    expect(originAllowed(req, ["app.yamata.pm"], { hostPage: "https://app.yamata.pm/portfolio" })).toBe(true)
+    expect(originAllowed(req, ["app.yamata.pm"], { hostPage: "https://copycat.example/x" })).toBe(false)
+  })
 })

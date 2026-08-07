@@ -13,16 +13,48 @@ export async function getTeamMembers() {
   if (!orgId) return { members: [], pending: [] }
 
   const clerk = await clerkClient()
-  const [memberships, invitations] = await Promise.all([
+  const [memberships, invitations, accepted] = await Promise.all([
     clerk.organizations.getOrganizationMembershipList({ organizationId: orgId }),
     clerk.organizations.getOrganizationInvitationList({ organizationId: orgId, status: ["pending"] }),
+    clerk.organizations.getOrganizationInvitationList({ organizationId: orgId, status: ["accepted"] }),
   ])
+
+  // The role chosen at invite time, keyed by the email it was sent to. Clerk
+  // owns membership and we own permission, so there is no webhook to hang this
+  // on: the role is applied the first time the team page is read after they
+  // accept. Reconciling here rather than at sign-in means it also repairs
+  // anyone invited while this was broken.
+  const invitedRole = new Map<string, Role>()
+  for (const i of accepted.data) {
+    const r = (i.publicMetadata as { txidRole?: string } | undefined)?.txidRole
+    if (r && ROLES.includes(r as Role)) invitedRole.set(i.emailAddress.toLowerCase(), r as Role)
+  }
 
   // Clerk knows who is in the org; our own table knows what they may do. The
   // TxID role is what the server actually enforces, so it is what the page
   // shows, defaulting for anyone without an explicit row.
   const actor = await currentActor()
-  const explicit = actor ? await rolesForOrg(actor.orgId) : {}
+  const explicit: Record<string, Role> = actor ? await rolesForOrg(actor.orgId) : {}
+
+  // Anyone with no explicit row but a role on their accepted invitation gets
+  // that row written now, once. Without this the invited role would be shown
+  // and never enforced, which is worse than not offering the choice.
+  const toBackfill = memberships.data.flatMap((m) => {
+    const uid = m.publicUserData?.userId
+    const email = m.publicUserData?.identifier?.toLowerCase()
+    if (!uid || !email || explicit[uid]) return []
+    const role = invitedRole.get(email)
+    return role ? [{ org_id: actor!.orgId, clerk_user_id: uid, role }] : []
+  })
+  if (toBackfill.length && actor) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error } = await (createServiceClient() as any)
+      .from("org_members")
+      .upsert(toBackfill, { onConflict: "org_id,clerk_user_id" })
+    // Never fail the page over this: a team list that will not load is a worse
+    // failure than a role that lands on the next read.
+    if (!error) for (const row of toBackfill) explicit[row.clerk_user_id] = row.role
+  }
 
   const members = memberships.data.map((m) => {
     const uid = m.publicUserData?.userId ?? null
@@ -39,12 +71,16 @@ export async function getTeamMembers() {
     }
   })
 
-  const pending = invitations.data.map((i) => ({
-    id: i.id,
-    email: i.emailAddress,
-    role: i.role as string,
-    invitedAt: i.createdAt,
-  }))
+  const pending = invitations.data.map((i) => {
+    const r = (i.publicMetadata as { txidRole?: string } | undefined)?.txidRole
+    return {
+      id: i.id,
+      email: i.emailAddress,
+      // Older invitations predate the metadata and only carry a Clerk role.
+      role: (r && ROLES.includes(r as Role) ? r : i.role === "org:admin" ? "admin" : DEFAULT_ROLE) as Role,
+      invitedAt: i.createdAt,
+    }
+  })
 
   return { members, pending }
 }
@@ -55,20 +91,32 @@ export async function inviteTeamMember(formData: FormData) {
   if (!userId || !orgId) throw new Error("Unauthenticated")
 
   const email = (formData.get("email") as string | null)?.trim()
-  const role = (formData.get("role") as string | null) ?? "org:member"
+  const role = (formData.get("role") as string | null) ?? "developer"
 
   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     throw new Error("Valid email required")
   }
-  if (!["org:admin", "org:member"].includes(role)) {
+  // THE INVITE NOW CARRIES A TxID ROLE, NOT A CLERK ONE. The form previously
+  // offered Clerk's two membership levels, so three quarters of the permission
+  // model was unreachable at the only moment it is natural to choose: everyone
+  // arrived as Admin by default and had to be demoted afterwards, which is the
+  // wrong direction to travel with access to every user conversation.
+  if (!ROLES.includes(role as Role)) {
     throw new Error("Invalid role")
   }
+
+  // Clerk still needs one of its OWN two roles for the membership. Only a TxID
+  // Admin gets org:admin, because that is the level that can administer the
+  // organisation in Clerk's own surfaces. The TxID role rides along in the
+  // invitation metadata and is applied when they accept.
+  const clerkRole = role === "admin" ? "org:admin" : "org:member"
 
   const clerk = await clerkClient()
   await clerk.organizations.createOrganizationInvitation({
     organizationId: orgId,
     emailAddress: email,
-    role,
+    role: clerkRole,
+    publicMetadata: { txidRole: role },
     redirectUrl: `${process.env.NEXT_PUBLIC_APP_URL ?? "https://app.txid.support"}/dashboard`,
     inviterUserId: userId,
   })

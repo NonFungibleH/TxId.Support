@@ -8,10 +8,14 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { inviteTeamMember } from "@/lib/actions/team"
+import { ROLES, ROLE_LABEL, ROLE_DESCRIPTION, type Role } from "@/lib/roles"
 
 export function TeamInviteForm() {
   const formRef = useRef<HTMLFormElement>(null)
-  const [role, setRole] = useState("org:member")
+  // Developer, not Admin: an invited colleague is usually there to set the
+  // assistant up, and starting everyone at the top means demoting them later,
+  // which is the wrong direction to travel with access to every conversation.
+  const [role, setRole] = useState<Role>("developer")
   const [isPending, startTransition] = useTransition()
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -44,13 +48,21 @@ export function TeamInviteForm() {
       </div>
       <div className="space-y-1.5">
         <Label className="text-xs text-muted-foreground">Role</Label>
-        <Select value={role} onValueChange={(v) => { if (v) setRole(v) }} disabled={isPending}>
-          <SelectTrigger className="w-36">
-            <SelectValue />
+        <Select value={role} onValueChange={(v) => { if (v) setRole(v as Role) }} disabled={isPending}>
+          <SelectTrigger className="w-40">
+            {/* Explicit children, not a bare <SelectValue />. The bare form
+                rendered the raw value ("org:member") in the closed state
+                because the items live inside lazily mounted content, so there
+                was no label to read back until the menu had been opened. */}
+            <SelectValue>{ROLE_LABEL[role]}</SelectValue>
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="org:member">Member</SelectItem>
-            <SelectItem value="org:admin">Admin</SelectItem>
+            {ROLES.map(r => (
+              <SelectItem key={r} value={r}>
+                <span className="font-medium">{ROLE_LABEL[r]}</span>
+                <span className="block text-xs text-muted-foreground">{ROLE_DESCRIPTION[r]}</span>
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </div>
