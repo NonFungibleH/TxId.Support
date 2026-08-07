@@ -57,6 +57,8 @@ export async function POST(request: Request) {
       email?: string
       summary: string
       reason?: string
+      /** Free text the user added: what they were doing, what they tried. */
+      note?: string
       conversation?: Array<{ role: string; content: string }>
       /** The page the widget is embedded on, for the domain allowlist. */
       pageUrl?: string
@@ -64,7 +66,7 @@ export async function POST(request: Request) {
       previewToken?: string
     }
 
-    const { key, name, email, summary, reason, conversation } = body
+    const { key, name, email, summary, reason, conversation, note } = body
 
     if (!key || !summary) {
       return new Response(JSON.stringify({ error: "Missing required fields" }), {
@@ -117,7 +119,14 @@ export async function POST(request: Request) {
     }
 
     // Truncate inputs to prevent unbounded storage / email abuse
-    const safeSummary = summary.slice(0, TICKET_LIMITS.maxSummaryChars)
+    // The user's own words are APPENDED to the model's summary rather than
+    // replacing it, and attributed, so a support agent can see which half came
+    // from whom. The model writes what it observed; this is what the person
+    // said, and the two are not interchangeable evidence.
+    const safeNote = typeof note === "string" ? note.trim().slice(0, TICKET_LIMITS.maxSummaryChars) : ""
+    const safeSummary = (
+      safeNote ? `${summary}\n\nFrom the user: ${safeNote}` : summary
+    ).slice(0, TICKET_LIMITS.maxSummaryChars * 2)
     const safeConversation = (conversation ?? [])
       .slice(0, TICKET_LIMITS.maxConversationMsgs)
       .map(m => ({ ...m, content: m.content.slice(0, TICKET_LIMITS.maxMessageChars) }))

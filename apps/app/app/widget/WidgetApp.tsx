@@ -921,6 +921,13 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
   const [escalation, setEscalation] = useState<{ summary: string; reason: string } | null>(null)
   const [ticketName, setTicketName] = useState("")
   const [ticketEmail, setTicketEmail] = useState("")
+  // WHAT THE TRANSCRIPT CANNOT KNOW. The ticket already carries the full
+  // conversation, the chain state and every lookup that failed, which is more
+  // than a support form ever gets. What it cannot carry is the part the user
+  // never thought to say: what they were trying to do, what they had already
+  // tried, the order id in another tab. Optional on purpose, because a required
+  // box here is a wall in front of someone who is already stuck.
+  const [ticketNote, setTicketNote] = useState("")
   const [ticketSubmitting, setTicketSubmitting] = useState(false)
   const [ticketRef, setTicketRef] = useState<string | null>(null)
   const [ticketError, setTicketError] = useState<string | null>(null)
@@ -1604,6 +1611,7 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
           name: ticketName.trim(),
           email: ticketEmail.trim(),
           summary: escalation.summary,
+          ...(ticketNote.trim() ? { note: ticketNote.trim() } : {}),
           reason: escalation.reason,
           conversation: messages.map(m => ({ role: m.role, content: m.content })),
           ...(hostContext.current.url ? { pageUrl: hostContext.current.url } : {}),
@@ -1628,7 +1636,7 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
     } finally {
       setTicketSubmitting(false)
     }
-  }, [isPreview, previewToken, escalation, ticketName, ticketEmail, apiKey, messages])
+  }, [isPreview, previewToken, escalation, ticketName, ticketEmail, ticketNote, apiKey, messages])
 
 
   // ── Send message ─────────────────────────────────────────────────────────
@@ -2596,6 +2604,14 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
                       onChange={e => setTicketEmail(e.target.value)}
                       placeholder="Your email"
                       className="w-full bg-transparent text-xs outline-none border-b pb-1.5 placeholder:opacity-30"
+                      style={{ color: b.inputTextColor ?? adaptiveText, borderColor: `var(--w-border)` }}
+                    />
+                    <textarea
+                      value={ticketNote}
+                      onChange={e => setTicketNote(e.target.value)}
+                      rows={2}
+                      placeholder="Anything else that would help the team? (optional)"
+                      className="w-full resize-none bg-transparent text-xs outline-none border-b pb-1.5 placeholder:opacity-30"
                       style={{ color: b.inputTextColor ?? adaptiveText, borderColor: `var(--w-border)` }}
                     />
                     {ticketError && (
