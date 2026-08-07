@@ -38,7 +38,30 @@ export async function retrieveContext(
     return { context: "", chunks: [], includedChunks: 0, contextChars: 0 }
   }
 
-  const rows = (data ?? []) as MatchRow[]
+  let rows = (data ?? []) as MatchRow[]
+
+  // SECOND PASS AT A LOWER BAR when the first finds nothing.
+  //
+  // 0.35 is right for a specific question and wrong for a short vague one:
+  // "what is the cost?" carries no domain terms, scores under the bar against
+  // a Fees page that answers it perfectly, and the assistant then says it has
+  // no pricing information while the answer sits three chunks away. Real
+  // users ask short questions.
+  //
+  // Only ever runs on a MISS, so precision on normal queries is untouched and
+  // the extra vector search costs nothing on the common path. A weak match is
+  // still labelled weak downstream: `retrieval.topScore` records what was
+  // actually found, so a thin answer stays visibly thin in the record.
+  const RETRY_THRESHOLD = 0.22
+  if (rows.length === 0 && threshold > RETRY_THRESHOLD) {
+    const retry = await supabase.rpc("match_documents", {
+      query_embedding: embedding,
+      project_id: projectId,
+      match_count: limit,
+      match_threshold: RETRY_THRESHOLD,
+    })
+    if (!retry.error) rows = (retry.data ?? []) as MatchRow[]
+  }
 
   if (rows.length === 0) {
     return { context: "", chunks: [], includedChunks: 0, contextChars: 0 }
