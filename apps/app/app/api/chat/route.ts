@@ -972,7 +972,16 @@ async function persistMessages(
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       if (usageErr) await (supabase as any).from("token_usage").insert(base)
     }
-  } catch {
-    // Non-fatal
+  } catch (err) {
+    // Non-fatal to the USER, whose answer already streamed. But never again
+    // silent: this catch swallowed every persistence failure while the
+    // production schema drifted, so conversations vanished for days with
+    // nothing anywhere saying why. The conversation record is the product's
+    // memory; losing it must at least leave a body.
+    log.error("Conversation persist failed", err, {
+      event: "chat.persist_failed",
+      projectId,
+      sessionId,
+    })
   }
 }

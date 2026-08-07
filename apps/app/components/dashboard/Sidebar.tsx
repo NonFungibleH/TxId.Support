@@ -203,7 +203,13 @@ export function Sidebar({ mode = "support", plan = "free", isAdmin = false, beta
           }}
         />
 
-        {/* Plan + mode badge */}
+        {/* Plan + mode badge. HIDDEN on the demo plan: demo is hand-provisioned
+            for our own and early accounts, so the label is internal
+            bookkeeping rather than information, and it reads as clutter to
+            exactly the people it was set for. Paying and trial plans keep it,
+            because "what am I on" and the upgrade path are real information
+            there. */}
+        {plan !== "demo" && (
         <div className="rounded-lg border border-border px-3 py-2 space-y-1.5">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -224,6 +230,7 @@ export function Sidebar({ mode = "support", plan = "free", isAdmin = false, beta
             )}
           </div>
         </div>
+        )}
 
         {isAdmin && (
           <Link
