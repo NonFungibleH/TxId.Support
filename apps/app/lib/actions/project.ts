@@ -2,7 +2,7 @@
 
 import { requireCapability } from "@/lib/roles-server"
 
-import { auth } from "@clerk/nextjs/server"
+import { resolveOrg } from "@/lib/clerk-org"
 import { createServiceClient } from "@/lib/supabase/server"
 import type { ProjectConfig } from "@/lib/types/config"
 import { DEFAULT_CONFIG } from "@/lib/types/config"
@@ -13,7 +13,7 @@ import type { Database, Json } from "@/lib/supabase/types"
 type OrgRow = Database["public"]["Tables"]["organisations"]["Row"]
 
 export async function getProject() {
-  const { orgId, userId, orgSlug } = await auth()
+  const { orgId, userId, orgSlug } = await resolveOrg()
   if (!userId) throw new Error("Unauthenticated")
   const orgKey = orgId ?? userId
 
@@ -60,7 +60,7 @@ export async function getProject() {
 
 export async function createProject(name: string) {
   await requireCapability("settings")
-  const { orgId, userId } = await auth()
+  const { orgId, userId } = await resolveOrg()
   if (!userId) throw new Error("Unauthenticated")
   const orgKey = orgId ?? userId
 
@@ -96,7 +96,7 @@ export async function createProject(name: string) {
 
 export async function createProjectWithMode(name: string, mode: "support" | "token") {
   await requireCapability("settings")
-  const { orgId, userId } = await auth()
+  const { orgId, userId } = await resolveOrg()
   if (!userId) throw new Error("Unauthenticated")
   const orgKey = orgId ?? userId
 
@@ -134,7 +134,7 @@ export async function createProjectWithMode(name: string, mode: "support" | "tok
 
 export async function renameOrg(name: string) {
   await requireCapability("settings")
-  const { orgId, userId } = await auth()
+  const { orgId, userId } = await resolveOrg()
   if (!userId) throw new Error("Unauthenticated")
   const orgKey = orgId ?? userId
 
@@ -155,7 +155,7 @@ export async function renameOrg(name: string) {
 
 export async function renameProject(projectId: string, name: string) {
   await requireCapability("settings")
-  const { orgId, userId } = await auth()
+  const { orgId, userId } = await resolveOrg()
   if (!userId) throw new Error("Unauthenticated")
   const orgKey = orgId ?? userId
 
@@ -187,7 +187,7 @@ export async function updateConfig(
   partial: Partial<ProjectConfig>
 ) {
   await requireCapability("settings")
-  const { orgId, userId } = await auth()
+  const { orgId, userId } = await resolveOrg()
   if (!userId) throw new Error("Unauthenticated")
   const orgKey = orgId ?? userId
 
@@ -274,7 +274,7 @@ export async function updateConfig(
 
 export async function confirmPreview(projectId: string) {
   await requireCapability("settings")
-  const { orgId, userId } = await auth()
+  const { orgId, userId } = await resolveOrg()
   if (!userId) throw new Error("Unauthenticated")
   const orgKey = orgId ?? userId
 
@@ -313,7 +313,7 @@ export async function confirmPreview(projectId: string) {
 
 export async function toggleActive(projectId: string, isActive: boolean) {
   await requireCapability("settings")
-  const { orgId, userId } = await auth()
+  const { orgId, userId } = await resolveOrg()
   if (!userId) throw new Error("Unauthenticated")
   const orgKey = orgId ?? userId
 

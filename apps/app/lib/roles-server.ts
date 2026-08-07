@@ -1,4 +1,4 @@
-import { auth } from "@clerk/nextjs/server"
+import { resolveOrg } from "@/lib/clerk-org"
 import { createServiceClient } from "@/lib/supabase/server"
 import {
   DEFAULT_ROLE,
@@ -31,7 +31,7 @@ export interface Actor {
  * Returns null only when there is no session at all.
  */
 export async function currentActor(): Promise<Actor | null> {
-  const { userId, orgId } = await auth()
+  const { userId, orgId } = await resolveOrg()
   if (!userId) return null
   const orgKey = orgId ?? userId
 

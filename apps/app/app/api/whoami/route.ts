@@ -1,4 +1,5 @@
 import { auth } from "@clerk/nextjs/server"
+import { resolveOrg } from "@/lib/clerk-org"
 import { createServiceClient } from "@/lib/supabase/server"
 import { isCurrentUserAdmin } from "@/lib/admin-auth"
 
@@ -27,7 +28,8 @@ export async function GET() {
     })
   }
 
-  const { userId, orgId, orgSlug, orgRole, sessionClaims } = await auth()
+  const { userId, orgId, orgSlug, orgRole } = await resolveOrg()
+  const { sessionClaims } = await auth()
   const orgKey = orgId ?? userId
   const supabase = createServiceClient()
 

@@ -5,10 +5,11 @@ import { requireCapability, rolesForOrg, currentActor } from "@/lib/roles-server
 import { createServiceClient } from "@/lib/supabase/server"
 import { recordAudit } from "@/lib/audit"
 import { revalidatePath } from "next/cache"
-import { auth, clerkClient } from "@clerk/nextjs/server"
+import { clerkClient } from "@clerk/nextjs/server"
+import { resolveOrg } from "@/lib/clerk-org"
 
 export async function getTeamMembers() {
-  const { orgId } = await auth()
+  const { orgId } = await resolveOrg()
   if (!orgId) return { members: [], pending: [] }
 
   const clerk = await clerkClient()
@@ -50,7 +51,7 @@ export async function getTeamMembers() {
 
 export async function inviteTeamMember(formData: FormData) {
   await requireCapability("team")
-  const { userId, orgId } = await auth()
+  const { userId, orgId } = await resolveOrg()
   if (!userId || !orgId) throw new Error("Unauthenticated")
 
   const email = (formData.get("email") as string | null)?.trim()
@@ -77,7 +78,7 @@ export async function inviteTeamMember(formData: FormData) {
 
 export async function revokeInvitation(invitationId: string) {
   await requireCapability("team")
-  const { userId, orgId } = await auth()
+  const { userId, orgId } = await resolveOrg()
   if (!userId || !orgId) throw new Error("Unauthenticated")
 
   const clerk = await clerkClient()
@@ -111,7 +112,7 @@ export async function setMemberRole(clerkUserId: string, role: Role): Promise<vo
   // count has to consider members with no row, which is why it is computed
   // from the Clerk member list rather than from this table alone.
   if (role !== "admin") {
-    const { orgId: clerkOrgId } = await auth()
+    const { orgId: clerkOrgId } = await resolveOrg()
     if (clerkOrgId) {
       const clerk = await clerkClient()
       const list = await clerk.organizations.getOrganizationMembershipList({ organizationId: clerkOrgId })
@@ -166,7 +167,7 @@ export async function removeMember(clerkUserId: string): Promise<void> {
     throw new Error("You cannot remove yourself. Ask another Admin.")
   }
 
-  const { orgId } = await auth()
+  const { orgId } = await resolveOrg()
   if (!orgId) throw new Error("No organisation")
 
   // Refuse to remove the last Admin, for the same reason a demotion is

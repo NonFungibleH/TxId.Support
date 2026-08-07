@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation"
-import { auth } from "@clerk/nextjs/server"
+import { resolveOrg } from "@/lib/clerk-org"
 import { OrgSyncGuard } from "@/components/dashboard/OrgSyncGuard"
 import { MobileShell } from "@/components/dashboard/MobileShell"
 import { getProject } from "@/lib/actions/project"
@@ -16,7 +16,7 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode
 }) {
-  const { orgId } = await auth()
+  const { orgId } = await resolveOrg()
   const { org, project } = await getProject()
 
   if (!project) redirect("/onboarding")

@@ -4,7 +4,7 @@ import { requireCapability } from "@/lib/roles-server"
 
 import { revalidatePath } from "next/cache"
 import { createServiceClient } from "@/lib/supabase/server"
-import { auth } from "@clerk/nextjs/server"
+import { resolveOrg } from "@/lib/clerk-org"
 import type { ProjectConfig } from "@/lib/types/config"
 import { telegramBotName } from "@/lib/telegram-name"
 import type { Database, Json } from "@/lib/supabase/types"
@@ -18,7 +18,7 @@ type ResolvedProject = Pick<ProjectRow, "id" | "config" | "org_id"> & {
 }
 
 async function resolveProjectWithOwnership(projectId: string): Promise<ResolvedProject> {
-  const { orgId, userId } = await auth()
+  const { orgId, userId } = await resolveOrg()
   if (!userId) throw new Error("Unauthenticated")
   const orgKey = orgId ?? userId
 

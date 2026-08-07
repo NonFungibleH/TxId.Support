@@ -2,7 +2,7 @@
 
 import { requireCapability } from "@/lib/roles-server"
 
-import { auth } from "@clerk/nextjs/server"
+import { resolveOrg } from "@/lib/clerk-org"
 import { createServiceClient } from "@/lib/supabase/server"
 import { nanoid } from "nanoid"
 import { revalidatePath } from "next/cache"
@@ -52,7 +52,7 @@ async function fetchAptosAbiJson(address: string, moduleName?: string): Promise<
 async function resolveProjectWithOwnership(
   projectId: string
 ): Promise<Pick<ProjectRow, "id" | "config" | "org_id">> {
-  const { orgId, userId } = await auth()
+  const { orgId, userId } = await resolveOrg()
   if (!userId) throw new Error("Unauthenticated")
   const orgKey = orgId ?? userId
 
