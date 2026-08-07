@@ -169,17 +169,27 @@ export default async function ConversationsPage({
     const shown = conversations as any[]
     const wallets = [...new Set(shown.map(c => c.wallet_address).filter(Boolean).map((w: string) => w.toLowerCase()))]
 
+    // BOUNDED. The first version of this read EVERY conversation in the
+    // project on every page load to work out who was returning, which is a
+    // full scan that grows with the customer and would have made the busiest
+    // accounts the slowest. Only the most recent window is needed: linking a
+    // conversation to one from a year ago is not what a support agent is doing.
+    const LINK_WINDOW = 2000
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const withVisitor = await (supabase as any)
       .from("conversations")
       .select("id, wallet_address, visitor_id, created_at")
       .eq("project_id", typedProject.id)
+      .order("created_at", { ascending: false })
+      .limit(LINK_WINDOW)
     const universe = withVisitor.error
       // No visitor_id column yet: wallet linking still works on its own.
       ? (await supabase
           .from("conversations")
           .select("id, wallet_address, created_at")
-          .eq("project_id", typedProject.id)).data ?? []
+          .eq("project_id", typedProject.id)
+          .order("created_at", { ascending: false })
+          .limit(LINK_WINDOW)).data ?? []
       : withVisitor.data ?? []
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

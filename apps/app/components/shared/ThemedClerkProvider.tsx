@@ -76,7 +76,7 @@ export function ThemedClerkProvider({ children }: { children: React.ReactNode })
   const { resolvedTheme } = useTheme()
   return (
     <ClerkProvider
-      afterSignInUrl="/dashboard"
+      signInFallbackRedirectUrl="/dashboard"
       afterSignUpUrl="/onboarding"
       appearance={resolvedTheme === "light" ? LIGHT_APPEARANCE : DARK_APPEARANCE}
     >
