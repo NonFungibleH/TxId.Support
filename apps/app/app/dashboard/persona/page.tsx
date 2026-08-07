@@ -2,7 +2,6 @@ import { getProject } from "@/lib/actions/project"
 import { redirect } from "next/navigation"
 import { BrandingPageClient } from "@/components/settings/BrandingPageClient"
 import { SuggestedQuestionsEditor } from "@/components/settings/SuggestedQuestionsEditor"
-import { BetaProgrammeForm } from "@/components/settings/BetaProgrammeForm"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import type { ProjectConfig } from "@/lib/types/config"
 import type { Database } from "@/lib/supabase/types"
@@ -58,23 +57,6 @@ export default async function PersonaPage() {
           </CardContent>
         </Card>
 
-        {/* ITS OWN CARD, not nested under Suggested questions. It was nested,
-            and a master switch under someone else's heading is a switch nobody
-            finds. It sits next to the starter questions because they are the
-            same conversation, what a tester is greeted with and what they are
-            offered, but adjacency is not the same as being inside. */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Beta programme</CardTitle>
-            <CardDescription>
-              Run the assistant for testers rather than customers. It keeps everything it already
-              does and adds an introduction on arrival plus a way to leave feedback.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <BetaProgrammeForm initial={config.beta} />
-          </CardContent>
-        </Card>
       </BrandingPageClient>
     </div>
   )

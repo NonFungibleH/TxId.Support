@@ -351,6 +351,7 @@ Never read `projects` without verifying org membership first.
 ### Dashboard routes
 - `/dashboard/contracts` — watched contracts, ABI/IDL upload, error glossary
 - `/dashboard/branding` — widget APPEARANCE only: colours, font, logo, positioning, language
+- `/dashboard/beta` — beta programme: readiness checklist, the switches, and the findings testers recorded
 - `/dashboard/persona` — how the assistant SPEAKS: tone, custom tone of voice, agent name/avatar, opening message, disclaimer, plus suggested questions (moved off Content)
 - `/dashboard/conversations` — conversation history (includes Telegram sessions, prefixed `tg-{chatId}`)
 - `/dashboard/docs` — documentation ingest for RAG
@@ -625,7 +626,9 @@ Every named thing an answer rested on, as a typed list (`EvidenceSource` in `pac
 Suggested questions moved off `/dashboard/content`: they are what the assistant OFFERS to say, which belongs with how it speaks, not with the widget's content tab.
 
 ### Beta programme (`config.beta`)
-Running the assistant for TESTERS rather than customers. `/dashboard/persona`, under Suggested questions. Off by default.
+Running the assistant for TESTERS rather than customers. **Its own page at `/dashboard/beta`**, its own sidebar item under Setup. Off by default.
+
+It started as a toggle at the bottom of the Persona page and that was wrong: the capability was never a workaround (it layers exactly like `incident`), but a master switch under somebody else's heading reads as one, and nobody finds it. The page is ordered as the SETUP ITSELF, readiness first, because the failure that would actually embarrass a protocol is an assistant that opens itself in a tester's face and has nothing indexed to answer from.
 
 **NOT A MODE, and the interface never calls it one.** `projectMode` values REPLACE each other, so a beta mode would swap out support mode and take the transaction diagnosis with it, which is the most valuable thing a tester can be given. It layers on top, exactly like `incident` and `subaccounts`.
 
