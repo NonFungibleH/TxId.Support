@@ -507,11 +507,46 @@ export async function executeTool(
         return aptosTxs ?? { error: APTOS_LOOKUP_FAILED }
       }
 
-      let txs = await getRecentTransactions(wallet.address, wallet.chainId, limit)
-      if (programOrContract) {
-        txs = txs.filter(tx => tx.to?.toLowerCase() === programOrContract.toLowerCase())
+      // EVM. THE CONTRACT FILTER USED TO MANUFACTURE FALSE NEGATIVES, twice
+      // over, and the result was the assistant telling an active trader they
+      // had never traded:
+      //
+      // 1. It fetched the wallet's last `limit` (10) transactions and THEN
+      //    filtered to the contract. Anything the wallet did since, an
+      //    approval, a transfer, another dApp, pushed the interaction out of
+      //    the window, so the filter returned nothing and nothing meant never.
+      //    The fetch window is now widened when a filter is in play.
+      //
+      // 2. `to === contract` is the wrong test for a DEX. A swap goes to the
+      //    ROUTER, so filtering on a pool, factory or quoter address never
+      //    matches, and neither does a trade routed through an aggregator or a
+      //    different router version.
+      //
+      // So an empty filter result is no longer returned as an empty history.
+      // The unfiltered window is returned instead, with the distinction stated,
+      // and the model is told absence here is not proof of absence. Same
+      // principle the Aptos path already applies: never let a lookup that did
+      // not find something be reported as the thing not existing.
+      const window = programOrContract ? Math.min(Math.max(limit * 5, 50), 100) : limit
+      const txs = await getRecentTransactions(wallet.address, wallet.chainId, window)
+      if (!programOrContract) return txs
+
+      const target = programOrContract.toLowerCase()
+      const matched = txs.filter(tx => tx.to?.toLowerCase() === target)
+      if (matched.length > 0) {
+        return {
+          transactions: matched.slice(0, limit),
+          filteredTo: programOrContract,
+          scanned: txs.length,
+          note: "Matched on the transaction's direct recipient. A swap routed through an aggregator or a different router version would NOT appear here even though it reached the protocol, so this list is a floor, not a complete record.",
+        }
       }
-      return txs
+      return {
+        transactions: txs.slice(0, limit),
+        filteredTo: null,
+        scanned: txs.length,
+        note: `None of this wallet's last ${txs.length} transactions was sent DIRECTLY to ${programOrContract}, so the unfiltered history is returned instead. Do NOT tell the user they have no activity with this protocol. A swap reaches a DEX through a router, so it is sent to the router rather than to a pool or factory address, and a trade made through an aggregator or a newer router version will never match this address. Indexing also lags the chain by a few minutes, so a very recent transaction may not be here yet. Say what you actually checked and offer to look up a specific transaction hash.`,
+      }
     }
 
     case "get_wallet_approvals": {

@@ -37,6 +37,31 @@ function digitsOf(s: string): string {
 }
 
 /**
+ * Words that turn the number after them into a RECOMMENDATION rather than a
+ * reading.
+ *
+ * WHY THIS MATTERS ENOUGH TO EXIST: "increase the gas limit to at least
+ * 200,000" is good support, and 200,000 is untraceable BY DEFINITION, because
+ * it is a value the user has not set yet. Nothing on chain can contain it. The
+ * checker flagged it, so a correct diagnosis of a failed transaction ended with
+ * "I could not trace one figure above to a live reading", which reads as doubt
+ * about the diagnosis itself.
+ *
+ * The guardrail is for a confident specific wrong number about the user's own
+ * POSITION. A figure the answer tells the user to go and set is a different
+ * kind of number, and treating them alike is what makes the signal noise.
+ *
+ * Deliberately narrow: only imperative, forward-looking cues. Hedges like
+ * "about" and "roughly" are NOT here, because "your balance is about 4,812" is
+ * still a reported value and still has to be traceable.
+ */
+const SUGGESTION_CUE =
+  /\b(?:increase|increasing|raise|raising|set|setting|bump|adjust|change|retry with|resubmit with|use|using|try|at least|no less than|minimum(?: of)?|recommend(?:ed|s)?|suggest(?:ed|s)?|up to)\b[^.!?]{0,40}$/i
+
+/** How much text before the figure is inspected for a cue. */
+const CUE_WINDOW = 60
+
+/**
  * Does this figure appear in anything we actually read?
  *
  * Substring rather than equality on purpose: the model is SUPPOSED to format
@@ -77,6 +102,12 @@ export function unverifiedNumbers(
     const digits = digitsOf(raw)
     if (!digits || isUninteresting(digits, raw)) continue
     if (already.has(digits)) continue
+    // A value the answer tells the user to GO AND SET cannot be traced to a
+    // reading, because it does not exist yet. Checked before `already` is
+    // marked, so the same figure asserted as fact later in the answer is
+    // still caught.
+    const before = answer.slice(Math.max(0, (m.index ?? 0) - CUE_WINDOW), m.index ?? 0)
+    if (SUGGESTION_CUE.test(before)) continue
     already.add(digits)
     if (!traceable(digits, seenFromTools, corpus)) {
       out.push(raw)

@@ -375,12 +375,19 @@
       btn.setAttribute("aria-label", "Open support chat");
       return;
     }
-    // Grow the frame to fit the chosen text scale so larger fonts don't clip.
+    // Size the frame. The scale carries BOTH the text scale (so larger fonts
+    // don't clip) and the panel-size setting, already multiplied inside the
+    // widget. Ceiling is 1.8 because xl text (1.25) x xl panel (1.38) is 1.725;
+    // the CSS max-height still caps the result against the viewport.
     if (e.data && e.data.type === "txid-resize" && typeof e.data.scale === "number") {
-      var s = Math.max(0.8, Math.min(1.5, e.data.scale));
+      var s = Math.max(0.8, Math.min(1.8, e.data.scale));
       // Only widen on desktop; mobile is already a full-width sheet.
       if (window.innerWidth > 440) {
-        wrap.style.width = Math.round(BASE_W * s) + "px";
+        // Height is capped in CSS against the viewport, width is not, so cap
+        // it here: an xl panel in a half-width browser window would otherwise
+        // run off the side of the page it is a guest on.
+        var maxW = window.innerWidth - 48;
+        wrap.style.width = Math.min(Math.round(BASE_W * s), maxW) + "px";
         wrap.style.height = Math.round(BASE_H * s) + "px";
         // Re-anchor to the launcher if the user has dragged it.
         if (open) positionPanel();

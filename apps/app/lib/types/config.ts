@@ -134,6 +134,34 @@ export type FontScale = (typeof FONT_SCALES)[number]
 export const FONT_SCALE_VALUE: Record<FontScale, number> = { sm: 0.9, md: 1.0, lg: 1.12, xl: 1.25 }
 export const FONT_SCALE_LABEL: Record<FontScale, string> = { sm: "Small", md: "Default", lg: "Large", xl: "Extra large" }
 
+/**
+ * How big the floating PANEL is, independent of how big the TEXT is.
+ *
+ * WHY BOTH EXIST: font scale zooms the widget's contents, so a bigger font on
+ * the same 380x560 frame just means less fits. This resizes the frame itself
+ * and leaves the text alone. The two multiply, because a larger font in a
+ * larger panel is a legitimate combination.
+ *
+ * THE DEFAULT IS "large", NOT "standard". The embed's base 380x560 was chosen
+ * for a floating helper on a marketing page; on a dense full-bleed trading
+ * interface at 1920px it reads as a phone stuck to the corner. "standard" is
+ * kept so anyone who wants the old size can ask for it, but nobody should have
+ * to find a setting to stop the widget looking like an afterthought.
+ *
+ * Desktop only. Below 440px the panel is already a full-width bottom sheet, and
+ * the embed ignores resize messages there.
+ */
+export const WIDGET_SIZES = ["standard", "large", "xl"] as const
+export type WidgetSize = (typeof WIDGET_SIZES)[number]
+export const DEFAULT_WIDGET_SIZE: WidgetSize = "large"
+/** Multiplier on the embed's base 380x560. "standard" is a no-op. */
+export const WIDGET_SIZE_VALUE: Record<WidgetSize, number> = { standard: 1.0, large: 1.18, xl: 1.38 }
+export const WIDGET_SIZE_LABEL: Record<WidgetSize, { name: string; dims: string }> = {
+  standard: { name: "Standard", dims: "380 x 560" },
+  large:    { name: "Large",    dims: "448 x 661" },
+  xl:       { name: "Extra large", dims: "524 x 773" },
+}
+
 export interface BrandingConfig {
   primaryColor: string
   secondaryColor: string
@@ -157,6 +185,9 @@ export interface BrandingConfig {
   welcomeMessage?: string | null
   language?: string | null
   fontScale?: FontScale
+  // Size of the floating panel itself, NOT of its text. Undefined = "standard",
+  // so every existing embed is unchanged.
+  widgetSize?: WidgetSize
   // Hide the wallet-connect pill in the widget header. For deployments where
   // wallet context adds nothing (e.g. a product's own support bot answering
   // docs questions). Undefined = shown (backward-compatible default).

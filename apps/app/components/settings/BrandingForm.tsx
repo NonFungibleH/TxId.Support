@@ -11,7 +11,7 @@ import { ColorPicker } from "./ColorPicker"
 import { updateConfig } from "@/lib/actions/project"
 import { fetchBrandColors } from "@/lib/actions/brand"
 import type { BrandingConfig } from "@/lib/types/config"
-import { SUPPORTED_FONTS, PERSONAS, PERSONA_LABELS, FONT_SCALES, FONT_SCALE_LABEL, autoInputTextColor, DEFAULT_DISCLAIMER } from "@/lib/types/config"
+import { SUPPORTED_FONTS, PERSONAS, PERSONA_LABELS, FONT_SCALES, FONT_SCALE_LABEL, WIDGET_SIZES, WIDGET_SIZE_LABEL, DEFAULT_WIDGET_SIZE, autoInputTextColor, DEFAULT_DISCLAIMER } from "@/lib/types/config"
 
 type ColorPreset = Pick<BrandingConfig, "primaryColor" | "secondaryColor" | "backgroundColor" | "textColor">
 const PRESETS: Array<{ name: string } & ColorPreset> = [
@@ -258,7 +258,28 @@ export function BrandingForm({ projectId, initial, section, onBrandingChange }: 
                 ))}
               </SelectContent>
             </Select>
-            <p className="text-xs text-muted-foreground">Scales the whole widget so it fits your site. Larger sizes grow the widget too.</p>
+            <p className="text-xs text-muted-foreground">Zooms the widget&apos;s contents. The panel grows to match so nothing is squeezed.</p>
+          </div>
+          <div className="space-y-2">
+            <h3 className="text-sm font-medium">Panel size</h3>
+            <Select value={branding.widgetSize ?? DEFAULT_WIDGET_SIZE} onValueChange={v => update("widgetSize", v as BrandingConfig["widgetSize"])}>
+              <SelectTrigger>
+                <SelectValue>{WIDGET_SIZE_LABEL[branding.widgetSize ?? DEFAULT_WIDGET_SIZE].name}</SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {WIDGET_SIZES.map(s => (
+                  <SelectItem key={s} value={s}>
+                    {WIDGET_SIZE_LABEL[s].name}
+                    <span className="ml-2 font-mono text-[10px] text-muted-foreground">{WIDGET_SIZE_LABEL[s].dims}</span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              How much room the panel takes, without changing the text size. The standard panel can
+              look small beside a dense full-width app. Desktop only: on phones it is already a
+              full-width sheet.
+            </p>
           </div>
           <div className="space-y-2">
             <h3 className="text-sm font-medium">Wallet connect</h3>

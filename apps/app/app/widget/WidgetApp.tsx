@@ -91,9 +91,15 @@ interface BrandingConfig {
   agentIconUrl?: string | null
   fontScale?: "sm" | "md" | "lg" | "xl"
   hideWallet?: boolean
+  widgetSize?: string
 }
 
 const FONT_SCALE_VALUE: Record<string, number> = { sm: 0.9, md: 1.0, lg: 1.12, xl: 1.25 }
+/** Kept in sync with WIDGET_SIZE_VALUE in lib/types/config.ts by hand: this
+ *  file is the public widget bundle and does not import from the dashboard. */
+const WIDGET_SIZE_VALUE: Record<string, number> = { standard: 1.0, large: 1.18, xl: 1.38 }
+/** Default is "large": the base 380x560 reads as small on a dense desktop app. */
+const DEFAULT_WIDGET_SIZE = "large"
 
 interface WatchedContract {
   id: string
@@ -915,10 +921,18 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
       .catch(() => setConfigError("Failed to load widget config"))
   }, [apiKey, isPreview, previewToken])
 
-  // ── Ask the embed (widget.js) to grow the iframe to fit the chosen text
-  // scale, so a larger font doesn't clip inside the fixed 380×560 frame. ──────
+  // ── Ask the embed (widget.js) to size the iframe. ───────────────────────────
+  // TWO INDEPENDENT FACTORS, MULTIPLIED:
+  //   fontScale  grows the CONTENTS, so the frame must grow too or a larger
+  //              font simply means less fits inside the same 380x560.
+  //   widgetSize grows the FRAME ONLY, for protocols whose page makes the
+  //              default panel look small. The text stays where it was.
+  // Only fontScale feeds the in-widget zoom below; widgetSize must never reach
+  // it, or "bigger panel" would silently also mean "bigger text".
   useEffect(() => {
-    const scale = FONT_SCALE_VALUE[config?.branding?.fontScale ?? "md"] ?? 1
+    const scale =
+      (FONT_SCALE_VALUE[config?.branding?.fontScale ?? "md"] ?? 1) *
+      (WIDGET_SIZE_VALUE[config?.branding?.widgetSize ?? DEFAULT_WIDGET_SIZE] ?? 1)
     if (scale !== 1 && typeof window !== "undefined" && window.parent !== window) {
       window.parent.postMessage({ type: "txid-resize", scale }, "*")
     }
