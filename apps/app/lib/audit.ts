@@ -46,6 +46,65 @@ function scrub(metadata: Record<string, unknown> | undefined): Record<string, un
   return out
 }
 
+/**
+ * What a value LOOKED like, for the log, in one short readable string.
+ *
+ * WHY THIS EXISTS: the log used to record only which keys changed, so four
+ * saves of the same switch produced four identical rows reading "docsSync,
+ * docsSync" and an auditor could not tell whether it had been turned on or
+ * off, or what it had been before. A change history that cannot answer "what
+ * did they actually do" is decoration.
+ *
+ * Never the value of a credential. A secret's presence is auditable, its
+ * content is not, and that rule is what makes this table safe to show a
+ * reviewer.
+ */
+export function describeValue(key: string, v: unknown): string {
+  if (FORBIDDEN.test(key)) return v === null || v === undefined || v === "" ? "cleared" : "set"
+  if (v === null || v === undefined) return "not set"
+  if (typeof v === "boolean") return v ? "on" : "off"
+  if (typeof v === "number") return String(v)
+  if (typeof v === "string") return v === "" ? "empty" : v.length > 80 ? `${v.slice(0, 80)}…` : v
+  if (Array.isArray(v)) return `${v.length} item${v.length === 1 ? "" : "s"}`
+  if (typeof v === "object") {
+    // Objects are configuration blocks (branding, integrations, beta). Naming
+    // the keys inside says more than "object" and stays short.
+    const keys = Object.keys(v as Record<string, unknown>)
+    return keys.length ? `{ ${keys.slice(0, 6).join(", ")}${keys.length > 6 ? ", …" : ""} }` : "empty"
+  }
+  return String(v)
+}
+
+/** One field's before and after, as the log stores it. */
+export interface FieldChange { field: string; from: string; to: string }
+
+/**
+ * Compare a config patch against what is already stored.
+ *
+ * Returns ONLY fields whose value actually moved. Debounced forms re-save the
+ * same object on every keystroke, which is why the history filled with
+ * identical rows seconds apart. A save that changed nothing is not a change,
+ * and recording it buries the ones that were.
+ */
+export function diffConfig(
+  before: Record<string, unknown>,
+  patch: Record<string, unknown>,
+): FieldChange[] {
+  const out: FieldChange[] = []
+  for (const key of Object.keys(patch)) {
+    const a = before?.[key]
+    const b = patch[key]
+    try {
+      if (JSON.stringify(a) === JSON.stringify(b)) continue
+    } catch {
+      // Unserialisable (a cycle): treat as changed rather than dropping it.
+    }
+    out.push({ field: key, from: describeValue(key, a), to: describeValue(key, b) })
+  }
+  return out
+}
+
+
 export async function recordAudit(entry: AuditEntry): Promise<void> {
   try {
     // NOTE: Clerk's orgId is a Clerk string id, not our internal organisations

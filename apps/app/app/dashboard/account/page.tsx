@@ -85,9 +85,15 @@ export default async function AccountPage() {
           <div className="flex items-center justify-between">
             <div>
               <CardTitle className="flex items-center gap-2">
-                <span className={cn("rounded-full px-2.5 py-0.5 text-xs font-semibold", PLAN_COLOR[plan])}>
-                  {PLAN_LABELS[plan]}
-                </span>
+                {/* The demo plan is hand-provisioned for our own and early
+                    accounts, so naming it tells the reader nothing about their
+                    account and reads as a label someone forgot to remove. Same
+                    rule as the sidebar badge. */}
+                {plan !== "demo" && (
+                  <span className={cn("rounded-full px-2.5 py-0.5 text-xs font-semibold", PLAN_COLOR[plan])}>
+                    {PLAN_LABELS[plan]}
+                  </span>
+                )}
                 Plan
               </CardTitle>
               <CardDescription className="mt-1">
@@ -196,7 +202,9 @@ export default async function AccountPage() {
           {isPaid ? (
             <div className="space-y-3">
               <p className="text-sm text-muted-foreground">
-                You&apos;re on the <strong>{PLAN_LABELS[plan]}</strong> plan.
+                {plan === "demo"
+                  ? "Your account is provisioned directly by us."
+                  : <>You&apos;re on the <strong>{PLAN_LABELS[plan]}</strong> plan.</>}
                 {isStripeConfigured()
                   ? " Update your card, view invoices, or cancel any time."
                   : " Contact us for any billing queries."}

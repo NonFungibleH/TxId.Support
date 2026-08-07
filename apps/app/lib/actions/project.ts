@@ -7,7 +7,7 @@ import { createServiceClient } from "@/lib/supabase/server"
 import type { ProjectConfig } from "@/lib/types/config"
 import { DEFAULT_CONFIG } from "@/lib/types/config"
 import { revalidatePath } from "next/cache"
-import { recordAudit } from "@/lib/audit"
+import { recordAudit, diffConfig } from "@/lib/audit"
 import type { Database, Json } from "@/lib/supabase/types"
 
 type OrgRow = Database["public"]["Tables"]["organisations"]["Row"]
@@ -257,15 +257,31 @@ export async function updateConfig(
 
   // One hook covers every configuration change, because every one of them
   // funnels through here: branding, integrations, contracts, chains, actions,
-  // sub accounts. Only the KEYS are recorded, never the values, so a saved
-  // Jira token cannot end up in the log meant to reassure people about it.
-  void recordAudit({
-    action: "config.updated",
-    target: Object.keys(resolvedPartial).join(", ") || "config",
-    projectId,
-    orgId: org.id,
-    metadata: { fields: Object.keys(resolvedPartial) },
-  })
+  // sub accounts.
+  //
+  // WHAT CHANGED, not merely WHICH KEY. This used to record the key names
+  // alone, so the history read "docsSync, docsSync" and could not tell an
+  // auditor whether the switch had been turned on or off, or what it was
+  // before. Values of credential-shaped keys are still never recorded: a
+  // secret's presence is auditable, its content is not, and that is what makes
+  // this table safe to show a reviewer.
+  //
+  // A save that moved nothing is not recorded at all. Debounced forms re-save
+  // the same object on every keystroke, which is why four identical rows
+  // appeared seconds apart and buried the changes that were real.
+  const changes = diffConfig(
+    (current.config ?? {}) as Record<string, unknown>,
+    resolvedPartial as Record<string, unknown>,
+  )
+  if (changes.length > 0) {
+    void recordAudit({
+      action: "config.updated",
+      target: changes.map(c => c.field).join(", "),
+      projectId,
+      orgId: org.id,
+      metadata: { fields: changes.map(c => c.field), changes },
+    })
+  }
 
   revalidatePath("/dashboard")
   revalidatePath("/dashboard/branding")
@@ -317,7 +333,31 @@ export async function confirmPreview(projectId: string) {
   revalidatePath("/dashboard/preview")
 }
 
-export async function toggleActive(projectId: string, isActive: boolean) {
+/**
+ * What a server action says when the user did something we expected them to do
+ * wrong. RETURNED, never thrown.
+ *
+ * WHY: Next.js redacts a thrown Error in production and hands the client a
+ * generic 500, so "Add the domain your widget will be installed on" reached the
+ * user as an unexplained failure and a red line in the console. The message was
+ * carefully written and structurally unable to arrive. Anything the user can
+ * fix must come back as a value.
+ *
+ * Throwing is still right for the unexpected: not signed in, no organisation,
+ * a database that refused. Those are ours to fix, not theirs to read.
+ */
+export interface ActionRefusal {
+  ok: false
+  /** Plain sentence naming the cause, shown to the user verbatim. */
+  reason: string
+  /** Where to go and fix it, when there is such a place. */
+  fix?: { label: string; href: string }
+}
+
+export async function toggleActive(
+  projectId: string,
+  isActive: boolean,
+): Promise<{ ok: true } | ActionRefusal> {
   await requireCapability("settings")
   const { orgId, userId } = await resolveOrg()
   if (!userId) throw new Error("Unauthenticated")
@@ -353,10 +393,14 @@ export async function toggleActive(projectId: string, isActive: boolean) {
     const domains = cfg?.allowedDomains ?? []
     const openByChoice = cfg?.allowUnrestrictedKey === true
     if (domains.length === 0 && cfg?.publicDemo !== true && !openByChoice) {
-      throw new Error(
-        "Add the domain your widget will be installed on before going live. " +
-        "Embed and Go Live > Allowed domains.",
-      )
+      return {
+        ok: false,
+        reason:
+          "Your widget is not restricted to a domain yet. Because your publishable key is " +
+          "visible in your page source, going live without one means anyone who copies it " +
+          "can run the assistant from their own site, at your cost.",
+        fix: { label: "Add your domain", href: "/dashboard/embed" },
+      }
     }
   }
 
@@ -377,4 +421,6 @@ export async function toggleActive(projectId: string, isActive: boolean) {
   })
 
   revalidatePath("/dashboard")
+
+  return { ok: true }
 }

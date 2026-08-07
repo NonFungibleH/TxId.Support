@@ -195,7 +195,7 @@ export default async function DashboardPage() {
         <StatsCard title="Conversations" value={convResult.count ?? 0} description="All time" icon={MessageSquare} />
         <StatsCard title="Connected wallets" value={uniqueWallets} description="Unique addresses" icon={Users} />
         <StatsCard title="Knowledge base" value={docCount} description="Indexed chunks" icon={Globe} />
-        <StatsCard title="Chains enabled" value={activeChains.length} description={`of ${chainLimitLabel} on ${PLAN_LABELS[plan]}`} icon={Zap} />
+        <StatsCard title="Chains enabled" value={activeChains.length} description={plan === "demo" ? `of ${chainLimitLabel}` : `of ${chainLimitLabel} on ${PLAN_LABELS[plan]}`} icon={Zap} />
       </div>
 
       {/* Plan usage toward the monthly ceiling - always visible (both free and
@@ -206,7 +206,7 @@ export default async function DashboardPage() {
           <div>
             <p className="text-sm font-medium">Conversations this month</p>
             <p className="text-xs text-muted-foreground mt-0.5">
-              {PLAN_LABELS[plan]} plan{convLimitLabel ? ` · ${convLimitLabel} included / month` : ""}
+              {plan === "demo" ? "" : `${PLAN_LABELS[plan]} plan`}{convLimitLabel ? `${plan === "demo" ? "" : " · "}${convLimitLabel} included / month` : ""}
             </p>
           </div>
           <span className="text-sm tabular-nums">
@@ -242,7 +242,7 @@ export default async function DashboardPage() {
             </div>
           </>
         ) : (
-          <p className="text-xs text-muted-foreground">Unlimited conversations on your {PLAN_LABELS[plan]} plan.</p>
+          <p className="text-xs text-muted-foreground">{plan === "demo" ? "Unlimited conversations on your account." : `Unlimited conversations on your ${PLAN_LABELS[plan]} plan.`}</p>
         )}
       </div>
 

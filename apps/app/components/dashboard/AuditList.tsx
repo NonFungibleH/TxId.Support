@@ -1,6 +1,13 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { History } from "lucide-react"
-import type { AuditRow } from "@/lib/audit"
+import type { AuditRow, FieldChange } from "@/lib/audit"
+
+/** Config keys are camelCase in storage and unreadable in a log. */
+function fieldLabel(f: string): string {
+  return f
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .replace(/^./, c => c.toUpperCase())
+}
 
 /** Dotted verbs read badly in a table. Say what happened instead. */
 const ACTION_LABEL: Record<string, string> = {
@@ -37,9 +44,9 @@ export function AuditList({ rows }: { rows: AuditRow[] }) {
           <CardTitle className="text-base">Change history</CardTitle>
         </div>
         <p className="text-xs text-muted-foreground">
-          Every configuration change, with who made it. Append-only: these entries cannot be
-          edited or deleted, including by us. Credential values are never recorded, only the
-          fact that one changed.
+          Every configuration change, with who made it and what it was before. Append-only:
+          these entries cannot be edited or deleted, including by us. Credential values are
+          never recorded, only the fact that one was set or cleared.
         </p>
       </CardHeader>
       <CardContent>
@@ -50,8 +57,17 @@ export function AuditList({ rows }: { rows: AuditRow[] }) {
         ) : (
           <ul className="space-y-2">
             {rows.map(row => {
-              const fields = Array.isArray(row.metadata.fields)
-                ? (row.metadata.fields as unknown[]).filter(f => typeof f === "string")
+              // Rows written before the before/after change still carry only
+              // key names. Render whichever the row actually has rather than
+              // showing a blank line for the older ones.
+              const changes = (Array.isArray(row.metadata.changes)
+                ? (row.metadata.changes as unknown[]).filter(
+                    (c): c is FieldChange =>
+                      !!c && typeof c === "object" && typeof (c as FieldChange).field === "string",
+                  )
+                : [])
+              const fields = changes.length === 0 && Array.isArray(row.metadata.fields)
+                ? (row.metadata.fields as unknown[]).filter((f): f is string => typeof f === "string")
                 : []
               return (
                 <li
@@ -59,14 +75,20 @@ export function AuditList({ rows }: { rows: AuditRow[] }) {
                   className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 rounded-lg border border-border bg-muted/30 px-3 py-2"
                 >
                   <div className="min-w-0 space-y-0.5">
-                    <p className="text-xs font-medium">
-                      {label(row.action)}
-                      {row.target && (
-                        <span className="ml-1.5 font-normal text-muted-foreground">
-                          {row.target}
-                        </span>
-                      )}
-                    </p>
+                    <p className="text-xs font-medium">{label(row.action)}</p>
+                    {changes.length > 0 && (
+                      <ul className="space-y-0.5">
+                        {changes.map((c, i) => (
+                          <li key={`${c.field}-${i}`} className="text-[11px] text-muted-foreground">
+                            <span className="font-medium text-foreground">{fieldLabel(c.field)}</span>
+                            {": "}
+                            <span className="font-mono line-through opacity-60">{c.from}</span>
+                            <span className="mx-1 opacity-40">&rarr;</span>
+                            <span className="font-mono text-foreground">{c.to}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
                     {fields.length > 0 && (
                       <p className="font-mono text-[10px] text-muted-foreground">
                         {fields.join(", ")}

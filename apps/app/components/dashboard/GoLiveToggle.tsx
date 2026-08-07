@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react"
 import { toast } from "sonner"
 import { useTheme } from "next-themes"
+import Link from "next/link"
 import { toggleActive } from "@/lib/actions/project"
 
 interface GoLiveToggleProps {
@@ -13,6 +14,7 @@ interface GoLiveToggleProps {
 export function GoLiveToggle({ projectId, isActive }: GoLiveToggleProps) {
   const [active, setActive] = useState(isActive)
   const [confirming, setConfirming] = useState(false)
+  const [blocked, setBlocked] = useState<{ ok: false; reason: string; fix?: { label: string; href: string } } | null>(null)
   const [isPending, startTransition] = useTransition()
   const { resolvedTheme } = useTheme()
   const isDark = resolvedTheme !== "light"
@@ -27,11 +29,23 @@ export function GoLiveToggle({ projectId, isActive }: GoLiveToggleProps) {
     setActive(next)
     startTransition(async () => {
       try {
-        await toggleActive(projectId, next)
-        toast.success(next ? "Agent is now live" : "Agent paused")
+        const res = await toggleActive(projectId, next)
+        if (res.ok) {
+          setBlocked(null)
+          toast.success(next ? "Agent is now live" : "Agent paused")
+          return
+        }
+        // SAY WHY, AND SAY WHERE. This used to revert the button and toast
+        // "Failed to update status", which tells the user nothing they can act
+        // on: the reason was written, thrown, redacted by Next.js in
+        // production, and then discarded here as well. The refusal is now a
+        // returned value and it stays on screen, because a toast disappears
+        // before someone has read a sentence and gone looking for the setting.
+        setActive(!next)
+        setBlocked(res)
       } catch {
         setActive(!next)
-        toast.error("Failed to update status")
+        setBlocked({ ok: false, reason: "Something went wrong on our side. Please try again, and tell us if it keeps happening." })
       }
     })
   }
@@ -59,6 +73,7 @@ export function GoLiveToggle({ projectId, isActive }: GoLiveToggleProps) {
   }
 
   return (
+    <div className="flex flex-col items-end gap-2">
     <button
       type="button"
       onClick={handleClick}
@@ -76,5 +91,20 @@ export function GoLiveToggle({ projectId, isActive }: GoLiveToggleProps) {
       />
       {isPending ? "Updating…" : active ? "Live" : "Not live - click to go live"}
     </button>
+    {blocked && (
+      <div className="max-w-sm rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 text-left">
+        <p className="text-xs font-medium">Not live yet</p>
+        <p className="mt-1 text-xs text-muted-foreground">{blocked.reason}</p>
+        {blocked.fix && (
+          <Link
+            href={blocked.fix.href}
+            className="mt-2 inline-block text-xs font-medium text-primary hover:text-primary/80"
+          >
+            {blocked.fix.label} &rarr;
+          </Link>
+        )}
+      </div>
+    )}
+    </div>
   )
 }
