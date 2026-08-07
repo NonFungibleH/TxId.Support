@@ -97,6 +97,12 @@ export interface StreamChatParams {
    * truth and this is today's.
    */
   statusNotice?: { level: string; message: string; topics?: string[] } | null
+  /**
+   * A beta programme is running. Changes what the assistant is FOR: the people
+   * asking are testers, and some of what they say is feedback rather than a
+   * question. Layered on top of support mode, never instead of it.
+   */
+  beta?: { feedback: boolean } | null
   protocolAccount?: ProtocolAccountContext | null
   /**
    * Omit the retrieved-docs section from the prompt so the caller can place it

@@ -98,6 +98,10 @@ const FONT_SCALE_VALUE: Record<string, number> = { sm: 0.9, md: 1.0, lg: 1.12, x
 /** Kept in sync with WIDGET_SIZE_VALUE in lib/types/config.ts by hand: this
  *  file is the public widget bundle and does not import from the dashboard. */
 const WIDGET_SIZE_VALUE: Record<string, number> = { standard: 1.0, large: 1.18, xl: 1.38 }
+
+/** Unambiguous by design: the model must never have to guess that this is
+ *  feedback rather than a question. Kept verbatim in the beta prompt block. */
+const FEEDBACK_OPENER = "I want to leave feedback on the beta."
 /** Default is "large": the base 380x560 reads as small on a dense desktop app. */
 const DEFAULT_WIDGET_SIZE = "large"
 
@@ -146,6 +150,8 @@ interface WidgetConfig {
   hidePoweredBy?: boolean
   /** Actions: AI-prepared, user-signed transactions (opt-in, paid plans). */
   actions?: { enabled: boolean }
+  /** Beta programme. Resolved server-side, so null means "not running one". */
+  beta?: { autoOpen: boolean; feedback: boolean; intro?: string | null } | null
 }
 
 // Returns perceived luminance 0-1; > 0.5 = light background
@@ -937,6 +943,18 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
       window.parent.postMessage({ type: "txid-resize", scale }, "*")
     }
   }, [config])
+
+  // ── Beta programme: ask the embed to open itself ────────────────────────────
+  // The DECISION is here because only the widget has read the project config;
+  // the ENFORCEMENT is in widget.js, which owns the once-per-tab rule, the
+  // mobile exclusion and the "not if they already opened it" check. Asking
+  // twice is harmless: the embed ignores a repeat.
+  useEffect(() => {
+    if (!config?.beta?.autoOpen) return
+    if (isPreview) return
+    if (typeof window === "undefined" || window.parent === window) return
+    window.parent.postMessage("txid-autoopen", "*")
+  }, [config, isPreview])
 
   // ── Auto-scroll to latest message ───────────────────────────────────────
   // Chips and the ticket form shrink the scroller, so they scroll too: without
@@ -2481,6 +2499,32 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
                     </button>
                   </>
                 )}
+              </div>
+            )}
+
+            {/* Beta: leave feedback.
+                A BUTTON, NOT INTENT DETECTION. "The fee display is confusing"
+                is not a question, and a support assistant asked to guess will
+                helpfully explain the fee display, which is exactly wrong.
+                Pressing this sends an unambiguous opener, so the model never
+                has to classify anything, and the beta prompt block tells it to
+                capture rather than solve. Routing through the normal message
+                path is deliberate: the finding keeps the conversation that
+                produced it, which is what a bare feedback form throws away. */}
+            {config?.beta?.feedback && !isStreaming && !escalation && (
+              <div className="shrink-0 px-3 pt-2.5">
+                <button
+                  onClick={() => sendMessage(FEEDBACK_OPENER)}
+                  className="text-[11px] rounded-full px-3 py-1.5 border transition-opacity hover:opacity-100 active:scale-95"
+                  style={{
+                    borderColor: `${b.primaryColor}55`,
+                    color: adaptiveText,
+                    background: `${b.primaryColor}14`,
+                    opacity: 0.9,
+                  }}
+                >
+                  Leave feedback
+                </button>
               </div>
             )}
 

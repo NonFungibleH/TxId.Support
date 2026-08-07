@@ -1,6 +1,6 @@
 import { createServiceClient } from "@/lib/supabase/server"
 import type { ProjectConfig, Plan } from "@/lib/types/config"
-import { isPaidPlan, resolveDisclaimer, activeStatusNotice } from "@/lib/types/config"
+import { isPaidPlan, resolveDisclaimer, activeStatusNotice, activeBeta } from "@/lib/types/config"
 import type { Database } from "@/lib/supabase/types"
 import { verifyPreviewToken } from "@/lib/preview-token"
 import { isActionDemo } from "@/lib/actions-gate"
@@ -115,6 +115,15 @@ export async function GET(
     // the free trial always shows it. Derived server-side from the plan.
     hidePoweredBy: isPaidPlan((config.plan ?? "free") as Plan),
     branding: config.branding,
+    // Beta programme, resolved for expiry HERE so a finished beta stops
+    // behaving like one without anyone editing config. Only the fields the
+    // widget needs: no end date, nothing a tester should see.
+    beta: (() => {
+      const b = activeBeta(config)
+      return b
+        ? { autoOpen: b.autoOpen === true, feedback: b.feedback === true, intro: b.intro ?? null }
+        : null
+    })(),
     chains: [...new Set([
       ...(config.watchedContracts ?? []).map(c => c.chain as string),
       ...(config.token?.chain ? [config.token.chain as string] : []),

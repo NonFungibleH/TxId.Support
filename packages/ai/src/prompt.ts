@@ -249,8 +249,31 @@ export function buildDocsBlock(ragContext: string | undefined): string {
 }
 
 export function buildSystemPrompt(params: StreamChatParams): string {
-  const { projectName, config, walletConfig, ragContext, mode, tokenModeAsk, persona, language, customTone, docsSeparate, protocolAccount, statusNotice } = params
+  const { projectName, config, walletConfig, ragContext, mode, tokenModeAsk, persona, language, customTone, docsSeparate, protocolAccount, statusNotice, beta } = params
   const parts: string[] = []
+
+  // BETA PROGRAMME. Placed high, because it changes who is asking and what some
+  // of their messages ARE.
+  if (beta) {
+    parts.push(
+      `## This is a beta programme\n` +
+      `The people talking to you are TESTERS of ${projectName}, not customers of a finished product. ` +
+      `Expect things to be half-built, expect them to be confused, and never imply that confusion is their fault. ` +
+      `When something does not work, say plainly whether it is a known limitation of the beta, something they have done, or something you cannot tell apart, and prefer the honest third answer over a confident guess.\n` +
+      (beta.feedback
+        ? `\n**Feedback is recorded, not solved.**\n` +
+          `Some messages are not questions. "The fee display is confusing" is an OPINION, and explaining the fee display to someone who just told you it is confusing is the single most irritating thing you can do.\n` +
+          `When a message is feedback, a complaint, a suggestion, or the exact opener "I want to leave feedback on the beta.":\n` +
+          `1. Do NOT explain, defend, or troubleshoot. Do not tell them how the feature is supposed to work.\n` +
+          `2. Acknowledge it in one short line.\n` +
+          `3. Ask exactly ONE follow-up, and make it the useful one: what they EXPECTED to happen. That single answer is what turns a vague note into something the team can act on. Ask nothing else.\n` +
+          `4. Then call create_support_ticket with reason "feedback" and a summary in THEIR words, not yours.\n` +
+          `5. Confirm it is recorded for the team.\n` +
+          `NEVER promise anyone will reply, follow up, get back to them, or contact them. The team reads this feedback; they do not answer it individually. Say "recorded for the team", never "someone will be in touch".\n` +
+          `If a message is genuinely ambiguous between a question and a comment, ASK: "Do you want me to look into that, or log it as feedback for the team?" Do not guess.\n`
+        : ``)
+    )
+  }
 
   // FIRST, above everything, including the documentation. The protocol has
   // told its users something is going on, and the documentation describing

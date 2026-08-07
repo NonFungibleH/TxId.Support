@@ -123,10 +123,8 @@
 
   var open = false;
 
-  btn.addEventListener("click", function () {
-    // A drag just ended, so swallow the click and leave the panel as it was.
-    if (suppressClick) { suppressClick = false; return; }
-    open = !open;
+  function setOpen(next) {
+    open = next;
     if (open) {
       wrap.classList.add("open");
       positionPanel();
@@ -137,7 +135,35 @@
       btn.innerHTML = CHAT_ICON;
       btn.setAttribute("aria-label", "Open support chat");
     }
+  }
+
+  btn.addEventListener("click", function () {
+    // A drag just ended, so swallow the click and leave the panel as it was.
+    if (suppressClick) { suppressClick = false; return; }
+    setOpen(!open);
   });
+
+  /**
+   * Opening a panel in someone's face is intrusive, so this is fenced in:
+   *  - the widget only ASKS when the project has beta auto-open turned on
+   *  - ONCE PER TAB, tracked in sessionStorage, so navigating the site does
+   *    not reopen it and a tester is never nagged twice
+   *  - never if they already opened it themselves
+   *  - never on a phone, where it would cover the whole page
+   * If sessionStorage is unavailable (private mode, blocked cookies) the flag
+   * cannot be written, so it degrades to not auto-opening rather than to
+   * opening every time.
+   */
+  var AUTO_OPEN_FLAG = "txid_auto_opened_" + key;
+  function autoOpenOnce() {
+    if (open) return;
+    if (window.innerWidth <= 440) return;
+    try {
+      if (sessionStorage.getItem(AUTO_OPEN_FLAG)) return;
+      sessionStorage.setItem(AUTO_OPEN_FLAG, "1");
+    } catch (e) { return; }
+    setOpen(true);
+  }
 
   // Base panel size (kept in sync with the CSS above). Text-scale grows it.
   var BASE_W = 380, BASE_H = 560;
@@ -367,6 +393,11 @@
 
   window.addEventListener("message", function (e) {
     // Close when the iframe posts a "txid-close" message
+    // The widget has loaded its config and that project runs a beta programme
+    // with auto-open on. Asked for by the iframe rather than decided up here,
+    // because the loader never sees the project config.
+    if (e.data === "txid-autoopen") { autoOpenOnce(); return; }
+
     if (e.data === "txid-close") {
       // Force-close regardless of open state to guard against any state drift
       open = false;

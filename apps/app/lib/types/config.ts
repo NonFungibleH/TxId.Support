@@ -162,6 +162,52 @@ export const WIDGET_SIZE_LABEL: Record<WidgetSize, { name: string; dims: string 
   xl:       { name: "Extra large", dims: "524 x 773" },
 }
 
+/**
+ * Beta programme: the same assistant, running for testers rather than users.
+ *
+ * NOT A MODE. `projectMode` values REPLACE each other, so a beta mode would
+ * swap out support mode and take the transaction diagnosis with it, which is
+ * the most valuable thing a tester can be given. This layers ON TOP, the way
+ * `incident` and `subaccounts` already do.
+ *
+ * The two behaviours that are genuinely different in a beta:
+ *
+ * 1. IT INTRODUCES ITSELF. A tester arrives with no idea what they are meant
+ *    to do. Waiting to be clicked wastes the only moment their attention is
+ *    guaranteed.
+ *
+ * 2. FEEDBACK IS RECORDED, NOT ANSWERED. "The fee display is confusing" is not
+ *    a question, and a support assistant will helpfully explain the fee
+ *    display, which is exactly wrong. Feedback needs a deliberate act, not
+ *    intent-guessing: a button, so nothing has to be inferred.
+ */
+export interface BetaConfig {
+  enabled: boolean
+  /** Open the panel unprompted on a tester's first visit. */
+  autoOpen?: boolean
+  /** Show the "Leave feedback" control. */
+  feedback?: boolean
+  /** Greeting used when it opens itself. Falls back to the welcome message. */
+  intro?: string | null
+  /** ISO date. Betas end, and a stale "welcome to the beta" is embarrassing. */
+  endsAt?: string | null
+}
+
+/**
+ * Resolves expiry ON READ, like `activeStatusNotice`. A programme that ended
+ * stops behaving like a beta the moment it ends, rather than when a job
+ * eventually notices.
+ */
+export function activeBeta(config: { beta?: BetaConfig } | null | undefined): BetaConfig | null {
+  const beta = config?.beta
+  if (!beta?.enabled) return null
+  if (beta.endsAt) {
+    const ends = Date.parse(beta.endsAt)
+    if (Number.isFinite(ends) && ends <= Date.now()) return null
+  }
+  return beta
+}
+
 export interface BrandingConfig {
   primaryColor: string
   secondaryColor: string
@@ -451,6 +497,8 @@ export interface ProjectConfig {
   proactiveOpener?: { enabled: boolean }
   docsSync?: DocsSyncConfig
   subaccounts?: SubaccountsConfig
+  /** Beta programme. Layers on top of support mode, never replaces it. */
+  beta?: BetaConfig
   telegramBotToken?: string | null
   telegramBotUsername?: string | null
 }
