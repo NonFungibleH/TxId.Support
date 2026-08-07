@@ -3,6 +3,7 @@
 import { requireCapability } from "@/lib/roles-server"
 
 import { auth } from "@clerk/nextjs/server"
+import { resolveOrg } from "@/lib/clerk-org"
 import { createServiceClient } from "@/lib/supabase/server"
 import { chunkText, embedBatch } from "@txid/ai"
 import { revalidatePath } from "next/cache"
@@ -20,7 +21,7 @@ export async function ingestText(
   sourceUrl?: string,
 ): Promise<{ ok: boolean; chunksInserted?: number; error?: string }> {
   await requireCapability("settings")
-  const { orgId, userId } = await auth()
+  const { orgId, userId } = await resolveOrg()
   if (!userId) return { ok: false, error: "Unauthorized" }
   const orgKey = orgId ?? userId
 
@@ -105,7 +106,7 @@ export async function deleteSource(
   sourceUrl: string,
 ): Promise<{ ok: boolean; error?: string }> {
   await requireCapability("destroy")
-  const { orgId, userId } = await auth()
+  const { orgId, userId } = await resolveOrg()
   if (!userId) return { ok: false, error: "Unauthorized" }
   const orgKey = orgId ?? userId
 
@@ -140,7 +141,7 @@ export async function clearKnowledgeBase(
   projectId: string,
 ): Promise<{ ok: boolean; error?: string }> {
   await requireCapability("destroy")
-  const { orgId, userId } = await auth()
+  const { orgId, userId } = await resolveOrg()
   if (!userId) return { ok: false, error: "Unauthorized" }
   const orgKey = orgId ?? userId
 
@@ -178,7 +179,7 @@ export async function crawlAndIngest(
   rootUrl: string,
 ): Promise<{ ok: boolean; pagesIndexed?: number; chunksInserted?: number; discovered?: number; error?: string }> {
   await requireCapability("settings")
-  const { orgId, userId } = await auth()
+  const { orgId, userId } = await resolveOrg()
   if (!userId) return { ok: false, error: "Unauthorized" }
 
   let parsed: URL

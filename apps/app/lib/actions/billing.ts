@@ -2,7 +2,7 @@
 
 import { requireCapability } from "@/lib/roles-server"
 
-import { auth } from "@clerk/nextjs/server"
+import { resolveOrg as resolveClerkOrg } from "@/lib/clerk-org"
 import { createServiceClient } from "@/lib/supabase/server"
 import { getStripe } from "@/lib/stripe"
 import type { Database } from "@/lib/supabase/types"
@@ -18,15 +18,20 @@ type OrgWithStripe = OrgRow & {
 }
 
 async function resolveOrg() {
-  const { orgId, userId } = await auth()
+  const { orgId, userId } = await resolveClerkOrg()
   if (!userId) throw new Error("Unauthenticated")
   const orgKey = orgId ?? userId
 
   const supabase = createServiceClient()
+  // SELECT, never upsert-with-name. This was a second copy of the bug fixed in
+  // project.ts: upserting { name: "My Protocol" } here meant any billing
+  // action renamed the organisation back to the placeholder. Billing has no
+  // business creating orgs either - by the time anyone can pay, getProject()
+  // has long since created the row.
   const { data, error } = await supabase
     .from("organisations")
-    .upsert({ clerk_org_id: orgKey, name: "My Protocol" }, { onConflict: "clerk_org_id" })
     .select()
+    .eq("clerk_org_id", orgKey)
     .single()
 
   const org = data as unknown as OrgWithStripe | null

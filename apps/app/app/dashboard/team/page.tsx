@@ -1,4 +1,4 @@
-import { auth } from "@clerk/nextjs/server"
+import { resolveOrg } from "@/lib/clerk-org"
 import { getTeamMembers } from "@/lib/actions/team"
 import { TeamInviteForm } from "@/components/dashboard/TeamInviteForm"
 import { RevokeInviteButton } from "@/components/dashboard/RevokeInviteButton"
@@ -21,7 +21,7 @@ function initials(name: string | null, email: string) {
 }
 
 export default async function TeamPage() {
-  const { orgId } = await auth()
+  const { orgId } = await resolveOrg()
 
   if (!orgId) {
     return (
