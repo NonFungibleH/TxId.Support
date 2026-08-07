@@ -30,3 +30,27 @@ export async function saveBeta(beta: BetaConfig): Promise<void> {
   await updateConfig((project as { id: string }).id, { beta: clean } as Partial<ProjectConfig>)
   revalidatePath("/dashboard/persona")
 }
+
+/**
+ * End the programme and put the dashboard back as it was.
+ *
+ * WHY A SEPARATE ACTION RATHER THAN JUST THE SWITCH: turning `enabled` off is
+ * the same operation, but it is not the same AFFORDANCE. Someone who set this
+ * up by mistake is looking for a way out, not for the control they just used
+ * pointed the other way, and the tab disappearing with no confirmation reads
+ * as something having broken.
+ *
+ * FINDINGS ARE KEPT. They are recorded tickets and deleting a customer's
+ * collected feedback because they switched a display setting off would be
+ * indefensible. They stay reachable on the Tickets page.
+ */
+export async function endBeta(): Promise<void> {
+  await requireCapability("settings")
+  const { project } = await getProject()
+  if (!project) throw new Error("No project")
+  await updateConfig((project as { id: string }).id, {
+    beta: { enabled: false, autoOpen: false, feedback: false, intro: null, endsAt: null },
+  } as Partial<ProjectConfig>)
+  revalidatePath("/dashboard/beta")
+  revalidatePath("/dashboard")
+}

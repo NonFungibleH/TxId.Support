@@ -8,7 +8,8 @@ import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
-import { saveBeta } from "@/lib/actions/beta"
+import { useRouter } from "next/navigation"
+import { saveBeta, endBeta } from "@/lib/actions/beta"
 import type { BetaConfig } from "@/lib/types/config"
 
 /**
@@ -28,6 +29,22 @@ export function BetaProgrammeForm({ initial }: { initial?: BetaConfig | undefine
     endsAt: initial?.endsAt ?? null,
   })
   const [isPending, startTransition] = useTransition()
+  const router = useRouter()
+
+  function stop() {
+    startTransition(async () => {
+      try {
+        await endBeta()
+        toast.success("Beta programme ended. Findings are kept on Tickets.")
+        // Back to Overview, because the tab this page lives under has just
+        // gone. Staying here would leave someone on a page with no route to it.
+        router.push("/dashboard")
+        router.refresh()
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "Could not end the programme")
+      }
+    })
+  }
 
   // Expiry is resolved on read, so the form has to say so itself: a programme
   // that has already ended still shows its settings, and without this the page
@@ -152,6 +169,19 @@ export function BetaProgrammeForm({ initial }: { initial?: BetaConfig | undefine
               Optional, and worth setting. Betas end, and nothing looks worse than a welcome to the
               beta still greeting people months later. After this date the assistant goes back to
               normal on its own.
+            </p>
+          </div>
+
+          {/* An explicit way OUT. The switch above does the same thing, but
+              someone who set this up by mistake is looking for an exit, not
+              for the control they just used pointed the other way. */}
+          <div className="flex items-center gap-3 border-t border-border pt-4">
+            <Button variant="outline" size="sm" onClick={stop} disabled={isPending}>
+              {isPending ? "Ending…" : "End beta programme"}
+            </Button>
+            <p className="text-xs text-muted-foreground">
+              Puts the dashboard back as it was and removes the tab. Findings testers already
+              recorded are kept, on the Tickets page.
             </p>
           </div>
 
