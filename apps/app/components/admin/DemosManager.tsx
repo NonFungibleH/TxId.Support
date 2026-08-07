@@ -29,7 +29,7 @@ function publicHost(url: string | undefined, fallback: string): string {
 const WEB_URL = publicHost(process.env.NEXT_PUBLIC_WEB_URL, "https://txid.support")
 const WIDGET_ORIGIN = publicHost(process.env.NEXT_PUBLIC_WIDGET_URL || process.env.NEXT_PUBLIC_APP_URL, "https://app.txid.support")
 
-function buildBookmarklet(origin: string, key: string): string {
+function buildBookmarklet(origin: string, key: string, color?: string): string {
   // After injecting, verify the widget actually mounted. CSP-hardened dapps
   // (e.g. Uniswap) block the third-party script/iframe silently, so without
   // this the bookmarklet would just "do nothing". Alert the user to fall back
@@ -38,6 +38,7 @@ function buildBookmarklet(origin: string, key: string): string {
     "javascript:(function(){if(document.getElementById('txid-widget-root'))return;" +
     "var s=document.createElement('script');s.id='txid-widget-script';" +
     `s.src='${origin}/widget.js';s.setAttribute('data-fresh','1');s.setAttribute('data-key','${key}');` +
+    (color ? `s.setAttribute('data-color','${color}');` : "") +
     "document.body.appendChild(s);" +
     "setTimeout(function(){if(!document.getElementById('txid-widget-root')){" +
     "alert('This site blocks embedded widgets via its security policy (Content-Security-Policy) \\u2014 common on hardened dapps like Uniswap. Use the TxID share link to demo instead.')" +
@@ -147,7 +148,7 @@ export function DemosManager({ initial }: { initial: DemoSummary[] }) {
           <div className="rounded-xl border border-border bg-card p-4 space-y-3">
             <p className="text-sm font-semibold">Launch this demo</p>
             <div className="flex flex-wrap items-center gap-3">
-              <BookmarkletLink href={buildBookmarklet(WIDGET_ORIGIN, selected.key)} label={selected.name} />
+              <BookmarkletLink href={buildBookmarklet(WIDGET_ORIGIN, selected.key, selected.branding?.primaryColor as string | undefined)} label={selected.name} />
               <span className="text-xs text-muted-foreground">← drag to your bookmarks bar, then click it on any site to inject this widget.</span>
             </div>
             <p className="text-xs text-amber-500/90">

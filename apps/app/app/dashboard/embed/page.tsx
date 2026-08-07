@@ -75,6 +75,7 @@ export default async function EmbedPage() {
           <EmbedCodeDisplay
             publishableKey={typedProject.publishable_key}
             widgetBaseUrl={process.env.NEXT_PUBLIC_WIDGET_URL ?? "https://app.txid.support"}
+            primaryColor={((typedProject.config ?? {}) as { branding?: { primaryColor?: string } }).branding?.primaryColor}
           />
         </CardContent>
       </Card>

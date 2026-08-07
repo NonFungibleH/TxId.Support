@@ -1,3 +1,4 @@
+import { waitUntil } from "@vercel/functions"
 import crypto from "crypto"
 import { createServiceClient } from "@/lib/supabase/server"
 import { buildSystemPrompt, completeChatWithToolsUsage } from "@txid/ai"
@@ -472,7 +473,9 @@ export async function POST(
   await sendTelegramMessage(botToken, message.chat.id, reply, message.message_id, dmButton)
 
   // Persist to Supabase
-  void persistTelegramMessages(supabase, project.id, sessionId, userText, reply, usage)
+  // Same race as the chat route: void meant the function could freeze
+  // before the write landed. waitUntil holds it open, costs no latency.
+  waitUntil(persistTelegramMessages(supabase, project.id, sessionId, userText, reply, usage))
 
   return new Response("OK", { status: 200 })
 }

@@ -19,7 +19,14 @@
   // branded widget and clashed badly. data-color themes it immediately with no
   // extra request; the iframe also posts the project's real primary colour once
   // it has loaded config, so embeds using an older snippet correct themselves.
-  var PURPLE = script.getAttribute("data-color") || "#6366f1";
+  // Priority: snippet attribute, then the colour LEARNED on a previous visit,
+  // then TxID purple as the true first-contact fallback. The cache exists
+  // because most snippets in the wild predate data-color, and without it every
+  // page load flashed purple for the second or two before the iframe reported
+  // the real brand. Hex-validated on read: the value lands in a style prop.
+  var PURPLE = script.getAttribute("data-color");
+  if (!PURPLE) { try { PURPLE = localStorage.getItem("txid_color_" + key); } catch (e) { /* private mode */ } }
+  if (!PURPLE || !/^#[0-9a-fA-F]{3,8}$/.test(PURPLE)) PURPLE = "#6366f1";
   var SIZE = "56px";
 
   // ── Styles ──────────────────────────────────────────────────────────────────
@@ -535,6 +542,8 @@
       if (/^#[0-9a-fA-F]{3,8}$/.test(e.data.primaryColor)) {
         btn.style.background = e.data.primaryColor;
         btn.style.boxShadow = "0 4px 24px " + e.data.primaryColor + "55";
+        // Remember it, so the NEXT load themes instantly instead of flashing.
+        try { localStorage.setItem("txid_color_" + key, e.data.primaryColor); } catch (e2) { /* fine */ }
       }
       return;
     }

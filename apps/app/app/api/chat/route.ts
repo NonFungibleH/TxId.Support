@@ -1,3 +1,4 @@
+import { waitUntil } from "@vercel/functions"
 import { createServiceClient } from "@/lib/supabase/server"
 import { answerFingerprint, chainStateAt, coarseDevice, requestGeo, userSuppliedHashes, documentationSources, type AnswerEvidence } from "@/lib/evidence"
 import { unverifiedNumbers } from "@/lib/numeric-check"
@@ -790,7 +791,13 @@ export async function POST(request: Request) {
           // The action-update marker is a system-generated status note, not a
           // user turn - persist it as an assistant-side row so it never counts
           // against the per-session user-message cap on subsequent requests.
-          void persistMessages(supabase, typedProject.id, sessionId, validActionResult ? [...safeMessages, { role: "assistant" as const, content: `⚙️ Action update: ${validActionResult.row.summary ?? "transaction"} ${validActionResult.confirmed ? "confirmed" : "failed"} (${validActionResult.txHash})` }] : safeMessages, walletAddress, chainId, fullResponseText || undefined, usage, {
+          // waitUntil, NOT void. A bare void meant the serverless function
+          // could be FROZEN the instant the stream closed, so whether a
+          // conversation was ever persisted was a race the platform usually
+          // won: an empty Conversations tab after real conversations.
+          // waitUntil keeps the function alive until the write completes
+          // without delaying the stream's close by a millisecond.
+          waitUntil(persistMessages(supabase, typedProject.id, sessionId, validActionResult ? [...safeMessages, { role: "assistant" as const, content: `⚙️ Action update: ${validActionResult.row.summary ?? "transaction"} ${validActionResult.confirmed ? "confirmed" : "failed"} (${validActionResult.txHash})` }] : safeMessages, walletAddress, chainId, fullResponseText || undefined, usage, {
             ...requestEvidence,
             investigation: merged,
             ...(retrievalEvidence ? { retrieval: retrievalEvidence } : {}),
@@ -800,7 +807,7 @@ export async function POST(request: Request) {
             ...(chainId ? { chainId } : {}),
             surface: "widget",
             ...(config.branding?.language ? { language: config.branding.language } : {}),
-          })
+          }))
         } catch (err) {
           log.error("Chat stream error", err, { event: "chat.stream_error", projectId: typedProject.id })
           // For our own demo/publicDemo projects, surface the real reason to make

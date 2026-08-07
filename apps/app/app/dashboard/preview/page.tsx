@@ -26,7 +26,7 @@ export default async function PreviewPage() {
   // widget's behalf: an extension cannot show its approval popup for a
   // cross-origin iframe, so a bare iframe leaves Connect wallet permanently
   // dead. This also makes the preview behave exactly like a live install.
-  const bookmarklet = `javascript:(function(){if(document.getElementById('txid-widget-root')||document.getElementById('txid-widget-script'))return;var s=document.createElement('script');s.id='txid-widget-script';s.src='${widgetBaseUrl}/widget.js';s.setAttribute('data-key','${typedProject.publishable_key}');s.setAttribute('data-preview','1');s.setAttribute('data-fresh','1');s.setAttribute('data-pt','${pt}');document.body.appendChild(s);})();`
+  const bookmarklet = `javascript:(function(){if(document.getElementById('txid-widget-root')||document.getElementById('txid-widget-script'))return;var s=document.createElement('script');s.id='txid-widget-script';s.src='${widgetBaseUrl}/widget.js';s.setAttribute('data-key','${typedProject.publishable_key}');s.setAttribute('data-preview','1');s.setAttribute('data-fresh','1');s.setAttribute('data-color','${rawConfig?.branding?.primaryColor ?? "#6366f1"}');s.setAttribute('data-pt','${pt}');document.body.appendChild(s);})();`
 
   return (
     <div className="space-y-6">

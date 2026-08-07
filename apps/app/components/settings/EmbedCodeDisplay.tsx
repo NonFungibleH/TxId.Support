@@ -8,15 +8,17 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 interface EmbedCodeDisplayProps {
   publishableKey: string
   widgetBaseUrl: string
+  /** Baked into the snippet so the launcher is on-brand from the first paint. */
+  primaryColor?: string
 }
 
-export function EmbedCodeDisplay({ publishableKey, widgetBaseUrl }: EmbedCodeDisplayProps) {
+export function EmbedCodeDisplay({ publishableKey, widgetBaseUrl, primaryColor }: EmbedCodeDisplayProps) {
   const [copied, setCopied] = useState<string | null>(null)
 
   const widgetSrc = `${widgetBaseUrl}/widget?key=${publishableKey}`
 
   const SNIPPETS = {
-    script: `<!-- Floating widget (bottom-right) -->\n<script\n  id="txid-widget-script"\n  src="${widgetBaseUrl}/widget.js"\n  data-key="${publishableKey}"\n  async>\n</script>`,
+    script: `<!-- Floating widget (bottom-right) -->\n<script\n  id="txid-widget-script"\n  src="${widgetBaseUrl}/widget.js"\n  data-key="${publishableKey}"${primaryColor ? `\n  data-color="${primaryColor}"` : ""}\n  async>\n</script>`,
     inline: `<!-- Inline embed -->\n<iframe\n  src="${widgetSrc}"\n  style="width:100%;height:580px;border:none;border-radius:16px;"\n  allow="clipboard-write"\n  loading="lazy">\n</iframe>`,
     react: `npm install @txid/react\n\nimport { TxIDWidget } from '@txid/react'\n\nexport default function App() {\n  return (\n    <>\n      <YourApp />\n      <TxIDWidget apiKey="${publishableKey}" />\n    </>\n  )\n}`,
   }
