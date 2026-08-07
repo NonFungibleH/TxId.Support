@@ -97,6 +97,12 @@ export async function POST(request: Request) {
       geo: requestGeo(request.headers),
       device: coarseDevice(request.headers.get("user-agent")),
       startedAt: turnStartedAt,
+    } as {
+      geo: ReturnType<typeof requestGeo>
+      device: ReturnType<typeof coarseDevice>
+      startedAt: number
+      pageUrl?: string
+      viewport?: string
     }
 
     const { allowed } = await rateLimit(`chat:${ip}`, CHAT_LIMITS.ratePerWindow, CHAT_LIMITS.windowMs, {
@@ -122,9 +128,22 @@ export async function POST(request: Request) {
       demoProtocol?: string
       walletMode?: string
       actionResult?: { actionId?: string; txHash?: string; status?: string; gasUsed?: string; blockNumber?: string }
+      /** Host page context from the embed. Untrusted: validated below. */
+      pageContext?: { url?: string; vw?: number; vh?: number }
     }
 
-    const { key, sessionId, messages, walletAddress, chainId, preview, previewToken, turnstileToken, contractAddress, demoProtocol, walletMode, actionResult } = body
+    const { key, sessionId, messages, walletAddress, chainId, preview, previewToken, turnstileToken, contractAddress, demoProtocol, walletMode, actionResult, pageContext } = body
+
+    // Host page context, client-supplied and therefore validated: an http(s)
+    // URL only, length-capped, viewport reduced to "WxH". It records where the
+    // tester was, which is the difference between a finding a team can act on
+    // and one they first have to reproduce.
+    if (typeof pageContext?.url === "string" && /^https?:\/\//i.test(pageContext.url)) {
+      requestEvidence.pageUrl = pageContext.url.slice(0, 300)
+    }
+    if (Number.isFinite(pageContext?.vw) && Number.isFinite(pageContext?.vh)) {
+      requestEvidence.viewport = `${Math.round(pageContext!.vw!)}x${Math.round(pageContext!.vh!)}`
+    }
 
     if (!key || !sessionId || !Array.isArray(messages) || messages.length === 0) {
       return new Response(JSON.stringify({ error: "Invalid request" }), {
@@ -843,6 +862,8 @@ export async function POST(request: Request) {
 interface EvidenceContext {
   chainId?: string
   geo?: { country?: string; region?: string }
+  pageUrl?: string
+  viewport?: string
   device?: ReturnType<typeof coarseDevice>
   surface?: string
   language?: string
@@ -904,6 +925,8 @@ async function persistMessages(
             ...(evidenceContext?.device ?? {}),
             ...(evidenceContext?.surface ? { surface: evidenceContext.surface } : {}),
             ...(evidenceContext?.language ? { language: evidenceContext.language } : {}),
+            ...(evidenceContext?.pageUrl ? { pageUrl: evidenceContext.pageUrl } : {}),
+            ...(evidenceContext?.viewport ? { viewport: evidenceContext.viewport } : {}),
           },
           ...(usage?.model ? { model: { name: usage.model } } : {}),
           ...(evidenceContext?.retrieval ? { retrieval: evidenceContext.retrieval } : {}),

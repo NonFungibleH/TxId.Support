@@ -801,6 +801,25 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
   // they are. Deliberately additive: the plain confirmation posts first and is
   // only replaced if the lookup returns something worth saying, so a slow or
   // failed read never leaves the widget looking stuck.
+  // The host page's URL and viewport, posted by widget.js (only IT can see
+  // them: this iframe's own location is app.txid.support). Attached to every
+  // chat turn so findings and conversations carry WHERE the tester was.
+  // Treated as data: length-capped here and validated again server-side.
+  const hostContext = useRef<{ url?: string; vw?: number; vh?: number }>({})
+  useEffect(() => {
+    const onMsg = (e: MessageEvent) => {
+      const d = e.data as { type?: string; url?: string; vw?: number; vh?: number } | null
+      if (d?.type !== "txid-host-context") return
+      hostContext.current = {
+        ...(typeof d.url === "string" ? { url: d.url.slice(0, 500) } : {}),
+        ...(typeof d.vw === "number" ? { vw: d.vw } : {}),
+        ...(typeof d.vh === "number" ? { vh: d.vh } : {}),
+      }
+    }
+    window.addEventListener("message", onMsg)
+    return () => window.removeEventListener("message", onMsg)
+  }, [])
+
   const openerFetched = useRef<string | null>(null)
   useEffect(() => {
     // config.mode read inline: `isTokenMode` is declared far below and would
@@ -1603,6 +1622,7 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
           preview: isPreview || undefined,
           previewToken: isPreview ? previewToken : undefined,
           walletMode: walletAddress ? (walletSetup === "connected" ? "connected" : "manual") : undefined,
+          pageContext: hostContext.current.url ? hostContext.current : undefined,
         }),
       })
 

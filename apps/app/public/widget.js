@@ -147,6 +147,7 @@
     open = next;
     if (open) {
       wrap.classList.add("open");
+      postHostContext();
       positionPanel();
       btn.innerHTML = CLOSE_ICON;
       btn.setAttribute("aria-label", "Close support chat");
@@ -165,6 +166,24 @@
     if (suppressClick) { suppressClick = false; return; }
     setOpen(!open);
   });
+
+  // WHERE the tester is. The iframe cannot see the host page's URL, and a
+  // finding that says "the fee display is confusing" without saying WHICH
+  // page is a finding the team has to go and reproduce before they can even
+  // read it. Sent on load and again on every open, because dapps are SPAs
+  // and the URL when the panel opens is the one that matters.
+  function postHostContext() {
+    try {
+      if (!iframe.contentWindow) return;
+      iframe.contentWindow.postMessage({
+        type: "txid-host-context",
+        url: String(location.href).slice(0, 500),
+        vw: window.innerWidth,
+        vh: window.innerHeight,
+      }, "*");
+    } catch (e) { /* fine: context is best-effort */ }
+  }
+  iframe.addEventListener("load", postHostContext);
 
   /**
    * Opening a panel in someone's face is intrusive, so this is fenced in:

@@ -29,6 +29,10 @@ export interface AnswerEvidence {
     deviceType?: "mobile" | "tablet" | "desktop"
     platform?: string
     browser?: string
+    /** Host page the widget was open on. The embed reports it; the iframe cannot see it. */
+    pageUrl?: string
+    /** Host viewport as "WxH", for reproducing layout complaints. */
+    viewport?: string
   }
   model?: { name?: string; promptVersion?: string }
   investigation?: { toolsUsed?: string[]; failedLookups?: string[] }
