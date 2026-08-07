@@ -533,6 +533,21 @@
     // continues there. No-op outside a spotlight.
     if (e.data === "txid-engaged") { dockSpotlight(); return; }
 
+    // The intro's "Let's go" button: the tester has read the orientation and
+    // wants the site. Mid-spotlight, dock first so they SEE where it lands,
+    // then close; already in the corner, just close. Either way the caption
+    // reinforces where help lives.
+    if (e.data === "txid-letsgo") {
+      if (spotlight) {
+        dockSpotlight();
+        setTimeout(function () { setOpen(false); }, 850);
+      } else {
+        setOpen(false);
+        showCaption();
+      }
+      return;
+    }
+
     if (e.data === "txid-close") {
       // THROUGH setOpen, not a hand-rolled copy of it. This handler predated
       // the spotlight and hid the panel without running its cleanup, so

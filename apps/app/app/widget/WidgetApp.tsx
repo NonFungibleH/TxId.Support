@@ -2562,6 +2562,28 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
             )}
 
 
+            {/* Beta orientation. Shown until the tester's first message, then
+                never again: it tells them the three things the intro bubble
+                cannot be trusted to say (customers write that copy), namely
+                that the assistant LIVES in the corner, that the pencil is the
+                feedback button, and how to dismiss. "Let's go" docks/closes
+                via the embed so the tester watches it settle where it lives. */}
+            {config?.beta && !isStreaming && !escalation && !messages.some(m => m.role === "user") && (
+              <div className="shrink-0 space-y-2 px-3 pt-2.5">
+                <p className="text-[11px] leading-relaxed" style={{ color: adaptiveText, opacity: 0.75 }}>
+                  I&apos;ll be right here in the corner whenever you need me.
+                  {config?.beta?.feedback ? " Tap the pencil by the message box to leave feedback any time." : ""}
+                </p>
+                <button
+                  onClick={() => { if (window.parent !== window) window.parent.postMessage("txid-letsgo", "*") }}
+                  className="rounded-md px-3.5 py-1.5 text-xs font-bold transition-opacity hover:opacity-90 active:scale-95"
+                  style={{ backgroundColor: b.primaryColor, color: onPrimary }}
+                >
+                  Let&apos;s go →
+                </button>
+              </div>
+            )}
+
             {/* Quick-reply chips - appear after each AI response, cleared on send */}
             {visibleChips.length > 0 && !isStreaming && !escalation && (
               <div className="shrink-0 flex flex-wrap gap-1.5 px-3 pt-2.5 pb-2">
