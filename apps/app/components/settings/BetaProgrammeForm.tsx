@@ -48,18 +48,21 @@ export function BetaProgrammeForm({ initial }: { initial?: BetaConfig | undefine
     })
   }
 
+  // NO INNER BORDER OR HEADING: the card around this supplies both, and
+  // repeating them made the master switch look like a sub-setting of
+  // something else.
   return (
-    <div className="space-y-4 rounded-lg border border-border p-4">
+    <div className="space-y-4">
       <div className="flex items-start justify-between gap-6">
         <div className="space-y-1">
           <Label htmlFor="beta" className="flex items-center gap-2 text-sm font-medium">
             <FlaskConical className="size-4 text-muted-foreground" />
-            Beta programme
+            Run a beta programme
           </Label>
           <p className="max-w-xl text-xs text-muted-foreground">
-            For running the assistant with testers rather than customers. It keeps everything it
-            already does, including transaction diagnosis, and adds an introduction on arrival and a
-            way for testers to leave feedback. Nothing else about your setup changes.
+            Everything the assistant already does keeps working, including live transaction
+            diagnosis. Nothing else about your setup changes, and it stops on its own if you set an
+            end date.
           </p>
         </div>
         <Switch
