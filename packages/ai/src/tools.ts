@@ -527,6 +527,25 @@ export async function executeTool(
       // and the model is told absence here is not proof of absence. Same
       // principle the Aptos path already applies: never let a lookup that did
       // not find something be reported as the thing not existing.
+      // WRONG NETWORK IS THE FIRST THING TO RULE OUT, and this path could not
+      // see it. Chain-mismatch detection existed only inside diagnose_wallet,
+      // which the prompt reserves for "nothing works" questions. So "where is
+      // the trade I just made" read history on whatever chain the wallet
+      // happened to be on, found nothing, and reported that as no activity.
+      // Checked BEFORE the read: there is no point reporting a history from a
+      // chain the protocol does not exist on.
+      const histProtocolChains = Array.from(
+        new Set(watchedContracts.map(c => c.chain).filter((c): c is string => !!c)),
+      )
+      if (histProtocolChains.length > 0 && !histProtocolChains.includes(wallet.chainId)) {
+        return {
+          transactions: [],
+          walletChain: wallet.chainId,
+          protocolChains: histProtocolChains,
+          note: `WRONG NETWORK, do not report this as an empty history. The wallet is connected to chain ${wallet.chainId}, and this protocol's contracts are on ${histProtocolChains.join(", ")}. This history is from the wrong chain, so it says NOTHING about whether the user has traded. Tell them to switch networks in their wallet and ask again. Never tell them they have no transactions with the protocol on the basis of this result.`,
+        }
+      }
+
       const window = programOrContract ? Math.min(Math.max(limit * 5, 50), 100) : limit
       const txs = await getRecentTransactions(wallet.address, wallet.chainId, window)
       if (!programOrContract) return txs
