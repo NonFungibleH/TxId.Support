@@ -2510,15 +2510,9 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
                 >
                   <p className="text-xs leading-relaxed" style={{ color: adaptiveText, opacity: 0.9 }}>
                     I&apos;ll be right here in the corner whenever you need me.
-                    {config?.beta?.feedback ? (
-                      <>
-                        {" "}Tap the pencil{" "}
-                        <svg className="inline size-3 align-[-1px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                          <path d="M12 20h9" /><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z" />
-                        </svg>{" "}
-                        by the message box to leave feedback any time.
-                      </>
-                    ) : null}
+                    {config?.beta?.feedback
+                      ? " Spot something off? The Feedback button next to the message box sends it straight to the team."
+                      : null}
                   </p>
                   <button
                     onClick={() => { if (window.parent !== window) window.parent.postMessage("txid-letsgo", "*") }}
@@ -2647,18 +2641,22 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
                     Actions that write something belong in the row where
                     writing happens. Same contract as ever: sends the fixed
                     opener, so the model records instead of troubleshooting. */}
+                {/* LABELLED, not icon-only. The bare pencil failed twice:
+                    the owner did not recognise it and predicted testers would
+                    not either. In a beta, feedback is a primary action, and
+                    primary actions get words. */}
                 {config?.beta?.feedback && (
                   <button
                     onClick={() => sendMessage(FEEDBACK_OPENER)}
                     disabled={isStreaming}
                     aria-label="Leave feedback"
-                    title="Leave feedback"
-                    className="flex size-8 shrink-0 items-center justify-center rounded-full transition-opacity hover:opacity-90 disabled:opacity-40"
-                    style={{ backgroundColor: `${b.primaryColor}26`, color: adaptiveText }}
+                    className="flex h-8 shrink-0 items-center gap-1.5 rounded-full border px-2.5 text-[11px] font-semibold transition-opacity hover:opacity-90 disabled:opacity-40"
+                    style={{ backgroundColor: `${b.primaryColor}26`, borderColor: `${b.primaryColor}55`, color: adaptiveText }}
                   >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                       <path d="M12 20h9" /><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z" />
                     </svg>
+                    Feedback
                   </button>
                 )}
                 <input
