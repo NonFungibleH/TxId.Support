@@ -626,7 +626,11 @@ Every named thing an answer rested on, as a typed list (`EvidenceSource` in `pac
 Suggested questions moved off `/dashboard/content`: they are what the assistant OFFERS to say, which belongs with how it speaks, not with the widget's content tab.
 
 ### Beta programme (`config.beta`)
-Running the assistant for TESTERS rather than customers. **Its own page at `/dashboard/beta`**, its own sidebar item under Setup. Off by default.
+Running the assistant for TESTERS rather than customers. **Its own page at `/dashboard/beta`**. Off by default.
+
+**The sidebar item is HIDDEN until a programme exists**, so the menu is not carrying a feature most protocols never use. That creates the obvious trap of a switch you can only reach after flipping it, so the way IN is `BetaStartCard` on Overview, which every project sees and which disappears once a programme exists. Gated on `beta.enabled`, NOT on `activeBeta`: a programme past its end date must stay reachable or the results vanish the day it finishes.
+
+**Findings are excluded from the support inbox.** `getTickets` filters `reason.neq.feedback`. A tester saying "the fee display is confusing" is not waiting for a reply, and mixing the two turns the queue into a suggestions box, which destroys the only thing a support queue is for. Findings live on `/dashboard/beta`.
 
 It started as a toggle at the bottom of the Persona page and that was wrong: the capability was never a workaround (it layers exactly like `incident`), but a master switch under somebody else's heading reads as one, and nobody finds it. The page is ordered as the SETUP ITSELF, readiness first, because the failure that would actually embarrass a protocol is an assistant that opens itself in a tester's face and has nothing indexed to answer from.
 

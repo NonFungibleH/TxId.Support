@@ -9,6 +9,7 @@ import { redirect } from "next/navigation"
 import { GoLiveToggle } from "@/components/dashboard/GoLiveToggle"
 import { ProjectNameEditor } from "@/components/dashboard/ProjectNameEditor"
 import { WelcomeBanner } from "@/components/dashboard/WelcomeBanner"
+import { BetaStartCard } from "@/components/dashboard/BetaStartCard"
 import { currentUser } from "@clerk/nextjs/server"
 import type { ProjectConfig } from "@/lib/types/config"
 import { PLAN_CHAIN_LIMITS, PLAN_CONV_LIMITS, PLAN_LABELS, SELECTABLE_CHAINS, SUPPORTED_CHAINS, isPaidPlan } from "@/lib/types/config"
@@ -173,9 +174,15 @@ export default async function DashboardPage() {
     { label: "Embed settings", href: "/dashboard/embed", icon: Code },
   ]
 
+  // Only while there is no programme: once there is, the sidebar tab does this
+  // job and a second entry point is just another thing to keep in step.
+  const showBetaStart = config.beta?.enabled !== true
+
   return (
     <div className="space-y-8">
       <WelcomeBanner name={greeting} openTickets={openTickets} />
+
+      {showBetaStart && <BetaStartCard />}
 
       {/* Header */}
       <div className="flex items-center justify-between">

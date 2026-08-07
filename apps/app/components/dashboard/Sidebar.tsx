@@ -102,14 +102,23 @@ interface SidebarProps {
   mode?: string
   plan?: string
   isAdmin?: boolean
+  /** A beta programme is configured. Reveals its tab; hidden otherwise. */
+  beta?: boolean
   isOpen?: boolean
   onClose?: () => void
 }
 
-export function Sidebar({ mode = "support", plan = "free", isAdmin = false, isOpen = false, onClose }: SidebarProps) {
+export function Sidebar({ mode = "support", plan = "free", isAdmin = false, beta = false, isOpen = false, onClose }: SidebarProps) {
   const pathname = usePathname()
   const { resolvedTheme, setTheme } = useTheme()
-  const GROUPS = mode === "token" ? TOKEN_GROUPS : SUPPORT_GROUPS
+  // The Beta programme tab appears only once one is set up, so the menu is not
+  // carrying a feature most protocols will never use. It is NOT how you turn
+  // it on: that would be a switch you can only reach after flipping it. The
+  // choice lives on Overview, which every project sees.
+  const base = mode === "token" ? TOKEN_GROUPS : SUPPORT_GROUPS
+  const GROUPS = beta
+    ? base
+    : base.map(g => ({ ...g, items: g.items.filter(i => i.href !== "/dashboard/beta") }))
   const badge = PLAN_BADGE[plan] ?? PLAN_BADGE.free
   const showUpgrade = plan === "free" || plan === "starter"
 

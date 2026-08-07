@@ -16,13 +16,16 @@ export default async function DashboardLayout({
   const typedProject = project as unknown as { mode?: string; config?: ProjectConfig }
   const mode = typedProject.mode ?? "support"
   const plan = (typedProject.config as ProjectConfig | undefined)?.plan ?? "free"
+  // Keyed on `enabled`, NOT on activeBeta: a programme that has run its end
+  // date must still be reachable, or the results vanish the day it finishes.
+  const beta = (typedProject.config as ProjectConfig | undefined)?.beta?.enabled === true
   const isAdmin = await isCurrentUserAdmin()
 
   const webUrl = process.env.NEXT_PUBLIC_WEB_URL ?? "https://txid.support"
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
-      <MobileShell orgName={org.name} mode={mode} plan={plan} isAdmin={isAdmin} />
+      <MobileShell orgName={org.name} mode={mode} plan={plan} isAdmin={isAdmin} beta={beta} />
       <main className="mt-14 flex-1 p-4 md:ml-60 md:p-6">
         <div className="mx-auto max-w-4xl">{children}</div>
       </main>

@@ -9,14 +9,15 @@ interface MobileShellProps {
   mode: string
   plan: string
   isAdmin?: boolean
+  beta?: boolean
 }
 
-export function MobileShell({ orgName, mode, plan, isAdmin = false }: MobileShellProps) {
+export function MobileShell({ orgName, mode, plan, isAdmin = false, beta = false }: MobileShellProps) {
   const [open, setOpen] = useState(false)
 
   return (
     <>
-      <Sidebar mode={mode} plan={plan} isAdmin={isAdmin} isOpen={open} onClose={() => setOpen(false)} />
+      <Sidebar mode={mode} plan={plan} isAdmin={isAdmin} beta={beta} isOpen={open} onClose={() => setOpen(false)} />
       <DashboardHeader orgName={orgName} onMenuToggle={() => setOpen((o) => !o)} />
       {open && (
         <div
