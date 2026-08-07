@@ -2492,6 +2492,44 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
                 </div>
               ))
               })()}
+
+              {/* Beta orientation card. IN the conversation flow, directly
+                  under the intro, because it is the thing the tester should
+                  read and act on: the first version sat in the footer slot,
+                  tiny and orphaned from the intro it belonged to, with the
+                  panel's whole middle left empty. It says what customer copy
+                  cannot be trusted to say (the assistant lives in the corner;
+                  the pencil is feedback) and ends the introduction with
+                  "Let's go", which docks and closes via the embed so the
+                  tester watches it settle where it lives. Gone forever after
+                  their first message. */}
+              {config?.beta && !escalation && !messages.some(m => m.role === "user") && (
+                <div
+                  className="mx-auto mt-5 w-[92%] rounded-xl border p-4 text-center"
+                  style={{ background: `${b.primaryColor}14`, borderColor: `${b.primaryColor}33` }}
+                >
+                  <p className="text-xs leading-relaxed" style={{ color: adaptiveText, opacity: 0.9 }}>
+                    I&apos;ll be right here in the corner whenever you need me.
+                    {config?.beta?.feedback ? (
+                      <>
+                        {" "}Tap the pencil{" "}
+                        <svg className="inline size-3 align-[-1px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                          <path d="M12 20h9" /><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z" />
+                        </svg>{" "}
+                        by the message box to leave feedback any time.
+                      </>
+                    ) : null}
+                  </p>
+                  <button
+                    onClick={() => { if (window.parent !== window) window.parent.postMessage("txid-letsgo", "*") }}
+                    className="mt-3.5 w-full rounded-lg px-4 py-2 text-sm font-bold transition-opacity hover:opacity-90 active:scale-[0.98]"
+                    style={{ backgroundColor: b.primaryColor, color: onPrimary }}
+                  >
+                    Let&apos;s go →
+                  </button>
+                </div>
+              )}
+
               <div ref={messagesEndRef} />
             </div>
 
@@ -2561,28 +2599,6 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
               </div>
             )}
 
-
-            {/* Beta orientation. Shown until the tester's first message, then
-                never again: it tells them the three things the intro bubble
-                cannot be trusted to say (customers write that copy), namely
-                that the assistant LIVES in the corner, that the pencil is the
-                feedback button, and how to dismiss. "Let's go" docks/closes
-                via the embed so the tester watches it settle where it lives. */}
-            {config?.beta && !isStreaming && !escalation && !messages.some(m => m.role === "user") && (
-              <div className="shrink-0 space-y-2 px-3 pt-2.5">
-                <p className="text-[11px] leading-relaxed" style={{ color: adaptiveText, opacity: 0.75 }}>
-                  I&apos;ll be right here in the corner whenever you need me.
-                  {config?.beta?.feedback ? " Tap the pencil by the message box to leave feedback any time." : ""}
-                </p>
-                <button
-                  onClick={() => { if (window.parent !== window) window.parent.postMessage("txid-letsgo", "*") }}
-                  className="rounded-md px-3.5 py-1.5 text-xs font-bold transition-opacity hover:opacity-90 active:scale-95"
-                  style={{ backgroundColor: b.primaryColor, color: onPrimary }}
-                >
-                  Let&apos;s go →
-                </button>
-              </div>
-            )}
 
             {/* Quick-reply chips - appear after each AI response, cleared on send */}
             {visibleChips.length > 0 && !isStreaming && !escalation && (
