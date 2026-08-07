@@ -71,11 +71,14 @@ export function DocsSyncForm({
             <RefreshCw className="size-3.5 text-muted-foreground" />
             Keep it current automatically
           </Label>
+          {/* NO PRICING TALK. This used to reassure the reader that daily was
+              cheap, which invites the question of what it costs and frames a
+              feature as a meter. Choose on the axis that is actually theirs:
+              how often their documentation changes. */}
           <p className="max-w-xl text-xs text-muted-foreground">
             Re-checks your documentation on a schedule and re-indexes only the pages that actually
             changed. Pages you delete are removed too, so the assistant stops answering from
-            documentation that no longer exists. Nothing to remember, and no cost for pages that
-            have not moved.
+            documentation that no longer exists. Nothing to remember.
           </p>
         </div>
         <Switch
@@ -109,7 +112,7 @@ export function DocsSyncForm({
             </button>
           ))}
           <span className="text-xs text-muted-foreground">
-            Daily costs almost nothing extra, since unchanged pages are never re-indexed.
+            Daily suits documentation that changes often. Weekly is enough if yours is stable.
           </span>
         </div>
       )}
