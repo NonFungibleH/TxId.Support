@@ -1,14 +1,22 @@
 import { redirect } from "next/navigation"
+import { auth } from "@clerk/nextjs/server"
+import { OrgSyncGuard } from "@/components/dashboard/OrgSyncGuard"
 import { MobileShell } from "@/components/dashboard/MobileShell"
 import { getProject } from "@/lib/actions/project"
 import { isCurrentUserAdmin } from "@/lib/admin-auth"
 import type { ProjectConfig } from "@/lib/types/config"
+
+// Never serve this layout from a cache: which company you are looking at
+// comes from the session, and a cached shell is a shell belonging to whichever
+// company rendered it first.
+export const dynamic = "force-dynamic"
 
 export default async function DashboardLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
+  const { orgId } = await auth()
   const { org, project } = await getProject()
 
   if (!project) redirect("/onboarding")
@@ -25,6 +33,7 @@ export default async function DashboardLayout({
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
+      <OrgSyncGuard serverOrgId={orgId ?? null} />
       <MobileShell orgName={org.name} mode={mode} plan={plan} isAdmin={isAdmin} beta={beta} />
       <main className="mt-14 flex-1 p-4 md:ml-60 md:p-6">
         <div className="mx-auto max-w-4xl">{children}</div>
