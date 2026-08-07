@@ -5,7 +5,7 @@ import { toast } from "sonner"
 import { X, Plus, ShieldAlert, ShieldCheck } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { setAllowedDomains } from "@/lib/actions/domains"
+import { setAllowedDomains, setAllowUnrestrictedKey } from "@/lib/actions/domains"
 
 /**
  * WHO MAY USE THIS KEY.
@@ -15,8 +15,9 @@ import { setAllowedDomains } from "@/lib/actions/domains"
  * copy. The list was unsettable until now, so every project reads as empty and
  * every project needs this prompt.
  */
-export function AllowedDomainsForm({ initial }: { initial: string[] }) {
+export function AllowedDomainsForm({ initial, unrestricted = false }: { initial: string[]; unrestricted?: boolean }) {
   const [domains, setDomains] = useState<string[]>(initial)
+  const [openByChoice, setOpenByChoice] = useState(unrestricted)
   const [draft, setDraft] = useState("")
   const [isPending, startTransition] = useTransition()
 
@@ -108,6 +109,31 @@ export function AllowedDomainsForm({ initial }: { initial: string[] }) {
         Hostname only, no https:// or paths. Subdomains are separate entries. localhost always
         works, so your developers can test without adding anything.
       </p>
+
+      {/* The escape hatch. Offered only while the list is empty, and phrased as
+          a decision the customer records rather than a checkbox to skip past:
+          a Telegram-only project has no website, and some assistants really do
+          ship across many domains. */}
+      {domains.length === 0 && (
+        <label className="flex items-start gap-2 border-t border-border pt-3 text-xs text-muted-foreground">
+          <input
+            type="checkbox"
+            checked={openByChoice}
+            onChange={e => {
+              const next = e.target.checked
+              setOpenByChoice(next)
+              startTransition(async () => {
+                try { await setAllowUnrestrictedKey(next) } catch { setOpenByChoice(!next) }
+              })
+            }}
+            className="mt-0.5"
+          />
+          <span>
+            My widget runs on many domains, or has no website at all (Telegram only). Go live
+            without this restriction, and I accept that anyone who copies the key can use it.
+          </span>
+        </label>
+      )}
     </div>
   )
 }

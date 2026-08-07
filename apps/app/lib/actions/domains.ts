@@ -49,3 +49,22 @@ export async function setAllowedDomains(domains: string[]): Promise<{ saved: str
   revalidatePath("/dashboard/embed")
   return { saved: clean }
 }
+
+/**
+ * Record that this project deliberately runs an unrestricted key.
+ *
+ * The go-live gate must be a decision, not a wall: a Telegram-only project has
+ * no website to list, and some assistants genuinely ship across many domains.
+ * Storing the choice means an open key is always traceable to someone
+ * choosing it, which is the difference between a risk and an accident.
+ */
+export async function setAllowUnrestrictedKey(allow: boolean): Promise<void> {
+  await requireCapability("settings")
+  const { project } = await getProject()
+  if (!project) throw new Error("No project")
+  await updateConfig((project as { id: string }).id, {
+    allowUnrestrictedKey: allow,
+  } as Partial<ProjectConfig>)
+  revalidatePath("/dashboard/embed")
+  revalidatePath("/dashboard")
+}

@@ -468,6 +468,13 @@ export interface ProjectConfig {
   contentBlocks: ContentBlock[]
   docsUrl: string | null
   allowedDomains: string[]
+  /**
+   * Explicit opt-out from the go-live domain requirement, for the genuine
+   * cases: a Telegram-only project with no website, or an assistant embedded
+   * across many domains. A CHOICE the customer records, never a silent
+   * bypass, so an unrestricted key is always someone's decision.
+   */
+  allowUnrestrictedKey?: boolean
   watchedContracts: WatchedContract[]
   audits?: AuditEntry[]
   community: CommunityConfig | null

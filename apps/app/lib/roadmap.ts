@@ -442,6 +442,32 @@ export interface TodoItem {
 
 export const HOWARD_TODO: TodoItem[] = [
   {
+    id: "t-upstash",
+    title: "Turn on Upstash so rate limits actually limit",
+    urgency: "now",
+    why: "Every chat request currently logs \"rate limiter not configured\". Without Upstash the counters live in each serverless instance's memory, so when traffic spreads across instances the real ceiling is several times the number we advertise. This is the single biggest thing standing between a leaked publishable key and a bill you did not choose. Everything else in the cost audit is second to it.",
+    steps: [
+      "Create a free account at upstash.com and make a Redis database (any region near London).",
+      "Copy the REST URL and REST token from its dashboard, not the Redis:// connection string.",
+      "Vercel > the APP project > Settings > Environment Variables: add UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN.",
+      "Redeploy. Environment variables only reach a NEW deployment.",
+      "Send one message in any widget, then check the Vercel logs for that request.",
+    ],
+    expect: "The \"Distributed rate limiter not configured, per-instance fallback in use\" warning stops appearing. That warning is the whole test: while it is there, the limits are advisory.",
+  },
+  {
+    id: "t-domains",
+    title: "Lock each live widget to its domain",
+    urgency: "now",
+    why: "Publishable keys sit in plain HTML on the customer's page, which is normal, but until a domain is listed the key works from anywhere and any usage counts against that customer. The field did not exist until 7 Aug 2026, so EVERY project is currently unrestricted, including Yamata's.",
+    steps: [
+      "Dashboard > Embed and Go Live > Allowed domains (top of the page).",
+      "Add app.yamata.pm for the Yamata project.",
+      "Repeat for any other project that is live.",
+    ],
+    expect: "The amber \"This key works from any website\" panel turns green and reads \"Your key only works on this domain\". New projects cannot go live at all without either a domain or an explicit tick saying they run unrestricted on purpose.",
+  },
+  {
     id: "t-guardrail",
     title: "Sanity-check the no-advice guardrail on the live demo",
     urgency: "now",

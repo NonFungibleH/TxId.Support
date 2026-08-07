@@ -333,6 +333,33 @@ export async function toggleActive(projectId: string, isActive: boolean) {
 
   if (!org) throw new Error("Org not found")
 
+  // GOING LIVE REQUIRES A DOMAIN. The publishable key becomes public the
+  // moment a widget ships, so this is the exact point at which an unrestricted
+  // key stops being theoretical: anyone who views source can copy it and spend
+  // the customer's quota from their own site. Enforced SERVER-SIDE, not just
+  // in the form, because the form is not the security boundary.
+  //
+  // NOT retroactive: an already-live project keeps serving, because taking a
+  // customer's widget down to enforce a new rule would be worse than the risk.
+  // And not applicable to public surfaces, which exist to be embedded anywhere.
+  if (isActive) {
+    const { data: proj } = await supabase
+      .from("projects")
+      .select("config")
+      .eq("id", projectId)
+      .eq("org_id", org.id)
+      .single()
+    const cfg = (proj as unknown as { config?: ProjectConfig } | null)?.config
+    const domains = cfg?.allowedDomains ?? []
+    const openByChoice = cfg?.allowUnrestrictedKey === true
+    if (domains.length === 0 && cfg?.publicDemo !== true && !openByChoice) {
+      throw new Error(
+        "Add the domain your widget will be installed on before going live. " +
+        "Embed and Go Live > Allowed domains.",
+      )
+    }
+  }
+
   const { error } = await supabase
     .from("projects")
     .update({ is_active: isActive })

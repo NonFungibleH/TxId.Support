@@ -78,6 +78,7 @@ export default async function EmbedPage() {
         <CardContent>
           <AllowedDomainsForm
             initial={((typedProject.config ?? {}) as { allowedDomains?: string[] }).allowedDomains ?? []}
+            unrestricted={((typedProject.config ?? {}) as { allowUnrestrictedKey?: boolean }).allowUnrestrictedKey === true}
           />
         </CardContent>
       </Card>
