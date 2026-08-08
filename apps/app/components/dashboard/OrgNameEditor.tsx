@@ -30,7 +30,8 @@ export function OrgNameEditor({ initialName }: Props) {
     if (!value.trim() || value.trim() === initialName) { setEditing(false); return }
     startTransition(async () => {
       try {
-        await renameOrg(value.trim())
+        const res = await renameOrg(value.trim())
+        if (!res.ok) { toast.error(res.reason); return }
         toast.success("Account name updated")
         setEditing(false)
       } catch {

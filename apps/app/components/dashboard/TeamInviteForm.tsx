@@ -24,7 +24,8 @@ export function TeamInviteForm() {
     fd.set("role", role)
     startTransition(async () => {
       try {
-        await inviteTeamMember(fd)
+        const res = await inviteTeamMember(fd)
+        if (!res.ok) { toast.error(res.reason); return }
         toast.success("Invitation sent")
         formRef.current?.reset()
       } catch (err) {

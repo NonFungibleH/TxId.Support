@@ -24,7 +24,8 @@ export function AuditsManager({ projectId, audits }: Props) {
     if (!auditor.trim() || !url.trim()) return
     startTransition(async () => {
       try {
-        await addAudit(projectId, { auditor: auditor.trim(), url: url.trim(), date: date.trim() || undefined })
+        const res = await addAudit(projectId, { auditor: auditor.trim(), url: url.trim(), date: date.trim() || undefined })
+        if (!res.ok) { toast.error(res.reason); return }
         setAuditor(""); setUrl(""); setDate(""); setShowForm(false)
         toast.success("Audit added")
       } catch (err) {

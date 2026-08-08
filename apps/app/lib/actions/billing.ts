@@ -1,6 +1,7 @@
 "use server"
 
 import { requireCapability } from "@/lib/roles-server"
+import { refuse, type ActionResult } from "@/lib/actions/result"
 
 import { resolveOrg as resolveClerkOrg } from "@/lib/clerk-org"
 import { createServiceClient } from "@/lib/supabase/server"
@@ -46,10 +47,10 @@ async function resolveOrg() {
  * granted once the webhook receives the completed subscription - never
  * client-side.
  */
-export async function createCheckoutSession(): Promise<{ url: string }> {
+export async function createCheckoutSession(): Promise<ActionResult<{ url: string }>> {
   await requireCapability("billing")
   const priceId = process.env.STRIPE_PRICE_PRO
-  if (!priceId) throw new Error("Billing is not configured yet")
+  if (!priceId) return refuse("Card payment is not switched on yet. Email team@txid.support and we will set your plan up directly.")
 
   const { org, supabase, userId } = await resolveOrg()
   const stripe = getStripe()
@@ -80,18 +81,18 @@ export async function createCheckoutSession(): Promise<{ url: string }> {
   })
 
   if (!session.url) throw new Error("Could not start checkout")
-  return { url: session.url }
+  return { ok: true, url: session.url }
 }
 
 /**
  * Open the Stripe billing portal so an existing subscriber can update their
  * card, view invoices, or cancel. Requires an existing Stripe customer.
  */
-export async function createPortalSession(): Promise<{ url: string }> {
+export async function createPortalSession(): Promise<ActionResult<{ url: string }>> {
   await requireCapability("billing")
   const { org } = await resolveOrg()
   const customerId = org.stripe_customer_id
-  if (!customerId) throw new Error("No billing account yet - upgrade first")
+  if (!customerId) return refuse("There is no billing account on this company yet. Upgrade first and it will appear here.", { label: "See plans", href: "/dashboard/upgrade" })
 
   const stripe = getStripe()
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? ""
@@ -99,5 +100,5 @@ export async function createPortalSession(): Promise<{ url: string }> {
     customer: customerId,
     return_url: `${appUrl}/dashboard/account`,
   })
-  return { url: session.url }
+  return { ok: true, url: session.url }
 }

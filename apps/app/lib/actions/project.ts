@@ -8,6 +8,7 @@ import type { ProjectConfig } from "@/lib/types/config"
 import { DEFAULT_CONFIG } from "@/lib/types/config"
 import { revalidatePath } from "next/cache"
 import { recordAudit, diffConfig } from "@/lib/audit"
+import { refuse, type ActionResult } from "@/lib/actions/result"
 import type { Database, Json } from "@/lib/supabase/types"
 
 type OrgRow = Database["public"]["Tables"]["organisations"]["Row"]
@@ -132,14 +133,14 @@ export async function createProjectWithMode(name: string, mode: "support" | "tok
   return project
 }
 
-export async function renameOrg(name: string) {
+export async function renameOrg(name: string): Promise<ActionResult> {
   await requireCapability("settings")
   const { orgId, userId } = await resolveOrg()
   if (!userId) throw new Error("Unauthenticated")
   const orgKey = orgId ?? userId
 
   const trimmed = name.trim()
-  if (!trimmed || trimmed.length > 80) throw new Error("Name must be 1-80 characters")
+  if (!trimmed || trimmed.length > 80) return refuse("Give it a name between 1 and 80 characters.")
 
   const supabase = createServiceClient()
 
@@ -151,16 +152,18 @@ export async function renameOrg(name: string) {
   if (error) throw new Error(error.message)
   revalidatePath("/dashboard")
   revalidatePath("/dashboard/account")
+
+  return { ok: true }
 }
 
-export async function renameProject(projectId: string, name: string) {
+export async function renameProject(projectId: string, name: string): Promise<ActionResult> {
   await requireCapability("settings")
   const { orgId, userId } = await resolveOrg()
   if (!userId) throw new Error("Unauthenticated")
   const orgKey = orgId ?? userId
 
   const trimmed = name.trim()
-  if (!trimmed || trimmed.length > 80) throw new Error("Name must be 1-80 characters")
+  if (!trimmed || trimmed.length > 80) return refuse("Give it a name between 1 and 80 characters.")
 
   const supabase = createServiceClient()
 
@@ -180,6 +183,8 @@ export async function renameProject(projectId: string, name: string) {
 
   if (error) throw new Error(error.message)
   revalidatePath("/dashboard")
+
+  return { ok: true }
 }
 
 export async function updateConfig(

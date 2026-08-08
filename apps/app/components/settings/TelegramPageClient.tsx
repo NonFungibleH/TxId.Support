@@ -77,6 +77,7 @@ export function TelegramPageClient({
     startTransition(async () => {
       try {
         const result = await saveTelegramToken(projectId, token.trim())
+        if (!result.ok) { toast.error(result.reason); return }
         setIsConnected(true)
         setUsername(result.username)
         setDisplayName(result.botDisplayName)

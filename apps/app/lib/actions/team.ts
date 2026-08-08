@@ -5,6 +5,7 @@ import { requireCapability, rolesForOrg, currentActor } from "@/lib/roles-server
 import { createServiceClient } from "@/lib/supabase/server"
 import { recordAudit } from "@/lib/audit"
 import { revalidatePath } from "next/cache"
+import { refuse, type ActionResult } from "@/lib/actions/result"
 import { clerkClient } from "@clerk/nextjs/server"
 import { resolveOrg } from "@/lib/clerk-org"
 
@@ -85,7 +86,7 @@ export async function getTeamMembers() {
   return { members, pending }
 }
 
-export async function inviteTeamMember(formData: FormData) {
+export async function inviteTeamMember(formData: FormData): Promise<ActionResult> {
   await requireCapability("team")
   const { userId, orgId } = await resolveOrg()
   if (!userId || !orgId) throw new Error("Unauthenticated")
@@ -94,7 +95,7 @@ export async function inviteTeamMember(formData: FormData) {
   const role = (formData.get("role") as string | null) ?? "developer"
 
   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    throw new Error("Valid email required")
+    return refuse("That does not look like an email address. Check it and try again.")
   }
   // THE INVITE NOW CARRIES A TxID ROLE, NOT A CLERK ONE. The form previously
   // offered Clerk's two membership levels, so three quarters of the permission
@@ -102,7 +103,7 @@ export async function inviteTeamMember(formData: FormData) {
   // arrived as Admin by default and had to be demoted afterwards, which is the
   // wrong direction to travel with access to every user conversation.
   if (!ROLES.includes(role as Role)) {
-    throw new Error("Invalid role")
+    return refuse("Pick one of the four roles before sending the invite.")
   }
 
   // Clerk still needs one of its OWN two roles for the membership. Only a TxID
@@ -122,6 +123,8 @@ export async function inviteTeamMember(formData: FormData) {
   })
 
   revalidatePath("/dashboard/team")
+
+  return { ok: true }
 }
 
 export async function revokeInvitation(invitationId: string) {
@@ -147,11 +150,11 @@ export async function revokeInvitation(invitationId: string) {
  * settings. And the last admin cannot be demoted, for the same reason with no
  * way back.
  */
-export async function setMemberRole(clerkUserId: string, role: Role): Promise<void> {
+export async function setMemberRole(clerkUserId: string, role: Role): Promise<ActionResult> {
   const actor = await requireCapability("team")
-  if (!ROLES.includes(role)) throw new Error("Unknown role")
+  if (!ROLES.includes(role)) return refuse("That is not a role we recognise.")
   if (clerkUserId === actor.userId) {
-    throw new Error("You cannot change your own role. Ask another Admin.")
+    return refuse("You cannot change your own role. Ask another Admin to do it, so an account cannot lock itself out.")
   }
 
   const supabase = createServiceClient()
@@ -170,7 +173,7 @@ export async function setMemberRole(clerkUserId: string, role: Role): Promise<vo
         return uid ? (explicit[uid] ?? DEFAULT_ROLE) === "admin" : false
       })
       if (admins.length <= 1 && admins.some(m => m.publicUserData?.userId === clerkUserId)) {
-        throw new Error("This is the only Admin. Promote someone else first.")
+        return refuse("This is the only Admin on the account. Promote someone else first, or the company loses access to its own team settings.")
       }
     }
   }
@@ -194,6 +197,8 @@ export async function setMemberRole(clerkUserId: string, role: Role): Promise<vo
   })
 
   revalidatePath("/dashboard/team")
+
+  return { ok: true }
 }
 
 /**
@@ -209,10 +214,10 @@ export async function setMemberRole(clerkUserId: string, role: Role): Promise<vo
  * row (permission), so nothing is left behind to grant access if they are ever
  * re-added.
  */
-export async function removeMember(clerkUserId: string): Promise<void> {
+export async function removeMember(clerkUserId: string): Promise<ActionResult> {
   const actor = await requireCapability("team")
   if (clerkUserId === actor.userId) {
-    throw new Error("You cannot remove yourself. Ask another Admin.")
+    return refuse("You cannot remove yourself. Ask another Admin to do it.")
   }
 
   const { orgId } = await resolveOrg()
@@ -254,4 +259,6 @@ export async function removeMember(clerkUserId: string): Promise<void> {
   })
 
   revalidatePath("/dashboard/team")
+
+  return { ok: true }
 }

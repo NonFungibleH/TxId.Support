@@ -31,7 +31,11 @@ export function RemoveMemberButton({
     if (!armed) { setArmed(true); return }
     setBusy(true)
     startTransition(async () => {
-      try { await removeMember(userId); toast.success(`${email} removed`) }
+      try {
+        const res = await removeMember(userId)
+        if (!res.ok) { toast.error(res.reason); return }
+        toast.success(`${email} removed`)
+      }
       catch (err) { toast.error(err instanceof Error ? err.message : "Could not remove") }
       finally { setBusy(false); setArmed(false) }
     })

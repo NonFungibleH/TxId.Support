@@ -56,7 +56,8 @@ export function AbiManager({ projectId, contract }: Props) {
     if (!abiText.trim()) return
     startTransition(async () => {
       try {
-        await saveContractAbi(projectId, contract.id, abiText.trim())
+        const res = await saveContractAbi(projectId, contract.id, abiText.trim())
+        if (!res.ok) { toast.error(res.reason); return }
         toast.success(`${label} saved`)
         setShowPaste(false)
         setAbiText("")

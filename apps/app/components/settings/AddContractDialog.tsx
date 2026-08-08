@@ -106,10 +106,11 @@ export function AddContractDialog({ projectId, activeChains, chainLimit }: AddCo
   function submit() {
     startTransition(async () => {
       try {
-        await addContract(projectId, {
+        const res = await addContract(projectId, {
           name, address, chain, description,
           ...(isAptos && moduleName ? { moduleName } : {}),
         })
+        if (!res.ok) { toast.error(res.reason); return }
         toast.success("Contract added")
         reset()
         setOpen(false)

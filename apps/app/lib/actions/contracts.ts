@@ -6,6 +6,7 @@ import { resolveOrg } from "@/lib/clerk-org"
 import { createServiceClient } from "@/lib/supabase/server"
 import { nanoid } from "nanoid"
 import { revalidatePath } from "next/cache"
+import { refuse, type ActionResult } from "@/lib/actions/result"
 import { z } from "zod"
 import type { ProjectConfig, WatchedContract, ErrorGlossaryEntry, Plan } from "@/lib/types/config"
 import { PLAN_CHAIN_LIMITS } from "@/lib/types/config"
@@ -83,7 +84,7 @@ async function resolveProjectWithOwnership(
 export async function addContract(
   projectId: string,
   input: { name: string; address: string; chain: string; description: string; moduleName?: string }
-) {
+): Promise<ActionResult<{ contract: WatchedContract }>> {
   await requireCapability("settings")
   const parsed = AddContractSchema.safeParse(input)
   if (!parsed.success) throw new Error(parsed.error.issues[0].message)
@@ -92,7 +93,9 @@ export async function addContract(
   const config = project.config as unknown as ProjectConfig
   const existing = config.watchedContracts ?? []
 
-  if (existing.length >= 20) throw new Error("Maximum of 20 watched contracts per project")
+  if (existing.length >= 20) {
+    return refuse("You already have the maximum of 20 watched contracts. Remove one before adding another.")
+  }
 
   // Enforce chain limit - derived from existing contracts + token (chains page removed)
   const plan = (config.plan ?? "free") as Plan
@@ -146,7 +149,7 @@ export async function addContract(
 
   if (error) throw new Error(error.message)
   revalidatePath("/dashboard/contracts")
-  return newContract
+  return { ok: true, contract: newContract }
 }
 
 export async function refreshContractAbi(projectId: string, contractId: string) {
@@ -184,13 +187,13 @@ export async function refreshContractAbi(projectId: string, contractId: string) 
   return { found: !!abi }
 }
 
-export async function saveContractAbi(projectId: string, contractId: string, abi: string) {
+export async function saveContractAbi(projectId: string, contractId: string, abi: string): Promise<ActionResult> {
   await requireCapability("settings")
   // Validate it's parseable JSON
   try {
     JSON.parse(abi)
   } catch {
-    throw new Error("Invalid ABI: must be a JSON array")
+    return refuse("That does not look like an ABI. Paste the JSON array from your compiler or block explorer.")
   }
 
   const project = await resolveProjectWithOwnership(projectId)
@@ -211,20 +214,22 @@ export async function saveContractAbi(projectId: string, contractId: string, abi
 
   if (error) throw new Error(error.message)
   revalidatePath("/dashboard/contracts")
+
+  return { ok: true }
 }
 
 export async function updateContractDetails(
   projectId: string,
   contractId: string,
   input: { name: string; description: string },
-) {
+): Promise<ActionResult> {
   await requireCapability("settings")
   const name = input.name.trim()
   const description = input.description.trim()
-  if (!name) throw new Error("Name is required")
-  if (name.length > 80) throw new Error("Name is too long (max 80)")
-  if (!description) throw new Error("Description is required")
-  if (description.length > 500) throw new Error("Description is too long (max 500)")
+  if (!name) return refuse("Give the contract a name, so the assistant knows when to look it up.")
+  if (name.length > 80) return refuse("That name is too long. Keep it under 80 characters.")
+  if (!description) return refuse("Describe what this contract does. The assistant uses the description to decide when to query it.")
+  if (description.length > 500) return refuse("That description is too long. Keep it under 500 characters.")
 
   const project = await resolveProjectWithOwnership(projectId)
   const config = project.config as unknown as ProjectConfig
@@ -244,14 +249,16 @@ export async function updateContractDetails(
 
   if (error) throw new Error(error.message)
   revalidatePath("/dashboard/contracts")
+
+  return { ok: true }
 }
 
-export async function addAudit(projectId: string, input: { auditor: string; url: string; date?: string }) {
+export async function addAudit(projectId: string, input: { auditor: string; url: string; date?: string }): Promise<ActionResult> {
   await requireCapability("settings")
   const auditor = input.auditor.trim()
   const url = input.url.trim()
-  if (!auditor) throw new Error("Auditor name is required")
-  if (!/^https?:\/\//.test(url)) throw new Error("Report URL must start with http:// or https://")
+  if (!auditor) return refuse("Name the firm that carried out the audit.")
+  if (!/^https?:\/\//.test(url)) return refuse("The report link needs to start with http:// or https://")
 
   const project = await resolveProjectWithOwnership(projectId)
   const config = project.config as unknown as ProjectConfig
@@ -267,6 +274,8 @@ export async function addAudit(projectId: string, input: { auditor: string; url:
   const { error } = await supabase.from("projects").update({ config: updated as unknown as Json }).eq("id", projectId)
   if (error) throw new Error(error.message)
   revalidatePath("/dashboard/contracts")
+
+  return { ok: true }
 }
 
 export async function removeAudit(projectId: string, auditId: string) {

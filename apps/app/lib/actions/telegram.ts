@@ -3,6 +3,7 @@
 import { requireCapability } from "@/lib/roles-server"
 
 import { revalidatePath } from "next/cache"
+import { refuse, type ActionResult } from "@/lib/actions/result"
 import { createServiceClient } from "@/lib/supabase/server"
 import { resolveOrg } from "@/lib/clerk-org"
 import type { ProjectConfig } from "@/lib/types/config"
@@ -66,16 +67,16 @@ async function callTelegramApi(
   return data.result
 }
 
-export async function saveTelegramToken(projectId: string, token: string) {
+export async function saveTelegramToken(projectId: string, token: string): Promise<ActionResult<{ username: string; botDisplayName: string }>> {
   await requireCapability("settings")
-  if (!token.trim()) throw new Error("Token is required")
+  if (!token.trim()) return refuse("Paste the token @BotFather gave you. It looks like 7654321098:AAEhBG…")
 
   // Validate token by calling getMe
   let botInfo: TelegramBotInfo
   try {
     botInfo = (await callTelegramApi(token.trim(), "getMe")) as TelegramBotInfo
   } catch {
-    throw new Error("Invalid bot token. Create a bot with @BotFather and paste the token here.")
+    return refuse("Telegram did not recognise that token. Create a bot with @BotFather, then copy the whole token including the digits before the colon.")
   }
 
   const project = await resolveProjectWithOwnership(projectId)
@@ -124,7 +125,7 @@ export async function saveTelegramToken(projectId: string, token: string) {
 
   if (error) throw new Error(error.message)
   revalidatePath("/dashboard/telegram")
-  return { username: botInfo.username, botDisplayName }
+  return { ok: true, username: botInfo.username, botDisplayName }
 }
 
 // Shape of Telegram's getWebhookInfo result (fields we use).

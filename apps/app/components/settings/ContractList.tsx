@@ -55,7 +55,8 @@ export function ContractList({ projectId, contracts, showGlossary }: ContractLis
     }
     startTransition(async () => {
       try {
-        await updateContractDetails(projectId, contractId, { name: editName, description: editDesc })
+        const res = await updateContractDetails(projectId, contractId, { name: editName, description: editDesc })
+        if (!res.ok) { toast.error(res.reason); return }
         setEditingId(null)
         toast.success("Contract updated")
       } catch (err) {

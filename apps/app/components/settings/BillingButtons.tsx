@@ -42,8 +42,9 @@ export function CheckoutButton({
       onClick={async () => {
         setLoading(true)
         try {
-          const { url } = await createCheckoutSession()
-          window.location.href = url
+          const res = await createCheckoutSession()
+          if (!res.ok) { setLoading(false); toast.error(res.reason); return }
+          window.location.href = res.url
         } catch (err) {
           setLoading(false)
           toast.error(err instanceof Error ? err.message : "Could not start checkout")
@@ -89,8 +90,9 @@ export function ManageBillingButton({
       onClick={async () => {
         setLoading(true)
         try {
-          const { url } = await createPortalSession()
-          window.location.href = url
+          const res = await createPortalSession()
+          if (!res.ok) { setLoading(false); toast.error(res.reason); return }
+          window.location.href = res.url
         } catch (err) {
           setLoading(false)
           toast.error(err instanceof Error ? err.message : "Could not open billing portal")

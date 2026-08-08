@@ -31,7 +31,8 @@ export function ProjectNameEditor({ projectId, initialName }: Props) {
     if (!value.trim() || value.trim() === initialName) { setEditing(false); return }
     startTransition(async () => {
       try {
-        await renameProject(projectId, value.trim())
+        const res = await renameProject(projectId, value.trim())
+        if (!res.ok) { toast.error(res.reason); return }
         toast.success("Project renamed")
         setEditing(false)
       } catch {

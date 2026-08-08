@@ -34,7 +34,8 @@ export function MemberRoleSelect({
     setValue(next)
     startTransition(async () => {
       try {
-        await setMemberRole(userId, next)
+        const res = await setMemberRole(userId, next)
+        if (!res.ok) { setValue(previous); toast.error(res.reason); return }
         toast.success(`Now ${ROLE_LABEL[next]}`)
       } catch (err) {
         setValue(previous)
