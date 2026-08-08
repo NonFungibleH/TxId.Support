@@ -58,6 +58,7 @@ export default async function DashboardPage() {
   const now = new Date()
   const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1))
 
+  const WALLET_FALLBACK_CAP = 5000
   const [convResult, docsResult, walletsResult, monthlyResult, recentResult] = await Promise.all([
     supabase
       .from("conversations")
@@ -67,11 +68,16 @@ export default async function DashboardPage() {
       .from("documents")
       .select("id", { count: "exact", head: true })
       .eq("project_id", typedProject.id),
+    // Bounded fallback only. The real count comes from the distinct_wallets
+    // SQL function below; this read exists for deployments where that
+    // migration has not been applied yet, and is capped so an unapplied
+    // migration cannot turn into an unbounded scan on every page load.
     supabase
       .from("conversations")
       .select("wallet_address")
       .eq("project_id", typedProject.id)
-      .not("wallet_address", "is", null),
+      .not("wallet_address", "is", null)
+      .limit(WALLET_FALLBACK_CAP),
     supabase
       .from("conversations")
       .select("id", { count: "exact", head: true })
@@ -85,9 +91,25 @@ export default async function DashboardPage() {
       .limit(5),
   ])
 
-  const uniqueWallets = new Set(
+  const uniqueWalletsFallback = new Set(
     (walletsResult.data ?? []).map((r) => (r as { wallet_address: string }).wallet_address)
   ).size
+
+  // count(distinct) in Postgres, not in JavaScript over every row. Falls back
+  // to the bounded read above when the function is missing, so the number is
+  // never wrong in a way the page hides: it is either exact or an explicit
+  // lower bound from a capped sample.
+  let uniqueWallets = uniqueWalletsFallback
+  let walletsAreExact = uniqueWalletsFallback < WALLET_FALLBACK_CAP
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: exact, error } = await (supabase as any)
+      .rpc("distinct_wallets", { p_project_id: typedProject.id })
+    if (!error && typeof exact === "number") {
+      uniqueWallets = exact
+      walletsAreExact = true
+    }
+  } catch { /* function not applied yet: keep the fallback */ }
 
   const config = typedProject.config as unknown as ProjectConfig
   const docCount = docsResult.count ?? 0
@@ -193,7 +215,7 @@ export default async function DashboardPage() {
       {/* Stats */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-4">
         <StatsCard title="Conversations" value={convResult.count ?? 0} description="All time" icon={MessageSquare} />
-        <StatsCard title="Connected wallets" value={uniqueWallets} description="Unique addresses" icon={Users} />
+        <StatsCard title="Connected wallets" value={uniqueWallets} description={walletsAreExact ? "Unique addresses" : "Unique addresses, recent sample"} icon={Users} />
         <StatsCard title="Knowledge base" value={docCount} description="Indexed chunks" icon={Globe} />
         <StatsCard title="Chains enabled" value={activeChains.length} description={plan === "demo" ? `of ${chainLimitLabel}` : `of ${chainLimitLabel} on ${PLAN_LABELS[plan]}`} icon={Zap} />
       </div>

@@ -1,3 +1,4 @@
+import { waitUntil } from "@vercel/functions"
 import { createServiceClient } from "@/lib/supabase/server"
 import { recordAudit } from "@/lib/audit"
 import type { ProjectConfig, IncidentConfig, IncidentLevel } from "@/lib/types/config"
@@ -52,7 +53,7 @@ export async function POST(request: Request) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .update({ config: { ...typed.config, incident: null } as any })
       .eq("id", typed.id)
-    void recordAudit({ action: "status_notice.cleared", target: "api", projectId: typed.id })
+    waitUntil(recordAudit({ action: "status_notice.cleared", target: "api", projectId: typed.id }))
     return json({ ok: true, active: null })
   }
 
@@ -79,12 +80,12 @@ export async function POST(request: Request) {
     .update({ config: { ...typed.config, incident } as any })
     .eq("id", typed.id)
 
-  void recordAudit({
+  waitUntil(recordAudit({
     action: "status_notice.raised",
     target: level,
     projectId: typed.id,
     metadata: { message, via: "api", expiresAt: incident.expiresAt },
-  })
+  }))
 
   return json({ ok: true, active: activeStatusNotice({ incident }) })
 }

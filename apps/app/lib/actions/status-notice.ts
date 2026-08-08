@@ -1,5 +1,6 @@
 "use server"
 
+import { waitUntil } from "@vercel/functions"
 import { revalidatePath } from "next/cache"
 import { requireCapability } from "@/lib/roles-server"
 import { getProject, updateConfig } from "@/lib/actions/project"
@@ -45,12 +46,12 @@ export async function setStatusNotice(input: {
 
   // Post-mortems and regulators ask "when did you tell your users?". This
   // answers it exactly, including the wording that was actually shown.
-  void recordAudit({
+  waitUntil(recordAudit({
     action: "status_notice.raised",
     target: input.level,
     projectId,
     metadata: { message, topics: input.topics ?? [], expiresAt: incident.expiresAt },
-  })
+  }))
 
   revalidatePath("/dashboard")
   revalidatePath("/dashboard/tickets")
@@ -63,7 +64,7 @@ export async function clearStatusNotice(): Promise<void> {
   const projectId = (project as { id: string }).id
 
   await updateConfig(projectId, { incident: null } as Partial<ProjectConfig>)
-  void recordAudit({ action: "status_notice.cleared", projectId })
+  waitUntil(recordAudit({ action: "status_notice.cleared", projectId }))
 
   revalidatePath("/dashboard")
   revalidatePath("/dashboard/tickets")

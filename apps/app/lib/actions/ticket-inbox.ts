@@ -1,5 +1,6 @@
 "use server"
 
+import { waitUntil } from "@vercel/functions"
 import { revalidatePath } from "next/cache"
 import { requireCapability } from "@/lib/roles-server"
 import { createServiceClient } from "@/lib/supabase/server"
@@ -80,7 +81,7 @@ export async function setTicketStatus(ticketId: string, status: TicketStatus): P
     ...(status === "resolved" || status === "closed" ? { resolved_at: now } : { resolved_at: null }),
   }).eq("id", ticketId)
   await addEvent(supabase, ticketId, projectId, { kind: "status_changed", body: status })
-  void recordAudit({ action: "ticket.status_changed", target: ticket.ref, projectId, metadata: { status } })
+  waitUntil(recordAudit({ action: "ticket.status_changed", target: ticket.ref, projectId, metadata: { status } }))
   revalidatePath("/dashboard/tickets")
 }
 
@@ -95,7 +96,7 @@ export async function assignTicket(ticketId: string, assigneeId: string | null, 
     kind: "assigned",
     body: assigneeEmail ?? "unassigned",
   })
-  void recordAudit({ action: "ticket.assigned", target: ticket.ref, projectId, metadata: { assigneeEmail } })
+  waitUntil(recordAudit({ action: "ticket.assigned", target: ticket.ref, projectId, metadata: { assigneeEmail } }))
   revalidatePath("/dashboard/tickets")
 }
 
@@ -107,7 +108,7 @@ export async function setTicketPriority(ticketId: string, priority: TicketPriori
     .update({ priority, updated_at: new Date().toISOString() })
     .eq("id", ticketId)
   await addEvent(supabase, ticketId, projectId, { kind: "priority_changed", body: priority })
-  void recordAudit({ action: "ticket.priority_changed", target: ticket.ref, projectId, metadata: { priority } })
+  waitUntil(recordAudit({ action: "ticket.priority_changed", target: ticket.ref, projectId, metadata: { priority } }))
   revalidatePath("/dashboard/tickets")
 }
 
@@ -140,12 +141,12 @@ export async function logTicketComm(
       .update({ first_response_at: new Date().toISOString() })
       .eq("id", ticketId)
   }
-  void recordAudit({
+  waitUntil(recordAudit({
     action: input.kind === "reply" ? "ticket.replied" : "ticket.annotated",
     target: ticket.ref,
     projectId,
     metadata: { kind: input.kind, channel: input.channel ?? null },
-  })
+  }))
   revalidatePath("/dashboard/tickets")
 }
 

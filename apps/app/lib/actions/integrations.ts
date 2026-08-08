@@ -1,5 +1,6 @@
 "use server"
 
+import { waitUntil } from "@vercel/functions"
 import { requireCapability } from "@/lib/roles-server"
 
 import { getProject } from "@/lib/actions/project"
@@ -34,12 +35,12 @@ export async function saveIntegration(target: IntegrationTarget, patch: Record<s
   // updateConfig already logs "config.updated", but that only says
   // "integrations". Which one, and whether a credential was replaced, is the
   // part a reviewer actually asks about. `patch` keys only, never values.
-  void recordAudit({
+  waitUntil(recordAudit({
     action: "integration.saved",
     target,
     projectId: (project as { id: string }).id,
     metadata: { fields: Object.keys(patch) },
-  })
+  }))
 }
 
 export async function testIntegrationAction(target: IntegrationTarget): Promise<{ ok: boolean; error?: string; url?: string }> {
@@ -146,12 +147,12 @@ export async function retryDelivery(id: string): Promise<{ ok: boolean; error?: 
 
   // Someone re-sent a user's escalation by hand. Worth a dated record: it is
   // a message leaving the system on a team member's say-so.
-  void recordAudit({
+  waitUntil(recordAudit({
     action: "escalation.redelivered",
     target: row.target as string,
     projectId,
     metadata: { ticketRef: row.ticket_ref, delivered: res.ok },
-  })
+  }))
 
   revalidatePath("/dashboard/tickets")
   return res.ok ? { ok: true } : { ok: false, ...(res.error ? { error: res.error } : {}) }

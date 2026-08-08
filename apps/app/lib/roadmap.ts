@@ -228,6 +228,16 @@ export const ROADMAP: RoadmapItem[] = [
     care: "Nothing evaluative and no amounts in an unprompted greeting. Unsolicited financial commentary is a stronger form of advice than answering a question.",
   },
   {
+    id: "k-beta-i18n",
+    title: "Beta programme strings are English only",
+    area: "foundation",
+    phase: 2,
+    complexity: "Low",
+    effort: "~2 days",
+    status: "soon",
+    what: "The widget honours 16 configured languages and the assistant answers in them, but every string the beta programme adds is hardcoded English: the orientation card, the Let's go button, the Beta pill, the feedback button and the caption beside the launcher. A protocol running a Spanish or Korean beta gets an assistant that speaks their testers' language wrapped in an interface that does not, which is worse than either being consistent. These are the first words a tester reads, so they carry more weight than their length suggests.",
+  },
+  {
     id: "k-live-protocol-data",
     title: "Answer from the protocol's LIVE application data, not just its docs",
     area: "foundation",

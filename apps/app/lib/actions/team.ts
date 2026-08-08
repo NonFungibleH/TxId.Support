@@ -1,5 +1,6 @@
 "use server"
 
+import { waitUntil } from "@vercel/functions"
 import { ROLES, DEFAULT_ROLE, type Role } from "@/lib/roles"
 import { requireCapability, rolesForOrg, currentActor } from "@/lib/roles-server"
 import { createServiceClient } from "@/lib/supabase/server"
@@ -189,12 +190,12 @@ export async function setMemberRole(clerkUserId: string, role: Role): Promise<Ac
 
   // A permission change is the most sensitive change there is, so it is
   // recorded even though the role table itself is rewritable.
-  void recordAudit({
+  waitUntil(recordAudit({
     action: "member.role_changed",
     target: clerkUserId,
     orgId: actor.orgId,
     metadata: { role },
-  })
+  }))
 
   revalidatePath("/dashboard/team")
 
@@ -251,12 +252,12 @@ export async function removeMember(clerkUserId: string): Promise<ActionResult> {
 
   // Dated, and it names them: "when did X lose access" is the question an
   // auditor asks, and it is unanswerable from a deleted row.
-  void recordAudit({
+  waitUntil(recordAudit({
     action: "member.removed",
     target: email,
     orgId: actor.orgId,
     metadata: { removedUserId: clerkUserId },
-  })
+  }))
 
   revalidatePath("/dashboard/team")
 

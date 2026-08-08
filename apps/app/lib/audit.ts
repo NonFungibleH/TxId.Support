@@ -60,7 +60,13 @@ function scrub(metadata: Record<string, unknown> | undefined): Record<string, un
  * reviewer.
  */
 export function describeValue(key: string, v: unknown): string {
-  if (FORBIDDEN.test(key)) return v === null || v === undefined || v === "" ? "cleared" : "set"
+  // A BOOLEAN CANNOT LEAK A SECRET, and redacting it actively misleads. The
+  // pattern matches on the key name, so `allowUnrestrictedKey` (a toggle) was
+  // logged as "set" and read like a credential had changed. Redaction applies
+  // to values that could carry one.
+  if (FORBIDDEN.test(key) && typeof v !== "boolean") {
+    return v === null || v === undefined || v === "" ? "cleared" : "set"
+  }
   if (v === null || v === undefined) return "not set"
   if (typeof v === "boolean") return v ? "on" : "off"
   if (typeof v === "number") return String(v)
@@ -99,12 +105,30 @@ export function diffConfig(
     } catch {
       // Unserialisable (a cycle): treat as changed rather than dropping it.
     }
-    out.push({ field: key, from: describeValue(key, a), to: describeValue(key, b) })
+    // WHICH KIND OF FIELD IS THIS, decided from the PAIR. A boolean cannot
+    // carry a credential, but the previous value of a toggle being set for the
+    // first time is `undefined`, which on its own looks like it might. Judging
+    // from either side alone logged "cleared -> on", which is nonsense.
+    const isToggle = typeof a === "boolean" || typeof b === "boolean"
+    // NOT_A_SECRET skips the key-name redaction for a field we have just
+    // established holds a boolean.
+    const NOT_A_SECRET = ""
+    const nameFor = isToggle ? NOT_A_SECRET : key
+    out.push({ field: key, from: describeValue(nameFor, a), to: describeValue(nameFor, b) })
   }
   return out
 }
 
 
+/**
+ * CALLERS MUST NOT `void` THIS. Use waitUntil.
+ *
+ * On Vercel the function can be frozen the moment its response is sent, so a
+ * promise started and abandoned just before a return may never run. Every call
+ * site was a bare `void`, which means the change history had holes nobody could
+ * enumerate: for a table we point security reviewers at, "some entries may be
+ * missing and we cannot tell you which" is worse than not having it.
+ */
 export async function recordAudit(entry: AuditEntry): Promise<void> {
   try {
     // NOTE: Clerk's orgId is a Clerk string id, not our internal organisations

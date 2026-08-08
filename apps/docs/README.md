@@ -1,3 +1,19 @@
+# apps/docs — NOT DEPLOYED. Read this before editing anything here.
+
+**`docs.txid.support` does not resolve.** Nothing in this app reaches a user,
+and nothing here has reached a user for as long as it has existed.
+
+**The live help centre is `apps/web/lib/docs.ts`**, served at
+`txid.support/docs` and linked from the dashboard footer. That is the one a
+customer reads. If you have been asked to "update the docs", it is almost
+certainly that file you want.
+
+This app is kept because the content is a reasonable starting point should the
+standalone site ever ship. Until it does, editing it is work that reaches
+nobody, which is the specific failure this warning exists to prevent.
+
+---
+
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started

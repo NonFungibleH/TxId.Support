@@ -8,6 +8,7 @@ import type { Plan } from "@/lib/types/config"
 import { cn } from "@/lib/utils"
 import { PlanControl } from "@/components/admin/PlanControl"
 import { PublicDemoToggle } from "@/components/admin/PublicDemoToggle"
+import { checkSchema } from "@/lib/schema-check"
 
 // Approximate Claude Haiku 4.5 pricing, in USD per million tokens. Adjust to
 // match current Anthropic pricing - this drives the estimated-cost columns.
@@ -145,6 +146,11 @@ export default async function AdminPage() {
     publicDemoByProject.set(r.id, r.config?.publicDemo === true)
   }
 
+  // Does production actually have the tables the code writes to? Three separate
+  // incidents were a missing table, and every one of them looked like the
+  // product simply not being used. See lib/schema-check.ts.
+  const schema = await checkSchema()
+
   // Platform-level aggregates
   const totalOrgs = new Set(stats.map(r => r.org_id)).size
   const totalProjects = stats.length
@@ -166,6 +172,26 @@ export default async function AdminPage() {
 
   return (
     <div className="min-h-screen bg-background p-6 md:p-10 space-y-10">
+      {schema.missing.length > 0 && (
+        <div className="rounded-xl border border-red-500/40 bg-red-500/5 p-4">
+          <p className="text-sm font-semibold text-red-400">
+            {schema.missing.length} table{schema.missing.length === 1 ? " is" : "s are"} missing from this database
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            The code writes to these and the deploy is green regardless, so the symptom is a feature
+            quietly doing nothing rather than an error. Apply the migrations in supabase/migrations.
+          </p>
+          <ul className="mt-3 space-y-1">
+            {schema.missing.map(m => (
+              <li key={m.table} className="text-xs">
+                <span className="font-mono font-medium">{m.table}</span>
+                <span className="text-muted-foreground"> &mdash; {m.impact}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       {/* Header */}
       <div>
         <p className="text-xs text-muted-foreground uppercase tracking-wider font-mono mb-1">Internal - do not share</p>

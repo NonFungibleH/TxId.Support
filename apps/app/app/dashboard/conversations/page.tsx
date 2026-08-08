@@ -1,3 +1,4 @@
+import { waitUntil } from "@vercel/functions"
 import { getProject } from "@/lib/actions/project"
 import { createServiceClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
@@ -232,12 +233,12 @@ export default async function ConversationsPage({
 
   // Reading client case records is itself an event a reviewer will ask about.
   // Fire-and-forget so it never delays or breaks the page.
-  void recordCaseAccess({
+  waitUntil(recordCaseAccess({
     projectId: typedProject.id,
     actor: (await auth()).userId ?? "unknown",
     action: "view",
     detail: { conversations: convIds.length, filters: { q, wallet, chain, from, to } },
-  })
+  }))
 
   const [{ data: messages }, { data: tickets }] = await Promise.all([
     // `evidence` post-dates the generated types, and on a deployment that has

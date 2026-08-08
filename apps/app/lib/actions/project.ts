@@ -1,5 +1,6 @@
 "use server"
 
+import { waitUntil } from "@vercel/functions"
 import { requireCapability } from "@/lib/roles-server"
 
 import { resolveOrg } from "@/lib/clerk-org"
@@ -279,13 +280,13 @@ export async function updateConfig(
     resolvedPartial as Record<string, unknown>,
   )
   if (changes.length > 0) {
-    void recordAudit({
+    waitUntil(recordAudit({
       action: "config.updated",
       target: changes.map(c => c.field).join(", "),
       projectId,
       orgId: org.id,
       metadata: { fields: changes.map(c => c.field), changes },
-    })
+    }))
   }
 
   revalidatePath("/dashboard")
@@ -419,11 +420,11 @@ export async function toggleActive(
 
   // Going live and going dark are the two changes a customer most often needs
   // to date afterwards, and neither is visible in the config diff above.
-  void recordAudit({
+  waitUntil(recordAudit({
     action: isActive ? "widget.enabled" : "widget.disabled",
     projectId,
     orgId: org.id,
-  })
+  }))
 
   revalidatePath("/dashboard")
 
