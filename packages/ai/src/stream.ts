@@ -180,7 +180,32 @@ function cachedSystem(prompt: string, docs?: string): Anthropic.TextBlockParam[]
   ]
 }
 
+/**
+ * Strip em dashes from anything the model says, deterministically.
+ *
+ * The rule is in the system prompt and the model mostly follows it, but
+ * "mostly" is not a house style. An end-user test caught one in a live answer,
+ * and a prompt instruction cannot be the only guarantee for something that
+ * appears in front of every customer's users. Replaced with a comma, which is
+ * what the rule asks for in the overwhelming majority of cases, and with a
+ * space collapse so "word — word" does not become "word , word".
+ *
+ * Applied to the OUTPUT rather than at the ten yield sites inside, so a new
+ * yield added later cannot quietly opt out.
+ */
+function stripEmDashes(text: string): string {
+  return text.replace(/\s*[—–]\s*/g, ", ")
+}
+
 export async function* streamChatWithTools(
+  ...args: Parameters<typeof streamChatWithToolsRaw>
+): AsyncGenerator<StreamEvent> {
+  for await (const event of streamChatWithToolsRaw(...args)) {
+    yield event.type === "text" ? { ...event, text: stripEmDashes(event.text) } : event
+  }
+}
+
+async function* streamChatWithToolsRaw(
   systemPrompt: string,
   messages: ChatMessage[],
   walletConfig: WalletConfig | null,
