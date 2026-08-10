@@ -1,5 +1,6 @@
-import { createServiceClient } from "@/lib/supabase/server"
+import { loadInsightWindow } from "@/lib/insight-data"
 import { rankTopics } from "@/lib/topics"
+import { WEAK_MATCH } from "@/lib/insights"
 
 /**
  * Where TxID fell short, split by whose problem it is.
@@ -77,19 +78,7 @@ function normaliseFailure(note: string): string {
 }
 
 
-/**
- * Below this, the documentation technically matched but not well enough to
- * trust. A starting heuristic, not a measured constant: retrieval only returns
- * results above 0.35, so this marks the band just above the floor. Now that
- * scores are recorded, it can be tuned against real data rather than guessed.
- */
-const WEAK_MATCH = 0.5
-
 export async function buildGapsReport(projectId: string, days = 30): Promise<GapsReport> {
-  const supabase = createServiceClient()
-  const since = new Date()
-  since.setDate(since.getDate() - days)
-
   const empty: GapsReport = {
     unanswered: [], thumbsDown: [], escalated: [], silentlyUnhappy: [], dataGaps: [],
     docGaps: [], ungrounded: [], docCoverage: { answered: 0, noMatch: 0, weakMatch: 0, avgContextChars: 0 },
@@ -97,39 +86,16 @@ export async function buildGapsReport(projectId: string, days = 30): Promise<Gap
     totals: { conversations: 0, withProblems: 0 },
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: conversations } = await (supabase as any)
-    .from("conversations")
-    .select("id, created_at, summary, category, sentiment")
-    .eq("project_id", projectId)
-    .gte("created_at", since.toISOString())
-    .order("created_at", { ascending: false })
-    .limit(2000)
+  // ONE READ, SHARED WITH THE INSIGHTS REPORT. Both want the same window of
+  // conversations, messages and tickets, and this page renders both. The
+  // loader is `cache()`d per request, so whichever runs second pays nothing.
+  const { conversations, messages: allMessages, tickets } = await loadInsightWindow(projectId, days)
 
-  const convs = (conversations ?? []) as Array<{
-    id: string; created_at: string; summary: string | null
-    category: string | null; sentiment: string | null
-  }>
+  const convs = conversations
   if (convs.length === 0) return empty
-  const convIds = convs.map(c => c.id)
   const byId = new Map(convs.map(c => [c.id, c]))
-
-  const [messagesRes, ticketsRes] = await Promise.all([
-    // Evidence may not exist yet; fall back so the view still works.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (supabase as any)
-      .from("messages")
-      .select("conversation_id, feedback, role, created_at, evidence, content")
-      .in("conversation_id", convIds)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      .then((res: any) =>
-        res.error
-          ? supabase.from("messages").select("conversation_id, feedback, role, created_at, content").in("conversation_id", convIds)
-          : res,
-      ),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (supabase as any).from("tickets").select("conversation_id").in("conversation_id", convIds),
-  ])
+  const messagesRes = { data: allMessages }
+  const ticketsRes = { data: tickets }
 
   const toItem = (id: string): GapItem => {
     const c = byId.get(id)

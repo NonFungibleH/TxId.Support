@@ -11,7 +11,11 @@ import { PLAN_CONV_LIMITS } from "@/lib/types/config"
 import { cn } from "@/lib/utils"
 import { AnalyticsPeriodSelector } from "@/components/dashboard/AnalyticsPeriodSelector"
 import { GapsPanel } from "@/components/dashboard/GapsPanel"
+import { InsightsPanel } from "@/components/dashboard/InsightsPanel"
 import { buildGapsReport } from "@/lib/gaps"
+import { buildInsights } from "@/lib/insight-data"
+import { PLAN_SESSION_MESSAGE_LIMITS } from "@/lib/types/config"
+import { CHAT_LIMITS } from "@/lib/limits"
 
 const ConversationChart = dynamic(
   () => import("@/components/dashboard/ConversationChart").then((m) => m.ConversationChart),
@@ -180,8 +184,16 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Se
       pct: totalChainConvs > 0 ? Math.round((count / totalChainConvs) * 100) : 0,
     }))
 
-  // What the engine could not finish, for the support lead's work queue.
-  const gapsReport = await buildGapsReport(projectId, days).catch(() => null)
+  // What the engine could not finish, for the support lead's work queue, and
+  // what the pilot produced, for whoever decides whether to keep paying. Both
+  // read the same window through a request-cached loader, so this is one trip
+  // to the database rather than two. Neither is allowed to fail the page: an
+  // analytics section is not worth losing the usage numbers over.
+  const sessionCap = PLAN_SESSION_MESSAGE_LIMITS[plan] ?? CHAT_LIMITS.sessionMessages
+  const [gapsReport, insights] = await Promise.all([
+    buildGapsReport(projectId, days).catch(() => null),
+    buildInsights(projectId, days, sessionCap).catch(() => null),
+  ])
 
   // Build chart data
   const dayMap = new Map<string, number>()
@@ -379,6 +391,11 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Se
           </CardContent>
         </Card>
       )}
+
+      {/* INSIGHTS ABOVE GAPS. The gaps panel is a work queue for whoever runs
+          support day to day; this is what the pilot produced, which is what
+          gets read in a review and forwarded to whoever signs. */}
+      <InsightsPanel insights={insights} />
 
       {gapsReport && gapsReport.totals.conversations > 0 && (
         <GapsPanel report={gapsReport} days={days} />
