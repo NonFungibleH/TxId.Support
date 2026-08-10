@@ -512,6 +512,17 @@ async function* streamChatWithToolsRaw(
       ) {
         emittedToolIds.add(event.content_block.id)
         hasToolCalls = true
+        // ESCALATION IS NOT NARRATION. Held-back text is normally discarded
+        // when a tool call proves it was "let me check that for you". For
+        // create_support_ticket the text before the call IS the answer, the
+        // line acknowledging what the user said, and the widget STOPS the
+        // stream on the escalate event, so dropping it loses it rather than
+        // deferring it. A tester who left feedback got an empty bubble and
+        // then a form, which reads as the assistant having given up.
+        if (event.content_block.name === "create_support_ticket" && pending.trim()) {
+          yield { type: "text", text: separate(pending, anyTextThisTurn) }
+          anyTextThisTurn = true
+        }
         pending = ""
         yield { type: "tool_call", tool: event.content_block.name }
       } else if (

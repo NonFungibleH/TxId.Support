@@ -1776,6 +1776,16 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
               // point of the button is that leaving a note costs nothing.
               if (parsed.escalate.reason === "feedback") {
                 void recordFeedback(parsed.escalate.summary)
+                // Belt and braces: if the model went straight to the tool with
+                // no acknowledgement, say something rather than leaving the
+                // tester looking at an empty bubble.
+                setMessages(prev =>
+                  prev.map(m =>
+                    m.id === assistantId && !m.content.trim()
+                      ? { ...m, content: "Thanks, that's recorded for the team." }
+                      : m,
+                  ),
+                )
               } else {
                 setEscalation(parsed.escalate)
               }

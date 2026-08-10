@@ -1,4 +1,4 @@
-import { getRecentTransactions } from "@txid/blockchain"
+import { getRecentTransactions , canonicalChainId} from "@txid/blockchain"
 import { getAptosRecentTransactions, isAptosChain } from "@txid/aptos"
 import type { ProjectConfig } from "@/lib/types/config"
 import { resolveProtocolAccount } from "@/lib/protocol-account"
@@ -81,15 +81,48 @@ async function recentAptos(config: ProjectConfig, address: string): Promise<Rece
   }))
 }
 
-async function recentEvm(_config: ProjectConfig, address: string, chainId: string): Promise<Recent[] | null> {
-  const txs = await getRecentTransactions(address, chainId, 5).catch(() => null)
+/**
+ * SCOPED TO THE PROTOCOL'S OWN CONTRACTS, which it never was.
+ *
+ * `getRecentTransactions`'s third argument is a LIMIT, not a contract filter,
+ * and the config was taken and ignored. So this returned the wallet's ENTIRE
+ * recent history and the opener announced it as "your recent activity on
+ * <protocol>". A wallet that had never touched the protocol, and had only ever
+ * opened the support widget, was told the protocol could see its activity an
+ * hour ago. That is a confident false claim about someone's own history, made
+ * unprompted, as the first thing they read.
+ *
+ * The same fault made `no_activity` unreachable for anyone with any on-chain
+ * history anywhere, so the one opener written for a genuinely new user never
+ * fired for one.
+ *
+ * WITH NO WATCHED CONTRACTS ON THIS CHAIN WE RETURN NULL, NOT EMPTY. Empty
+ * means "we looked and you have not used this protocol", which is a claim.
+ * Null means "we could not find out", and the caller then says nothing at all.
+ * A project that has not added its contracts yet is exactly the case where we
+ * do not know, and Yamata was in it.
+ */
+async function recentEvm(config: ProjectConfig, address: string, chainId: string): Promise<Recent[] | null> {
+  const watched = new Set(
+    (config.watchedContracts ?? [])
+      .filter(c => canonicalChainId(String(c.chain ?? "")) === canonicalChainId(chainId))
+      .map(c => String(c.address ?? "").toLowerCase())
+      .filter(Boolean),
+  )
+  if (watched.size === 0) return null
+
+  const txs = await getRecentTransactions(address, chainId, 25).catch(() => null)
   if (!txs) return null
-  return txs.map(t => ({
-    failed: t.status === "failed",
-    when: ago(t.timestamp),
-    freshMs: Date.now() - (Date.parse(t.timestamp) || 0),
-    ...(t.decodedRevert?.reason ? { reason: t.decodedRevert.reason } : {}),
-  }))
+
+  return txs
+    .filter(t => t.to && watched.has(t.to.toLowerCase()))
+    .slice(0, 5)
+    .map(t => ({
+      failed: t.status === "failed",
+      when: ago(t.timestamp),
+      freshMs: Date.now() - (Date.parse(t.timestamp) || 0),
+      ...(t.decodedRevert?.reason ? { reason: t.decodedRevert.reason } : {}),
+    }))
 }
 
 /**
