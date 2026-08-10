@@ -2527,7 +2527,10 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
                 value={input}
                 onChange={(e) => { setInput(e.target.value); if (suggestions.length) setSuggestions([]) }}
                 onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && sendMessage()}
-                placeholder="Ask anything…"
+                // The placeholder follows the mode the tester picked, so the
+                // box reflects what they are doing rather than always inviting a
+                // question while they are mid bug report.
+                placeholder={mode === "bug" ? "Describe what happened…" : mode === "feedback" ? "Share your thoughts…" : "Ask anything…"}
                 disabled={isStreaming}
                 className="flex-1 bg-transparent text-xs outline-none placeholder:opacity-40"
                 style={{ color: b.inputTextColor ?? adaptiveText }}
