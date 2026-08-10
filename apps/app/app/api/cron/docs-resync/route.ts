@@ -40,10 +40,14 @@ function authorised(req: NextRequest): { ok: true } | { ok: false; why: string }
   const secret = process.env.CRON_SECRET?.trim()
   const auth = req.headers.get("authorization")?.trim()
 
-  // Vercel Cron signs its own scheduled calls. Not used now that the schedules
-  // live in GitHub Actions, but harmless to keep.
-  if (req.headers.get("x-vercel-cron") !== null) return { ok: true }
-
+  // NO x-vercel-cron BYPASS. That header only had to be PRESENT to pass, and
+  // any external caller can set it: Vercel does not reliably strip inbound
+  // x-vercel-* headers, and the documented secure pattern is the shared secret
+  // below. It let an unauthenticated request trigger this job, which for
+  // docs-resync means forcing a re-crawl and re-embed on demand. The real
+  // scheduler (GitHub Actions) sends Authorization: Bearer $CRON_SECRET, and if
+  // this ever runs on Vercel Cron that sends the same header once CRON_SECRET
+  // is set, so nothing legitimate needs the presence check.
   if (!secret) {
     return {
       ok: false,

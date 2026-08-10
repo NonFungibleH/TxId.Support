@@ -10,6 +10,7 @@ import { DEFAULT_CONFIG } from "@/lib/types/config"
 import { revalidatePath } from "next/cache"
 import { recordAudit, diffConfig } from "@/lib/audit"
 import { refuse, type ActionResult } from "@/lib/actions/result"
+import { stripServerOwnedKeys } from "@/lib/config-guard"
 import type { Database, Json } from "@/lib/supabase/types"
 
 type OrgRow = Database["public"]["Tables"]["organisations"]["Row"]
@@ -248,9 +249,13 @@ export async function updateConfig(
     } catch { /* keep whatever was provided */ }
   }
 
+  // Strip server-owned keys before merge. SECURITY BOUNDARY, not tidy-up: see
+  // stripServerOwnedKeys.
+  const safePartial = stripServerOwnedKeys(resolvedPartial)
+
   const merged = {
     ...(current.config as unknown as ProjectConfig),
-    ...resolvedPartial,
+    ...safePartial,
   }
 
   const { error: updateError } = await supabase
@@ -277,7 +282,7 @@ export async function updateConfig(
   // appeared seconds apart and buried the changes that were real.
   const changes = diffConfig(
     (current.config ?? {}) as Record<string, unknown>,
-    resolvedPartial as Record<string, unknown>,
+    safePartial as Record<string, unknown>,
   )
   if (changes.length > 0) {
     waitUntil(recordAudit({
