@@ -1886,7 +1886,7 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
                 ...m,
                 streaming: false,
                 toolCall: null,
-                content: m.content || "I didn't get an answer back that time. Please try asking again, or use Speak to a person below.",
+                content: m.content || "I didn't get an answer back that time. Please try asking again, or tell me you would like a person to look at it.",
               }
             : m,
         ),
@@ -2771,18 +2771,18 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
               </div>
             )}
 
-            {/* Speak to a person - always available once conversation has started */}
-            {!escalation && messages.length > 1 && !isStreaming && (
-              <div className="shrink-0 flex justify-center pb-1">
-                <button
-                  onClick={() => setEscalation({ summary: "User requested to speak with a person.", reason: "user_requested" })}
-                  className="text-[10px] transition-opacity hover:opacity-70"
-                  style={{ color: adaptiveText, opacity: 0.45 }}
-                >
-                  Speak to a person →
-                </button>
-              </div>
-            )}
+            {/* NO PERMANENT "SPEAK TO A PERSON" LINK, removed deliberately.
+                It promised something we cannot deliver, since it opened a
+                ticket form rather than reaching anyone, and a standing escape
+                hatch is clicked first by people who would have been answered
+                in one turn.
+
+                The routes to a human are unchanged and both still work: the
+                assistant escalates the moment someone ASKS for a person, and
+                proactively after two or three exchanges that go nowhere. The
+                message cap hands over on its own. So a user who needs a human
+                still reaches one; they just cannot skip the answer to get
+                there. */}
 
             {/* Input - hidden while escalation form is shown */}
             {!escalation && (
