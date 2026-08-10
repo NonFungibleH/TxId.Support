@@ -1622,7 +1622,15 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
     void fetch("/api/feedback", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ key: apiKey, sessionId: sessionId.current, content, rating: next }),
+      body: JSON.stringify({
+        key: apiKey,
+        sessionId: sessionId.current,
+        content,
+        rating: next,
+        // The embedding page, so the origin guard has something real to check:
+        // this fetch is same-origin and its Referer is always ours.
+        ...(hostContext.current.url ? { pageUrl: hostContext.current.url } : {}),
+      }),
     }).catch(() => { /* non-fatal - feedback is best-effort */ })
   }, [apiKey])
 

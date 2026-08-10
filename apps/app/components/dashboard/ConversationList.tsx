@@ -559,8 +559,8 @@ export function ConversationList({
                   {findingKind && (
                     <Badge
                       title={findingKind === "bug"
-                        ? "Started as a bug report. The filed report is on Tester reports."
-                        : "Started as feedback. The recorded note is on Tester reports."}
+                        ? "Started as a bug report. The filed report is on Findings."
+                        : "Started as feedback. The recorded note is on Findings."}
                       className={findingKind === "bug"
                         ? "text-[10px] px-1.5 py-0.5 leading-none shrink-0 bg-rose-500/10 text-rose-400 border-rose-500/20"
                         : "text-[10px] px-1.5 py-0.5 leading-none shrink-0 bg-sky-500/10 text-sky-400 border-sky-500/20"}

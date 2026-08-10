@@ -45,11 +45,11 @@ export default async function FindingsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl font-semibold">Tester reports</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {rows.length === 0
-            ? "Bugs and feedback recorded through the widget appear here."
-            : `${bugs.length} bug${bugs.length === 1 ? "" : "s"}, ${feedback.length} piece${feedback.length === 1 ? "" : "s"} of feedback.`}
+        <h1 className="text-xl font-semibold">Findings</h1>
+        <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
+          What your testers reported from inside the product, in their own words. Each one keeps the
+          conversation that produced it, so you can see what they were doing when they hit it. These
+          are deliberately kept out of Tickets: nobody here is waiting for a reply.
         </p>
       </div>
 

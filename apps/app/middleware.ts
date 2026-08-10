@@ -16,7 +16,6 @@ const isPublicRoute = createRouteMatcher([
   "/preview(.*)",
   "/api/chat(.*)",
   "/api/widget-config(.*)",
-  "/api/widget/feedback(.*)",
   "/api/widget/protocol-account(.*)",
   "/api/widget/opener(.*)",
   "/api/feedback(.*)",

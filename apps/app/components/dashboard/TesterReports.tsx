@@ -50,24 +50,24 @@ export function TesterReports({ bugs, feedback }: { bugs: Finding[]; feedback: F
       {tab === "bugs" ? (
         <div className="space-y-3">
           <p className="text-xs text-muted-foreground">
-            Something a tester found broken. Each one arrives with the page they were on, their
-            wallet and chain, the whole conversation and the chain state at that moment, so nobody
-            had to ask them for any of it.
+            Things a tester found broken. Each one arrives with the page they were on, their wallet
+            and chain, and the chain state at that moment, so nobody had to ask them for any of it.
+            Open one to read the exchange that produced it.
           </p>
           <FindingList
             findings={bugs}
-            emptyHint="Bugs appear as soon as a tester uses Report a bug in the widget."
+            emptyHint="These appear as soon as a tester picks Bug in the widget."
           />
         </div>
       ) : (
         <div className="space-y-3">
           <p className="text-xs text-muted-foreground">
-            Opinions, suggestions and reactions. Nobody here is waiting for a reply, which is why
-            these are kept out of Tickets.
+            Opinions, suggestions and reactions, recorded rather than argued with. The assistant is
+            told not to explain or defend when someone leaves one, and never to promise a reply.
           </p>
           <FindingList
             findings={feedback}
-            emptyHint="Feedback appears as soon as a tester uses the Feedback button in the widget."
+            emptyHint="These appear as soon as a tester picks Feedback in the widget."
           />
         </div>
       )}

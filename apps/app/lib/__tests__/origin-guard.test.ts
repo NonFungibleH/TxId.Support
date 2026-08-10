@@ -56,6 +56,21 @@ describe("originAllowed", () => {
     expect(originAllowed(req, ["app.yamata.pm"])).toBe(true)
   })
 
+  it("ignores our own origin when it arrives as a REFERER, which is the GET case", () => {
+    // Verified in a live browser: a same-origin fetch sends NO Origin header
+    // and a Referer of the page's own URL. The config fetch is a same-origin
+    // GET, so referer was the only header present and the route's own inline
+    // copy of this check read it as the embedding site. The first customer to
+    // set a domain would have got "Domain not registered for this key" and a
+    // widget that never loaded, from doing what the dashboard asked.
+    const req = new Request("https://app.txid.support/api/widget-config/pk_1", {
+      headers: { referer: "https://app.txid.support/widget?key=pk_1" },
+    })
+    expect(originAllowed(req, ["app.yamata.pm"])).toBe(true)
+    expect(originAllowed(req, ["app.yamata.pm"], { hostPage: "https://app.yamata.pm" })).toBe(true)
+    expect(originAllowed(req, ["app.yamata.pm"], { hostPage: "https://copycat.example" })).toBe(false)
+  })
+
   it("checks the host page the embed reports, not the iframe's origin", () => {
     const req = new Request("https://app.txid.support/api/tickets", {
       headers: { origin: "https://app.txid.support" },

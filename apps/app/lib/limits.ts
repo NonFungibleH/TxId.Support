@@ -42,7 +42,15 @@ export const CHAT_LIMITS = {
    *  is per lambda instance, so N concurrent instances would otherwise allow
    *  N x the intended rate. Deliberately tight: a degraded limiter is the one
    *  moment an attacker gets the most leverage. */
-  degradedRatePerWindow: 5,
+  // MUST STAY ABOVE `sessionMessages`, or the product's own designed flow trips
+  // its own limiter: a session is allowed 10 user turns, each turn is one
+  // request, so a degraded cap of 5 meant a single tester working quickly got
+  // "Too many requests" at message 6 with nobody attacking anything. A team
+  // testing from one office IP shares the bucket and hits it sooner still.
+  // 12 is still well under the normal 20 and far under the per-key ceiling,
+  // which is the actual spend guard. The real fix is configuring Upstash, at
+  // which point this number stops being used at all.
+  degradedRatePerWindow: 12,
   degradedRatePerKeyPerWindow: 60,
 } as const
 

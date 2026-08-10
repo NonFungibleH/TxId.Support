@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest"
 import { activeBeta, betaControls, PLAN_SESSION_MESSAGE_LIMITS } from "../types/config"
+import { CHAT_LIMITS } from "../limits"
 
 describe("activeBeta", () => {
   it("null config means no programme", () => {
@@ -63,5 +64,20 @@ describe("betaControls", () => {
     expect(betaControls({ feedback: false }).any).toBe(false)
     expect(betaControls(null).any).toBe(false)
     expect(betaControls(undefined).any).toBe(false)
+  })
+})
+
+describe("CHAT_LIMITS coherence", () => {
+  it("the degraded per-IP cap never sits below the session message cap", () => {
+    // Otherwise the product blocks its own designed flow: a session is allowed
+    // `sessionMessages` user turns, and each turn is one request against this
+    // bucket. This fired for real: 5 vs 10 meant a tester working quickly was
+    // refused at message 6 with no attacker involved.
+    expect(CHAT_LIMITS.degradedRatePerWindow).toBeGreaterThan(CHAT_LIMITS.sessionMessages)
+  })
+
+  it("degraded caps stay below the distributed ones they stand in for", () => {
+    expect(CHAT_LIMITS.degradedRatePerWindow).toBeLessThan(CHAT_LIMITS.ratePerWindow)
+    expect(CHAT_LIMITS.degradedRatePerKeyPerWindow).toBeLessThan(CHAT_LIMITS.ratePerKeyPerWindow)
   })
 })

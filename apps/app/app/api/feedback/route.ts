@@ -1,6 +1,15 @@
 import { createServiceClient } from "@/lib/supabase/server"
 import { rateLimit, clientIp } from "@/lib/rate-limit"
 import { log } from "@/lib/logger"
+import { originAllowed, originRefused } from "@/lib/origin-guard"
+import type { ProjectConfig } from "@/lib/types/config"
+
+/** Open by design, same as every other public surface. */
+function isPublicSurface(key: string, config: { publicDemo?: boolean } | null | undefined): boolean {
+  const a = process.env.DEMO_WIDGET_KEY
+  const b = process.env.NEXT_PUBLIC_DEMO_WIDGET_KEY
+  return (!!a && key === a) || (!!b && key === b) || config?.publicDemo === true
+}
 
 // Cross-origin: the widget runs on the customer's site.
 const CORS_HEADERS = {
@@ -40,6 +49,7 @@ export async function POST(request: Request) {
       sessionId?: string
       content?: string
       rating?: number
+      pageUrl?: string
     }
     const { key, sessionId, content } = body
     const rating = body.rating
@@ -55,7 +65,7 @@ export async function POST(request: Request) {
 
     const { data: project } = await supabase
       .from("projects")
-      .select("id")
+      .select("id, config")
       .eq("publishable_key", key)
       .single()
     if (!project) {
@@ -63,6 +73,21 @@ export async function POST(request: Request) {
         status: 401,
         headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
       })
+    }
+
+    // THIS is the thumbs route the widget actually calls, and it was the one
+    // without an origin guard. A near-identical /api/widget/feedback route had
+    // the guard and no callers, so the protection was sitting on the dead copy
+    // while the live one took writes from anywhere. Thumbs feed the gaps view
+    // and the "marked unhelpful" ticket signal, which is a quality signal a
+    // team acts on: poisoning it is cheap and invisible. The dead route is gone.
+    const config = (project as unknown as { config?: ProjectConfig }).config
+    const hostPage = typeof body.pageUrl === "string" ? body.pageUrl : undefined
+    if (!originAllowed(request, config?.allowedDomains, {
+      publicSurface: isPublicSurface(key, config),
+      ...(hostPage ? { hostPage } : {}),
+    })) {
+      return originRefused(CORS_HEADERS)
     }
 
     const { data: conv } = await supabase

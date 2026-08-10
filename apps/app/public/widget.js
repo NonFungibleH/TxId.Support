@@ -132,7 +132,13 @@
     // widget suppresses auto-open in preview mode, and without this flag the
     // preview bookmarklet could never demonstrate the beta arrival at all.
     (script.getAttribute("data-fresh") === "1" ? "&fresh=1" : "") +
-    (previewToken ? "&pt=" + encodeURIComponent(previewToken) : "");
+    (previewToken ? "&pt=" + encodeURIComponent(previewToken) : "") +
+    // The EMBEDDING host. The config fetch inside the iframe is same-origin, so
+    // its Referer is always app.txid.support and carries no information about
+    // where the widget is actually installed. Only this loader can see that.
+    // Client-supplied, therefore a soft control: it stops casual key reuse, not
+    // a determined forger, which is what the rate limits are for.
+    "&h=" + encodeURIComponent(String(location.host).slice(0, 200));
 
   wrap.appendChild(iframe);
   root.appendChild(btn);

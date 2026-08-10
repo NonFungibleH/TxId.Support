@@ -4,6 +4,7 @@ import { isPaidPlan, resolveDisclaimer, activeStatusNotice, activeBeta, betaCont
 import type { Database } from "@/lib/supabase/types"
 import { verifyPreviewToken } from "@/lib/preview-token"
 import { isActionDemo } from "@/lib/actions-gate"
+import { originAllowed, originRefused } from "@/lib/origin-guard"
 
 type ProjectRow = Database["public"]["Tables"]["projects"]["Row"]
 
@@ -12,16 +13,6 @@ const CORS_HEADERS = {
   "Access-Control-Allow-Methods": "GET, OPTIONS",
   "Access-Control-Allow-Headers": "Content-Type",
 }
-
-function extractHostname(originOrReferer: string): string | null {
-  try {
-    return new URL(originOrReferer).hostname.toLowerCase()
-  } catch {
-    return null
-  }
-}
-
-const EXEMPT_HOSTS = new Set(["localhost", "127.0.0.1", "::1"])
 
 export async function OPTIONS() {
   return new Response(null, { status: 204, headers: CORS_HEADERS })
@@ -78,32 +69,32 @@ export async function GET(
   const config = typedProject.config as unknown as ProjectConfig
 
   // ── Domain enforcement ──────────────────────────────────────────────────
-  // Skip for preview requests (dashboard preview uses a signed token) and for
-  // our own demo project, which powers the /demo + /check pages on the
-  // marketing site by design. Recognised by the demo key (when its env var is
-  // set on this deployment) OR the "demo" plan on the project row, so it works
-  // even when the demo key env var isn't mirrored onto this API deployment.
+  // THE SHARED GUARD, not a second copy of it. This route had its own inline
+  // check that compared the request's own Origin/Referer against the
+  // allowlist, which is the exact bug already fixed in lib/origin-guard.ts:
+  // the widget runs in an iframe on our own domain and fetches this config
+  // SAME-ORIGIN, so the browser sends no Origin and a Referer of
+  // app.txid.support. The first customer to add their domain would have got
+  // "Domain not registered for this key" and a widget that never loaded,
+  // having done exactly what the dashboard told them to do. Verified against a
+  // live browser: same-origin fetch = no Origin header, Referer = our own host.
+  //
+  // The guard ignores our own origin and falls through to the host reported by
+  // widget.js in the iframe URL, which is the only party that can see it.
+  // Public by design: the shared demo key, and any project flagged publicDemo,
+  // exist to be embedded anywhere. Recognised by the key OR the plan OR the
+  // flag, so it still works when the demo env var is not mirrored here.
   const isDemoKey = (!!process.env.DEMO_WIDGET_KEY && key === process.env.DEMO_WIDGET_KEY)
     || (!!process.env.NEXT_PUBLIC_DEMO_WIDGET_KEY && key === process.env.NEXT_PUBLIC_DEMO_WIDGET_KEY)
   const isDemo = isDemoKey || (config.plan ?? "free") === "demo" || config.publicDemo === true
-  if (!preview && !isDemo) {
-    const originHeader = request.headers.get("origin") ?? request.headers.get("referer")
-    const requestHost = originHeader ? extractHostname(originHeader) : null
 
-    if (requestHost && !EXEMPT_HOSTS.has(requestHost)) {
-      const allowed = config.allowedDomains ?? []
-      // Empty allowedDomains = open (not yet restricted). Enforce only once the
-      // protocol team has explicitly added at least one domain in the dashboard.
-      if (allowed.length > 0) {
-        const normalised = allowed.map((d) => d.replace(/^https?:\/\//, "").toLowerCase())
-        if (!normalised.includes(requestHost)) {
-          return new Response(JSON.stringify({ error: "Domain not registered for this key" }), {
-            status: 403,
-            headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
-          })
-        }
-      }
-    }
+  const hostParam = url.searchParams.get("h")
+  if (!originAllowed(request, config.allowedDomains, {
+    preview,
+    publicSurface: isDemo,
+    ...(hostParam ? { hostPage: `https://${hostParam}` } : {}),
+  })) {
+    return originRefused(CORS_HEADERS)
   }
 
   // Only return safe fields - never secret_key, org_id, etc.
