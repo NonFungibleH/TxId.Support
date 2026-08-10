@@ -173,8 +173,15 @@ function rpcOverrides(): Record<string, string> {
       // falling back, which is worse than ignoring it.
       if (typeof url === "string" && /^https?:\/\//i.test(url)) out[chainId] = url
     }
+    // A SET-BUT-USELESS VALUE IS THE DANGEROUS CASE. Ignoring bad input keeps a
+    // typo from taking every chain down, but it also means someone can believe
+    // they have moved off the public endpoints when they have not. Say so.
+    if (Object.keys(out).length === 0) {
+      console.warn("[chains] RPC_URLS parsed but contained no usable http(s) endpoints. Still using the free public ones.")
+    }
     return out
   } catch {
+    console.warn("[chains] RPC_URLS is set but is not valid JSON. Ignoring it and using the free public endpoints.")
     return {}
   }
 }
