@@ -853,6 +853,14 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
   const hostContext = useRef<{ url?: string; vw?: number; vh?: number }>({})
   useEffect(() => {
     const onMsg = (e: MessageEvent) => {
+      // ONLY the embedding page, same guard the wallet listeners already use.
+      // Without it any co-resident script on the host page (an ad tag, an
+      // analytics snippet, a second widget) could post this and overwrite the
+      // page URL we record, which becomes evidence.request.pageUrl: the Case
+      // Record field and the "where problems were found" insight. That is
+      // evidence a protocol answers to an auditor with, so it must come from
+      // the loader we put on the page, not from anything sharing it.
+      if (e.source !== window.parent) return
       const d = e.data as { type?: string; url?: string; vw?: number; vh?: number } | null
       if (d?.type !== "txid-host-context") return
       hostContext.current = {

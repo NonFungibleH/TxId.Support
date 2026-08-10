@@ -100,7 +100,11 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Se
     .eq("project_id", projectId)
     .like("session_id", "preview-%")
 
-  const days = Math.min(parseInt(searchParams.days ?? "14", 10) || 14, 90)
+  // Clamped BOTH ends. The upper bound was always here; the lower one was not,
+  // so ?days=-5 reached the window builders and set `since` in the future,
+  // rendering an empty, broken chart. Owner-scoped so never a data leak, but a
+  // query string should not be able to draw a nonsense page.
+  const days = Math.min(Math.max(parseInt(searchParams.days ?? "14", 10) || 14, 1), 90)
 
   const since = new Date(now)
   since.setDate(since.getDate() - (days - 1))
