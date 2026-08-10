@@ -3,6 +3,12 @@
 > **Naming:** the product is **TxID**, not "TxID Support". Renamed across the whole
 > codebase (108 replacements, 57 files). The domain stays txid.support and the
 > contact stays team@txid.support. /terms and /privacy name TxID as the Service.
+>
+> **Legal entity:** TxID is a product, not a company. **3UILD** (a US company, sole
+> owner) is the contracting party and data controller, defined ONCE in
+> `apps/web/lib/legal.ts` and used by /terms and /privacy. A dedicated entity is
+> planned; when it exists, that file is the only edit. No governing-law clause yet
+> (needs the state of incorporation).
 
 ## What this project is
 
@@ -109,7 +115,7 @@ Ports: web=3000, app=3001, docs=3002, widget=3003
 - `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` — distributed limiter for `/api/chat`; falls back to per-instance in-memory when unset
 
 ### Platform
-- `CRON_SECRET` — bearer token for manually invoking `/api/cron/*`. Vercel Cron's own scheduled calls are recognised by their `x-vercel-cron` header and do not need it
+- `CRON_SECRET` — bearer token for `/api/cron/*`. REQUIRED: the `x-vercel-cron`-header bypass was removed 2026-08-11 (a pentest found it was spoofable, since Vercel does not reliably strip inbound `x-vercel-*` headers, letting anyone trigger docs re-crawl/re-embed). Every cron call, GitHub Actions or Vercel Cron, must send `Authorization: Bearer $CRON_SECRET`
 - `INTEGRATION_ENCRYPTION_KEY` — base64 32-byte AES-256-GCM key (`openssl rand -base64 32`) encrypting integration credentials in `projects.config`. Absent, values pass through in plaintext; rotating it makes stored secrets unreadable, so treat a rotation as a re-save of every integration
 - `RESEND_API_KEY` — email notifications (optional)
 - `WEBHOOK_SECRET` — HMAC for outbound webhooks
@@ -639,7 +645,9 @@ Running the assistant for TESTERS rather than customers. **Its own page at `/das
 
 **The sidebar item is HIDDEN until a programme exists**, so the menu is not carrying a feature most protocols never use. That creates the obvious trap of a switch you can only reach after flipping it, so the way IN is `BetaStartCard` on Overview, which every project sees and which disappears once a programme exists. Gated on `beta.enabled`, NOT on `activeBeta`: a programme past its end date must stay reachable or the results vanish the day it finishes.
 
-**Findings are excluded from the support inbox.** `getTickets` filters `reason.neq.feedback`. A tester saying "the fee display is confusing" is not waiting for a reply, and mixing the two turns the queue into a suggestions box, which destroys the only thing a support queue is for. Findings live on `/dashboard/beta`.
+**Findings are excluded from the support inbox.** `getTickets` filters out `reason` in (`feedback`, `bug`) with a NULL-safe `.or("reason.is.null,and(reason.neq.feedback,reason.neq.bug)")`. A tester saying "the fee display is confusing" is not waiting for a reply, and mixing the two turns the queue into a suggestions box. Findings live on their OWN page, **`/dashboard/findings`** (sidebar label "Findings", under Monitor, renamed from "Tester reports" which did not fit), not on `/dashboard/beta` (that is setup only).
+
+**Feedback and bug reporting are INDEPENDENT switches** (`config.beta.feedback`, `config.beta.bugReports`). `betaControls(beta)` in `lib/types/config.ts` resolves them: an undefined `bugReports` INHERITS `feedback`, so every project configured before the split is unchanged. The widget shows the three-mode row (Support/Bug/Feedback) only when `.any`, and each pill only when its own switch is on; the prompt emits the feedback and bug instruction blocks independently, so the model never offers a route the widget is not showing. Two openers, `FEEDBACK_OPENER` and `BUG_OPENER` in `lib/finding-openers.ts`, shared by widget and dashboard (`findingKindOf` reads the FIRST user message to label a thread). Bug reports ask at most two questions (what + where) and NEVER for browser/wallet/network/hash, because the report already carries all of it.
 
 It started as a toggle at the bottom of the Persona page and that was wrong: the capability was never a workaround (it layers exactly like `incident`), but a master switch under somebody else's heading reads as one, and nobody finds it. The page is ordered as the SETUP ITSELF, readiness first, because the failure that would actually embarrass a protocol is an assistant that opens itself in a tester's face and has nothing indexed to answer from.
 
@@ -655,6 +663,20 @@ It started as a toggle at the bottom of the Persona page and that was wrong: the
 
 Routing feedback through the normal message path is deliberate: the finding keeps the conversation that produced it, which is exactly what a standalone feedback form throws away.
 
+### Pilot insights (Analytics)
+`lib/insights.ts` (PURE: types + `computeInsights`) and `lib/insight-data.ts` (the read: `loadInsightWindow`, React `cache()`d, + `buildInsights`). Split like `roles.ts`/`roles-server.ts` because importing the loader pulled `cache()` into every consumer (absent in a test runner). The `cache()` also means `buildGapsReport` and `buildInsights` share ONE DB read on the Analytics page despite being independently callable; `gaps.ts` was moved onto the same loader. `InsightsPanel` renders five sections above `GapsPanel`:
+1. **What your documentation did not answer** — the QUESTIONS (paired to the user turn each failed retrieval replied to, walking backwards) where `evidence.retrieval.matched === 0` (`none`) or `topScore < WEAK_MATCH 0.5` (`weak`). `docGapCounts` are TRUE totals (not the 25-capped list), header shows "first 25 of N".
+2. **Themes** — `rankTopics` over questions asked, linked by phrase search. NOT a word cloud, deliberately.
+3. **Findings by screen** — findings ranked by `evidence.request.pageUrl` (first page in the conversation). Findings with no page are COUNTED (`screensUnknown`), never dropped.
+4. **Outcomes** — `conversationOutcome()` counts, no funnel, still no "resolved".
+5. **Basis mix** — `ticketSignals` worst-case-per-conversation Verified/From docs/Unverified.
+**NO PERCENTAGES** anywhere: `smallSample` (< 30 conversations) makes the panel say "counts only" out loud. Tests in `insights.test.ts`.
+
+Overview's Knowledge base card counts **pages (distinct `source_url`), not chunks**: "49 indexed chunks" was our word for an implementation detail a customer cannot map to anything they gave us. Capped read (`DOC_CHUNK_CAP`), "partial count" when hit.
+
+### Server-owned config keys (`lib/config-guard.ts`)
+`updateConfig` is a server action, i.e. a POST endpoint, and its `Partial<ProjectConfig>` argument is erased at runtime. `stripServerOwnedKeys` removes `SERVER_OWNED_CONFIG_KEYS` (`plan`, `publicDemo`) from the incoming partial before the merge. WHY: a pentest (2026-08-11) found any authenticated user with the `settings` capability could call the action directly with `{ plan: "enterprise" }` and self-grant an unlimited, unbilled plan, or `{ publicDemo: true }` to lift their key's caps and origin guard. Both are written ONLY by the Stripe webhook and the admin actions, using the service client directly, so nothing legitimate flows through `updateConfig`. **Add any new billing- or trust-bearing config key to that list.** Tested in `config-guard.test.ts`.
+
 ### Origin guard (`lib/origin-guard.ts`)
 One shared implementation, used by `/api/chat` and the four previously unguarded public endpoints (`widget/opener`, `widget/protocol-account`, `widget/feedback`, `tickets`). Publishable keys sit in plain HTML on the customer's page, so an unguarded key let anyone drive chain reads, poison the feedback signal, and spam a customer's Slack/Linear from any origin.
 
@@ -663,6 +685,8 @@ One shared implementation, used by `/api/chat` and the four previously unguarded
 **`allowedDomains` had no writer and no UI until 2026-08-07**, so it was empty for every project that has ever existed and the guard had never once refused a request. `lib/actions/domains.ts` + `AllowedDomainsForm` on `/dashboard/embed` fix that, and the card sits ABOVE the embed code because the domains decide whether the key you are copying is a key or a liability.
 
 **Turnstile is now MANDATORY on public surfaces** when `TURNSTILE_SECRET_KEY` is set. It previously ran only `if (turnstileToken && SECRET)`, so a scripted caller omitted the field and skipped the bot check entirely: the defence protected exactly the people who were not attacking.
+
+**`/api/widget-config` used its own inline copy of the check** until 2026-08-11, and that copy had the exact same-origin bug the shared guard fixes: the config fetch is same-origin, so it sends no Origin and a Referer of `app.txid.support`, and the inline check read that as the embedding site. The first customer to add a domain would have got "Domain not registered" and a widget that never loaded. Now uses `originAllowed()`, and `widget.js` reports the embedding host as `&h=` on the iframe URL, which `WidgetApp` forwards on the config fetch (verified in a live browser). **The thumbs route had the mirror mistake:** `/api/feedback` (the one the widget calls) had NO guard while a dead `/api/widget/feedback` had it; the guard moved to the live route and the dead one was deleted.
 
 ### Widget disclaimer
 `branding.disclaimer`, `DEFAULT_DISCLAIMER` + `resolveDisclaimer()` in `lib/types/config.ts`. **Unset means the DEFAULT, not silence**; empty string is the explicit opt-out. Rendered under the composer in BOTH modes (one and not the other looks deliberate) and appended in `plainBody`, so all six escalation integrations carry it without touching an adapter. All three escalation paths pass it: widget, dashboard, Telegram.
@@ -692,7 +716,7 @@ Prompt: `StreamChatParams.protocolAccount` adds a "the user has TWO addresses" s
 
 **Cadence: once a day at 03:00, both jobs in one run** (changed 2026-08-06). It was `*/10` for the retry worker, which is what that job actually wants: its backoff is `1m/5m/30m/2h/6h`, so on a daily tick five attempts take five days rather than nine hours. Accepted deliberately while there is no live escalation traffic, with `workflow_dispatch` and the per-row Retry now button covering anything genuinely stuck. Restore the frequent schedule when redelivery latency starts to matter.
 
-**A red run at 03:00 is almost always the secret, not the code.** Both routes return a diagnostic body saying WHICH side is wrong: "CRON_SECRET is not set on the server" means Vercel plus a redeploy, "does not match" means the GitHub secret and the Vercel value are different strings. Do not debug the worker until that body says otherwise. **Never run both schedulers**, or every escalation is delivered twice (the app is its own Vercel project, so the schedule lives there, not at the repo root). Authorised by the `x-vercel-cron` header or `Bearer $CRON_SECRET`; exempt from Clerk in `middleware.ts`. Surfaced on Dashboard > Tickets as "Escalations that did not arrive" (`UndeliveredEscalations`) with a per-row Retry now.
+**A red run at 03:00 is almost always the secret, not the code.** Both routes return a diagnostic body saying WHICH side is wrong: "CRON_SECRET is not set on the server" means Vercel plus a redeploy, "does not match" means the GitHub secret and the Vercel value are different strings. Do not debug the worker until that body says otherwise. **Never run both schedulers**, or every escalation is delivered twice (the app is its own Vercel project, so the schedule lives there, not at the repo root). Authorised ONLY by `Bearer $CRON_SECRET` (the spoofable `x-vercel-cron` presence bypass was removed 2026-08-11); exempt from Clerk in `middleware.ts`. Surfaced on Dashboard > Tickets as "Escalations that did not arrive" (`UndeliveredEscalations`) with a per-row Retry now.
 
 ### No narration before tool calls
 The Claude tool loop holds text back until a tool call proves it was narration (dropped) or the round ends without one (it was the answer), with a 200-char cap so long answers still stream (`NARRATION_CHARS` in `packages/ai/src/stream.ts`). WHY: the widget already renders a live label per tool call, so model text like "Let me list the available functions" was a second, worse status line, and consecutive rounds concatenated with no paragraph break. The prompt forbids it too, so the model mostly stops producing it. Consequence worth knowing: `anyTextThisTurn` now means text actually reached the user, which is what the never-blank-response fallback should have been keying on all along.
