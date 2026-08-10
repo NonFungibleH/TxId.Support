@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge"
 import type { ConversationWithMessages } from "@/app/dashboard/conversations/page"
 import { summarizeStaleConversations, type ConvSummary } from "@/lib/actions/summarize"
 import { conversationOutcome, OUTCOME_META, type Outcome } from "@/lib/conversation-outcome"
+import { findingKindOf } from "@/lib/finding-openers"
 
 /** Colour per outcome. "capped" is amber, not red: the user was handed to a
  *  human, so it is a limit to review rather than a failure to fix. */
@@ -482,6 +483,10 @@ export function ConversationList({
           ...(sessionCap ? { sessionCap } : {}),
         })
         const outcomeMeta = OUTCOME_META[outcome]
+        // A bug or feedback thread still belongs in Conversations, since it is
+        // a conversation and the record has to be complete. Labelling it is
+        // what stops the two views feeling like duplicates of each other.
+        const findingKind = findingKindOf(conv.messages)
 
         const tStatus = ticketStatus[conv.id] ?? "idle"
         const tRef = ticketRefs[conv.id]
@@ -549,6 +554,18 @@ export function ConversationList({
                       }
                     >
                       {related[conv.id]!.kind === "wallet" ? "Returning" : "Same browser"} · {related[conv.id]!.total}
+                    </Badge>
+                  )}
+                  {findingKind && (
+                    <Badge
+                      title={findingKind === "bug"
+                        ? "Started as a bug report. The filed report is on Tester reports."
+                        : "Started as feedback. The recorded note is on Tester reports."}
+                      className={findingKind === "bug"
+                        ? "text-[10px] px-1.5 py-0.5 leading-none shrink-0 bg-rose-500/10 text-rose-400 border-rose-500/20"
+                        : "text-[10px] px-1.5 py-0.5 leading-none shrink-0 bg-sky-500/10 text-sky-400 border-sky-500/20"}
+                    >
+                      {findingKind === "bug" ? "Bug report" : "Feedback"}
                     </Badge>
                   )}
                   {outcomeMeta && (

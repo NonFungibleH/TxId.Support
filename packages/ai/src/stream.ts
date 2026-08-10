@@ -568,7 +568,25 @@ async function* streamChatWithToolsRaw(
     const escalationBlock = toolUseBlocks.find(b => b.name === "create_support_ticket")
     if (escalationBlock) {
       const input = escalationBlock.input as { summary?: string; reason?: string }
-      yield { type: "escalate", summary: input.summary ?? "Issue needs further attention", reason: input.reason ?? "unresolved" }
+      const reason = input.reason ?? "unresolved"
+      // NEVER END A TURN WITH NOTHING RECORDED. When the model goes straight to
+      // the tool with no preceding text, the widget showed a confirmation it
+      // had made up client-side while the TRANSCRIPT stored an empty assistant
+      // message. The tester read "logged for the team" and the case record kept
+      // a blank, which is the one thing this product cannot do. Emitting it
+      // here means what they saw is what is stored.
+      if (!anyTextThisTurn) {
+        yield {
+          type: "text",
+          text: reason === "bug"
+            ? "Thanks, that's logged for the team with everything I could see."
+            : reason === "feedback"
+              ? "Thanks, that's recorded for the team."
+              : "I've passed this to the team.",
+        }
+        anyTextThisTurn = true
+      }
+      yield { type: "escalate", summary: input.summary ?? "Issue needs further attention", reason }
       yield { type: "usage", inputTokens: totalInputTokens, outputTokens: totalOutputTokens, cacheReadTokens: totalCacheReadTokens, cacheWriteTokens: totalCacheWriteTokens, model: MODEL }
       return
     }

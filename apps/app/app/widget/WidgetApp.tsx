@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react"
 import { useSearchParams } from "next/navigation"
 import { nanoid } from "nanoid"
+import * as OPENERS from "@/lib/finding-openers"
 import DOMPurify from "dompurify"
 import { ActionCard } from "./ActionCard"
 import type { WalletActionPayload } from "./ActionCard"
@@ -101,9 +102,9 @@ const WIDGET_SIZE_VALUE: Record<string, number> = { standard: 1.0, large: 1.18, 
 
 /** Unambiguous by design: the model must never have to guess that this is
  *  feedback rather than a question. Kept verbatim in the beta prompt block. */
-const FEEDBACK_OPENER = "I want to leave feedback on the beta."
-/** Same contract as feedback: a fixed opener, so nothing has to be classified. */
-const BUG_OPENER = "I want to report a bug."
+// Shared with the dashboard, which reads them back to label a thread. See
+// lib/finding-openers.ts.
+const { FEEDBACK_OPENER, BUG_OPENER } = OPENERS
 /** Default is "large": the base 380x560 reads as small on a dense desktop app. */
 const DEFAULT_WIDGET_SIZE = "large"
 
@@ -2798,7 +2799,7 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
                   crowding the other. */}
               {config?.beta?.feedback && (
                 <div
-                  className="shrink-0 flex items-center justify-center gap-1.5 border-t px-3 pt-2.5"
+                  className="shrink-0 flex flex-wrap items-center justify-center gap-1.5 border-t px-3 pt-2.5"
                   style={{ borderColor: `var(--w-border)` }}
                 >
                   {([
