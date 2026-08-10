@@ -923,6 +923,12 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
   // closes over stale state, and reading it inside a setState updater would
   // mean a side effect that React may run twice.
   const messagesRef = useRef<Message[]>([])
+  // THE TESTER PRESSED A BUTTON. We know this is feedback without asking the
+  // model, so recording it does not depend on the model choosing to call a
+  // tool. It said "Recorded for the team" and recorded nothing, twice, because
+  // the whole chain hung on that one optional call.
+  const awaitingFeedback = useRef(false)
+  const feedbackRecorded = useRef(false)
   const [ticketName, setTicketName] = useState("")
   const [ticketEmail, setTicketEmail] = useState("")
   // WHAT THE TRANSCRIPT CANNOT KNOW. The ticket already carries the full
@@ -1676,6 +1682,17 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
     const msgText = (textArg ?? input).trim()
     if (!msgText || isStreaming || !config) return
 
+    // Pressing Feedback sends a fixed opener. The message AFTER it is the
+    // feedback itself, so capture it here rather than hoping for a tool call.
+    if (msgText === FEEDBACK_OPENER) {
+      awaitingFeedback.current = true
+      feedbackRecorded.current = false
+    } else if (awaitingFeedback.current && !feedbackRecorded.current) {
+      awaitingFeedback.current = false
+      feedbackRecorded.current = true
+      void recordFeedback(msgText)
+    }
+
     const userMsg: Message = { id: nanoid(), role: "user", content: msgText }
     const assistantId = nanoid()
     const assistantMsg: Message = { id: assistantId, role: "assistant", content: "", streaming: true }
@@ -1775,7 +1792,13 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
               // wrong instrument: they are not waiting for a reply, and the
               // point of the button is that leaving a note costs nothing.
               if (parsed.escalate.reason === "feedback") {
-                void recordFeedback(parsed.escalate.summary)
+                // Fallback only. The button path above has almost always
+                // recorded it already; this covers feedback that arrives
+                // without the opener, and never double-records.
+                if (!feedbackRecorded.current) {
+                  feedbackRecorded.current = true
+                  void recordFeedback(parsed.escalate.summary)
+                }
                 // Belt and braces: if the model went straight to the tool with
                 // no acknowledgement, say something rather than leaving the
                 // tester looking at an empty bubble.
