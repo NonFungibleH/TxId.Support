@@ -2021,8 +2021,15 @@ export function buildEscalationTool(): Anthropic.Tool {
         },
         reason: {
           type: "string",
-          enum: ["unresolved", "user_requested", "account_issue", "billing", "urgent"],
-          description: "Why escalation is needed.",
+          // "feedback" and "bug" are NOT escalations, they are recordings. They
+          // were missing here while the prompt instructed the model to use
+          // "feedback", so it sent a value the schema DID allow, the widget saw
+          // a normal escalation and showed a support form to a tester who had
+          // just paid a compliment. A schema that contradicts the prompt is
+          // resolved silently and in the wrong direction.
+          enum: ["unresolved", "user_requested", "account_issue", "billing", "urgent", "feedback", "bug"],
+          description:
+            "Why this is being recorded. Use \"feedback\" for an opinion or suggestion and \"bug\" for something broken: both are logged for the team and neither opens a support case or asks the user for contact details.",
         },
       },
       required: ["summary", "reason"],

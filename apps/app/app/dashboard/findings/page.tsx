@@ -1,9 +1,9 @@
-import Link from "next/link"
 import { redirect } from "next/navigation"
 import { getProject } from "@/lib/actions/project"
 import { createServiceClient } from "@/lib/supabase/server"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import type { ProjectConfig } from "@/lib/types/config"
+import { FindingList, type Finding } from "@/components/dashboard/FindingList"
 
 export const dynamic = "force-dynamic"
 
@@ -32,15 +32,13 @@ export default async function FindingsPage() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: findings } = await (supabase as any)
     .from("tickets")
-    .select("id, ref, summary, created_at, conversation_id")
+    .select("id, ref, summary, created_at, conversation")
     .eq("project_id", typedProject.id)
     .eq("reason", "feedback")
     .order("created_at", { ascending: false })
     .limit(100)
 
-  const rows = (findings ?? []) as Array<{
-    id: string; ref: string; summary: string; created_at: string; conversation_id: string | null
-  }>
+  const rows = (findings ?? []) as Finding[]
 
   return (
     <div className="space-y-6">
@@ -63,31 +61,10 @@ export default async function FindingsPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {rows.length === 0 ? (
-            <div className="rounded-xl border border-dashed p-10 text-center">
-              <p className="text-sm text-muted-foreground">Nothing recorded yet.</p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Findings appear as soon as a tester uses Leave feedback in the widget.
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {rows.map(f => (
-                <Link
-                  key={f.id}
-                  href={f.conversation_id ? `/dashboard/conversations?q=${encodeURIComponent(f.ref)}` : "/dashboard/conversations"}
-                  className="block rounded-md border border-border px-3 py-2.5 transition-colors hover:bg-muted/40"
-                >
-                  <p className="text-sm">{f.summary}</p>
-                  <div className="mt-1 flex flex-wrap items-center gap-x-2 text-[10px] text-muted-foreground">
-                    <span className="font-mono">{f.ref}</span>
-                    <span className="opacity-40">·</span>
-                    <span>{new Date(f.created_at).toLocaleString()}</span>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          )}
+          <FindingList
+            findings={rows}
+            emptyHint="Findings appear as soon as a tester uses Leave feedback in the widget."
+          />
         </CardContent>
       </Card>
     </div>

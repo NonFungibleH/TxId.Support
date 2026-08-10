@@ -46,7 +46,12 @@ export async function getTickets(projectId: string): Promise<Ticket[]> {
   const { data } = await (supabase as any).from("tickets")
     .select("*")
     .eq("project_id", projectId)
-    .or("reason.is.null,reason.neq.feedback")
+    // Recordings are not the support queue. A tester reporting a bug or
+    // leaving an opinion is not waiting for a reply, and mixing them in
+    // destroys the only thing a support queue is for.
+    // NULL-safe: `not in` would drop rows with no reason at all, because
+    // NULL NOT IN (...) is NULL rather than true, and those are real tickets.
+    .or("reason.is.null,and(reason.neq.feedback,reason.neq.bug)")
     .order("created_at", { ascending: false })
 
   const tickets = (data ?? []) as Ticket[]
