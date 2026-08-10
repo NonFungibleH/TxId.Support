@@ -8,6 +8,17 @@ import { ChevronDown, ChevronUp, ThumbsUp, ThumbsDown, Wallet, Download, Globe, 
 import { Badge } from "@/components/ui/badge"
 import type { ConversationWithMessages } from "@/app/dashboard/conversations/page"
 import { summarizeStaleConversations, type ConvSummary } from "@/lib/actions/summarize"
+import { conversationOutcome, OUTCOME_META, type Outcome } from "@/lib/conversation-outcome"
+
+/** Colour per outcome. "capped" is amber, not red: the user was handed to a
+ *  human, so it is a limit to review rather than a failure to fix. */
+const OUTCOME_BADGE: Record<Outcome, string> = {
+  answered:    "",
+  in_progress: "text-[10px] px-1.5 py-0.5 leading-none shrink-0 bg-muted text-muted-foreground border-border",
+  capped:      "text-[10px] px-1.5 py-0.5 leading-none shrink-0 bg-amber-500/10 text-amber-500 border-amber-500/20",
+  unanswered:  "text-[10px] px-1.5 py-0.5 leading-none shrink-0 bg-red-500/10 text-red-400 border-red-500/20",
+  unhelpful:   "text-[10px] px-1.5 py-0.5 leading-none shrink-0 bg-orange-500/10 text-orange-400 border-orange-500/20",
+}
 
 // AI category tags for the scannable list. Colours picked for at-a-glance triage.
 const CATEGORY_STYLE: Record<string, string> = {
@@ -328,10 +339,14 @@ export function ConversationList({
   conversations,
   existingTickets = {},
   related = {},
+  sessionCap,
 }: {
   conversations: ConversationWithMessages[]
   existingTickets?: Record<string, { ref: string; status: string }>
   related?: Record<string, RelatedInfo>
+  /** This project's per-conversation user-message cap, so a capped
+   *  conversation can be told apart from one that simply ended. */
+  sessionCap?: number
 }) {
   const router = useRouter()
   const [expanded, setExpanded] = useState<string | null>(null)
@@ -462,11 +477,11 @@ export function ConversationList({
         //
         // The exception is a conversation still in flight, where the answer is
         // simply not written yet, so recent ones are left unlabelled.
-        const lastMsg = conv.messages[conv.messages.length - 1]
-        const ageMs = lastMsg?.created_at ? Date.now() - new Date(lastMsg.created_at).getTime() : Infinity
-        const stillLive = ageMs < 2 * 60_000
-        const outcome =
-          lastMsg?.role === "user" ? (stillLive ? "in_progress" : "unanswered") : "answered"
+        const outcome = conversationOutcome({
+          messages: conv.messages,
+          ...(sessionCap ? { sessionCap } : {}),
+        })
+        const outcomeMeta = OUTCOME_META[outcome]
 
         const tStatus = ticketStatus[conv.id] ?? "idle"
         const tRef = ticketRefs[conv.id]
@@ -536,20 +551,12 @@ export function ConversationList({
                       {related[conv.id]!.kind === "wallet" ? "Returning" : "Same browser"} · {related[conv.id]!.total}
                     </Badge>
                   )}
-                  {outcome === "unanswered" && (
+                  {outcomeMeta && (
                     <Badge
-                      title="The user asked something and no answer was generated. This is a failure on our side, not the user leaving."
-                      className="text-[10px] px-1.5 py-0.5 leading-none shrink-0 bg-red-500/10 text-red-400 border-red-500/20"
+                      title={outcomeMeta.title}
+                      className={OUTCOME_BADGE[outcome]}
                     >
-                      No answer given
-                    </Badge>
-                  )}
-                  {outcome === "in_progress" && (
-                    <Badge
-                      title="The last message is very recent, so a reply may still be generating."
-                      className="text-[10px] px-1.5 py-0.5 leading-none shrink-0 bg-muted text-muted-foreground border-border"
-                    >
-                      In progress
+                      {outcomeMeta.label}
                     </Badge>
                   )}
                   {outcome === "answered" && tRef && (

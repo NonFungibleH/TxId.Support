@@ -452,6 +452,23 @@ export async function POST(request: Request) {
             controller.close()
           },
         })
+        // RECORD THE TURN THE USER ACTUALLY HAD. This branch used to return
+        // without persisting anything, so the question that hit the limit and
+        // the handoff the user was shown both existed only on their screen.
+        // For a product whose claim is a complete record, a transcript that
+        // omits the last thing we said is the wrong kind of gap: the
+        // conversation reads as though it simply stopped, and support cannot
+        // see that we cut it off rather than the user leaving.
+        const CAP_HANDOFF =
+          "We've covered a lot in this chat. So nothing gets lost, I'll hand you over to the team - drop your details below and someone will follow up with you directly."
+        waitUntil(persistMessages(
+          supabase, typedProject.id, sessionId,
+          [...safeMessages, { role: "assistant" as const, content: CAP_HANDOFF }],
+          walletAddress, chainId, undefined, null,
+          { ...requestEvidence, surface: "widget" },
+          visitorId,
+        ))
+
         return new Response(capStream, {
           headers: {
             ...CORS_HEADERS,

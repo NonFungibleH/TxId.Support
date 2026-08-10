@@ -1,3 +1,4 @@
+import { PLAN_SESSION_MESSAGE_LIMITS, type Plan, type ProjectConfig } from "@/lib/types/config"
 import { waitUntil } from "@vercel/functions"
 import { getProject } from "@/lib/actions/project"
 import { createServiceClient } from "@/lib/supabase/server"
@@ -314,6 +315,12 @@ export default async function ConversationsPage({
     if (t.conversation_id) ticketByConvId[t.conversation_id] = { ref: t.ref, status: t.status }
   }
 
+  // The same cap /api/chat enforces, so a conversation the assistant cut off
+  // is distinguishable from one that simply ended.
+  const sessionCap = PLAN_SESSION_MESSAGE_LIMITS[
+    ((typedProject.config as unknown as ProjectConfig)?.plan ?? "free") as Plan
+  ]
+
   const shownCount = data.length
   const total = totalCount ?? conversations.length
 
@@ -333,7 +340,7 @@ export default async function ConversationsPage({
         )}
       </div>
       {filters}
-      <ConversationList conversations={data} existingTickets={ticketByConvId} related={Object.fromEntries(related)} />
+      <ConversationList conversations={data} existingTickets={ticketByConvId} related={Object.fromEntries(related)} sessionCap={sessionCap} />
       {total > conversations.length && (
         <div className="flex flex-col items-center gap-2 py-4">
           <p className="text-xs text-muted-foreground">Showing {conversations.length} of {total} sessions</p>
