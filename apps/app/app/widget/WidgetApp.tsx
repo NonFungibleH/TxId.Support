@@ -773,6 +773,12 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
   // page. The one preview case where the beta arrival SHOULD play.
   const isFreshLaunch = params?.get("fresh") === "1"
   const previewToken = params?.get("pt") ?? undefined
+  // The embedding host, put in the iframe URL by widget.js. It MUST be
+  // forwarded on the config fetch below: that fetch is same-origin, so it
+  // carries no Origin header and a Referer of our own domain, and without this
+  // the domain guard on widget-config has nothing to check and passes
+  // everyone. Found in audit: the loader reported it and this file dropped it.
+  const embedHost = params?.get("h") ?? ""
 
   const [config, setConfig] = useState<WidgetConfig | null>(null)
   const [configError, setConfigError] = useState<string | null>(null)
@@ -994,7 +1000,10 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
       setConfigError("No API key provided")
       return
     }
-    fetch(`/api/widget-config/${apiKey}${isPreview ? `?preview=1&pt=${previewToken ?? ""}` : ""}`, {
+    fetch(`/api/widget-config/${apiKey}?${new URLSearchParams({
+      ...(isPreview ? { preview: "1", pt: previewToken ?? "" } : {}),
+      ...(embedHost ? { h: embedHost } : {}),
+    })}`, {
       signal: AbortSignal.timeout(12000),
     })
       .then((r) => r.json())
@@ -1033,7 +1042,7 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
         }
       })
       .catch(() => setConfigError("Failed to load widget config"))
-  }, [apiKey, isPreview, previewToken])
+  }, [apiKey, isPreview, previewToken, embedHost])
 
   // ── Ask the embed (widget.js) to size the iframe. ───────────────────────────
   // TWO INDEPENDENT FACTORS, MULTIPLIED:
