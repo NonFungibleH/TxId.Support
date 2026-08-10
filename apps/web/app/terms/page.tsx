@@ -1,13 +1,14 @@
 import type { Metadata } from "next";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
+import { LEGAL_ENTITY, LEGAL_ENTITY_FULL, PRODUCT, LEGAL_CONTACT } from "@/lib/legal";
 
 export const metadata: Metadata = {
   title: "Terms of Service | TxID",
   alternates: { canonical: "/terms" },
 };
 
-const LAST_UPDATED = "April 2025";
+const LAST_UPDATED = "August 2026";
 
 export default function TermsPage() {
   return (
@@ -24,21 +25,28 @@ export default function TermsPage() {
           <div className="prose prose-sm prose-invert max-w-none space-y-8 text-muted leading-relaxed">
 
             <section>
-              <h2 className="font-display text-lg font-semibold text-white mb-3">1. Acceptance</h2>
+              <h2 className="font-display text-lg font-semibold text-white mb-3">1. Who you are contracting with</h2>
               <p>
-                By accessing or using TxID (&ldquo;the Service&rdquo;), you agree to be bound by these Terms. If you do not agree, do not use the Service.
+                {PRODUCT} is a product operated by {LEGAL_ENTITY_FULL}. In these Terms, &ldquo;{LEGAL_ENTITY}&rdquo;, &ldquo;we&rdquo;, &ldquo;us&rdquo; and &ldquo;our&rdquo; mean {LEGAL_ENTITY}, and &ldquo;the Service&rdquo; means {PRODUCT}. {LEGAL_ENTITY} is the contracting party for every right and obligation set out below.
               </p>
             </section>
 
             <section>
-              <h2 className="font-display text-lg font-semibold text-white mb-3">2. Beta status</h2>
+              <h2 className="font-display text-lg font-semibold text-white mb-3">2. Acceptance</h2>
               <p>
-                TxID is currently in beta. The Service is provided &ldquo;as is&rdquo; and features may change without notice. We make no guarantees of uptime or availability during the beta period.
+                By accessing or using the Service, you agree to be bound by these Terms. If you do not agree, do not use the Service.
               </p>
             </section>
 
             <section>
-              <h2 className="font-display text-lg font-semibold text-white mb-3">3. Acceptable use</h2>
+              <h2 className="font-display text-lg font-semibold text-white mb-3">3. Service status</h2>
+              <p>
+                The Service is provided &ldquo;as is&rdquo; and features may change without notice. Unless we have agreed a written service level with you, we make no guarantee of uptime or availability.
+              </p>
+            </section>
+
+            <section>
+              <h2 className="font-display text-lg font-semibold text-white mb-3">4. Acceptable use</h2>
               <p>You agree not to:</p>
               <ul className="list-disc pl-5 space-y-1 mt-2">
                 <li>Use the Service for unlawful purposes</li>
@@ -49,39 +57,43 @@ export default function TermsPage() {
             </section>
 
             <section>
-              <h2 className="font-display text-lg font-semibold text-white mb-3">4. Your data</h2>
+              <h2 className="font-display text-lg font-semibold text-white mb-3">5. Your data</h2>
               <p>
-                You retain ownership of any content (documentation, configuration) you provide to the Service. By submitting content, you grant TxID a limited licence to process it solely for the purpose of providing the Service.
+                You retain ownership of any content (documentation, configuration) you provide to the Service. By submitting content, you grant {LEGAL_ENTITY} a limited licence to process it solely for the purpose of providing the Service. How that content is handled is set out in our{" "}
+                <a href="/privacy" className="text-accent hover:underline">Privacy Policy</a>.
               </p>
             </section>
 
             <section>
-              <h2 className="font-display text-lg font-semibold text-white mb-3">5. AI outputs</h2>
+              <h2 className="font-display text-lg font-semibold text-white mb-3">6. AI outputs</h2>
               <p>
-                TxID uses large language models (Claude by Anthropic) to generate responses. AI outputs may occasionally be incorrect. You are responsible for verifying critical information before acting on it. TxID is not liable for losses arising from AI-generated content.
+                The Service uses large language models (Claude by Anthropic) to generate responses. AI outputs may occasionally be incorrect. You are responsible for verifying critical information before acting on it. {LEGAL_ENTITY} is not liable for losses arising from AI-generated content.
+              </p>
+              <p className="mt-3">
+                The Service does not provide financial, investment, tax or legal advice, and nothing it produces should be treated as any of those.
               </p>
             </section>
 
             <section>
-              <h2 className="font-display text-lg font-semibold text-white mb-3">6. Limitation of liability</h2>
+              <h2 className="font-display text-lg font-semibold text-white mb-3">7. Limitation of liability</h2>
               <p>
-                To the maximum extent permitted by law, TxID shall not be liable for indirect, incidental, or consequential damages. Our total liability shall not exceed the amount you paid us in the twelve months preceding the claim.
+                To the maximum extent permitted by law, {LEGAL_ENTITY} shall not be liable for indirect, incidental, or consequential damages. Our total liability shall not exceed the amount you paid us in the twelve months preceding the claim.
               </p>
             </section>
 
             <section>
-              <h2 className="font-display text-lg font-semibold text-white mb-3">7. Changes</h2>
+              <h2 className="font-display text-lg font-semibold text-white mb-3">8. Changes</h2>
               <p>
                 We may update these Terms at any time. Continued use of the Service after changes constitutes acceptance of the revised Terms.
               </p>
             </section>
 
             <section>
-              <h2 className="font-display text-lg font-semibold text-white mb-3">8. Contact</h2>
+              <h2 className="font-display text-lg font-semibold text-white mb-3">9. Contact</h2>
               <p>
-                Questions? Email us at{" "}
-                <a href="mailto:team@txid.support" className="text-accent hover:underline">
-                  team@txid.support
+                These Terms are between you and {LEGAL_ENTITY}. Questions? Email us at{" "}
+                <a href={`mailto:${LEGAL_CONTACT}`} className="text-accent hover:underline">
+                  {LEGAL_CONTACT}
                 </a>
               </p>
             </section>

@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
 import { useRouter } from "next/navigation"
 import { saveBeta, endBeta } from "@/lib/actions/beta"
+import { betaControls } from "@/lib/types/config"
 import type { BetaConfig } from "@/lib/types/config"
 
 /**
@@ -25,9 +26,13 @@ export function BetaProgrammeForm({ initial }: { initial?: BetaConfig | undefine
     enabled: initial?.enabled === true,
     autoOpen: initial?.autoOpen !== false,
     feedback: initial?.feedback !== false,
+    // Undefined inherits feedback, which is what betaControls does everywhere
+    // else. A project set up before bug reports existed keeps both on.
+    bugReports: initial?.bugReports ?? initial?.feedback !== false,
     intro: initial?.intro ?? null,
     endsAt: initial?.endsAt ?? null,
   })
+  const controls = betaControls(beta)
   const [isPending, startTransition] = useTransition()
   const router = useRouter()
 
@@ -114,19 +119,43 @@ export function BetaProgrammeForm({ initial }: { initial?: BetaConfig | undefine
             />
           </div>
 
+          {/* TWO SWITCHES, NOT ONE. Feedback and bug reports are different jobs
+              with different questions and different queues: a design review
+              wants opinions and no bug list, a release hardening wants the
+              opposite, and plenty of teams want both. Each one adds its own
+              button in the widget and its own instructions to the assistant.
+              `bugReports` left undefined inherits `feedback`, so a project set
+              up before the split keeps behaving exactly as it did. */}
           <div className="flex items-start justify-between gap-6">
             <div className="space-y-1">
               <Label htmlFor="beta-feedback" className="text-sm font-medium">Let testers leave feedback</Label>
               <p className="max-w-xl text-xs text-muted-foreground">
-                Adds a Leave feedback button. The assistant stops trying to solve, asks only what
-                they expected to happen, and records it with the conversation attached. It never
-                promises anyone will reply, because you cannot answer every tester individually.
+                Adds a Feedback button for opinions, reactions and suggestions. The assistant stops
+                trying to solve, asks only what they expected to happen, and records it with the
+                conversation attached. It never promises anyone will reply, because you cannot
+                answer every tester individually.
               </p>
             </div>
             <Switch
               id="beta-feedback"
-              checked={beta.feedback === true}
-              onCheckedChange={v => persist({ ...beta, feedback: v })}
+              checked={controls.feedback}
+              onCheckedChange={v => persist({ ...beta, feedback: v, bugReports: controls.bugs })}
+            />
+          </div>
+
+          <div className="flex items-start justify-between gap-6">
+            <div className="space-y-1">
+              <Label htmlFor="beta-bugs" className="text-sm font-medium">Let testers report bugs</Label>
+              <p className="max-w-xl text-xs text-muted-foreground">
+                Adds a Bug button for things that are broken. The assistant asks what they were
+                trying to do and where it went wrong, then stops: it never asks for their browser,
+                wallet, network or a transaction hash, because the report already carries all of it.
+              </p>
+            </div>
+            <Switch
+              id="beta-bugs"
+              checked={controls.bugs}
+              onCheckedChange={v => persist({ ...beta, feedback: controls.feedback, bugReports: v })}
             />
           </div>
 

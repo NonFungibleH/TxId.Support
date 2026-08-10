@@ -102,7 +102,7 @@ export interface StreamChatParams {
    * asking are testers, and some of what they say is feedback rather than a
    * question. Layered on top of support mode, never instead of it.
    */
-  beta?: { feedback: boolean } | null
+  beta?: { feedback: boolean; bugs: boolean } | null
   protocolAccount?: ProtocolAccountContext | null
   /**
    * Omit the retrieved-docs section from the prompt so the caller can place it

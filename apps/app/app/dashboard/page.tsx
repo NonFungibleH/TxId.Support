@@ -59,15 +59,22 @@ export default async function DashboardPage() {
   const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1))
 
   const WALLET_FALLBACK_CAP = 5000
+  const DOC_CHUNK_CAP = 10000
   const [convResult, docsResult, walletsResult, monthlyResult, recentResult] = await Promise.all([
     supabase
       .from("conversations")
       .select("id", { count: "exact", head: true })
       .eq("project_id", typedProject.id),
+    // SOURCE URLS, NOT A ROW COUNT. "49 indexed chunks" is our word for an
+    // implementation detail: a customer has no way to know whether 49 is a lot,
+    // and cannot map it to anything they gave us. Pages are what they added.
+    // Capped, so an unusually large knowledge base cannot turn the Overview
+    // into an unbounded scan; the card says so when the cap is reached.
     supabase
       .from("documents")
-      .select("id", { count: "exact", head: true })
-      .eq("project_id", typedProject.id),
+      .select("source_url")
+      .eq("project_id", typedProject.id)
+      .limit(DOC_CHUNK_CAP),
     // Bounded fallback only. The real count comes from the distinct_wallets
     // SQL function below; this read exists for deployments where that
     // migration has not been applied yet, and is capped so an unapplied
@@ -112,7 +119,13 @@ export default async function DashboardPage() {
   } catch { /* function not applied yet: keep the fallback */ }
 
   const config = typedProject.config as unknown as ProjectConfig
-  const docCount = docsResult.count ?? 0
+  // Pasted text has no source_url, so every such chunk collapses into ONE
+  // source, which is how the Docs page already presents it. Two pages showing
+  // different counts for the same knowledge base is worse than either number.
+  const docChunks = docsResult.data ?? []
+  const docCount = docChunks.length
+  const docSources = new Set(docChunks.map(d => (d as { source_url: string | null }).source_url ?? "__pasted__")).size
+  const docSourcesAreExact = docCount < DOC_CHUNK_CAP
   const monthlyCount = monthlyResult.count ?? 0
   const recentConvs = recentResult.data ?? []
 
@@ -216,7 +229,7 @@ export default async function DashboardPage() {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-4">
         <StatsCard title="Conversations" value={convResult.count ?? 0} description="All time" icon={MessageSquare} />
         <StatsCard title="Connected wallets" value={uniqueWallets} description={walletsAreExact ? "Unique addresses" : "Unique addresses, recent sample"} icon={Users} />
-        <StatsCard title="Knowledge base" value={docCount} description="Indexed chunks" icon={Globe} />
+        <StatsCard title="Knowledge base" value={docSources} description={docSourcesAreExact ? (docSources === 1 ? "Page indexed" : "Pages indexed") : "Pages indexed, partial count"} icon={Globe} />
         <StatsCard title="Chains enabled" value={activeChains.length} description={plan === "demo" ? `of ${chainLimitLabel}` : `of ${chainLimitLabel} on ${PLAN_LABELS[plan]}`} icon={Zap} />
       </div>
 

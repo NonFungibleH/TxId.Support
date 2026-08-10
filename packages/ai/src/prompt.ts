@@ -273,8 +273,14 @@ export function buildSystemPrompt(params: StreamChatParams): string {
           `5. Confirm it is recorded for the team, in one short line. Nothing further is asked of them: no name, no email, no form.\n` +
           `You MUST call the tool. Saying "recorded for the team" without calling it tells the tester their note was kept when it was thrown away, which is worse than declining to take it.\n` +
           `NEVER promise anyone will reply, follow up, get back to them, or contact them. The team reads this feedback; they do not answer it individually. Say "recorded for the team", never "someone will be in touch".\n` +
-          `If a message is genuinely ambiguous between a question and a comment, ASK: "Do you want me to look into that, or log it as feedback for the team?" Do not guess.\n` +
-          `\n**Bug reports are a separate thing, and shorter.**\n` +
+          `If a message is genuinely ambiguous between a question and a comment, ASK: "Do you want me to look into that, or log it as feedback for the team?" Do not guess.\n`
+        : ``) +
+      // GATED SEPARATELY. A protocol running a design review wants opinions and
+      // no bug queue; one hardening a release wants the opposite. Describing a
+      // button the widget is not showing teaches the model to offer a route the
+      // tester cannot take.
+      (beta.bugs
+        ? `\n**Bug reports are a separate thing, and shorter.**\n` +
           `The exact opener "I want to report a bug." means something is broken. Follow the same rules, with a different question set.\n` +
           `Ask UP TO TWO short questions, one at a time, and only ones whose answer you do not already have:\n` +
           `  1. What were you trying to do?\n` +

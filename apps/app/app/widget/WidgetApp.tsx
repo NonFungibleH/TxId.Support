@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react"
 import { useSearchParams } from "next/navigation"
 import { nanoid } from "nanoid"
 import * as OPENERS from "@/lib/finding-openers"
+import { betaControls } from "@/lib/types/config"
 import DOMPurify from "dompurify"
 import { ActionCard } from "./ActionCard"
 import type { WalletActionPayload } from "./ActionCard"
@@ -936,6 +937,9 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
   // highlighted answers both, and it maps one to one onto the dashboard tabs,
   // so what a tester chooses is what the team reads it as.
   const [mode, setMode] = useState<"support" | "bug" | "feedback">("support")
+  // What this project actually offers. Undefined bugReports inherits feedback,
+  // so nothing configured before the split changes behaviour.
+  const controls = betaControls(config?.beta)
   const awaitingFinding = useRef<"feedback" | "bug" | null>(null)
   const findingRecorded = useRef(false)
   const [ticketName, setTicketName] = useState("")
@@ -2665,9 +2669,13 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
                 >
                   <p className="text-xs leading-relaxed" style={{ color: adaptiveText, opacity: 0.9 }}>
                     I&apos;ll be right here in the corner whenever you need me.
-                    {config?.beta?.feedback
-                      ? " Spot something off? The Feedback button next to the message box sends it straight to the team."
-                      : null}
+                    {controls.feedback && controls.bugs
+                      ? " Spot something off? The Bug and Feedback buttons above the message box send it straight to the team."
+                      : controls.bugs
+                        ? " Spot something broken? The Bug button above the message box sends it straight to the team."
+                        : controls.feedback
+                          ? " Got a thought on it? The Feedback button above the message box sends it straight to the team."
+                          : null}
                   </p>
                   <button
                     onClick={() => {
@@ -2802,16 +2810,16 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
                   the primary action, typing, read as the smallest thing there.
                   A row of its own keeps both discoverable without either
                   crowding the other. */}
-              {config?.beta?.feedback && (
+              {controls.any && (
                 <div
                   className="shrink-0 flex flex-wrap items-center justify-center gap-1.5 border-t px-3 pt-2.5"
                   style={{ borderColor: `var(--w-border)` }}
                 >
                   {([
-                    { id: "support" as const, label: "Support" },
-                    { id: "bug" as const, label: "Bug" },
-                    { id: "feedback" as const, label: "Feedback" },
-                  ]).map(m => {
+                    { id: "support" as const, label: "Support", on: true },
+                    { id: "bug" as const, label: "Bug", on: controls.bugs },
+                    { id: "feedback" as const, label: "Feedback", on: controls.feedback },
+                  ]).filter(m => m.on).map(m => {
                     const active = mode === m.id
                     return (
                       <button
@@ -2845,8 +2853,8 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
                   slightly lifted well is the difference between "there is a
                   message here" and "you can write here". */}
               <div
-                className={`shrink-0 px-3 py-2${config?.beta?.feedback ? "" : " border-t"}`}
-                style={config?.beta?.feedback ? undefined : { borderColor: `var(--w-border)` }}
+                className={`shrink-0 px-3 py-2${controls.any ? "" : " border-t"}`}
+                style={controls.any ? undefined : { borderColor: `var(--w-border)` }}
               >
               <div
                 className="flex items-center gap-2 rounded-2xl border px-3 py-1.5 transition-colors"

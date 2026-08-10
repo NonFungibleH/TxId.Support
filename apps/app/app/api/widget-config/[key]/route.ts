@@ -1,6 +1,6 @@
 import { createServiceClient } from "@/lib/supabase/server"
 import type { ProjectConfig, Plan } from "@/lib/types/config"
-import { isPaidPlan, resolveDisclaimer, activeStatusNotice, activeBeta } from "@/lib/types/config"
+import { isPaidPlan, resolveDisclaimer, activeStatusNotice, activeBeta, betaControls } from "@/lib/types/config"
 import type { Database } from "@/lib/supabase/types"
 import { verifyPreviewToken } from "@/lib/preview-token"
 import { isActionDemo } from "@/lib/actions-gate"
@@ -120,9 +120,11 @@ export async function GET(
     // widget needs: no end date, nothing a tester should see.
     beta: (() => {
       const b = activeBeta(config)
-      return b
-        ? { autoOpen: b.autoOpen === true, feedback: b.feedback === true, intro: b.intro ?? null }
-        : null
+      if (!b) return null
+      // Resolved HERE, so the widget receives two plain booleans and the
+      // inherit rule lives in one place rather than in every consumer.
+      const c = betaControls(b)
+      return { autoOpen: b.autoOpen === true, feedback: c.feedback, bugReports: c.bugs, intro: b.intro ?? null }
     })(),
     chains: [...new Set([
       ...(config.watchedContracts ?? []).map(c => c.chain as string),

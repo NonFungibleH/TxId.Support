@@ -1,13 +1,14 @@
 import type { Metadata } from "next";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
+import { LEGAL_ENTITY, LEGAL_ENTITY_FULL, PRODUCT, LEGAL_CONTACT } from "@/lib/legal";
 
 export const metadata: Metadata = {
   title: "Privacy Policy | TxID",
   alternates: { canonical: "/privacy" },
 };
 
-const LAST_UPDATED = "June 2025";
+const LAST_UPDATED = "August 2026";
 
 export default function PrivacyPage() {
   return (
@@ -24,8 +25,18 @@ export default function PrivacyPage() {
           <div className="prose prose-sm prose-invert max-w-none space-y-8 text-muted leading-relaxed">
 
             <section>
+              <h2 className="font-display text-lg font-semibold text-white mb-3">Who we are</h2>
+              <p>
+                {PRODUCT} is a product operated by {LEGAL_ENTITY_FULL}. {LEGAL_ENTITY} is the data controller for the personal data described below, and &ldquo;we&rdquo; and &ldquo;us&rdquo; on this page mean {LEGAL_ENTITY}.
+              </p>
+              <p className="mt-3">
+                Where a protocol installs the Service on its own site, that protocol is the controller of its end users&apos; data and {LEGAL_ENTITY} processes it on their behalf.
+              </p>
+            </section>
+
+            <section>
               <h2 className="font-display text-lg font-semibold text-white mb-3">What we collect</h2>
-              <p>When you use TxID, we collect:</p>
+              <p>When you use {PRODUCT}, we collect:</p>
               <ul className="list-disc pl-5 space-y-1 mt-2">
                 <li><strong className="text-white/80">Account data:</strong> your email address and name, via Clerk authentication</li>
                 <li><strong className="text-white/80">Project configuration:</strong> branding settings, smart contract addresses, and documentation you index</li>
@@ -81,9 +92,9 @@ export default function PrivacyPage() {
             <section>
               <h2 className="font-display text-lg font-semibold text-white mb-3">Your rights</h2>
               <p>
-                You have the right to access, correct, or delete your personal data. To exercise these rights, contact us at{" "}
-                <a href="mailto:team@txid.support" className="text-accent hover:underline">
-                  team@txid.support
+                You have the right to access, correct, or delete your personal data. To exercise these rights, contact {LEGAL_ENTITY} at{" "}
+                <a href={`mailto:${LEGAL_CONTACT}`} className="text-accent hover:underline">
+                  {LEGAL_CONTACT}
                 </a>
               </p>
             </section>

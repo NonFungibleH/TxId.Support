@@ -23,6 +23,7 @@ export async function saveBeta(beta: BetaConfig): Promise<void> {
     enabled: beta.enabled === true,
     autoOpen: beta.autoOpen === true,
     feedback: beta.feedback === true,
+    bugReports: beta.bugReports === true,
     intro: beta.intro?.trim() ? beta.intro.trim().slice(0, 600) : null,
     endsAt: beta.endsAt?.trim() ? beta.endsAt.trim() : null,
   }
@@ -49,7 +50,7 @@ export async function endBeta(): Promise<void> {
   const { project } = await getProject()
   if (!project) throw new Error("No project")
   await updateConfig((project as { id: string }).id, {
-    beta: { enabled: false, autoOpen: false, feedback: false, intro: null, endsAt: null },
+    beta: { enabled: false, autoOpen: false, feedback: false, bugReports: false, intro: null, endsAt: null },
   } as Partial<ProjectConfig>)
   revalidatePath("/dashboard/beta")
   revalidatePath("/dashboard")

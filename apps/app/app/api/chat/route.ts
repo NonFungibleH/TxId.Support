@@ -9,7 +9,7 @@ import { resolveProtocolAccount } from "@/lib/protocol-account"
 import type { ChatMessage, ProjectConfigSnapshot, ActionsContext } from "@txid/ai"
 import { actionsGate, effectiveMaxSwapUsd } from "@/lib/actions-gate"
 import type { ProjectConfig, Plan } from "@/lib/types/config"
-import { PLAN_SESSION_MESSAGE_LIMITS, activeStatusNotice, activeBeta } from "@/lib/types/config"
+import { PLAN_SESSION_MESSAGE_LIMITS, activeStatusNotice, activeBeta, betaControls } from "@/lib/types/config"
 import type { Database } from "@/lib/supabase/types"
 import { verifyPreviewToken } from "@/lib/preview-token"
 import { rateLimit, clientIp } from "@/lib/rate-limit"
@@ -596,6 +596,10 @@ export async function POST(request: Request) {
     // resolved on read, so a lapsed notice stops appearing the moment it lapses.
     const statusNotice = activeStatusNotice(config)
     const betaProgramme = activeBeta(config)
+    // Feedback and bug reporting are independent switches, so the prompt gets
+    // told about each one separately rather than inferring one from the other.
+    const { feedback: betaFeedback, bugs: betaBugs } = betaControls(betaProgramme)
+    const betaControlsForPrompt = { feedback: betaFeedback, bugs: betaBugs }
 
     // The user's protocol account, resolved BEFORE the model sees the question.
     // Discovering a second address mid-conversation is how it ends up telling a
@@ -660,7 +664,7 @@ export async function POST(request: Request) {
       ...(protocolAccount.status !== "off" ? { protocolAccount } : {}),
       // Expiry resolved on read, so a finished beta stops changing the
       // assistant's behaviour the moment it ends.
-      ...(betaProgramme ? { beta: { feedback: betaProgramme.feedback === true } } : {}),
+      ...(betaProgramme ? { beta: betaControlsForPrompt } : {}),
       customTone: config.branding?.customTone ?? undefined,
       ...(config.branding?.language ? { language: config.branding.language } : {}),
     })

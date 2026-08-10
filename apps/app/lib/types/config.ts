@@ -187,12 +187,33 @@ export interface BetaConfig {
   enabled: boolean
   /** Open the panel unprompted on a tester's first visit. */
   autoOpen?: boolean
-  /** Show the "Leave feedback" control. */
+  /** Offer the Feedback mode: opinions, suggestions, reactions. */
   feedback?: boolean
+  /**
+   * Offer the Bug mode: something is broken.
+   *
+   * SEPARATE FROM FEEDBACK, because they are separate jobs. A protocol running
+   * a design review wants opinions and no bug queue; one hardening a release
+   * wants the opposite. Undefined INHERITS feedback, so every project
+   * configured before bug reports existed keeps behaving exactly as it did.
+   */
+  bugReports?: boolean
   /** Greeting used when it opens itself. Falls back to the welcome message. */
   intro?: string | null
   /** ISO date. Betas end, and a stale "welcome to the beta" is embarrassing. */
   endsAt?: string | null
+}
+
+/**
+ * Which tester controls a project offers. Undefined `bugReports` inherits
+ * `feedback` so existing projects are unchanged by the split.
+ */
+export function betaControls(
+  beta: { feedback?: boolean; bugReports?: boolean } | null | undefined,
+): { feedback: boolean; bugs: boolean; any: boolean } {
+  const feedback = beta?.feedback === true
+  const bugs = beta?.bugReports ?? feedback
+  return { feedback, bugs, any: feedback || bugs }
 }
 
 /**
