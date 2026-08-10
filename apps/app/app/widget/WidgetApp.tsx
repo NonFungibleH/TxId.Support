@@ -1903,7 +1903,12 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
     } finally {
       setIsStreaming(false)
     }
-  }, [input, isStreaming, config, messages, apiKey, walletAddress, chainId, isPreview, previewToken, walletSetup, hasCurated])
+    // markOriented and recordFinding are both useCallback with empty or
+    // URL-derived deps, so listing them cannot cause a re-creation loop. They
+    // were omitted, which is harmless today only because they never change,
+    // and is exactly the omission that turns into a stale closure the moment
+    // one of them takes a real dependency.
+  }, [input, isStreaming, config, messages, apiKey, walletAddress, chainId, isPreview, previewToken, walletSetup, hasCurated, markOriented, recordFinding])
 
   const sendActionResult = useCallback(async (actionId: string, txHash: string, status: "confirmed" | "failed", gasUsed?: string, blockNumber?: string) => {
     if (!config) return

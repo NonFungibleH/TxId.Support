@@ -4,7 +4,7 @@ import { useState, useTransition } from "react"
 import { toast } from "sonner"
 import {
   CheckCircle2, Send, Trash2, ExternalLink, Copy,
-  Globe, FileCode2, Zap, Image, ChevronRight, AlertTriangle, RefreshCw,
+  Globe, FileCode2, Zap, Image as ImageIcon, ChevronRight, AlertTriangle, RefreshCw,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -217,7 +217,7 @@ export function TelegramPageClient({
         {/* Profile picture - the one manual step */}
         <div className="rounded-lg border border-border bg-card p-5 space-y-3">
           <div className="flex items-center gap-2">
-            <Image className="size-4 text-muted-foreground" />
+            <ImageIcon className="size-4 text-muted-foreground" />
             <p className="text-sm font-medium">Profile picture</p>
             <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">Optional</span>
           </div>

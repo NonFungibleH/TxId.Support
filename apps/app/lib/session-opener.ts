@@ -69,7 +69,13 @@ interface Recent {
 
 async function recentAptos(config: ProjectConfig, address: string): Promise<Recent[] | null> {
   const watched = (config.watchedContracts ?? []).find(c => c.chain === "aptos")
-  const txs = await getAptosRecentTransactions(address, watched?.address, 5).catch(() => null)
+  // SAME RULE AS THE EVM PATH. Without a module to scope by, the indexer
+  // returns the wallet's entire history and the opener announces it as
+  // "your recent activity on <protocol>", which is a false claim about
+  // someone's own past. Null means we could not find out, and the caller then
+  // says nothing at all.
+  if (!watched?.address) return null
+  const txs = await getAptosRecentTransactions(address, watched.address, 5).catch(() => null)
   // null is a FAILED LOOKUP, not an empty history. The distinction is the whole
   // reason this returns null rather than [].
   if (txs === null) return null

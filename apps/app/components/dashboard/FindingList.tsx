@@ -8,8 +8,29 @@ export interface Finding {
   ref: string
   summary: string
   created_at: string
-  /** The transcript, stored as JSON on the ticket when it was recorded. */
-  conversation: string | null
+  /**
+   * The transcript recorded with the finding.
+   *
+   * TYPED AS UNKNOWN ON PURPOSE. The column is `jsonb`, so Supabase hands back
+   * an already-parsed array, while the writer passes a JSON string that
+   * Postgres parses on the way in. Assuming either shape breaks the other, and
+   * assuming "string" silently turned every transcript into "none stored".
+   */
+  conversation: unknown
+}
+
+/** Accept both shapes, and never let a malformed one break the page. */
+function turnsOf(value: unknown): { role: string; content: string }[] {
+  const parsed = typeof value === "string"
+    ? (() => { try { return JSON.parse(value) as unknown } catch { return null } })()
+    : value
+  if (!Array.isArray(parsed)) return []
+  return parsed.filter(
+    (t): t is { role: string; content: string } =>
+      !!t && typeof t === "object" &&
+      typeof (t as { role?: unknown }).role === "string" &&
+      typeof (t as { content?: unknown }).content === "string",
+  )
 }
 
 /**
@@ -37,13 +58,7 @@ export function FindingList({ findings, emptyHint }: { findings: Finding[]; empt
     <div className="space-y-2">
       {findings.map(f => {
         const isOpen = open === f.id
-        // Stored as a JSON string when the finding was recorded. Malformed or
-        // absent is normal for older rows and must not break the page.
-        let turns: { role: string; content: string }[] = []
-        try {
-          const parsed: unknown = f.conversation ? JSON.parse(f.conversation) : []
-          if (Array.isArray(parsed)) turns = parsed as { role: string; content: string }[]
-        } catch { /* older row, show the summary alone */ }
+        const turns = turnsOf(f.conversation)
 
         return (
           <div key={f.id} className="rounded-lg border border-border">
