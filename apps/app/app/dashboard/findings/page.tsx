@@ -1,9 +1,9 @@
 import { redirect } from "next/navigation"
 import { getProject } from "@/lib/actions/project"
 import { createServiceClient } from "@/lib/supabase/server"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import type { ProjectConfig } from "@/lib/types/config"
-import { FindingList, type Finding } from "@/components/dashboard/FindingList"
+import type { Finding } from "@/components/dashboard/FindingList"
+import { TesterReports } from "@/components/dashboard/TesterReports"
 
 export const dynamic = "force-dynamic"
 
@@ -32,41 +32,28 @@ export default async function FindingsPage() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: findings } = await (supabase as any)
     .from("tickets")
-    .select("id, ref, summary, created_at, conversation")
+    .select("id, ref, summary, created_at, conversation, reason")
     .eq("project_id", typedProject.id)
-    .eq("reason", "feedback")
+    .in("reason", ["feedback", "bug"])
     .order("created_at", { ascending: false })
-    .limit(100)
+    .limit(200)
 
-  const rows = (findings ?? []) as Finding[]
+  const rows = (findings ?? []) as (Finding & { reason: string })[]
+  const bugs = rows.filter(r => r.reason === "bug")
+  const feedback = rows.filter(r => r.reason !== "bug")
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl font-semibold">Tester findings</h1>
+        <h1 className="text-xl font-semibold">Tester reports</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           {rows.length === 0
-            ? "Feedback recorded through the widget appears here."
-            : `${rows.length} recorded, newest first.`}
+            ? "Bugs and feedback recorded through the widget appear here."
+            : `${bugs.length} bug${bugs.length === 1 ? "" : "s"}, ${feedback.length} piece${feedback.length === 1 ? "" : "s"} of feedback.`}
         </p>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">What testers have told you</CardTitle>
-          <CardDescription>
-            Each one keeps the conversation that produced it, so you can see what they were doing
-            when they said it. These are kept out of Tickets on purpose: a tester sharing an opinion
-            is not waiting for a reply, and mixing the two would bury the people who are.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <FindingList
-            findings={rows}
-            emptyHint="Findings appear as soon as a tester uses Leave feedback in the widget."
-          />
-        </CardContent>
-      </Card>
+      <TesterReports bugs={bugs} feedback={feedback} />
     </div>
   )
 }

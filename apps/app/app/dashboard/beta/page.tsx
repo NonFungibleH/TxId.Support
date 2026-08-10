@@ -62,7 +62,7 @@ export default async function BetaPage() {
     .from("tickets")
     .select("id", { count: "exact", head: true })
     .eq("project_id", typedProject.id)
-    .eq("reason", "feedback")
+    .in("reason", ["feedback", "bug"])
 
 
   const daysLeft = live?.endsAt
@@ -105,7 +105,7 @@ export default async function BetaPage() {
               <MessageSquare className="size-4 text-muted-foreground" />
               <div>
                 <p className="text-lg font-semibold">{findingCount ?? 0}</p>
-                <p className="text-xs text-muted-foreground">Findings collected</p>
+                <p className="text-xs text-muted-foreground">Reports collected</p>
               </div>
             </CardContent>
           </Card>

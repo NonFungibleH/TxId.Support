@@ -102,6 +102,8 @@ const WIDGET_SIZE_VALUE: Record<string, number> = { standard: 1.0, large: 1.18, 
 /** Unambiguous by design: the model must never have to guess that this is
  *  feedback rather than a question. Kept verbatim in the beta prompt block. */
 const FEEDBACK_OPENER = "I want to leave feedback on the beta."
+/** Same contract as feedback: a fixed opener, so nothing has to be classified. */
+const BUG_OPENER = "I want to report a bug."
 /** Default is "large": the base 380x560 reads as small on a dense desktop app. */
 const DEFAULT_WIDGET_SIZE = "large"
 
@@ -927,8 +929,8 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
   // model, so recording it does not depend on the model choosing to call a
   // tool. It said "Recorded for the team" and recorded nothing, twice, because
   // the whole chain hung on that one optional call.
-  const awaitingFeedback = useRef(false)
-  const feedbackRecorded = useRef(false)
+  const awaitingFinding = useRef<"feedback" | "bug" | null>(null)
+  const findingRecorded = useRef(false)
   const [ticketName, setTicketName] = useState("")
   const [ticketEmail, setTicketEmail] = useState("")
   // WHAT THE TRANSCRIPT CANNOT KNOW. The ticket already carries the full
@@ -1619,7 +1621,7 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
    * deliberately quiet: telling someone their compliment failed to send is
    * worse than the compliment not sending.
    */
-  const recordFeedback = useCallback(async (summary: string) => {
+  const recordFinding = useCallback(async (summary: string, kind: "feedback" | "bug") => {
     try {
       await fetch("/api/tickets", {
         method: "POST",
@@ -1627,7 +1629,7 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
         body: JSON.stringify({
           key: apiKey,
           summary,
-          reason: "feedback",
+          reason: kind,
           conversation: messagesRef.current.map(m => ({ role: m.role, content: m.content })),
           ...(hostContext.current.url ? { pageUrl: hostContext.current.url } : {}),
           ...(isPreview ? { preview: true, previewToken } : {}),
@@ -1684,13 +1686,14 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
 
     // Pressing Feedback sends a fixed opener. The message AFTER it is the
     // feedback itself, so capture it here rather than hoping for a tool call.
-    if (msgText === FEEDBACK_OPENER) {
-      awaitingFeedback.current = true
-      feedbackRecorded.current = false
-    } else if (awaitingFeedback.current && !feedbackRecorded.current) {
-      awaitingFeedback.current = false
-      feedbackRecorded.current = true
-      void recordFeedback(msgText)
+    if (msgText === FEEDBACK_OPENER || msgText === BUG_OPENER) {
+      awaitingFinding.current = msgText === BUG_OPENER ? "bug" : "feedback"
+      findingRecorded.current = false
+    } else if (awaitingFinding.current && !findingRecorded.current) {
+      const kind = awaitingFinding.current
+      awaitingFinding.current = null
+      findingRecorded.current = true
+      void recordFinding(msgText, kind)
     }
 
     const userMsg: Message = { id: nanoid(), role: "user", content: msgText }
@@ -1779,6 +1782,7 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
               break
             }
             if (parsed.escalate) {
+              const esc = parsed.escalate
               setMessages((prev) =>
                 prev.map((m) => (m.id === assistantId ? { ...m, streaming: false } : m)),
               )
@@ -1791,13 +1795,13 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
               // existed once a support ticket had been completed, which is the
               // wrong instrument: they are not waiting for a reply, and the
               // point of the button is that leaving a note costs nothing.
-              if (parsed.escalate.reason === "feedback") {
+              if (esc.reason === "feedback" || esc.reason === "bug") {
                 // Fallback only. The button path above has almost always
-                // recorded it already; this covers feedback that arrives
+                // recorded it already; this covers a report that arrives
                 // without the opener, and never double-records.
-                if (!feedbackRecorded.current) {
-                  feedbackRecorded.current = true
-                  void recordFeedback(parsed.escalate.summary)
+                if (!findingRecorded.current) {
+                  findingRecorded.current = true
+                  void recordFinding(esc.summary, esc.reason as "feedback" | "bug")
                 }
                 // Belt and braces: if the model went straight to the tool with
                 // no acknowledgement, say something rather than leaving the
@@ -1805,12 +1809,14 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
                 setMessages(prev =>
                   prev.map(m =>
                     m.id === assistantId && !m.content.trim()
-                      ? { ...m, content: "Thanks, that's recorded for the team." }
+                      ? { ...m, content: esc.reason === "bug"
+                            ? "Thanks, that's logged for the team with everything I could see."
+                            : "Thanks, that's recorded for the team." }
                       : m,
                   ),
                 )
               } else {
-                setEscalation(parsed.escalate)
+                setEscalation(esc)
               }
               setIsStreaming(false)
               return
@@ -2792,6 +2798,28 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
                       <path d="M12 20h9" /><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z" />
                     </svg>
                     Feedback
+                  </button>
+                )}
+                {/* BUGS ARE NOT FEEDBACK, and one button for both gets one of
+                    them. A tester with something broken wants it fixed; a
+                    tester with an opinion wants to be heard. Splitting the
+                    button is what lets the team read the two queues
+                    differently, which is the whole point. */}
+                {config?.beta?.feedback && (
+                  <button
+                    onClick={() => sendMessage(BUG_OPENER)}
+                    disabled={isStreaming}
+                    aria-label="Report a bug"
+                    className="flex h-8 shrink-0 items-center gap-1.5 rounded-full border px-2.5 text-[11px] font-semibold transition-opacity hover:opacity-90 disabled:opacity-40"
+                    style={{ backgroundColor: `${b.primaryColor}26`, borderColor: `${b.primaryColor}55`, color: adaptiveText }}
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="m8 2 1.88 1.88" /><path d="M14.12 3.88 16 2" />
+                      <path d="M9 7.13V6a3 3 0 1 1 6 0v1.13" />
+                      <path d="M12 20a6 6 0 0 0 6-6v-3a4 4 0 0 0-4-4h-4a4 4 0 0 0-4 4v3a6 6 0 0 0 6 6Z" />
+                      <path d="M6 13H2" /><path d="M22 13h-4" />
+                    </svg>
+                    Bug
                   </button>
                 )}
                 <input
