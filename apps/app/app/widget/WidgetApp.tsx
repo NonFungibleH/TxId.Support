@@ -2771,23 +2771,22 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
 
             {/* Input - hidden while escalation form is shown */}
             {!escalation && (
-              <div
-                className="shrink-0 flex items-center gap-2 border-t px-3 py-2"
-                style={{ borderColor: `var(--w-border)` }}
-              >
-                {/* Leave feedback lives IN the composer, mirroring the send
-                    button, because two floating placements both read as
-                    stuck-on: a pill in the chip stack looked like a question,
-                    and a centred button hovered in the empty chat's void.
-                    Actions that write something belong in the row where
-                    writing happens. Same contract as ever: sends the fixed
-                    opener, so the model records instead of troubleshooting. */}
+              <>
+              {/* THE BUTTONS SIT ABOVE THE INPUT, not inside it. Two pills in
+                  the composer row squeezed "Ask anything" into a sliver, so
+                  the primary action, typing, read as the smallest thing there.
+                  A row of its own keeps both discoverable without either
+                  crowding the other. */}
+              {config?.beta?.feedback && (
+                <div
+                  className="shrink-0 flex items-center gap-2 border-t px-3 pt-2"
+                  style={{ borderColor: `var(--w-border)` }}
+                >
                 {/* LABELLED, not icon-only. The bare pencil failed twice:
                     the owner did not recognise it and predicted testers would
                     not either. In a beta, feedback is a primary action, and
                     primary actions get words. */}
-                {config?.beta?.feedback && (
-                  <button
+                <button
                     onClick={() => sendMessage(FEEDBACK_OPENER)}
                     disabled={isStreaming}
                     aria-label="Leave feedback"
@@ -2799,14 +2798,12 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
                     </svg>
                     Feedback
                   </button>
-                )}
                 {/* BUGS ARE NOT FEEDBACK, and one button for both gets one of
                     them. A tester with something broken wants it fixed; a
                     tester with an opinion wants to be heard. Splitting the
                     button is what lets the team read the two queues
                     differently, which is the whole point. */}
-                {config?.beta?.feedback && (
-                  <button
+                <button
                     onClick={() => sendMessage(BUG_OPENER)}
                     disabled={isStreaming}
                     aria-label="Report a bug"
@@ -2821,7 +2818,12 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
                     </svg>
                     Bug
                   </button>
-                )}
+                </div>
+              )}
+              <div
+                className={`shrink-0 flex items-center gap-2 px-3 py-2${config?.beta?.feedback ? "" : " border-t"}`}
+                style={config?.beta?.feedback ? undefined : { borderColor: `var(--w-border)` }}
+              >
                 <input
                   ref={inputRef}
                   value={input}
@@ -2846,6 +2848,7 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
                   )}
                 </button>
               </div>
+              </>
             )}
             {config.disclaimer && (
               <p
