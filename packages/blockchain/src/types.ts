@@ -154,13 +154,43 @@ const DEFAULT_CHAIN_CONFIGS: Record<string, ChainConfig> = {
  * failed-transaction decoder replays through it. When it throttles, the most
  * valuable answers are the ones that stop working.
  *
- * Set RPC_URLS to a JSON object keyed by chain id:
+ * Set RPC_URLS to a JSON object keyed by chain id OR by chain name:
  *
- *   RPC_URLS={"0x38":"https://bnb.example.com/v2/KEY","0x1":"https://eth.example.com/v2/KEY"}
+ *   RPC_URLS={"bnb":"https://bnb.example.com/v2/KEY","ethereum":"https://eth.example.com/KEY"}
+ *
+ * Names are accepted because `0x38` tells a human nothing, and an env var
+ * nobody can read is one nobody maintains. Matching ignores case and spaces,
+ * so "BNB Chain", "bnbchain" and "bsc" all resolve. Hex ids keep working.
  *
  * Unlisted chains keep their default. A malformed value is ignored rather than
  * thrown, because a typo in an env var must not take every chain down.
  */
+/** Extra spellings people actually type for a chain. */
+const CHAIN_ALIASES: Record<string, string> = {
+  bsc: "0x38",
+  binance: "0x38",
+  eth: "0x1",
+  mainnet: "0x1",
+  matic: "0x89",
+  arb: "0xa4b1",
+  op: "0xa",
+  avax: "0xa86a",
+}
+
+const normalise = (s: string) => s.toLowerCase().replace(/[\s_-]/g, "")
+
+/** A chain id, or a chain name, to a chain id. Null if it matches nothing. */
+function resolveChainKey(key: string): string | null {
+  if (DEFAULT_CHAIN_CONFIGS[key]) return key
+  const k = normalise(key)
+  const alias = CHAIN_ALIASES[k]
+  if (alias && DEFAULT_CHAIN_CONFIGS[alias]) return alias
+  for (const [id, cfg] of Object.entries(DEFAULT_CHAIN_CONFIGS)) {
+    if (normalise(cfg.name) === k || normalise(id) === k) return id
+  }
+  return null
+}
+
 function rpcOverrides(): Record<string, string> {
   const raw = process.env.RPC_URLS
   if (!raw) return {}
@@ -168,10 +198,12 @@ function rpcOverrides(): Record<string, string> {
     const parsed: unknown = JSON.parse(raw)
     if (!parsed || typeof parsed !== "object") return {}
     const out: Record<string, string> = {}
-    for (const [chainId, url] of Object.entries(parsed as Record<string, unknown>)) {
+    for (const [key, url] of Object.entries(parsed as Record<string, unknown>)) {
       // Only http(s). A wrong scheme here would fail on every call instead of
       // falling back, which is worse than ignoring it.
-      if (typeof url === "string" && /^https?:\/\//i.test(url)) out[chainId] = url
+      if (typeof url !== "string" || !/^https?:\/\//i.test(url)) continue
+      const chainId = resolveChainKey(key)
+      if (chainId) out[chainId] = url
     }
     // A SET-BUT-USELESS VALUE IS THE DANGEROUS CASE. Ignoring bad input keeps a
     // typo from taking every chain down, but it also means someone can believe
