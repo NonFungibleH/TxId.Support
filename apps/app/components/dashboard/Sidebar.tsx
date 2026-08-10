@@ -41,6 +41,7 @@ const SUPPORT_GROUPS: NavGroup[] = [
     label: "Monitor",
     items: [
       { href: "/dashboard/conversations", label: "Conversations", icon: MessagesSquare },
+      { href: "/dashboard/findings",      label: "Tester findings", icon: FlaskConical },
       { href: "/dashboard/tickets",       label: "Tickets",       icon: Ticket },
       { href: "/dashboard/analytics",     label: "Analytics",     icon: BarChart3 },
     ],

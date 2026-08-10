@@ -253,9 +253,14 @@ export default async function ConversationsPage({
       // TIE-BREAK, for every row written before each message carried its own
       // time. They share a timestamp to the second, and a uuid id is not an
       // insertion order, so without this the answer can render above the
-      // question. "user" sorts before "assistant" alphabetically, which is
-      // also the order a turn actually happens in.
-      .order("role", { ascending: true })
+      // question.
+      //
+      // DESCENDING, because "assistant" sorts BEFORE "user" alphabetically and
+      // ascending therefore put the answer first: the exact fault it was meant
+      // to fix. It also made the last message in every affected conversation
+      // the user's, which the outcome logic reads as "the answer never
+      // generated", so old conversations were wrongly badged "No answer given".
+      .order("role", { ascending: false })
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .then((res: any) =>
         res.error

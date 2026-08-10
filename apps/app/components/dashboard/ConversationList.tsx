@@ -572,11 +572,6 @@ export function ConversationList({
                   {sourceOf(conv.session_id) === "telegram" && (
                     <Badge variant="outline" className="shrink-0 text-[10px]">Telegram</Badge>
                   )}
-                  {conv.session_id?.startsWith("preview-") && (
-                    <Badge className="text-[10px] px-1.5 py-0.5 leading-none shrink-0 bg-violet-500/10 text-violet-400 border-violet-500/20">
-                      Preview
-                    </Badge>
-                  )}
                 </div>
                 <p className="text-sm truncate text-muted-foreground">
                   {tag?.summary || preview || "No messages"}

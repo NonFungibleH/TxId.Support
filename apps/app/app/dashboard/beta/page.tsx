@@ -55,16 +55,15 @@ export default async function BetaPage() {
     .select("id", { count: "exact", head: true })
     .eq("project_id", typedProject.id)
 
+  // The findings themselves live on their own page under Monitor. Only the
+  // count belongs here, next to the other readiness numbers.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: findings } = await (supabase as any)
+  const { count: findingCount } = await (supabase as any)
     .from("tickets")
-    .select("id, ref, summary, created_at")
+    .select("id", { count: "exact", head: true })
     .eq("project_id", typedProject.id)
     .eq("reason", "feedback")
-    .order("created_at", { ascending: false })
-    .limit(8)
 
-  const findingRows = (findings ?? []) as Array<{ id: string; ref: string; summary: string; created_at: string }>
 
   const daysLeft = live?.endsAt
     ? Math.max(0, Math.ceil((Date.parse(live.endsAt) - Date.now()) / 86_400_000))
@@ -105,7 +104,7 @@ export default async function BetaPage() {
             <CardContent className="flex items-center gap-3 py-4">
               <MessageSquare className="size-4 text-muted-foreground" />
               <div>
-                <p className="text-lg font-semibold">{findingRows.length}</p>
+                <p className="text-lg font-semibold">{findingCount ?? 0}</p>
                 <p className="text-xs text-muted-foreground">Findings collected</p>
               </div>
             </CardContent>
@@ -178,35 +177,6 @@ export default async function BetaPage() {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>What testers have told you</CardTitle>
-          <CardDescription>
-            Feedback recorded through the widget, newest first. Each one keeps the conversation that
-            produced it, so you can see what they were doing when they said it.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {findingRows.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              Nothing recorded yet. Findings appear here as soon as a tester uses Leave feedback.
-            </p>
-          ) : (
-            <div className="space-y-2">
-              {findingRows.map(f => (
-                <Link
-                  key={f.id}
-                  href="/dashboard/tickets"
-                  className="block rounded-md border border-border px-3 py-2 transition-colors hover:bg-muted/40"
-                >
-                  <p className="text-sm">{f.summary}</p>
-                  <p className="mt-0.5 font-mono text-[10px] text-muted-foreground">{f.ref}</p>
-                </Link>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
     </div>
   )
 }
