@@ -919,6 +919,10 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
 
   // Ticket escalation state
   const [escalation, setEscalation] = useState<{ summary: string; reason: string } | null>(null)
+  // The current transcript, readable from inside the SSE handler. The handler
+  // closes over stale state, and reading it inside a setState updater would
+  // mean a side effect that React may run twice.
+  const messagesRef = useRef<Message[]>([])
   const [ticketName, setTicketName] = useState("")
   const [ticketEmail, setTicketEmail] = useState("")
   // WHAT THE TRANSCRIPT CANNOT KNOW. The ticket already carries the full
@@ -1598,6 +1602,34 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
   }, [apiKey])
 
 
+  // Keep the transcript ref in step with state.
+  useEffect(() => { messagesRef.current = messages }, [messages])
+
+  /**
+   * Record a beta finding without asking the tester for anything.
+   *
+   * No name, no email, no form. They are leaving a note, not opening a case,
+   * and every field between them and that is a note we do not get. Failure is
+   * deliberately quiet: telling someone their compliment failed to send is
+   * worse than the compliment not sending.
+   */
+  const recordFeedback = useCallback(async (summary: string) => {
+    try {
+      await fetch("/api/tickets", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          key: apiKey,
+          summary,
+          reason: "feedback",
+          conversation: messagesRef.current.map(m => ({ role: m.role, content: m.content })),
+          ...(hostContext.current.url ? { pageUrl: hostContext.current.url } : {}),
+          ...(isPreview ? { preview: true, previewToken } : {}),
+        }),
+      })
+    } catch { /* see above */ }
+  }, [apiKey, isPreview, previewToken])
+
   // ── Submit support ticket ────────────────────────────────────────────────
   const submitTicket = useCallback(async () => {
     if (!escalation || !ticketName.trim() || !ticketEmail.trim()) return
@@ -1730,11 +1762,23 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
               break
             }
             if (parsed.escalate) {
-              // AI wants to raise a ticket - end stream and show form
               setMessages((prev) =>
                 prev.map((m) => (m.id === assistantId ? { ...m, streaming: false } : m)),
               )
-              setEscalation(parsed.escalate)
+              // FEEDBACK RECORDS ITSELF. Everything else opens the ticket form.
+              //
+              // A tester who says "I like it a lot" was being shown a form
+              // headed "Raise a support ticket" asking for their name and
+              // email, and if they closed it, as anyone reasonably would,
+              // their feedback was never recorded at all. The finding only
+              // existed once a support ticket had been completed, which is the
+              // wrong instrument: they are not waiting for a reply, and the
+              // point of the button is that leaving a note costs nothing.
+              if (parsed.escalate.reason === "feedback") {
+                void recordFeedback(parsed.escalate.summary)
+              } else {
+                setEscalation(parsed.escalate)
+              }
               setIsStreaming(false)
               return
             }
