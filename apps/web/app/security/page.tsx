@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import {
   ShieldCheck, ScanSearch, Archive, ArrowRight, KeyRound, Eye,
-  BadgeCheck, PenLine, Database, Milestone, Check, Scale,
+  BadgeCheck, PenLine, Database, Milestone, Check, Scale, Boxes,
 } from "lucide-react";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
@@ -86,6 +86,35 @@ export default function SecurityPage() {
           </div>
         </section>
 
+        {/* Assurance band. The page was a hero then a wall of same-looking
+            cards, with no visual anchor to carry the eye. This strip gives the
+            four claims a buyer scans for, at a glance, before the detail. Every
+            word here is factual: no percentages (a rate off nothing is the
+            first thing a reviewer distrusts), only stated postures. */}
+        <section className="pb-4 -mt-2">
+          <div className="max-w-6xl mx-auto px-6">
+            <FadeIn>
+              <div className="grid grid-cols-2 lg:grid-cols-4 rounded-2xl border border-[var(--border)] bg-[var(--bg-surface)] divide-x divide-[var(--border)] overflow-hidden">
+                {[
+                  { icon: KeyRound, stat: "Zero", label: "keys, seed phrases or signatures ever requested" },
+                  { icon: Eye, stat: "Sourced", label: "every answer traceable to a live read or your docs" },
+                  { icon: Archive, stat: "Recorded", label: "a reviewable case record behind every conversation" },
+                  { icon: Boxes, stat: "9 chains", label: "EVM networks and Move-native Aptos" },
+                ].map(({ icon: Icon, stat, label }, i) => (
+                  <div
+                    key={stat}
+                    className={`flex flex-col gap-2 p-6 ${i >= 2 ? "border-t lg:border-t-0 border-[var(--border)]" : ""}`}
+                  >
+                    <Icon className="w-5 h-5 text-accent" />
+                    <p className="font-display text-2xl font-bold text-white leading-none">{stat}</p>
+                    <p className="text-xs text-muted leading-relaxed">{label}</p>
+                  </div>
+                ))}
+              </div>
+            </FadeIn>
+          </div>
+        </section>
+
         {/* The three layers */}
         <section className="py-20 border-t border-[var(--border)]">
           <div className="max-w-6xl mx-auto px-6">
@@ -135,6 +164,16 @@ export default function SecurityPage() {
 
         {/* The detail a reviewer actually asks for */}
         <section className="py-20 border-t border-[var(--border)]">
+          <div className="max-w-6xl mx-auto px-6">
+            <FadeIn>
+              <div className="text-center mb-14">
+                <p className="font-mono text-sm text-accent mb-3">The detail a reviewer asks for</p>
+                <h2 className="font-display text-4xl font-bold text-white">
+                  Answers to the questions in the security questionnaire
+                </h2>
+              </div>
+            </FadeIn>
+          </div>
           <div className="max-w-6xl mx-auto px-6 grid md:grid-cols-2 gap-5">
             <FadeIn>
               <div className="h-full rounded-2xl border border-[var(--border)] bg-[var(--bg-surface)] p-8">

@@ -222,20 +222,48 @@ export default function PlatformPage() {
           </div>
         </section>
 
-        {/* One engine, multiple surfaces */}
+        {/* One engine, multiple surfaces. SHOWN as four tiles rather than a
+            bullet-separated line: the whole point of the section is that the
+            same diagnosis reaches four places, so the four places should be
+            visible, not described in a sentence set in the middle of an empty
+            box. */}
         <section className="pb-4">
           <div className="max-w-6xl mx-auto px-6">
             <FadeIn>
-              <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-surface)] px-6 py-6 text-center">
-                <p className="font-display text-lg font-semibold text-white mb-2">
-                  One engine. Multiple surfaces.
-                </p>
-                <p className="font-mono text-sm text-accent mb-1.5">
-                  Embedded · Telegram · API · MCP
-                </p>
-                <p className="text-sm text-muted">
-                  Supporting EVM networks and Move-native Aptos.
-                </p>
+              <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-surface)] p-8 sm:p-10">
+                <div className="text-center mb-8">
+                  <p className="font-display text-2xl font-semibold text-white mb-2">
+                    One engine. Multiple surfaces.
+                  </p>
+                  <p className="text-sm text-muted">
+                    The same investigation, delivered wherever your users already are.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                  {[
+                    { icon: Blocks, name: "Embedded", desc: "A widget on your app, matched to your brand." },
+                    { icon: MessagesSquare, name: "Telegram", desc: "Answers in the community where support already happens." },
+                    { icon: Braces, name: "API", desc: "Structured diagnosis for your own product and dashboards." },
+                    { icon: Plug, name: "MCP", desc: "A tool your AI agents can call directly." },
+                  ].map(({ icon: Icon, name, desc }) => (
+                    <div
+                      key={name}
+                      className="group rounded-xl border border-[var(--border)] bg-[var(--bg-elevated)] p-5 transition-colors hover:border-[var(--border-accent)]"
+                    >
+                      <div className="mb-3 flex size-10 items-center justify-center rounded-lg bg-[var(--accent-muted)] text-accent">
+                        <Icon className="size-5" />
+                      </div>
+                      <p className="font-display text-base font-semibold text-white">{name}</p>
+                      <p className="mt-1 text-xs leading-relaxed text-muted">{desc}</p>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mt-6 flex items-center justify-center gap-2 text-sm text-muted">
+                  <Blocks className="size-4 text-accent/70" />
+                  <span>Every surface covers EVM networks and Move-native Aptos.</span>
+                </div>
               </div>
             </FadeIn>
           </div>
