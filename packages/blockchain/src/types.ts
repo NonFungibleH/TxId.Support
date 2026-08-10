@@ -66,7 +66,7 @@ export interface ChainConfig {
   blockscoutApi?: string
 }
 
-export const CHAIN_CONFIGS: Record<string, ChainConfig> = {
+const DEFAULT_CHAIN_CONFIGS: Record<string, ChainConfig> = {
   "0x1": {
     id: "0x1",
     name: "Ethereum",
@@ -138,3 +138,53 @@ export const CHAIN_CONFIGS: Record<string, ChainConfig> = {
     // Blockscout (recent txs, balances) + RPC (single tx, revert decode).
   },
 }
+
+/**
+ * Swap any chain's RPC endpoint from the environment, without a deploy.
+ *
+ * WHY. Every EVM chain above defaults to a FREE PUBLIC endpoint with no key,
+ * no quota and no SLA: bsc-dataseed for BNB Chain, publicnode for Ethereum,
+ * and so on. They are fine for development and they throttle under real
+ * traffic, which surfaces as the assistant telling a user it cannot read the
+ * chain. That happened in a live demo, and the URL being a hardcoded constant
+ * meant the only fix was a commit and a deploy.
+ *
+ * The RPC is not a minor path. `diagnose_wallet` reads balance, nonce and
+ * pending count through it, `get_network_status` reads gas through it, and the
+ * failed-transaction decoder replays through it. When it throttles, the most
+ * valuable answers are the ones that stop working.
+ *
+ * Set RPC_URLS to a JSON object keyed by chain id:
+ *
+ *   RPC_URLS={"0x38":"https://bnb.example.com/v2/KEY","0x1":"https://eth.example.com/v2/KEY"}
+ *
+ * Unlisted chains keep their default. A malformed value is ignored rather than
+ * thrown, because a typo in an env var must not take every chain down.
+ */
+function rpcOverrides(): Record<string, string> {
+  const raw = process.env.RPC_URLS
+  if (!raw) return {}
+  try {
+    const parsed: unknown = JSON.parse(raw)
+    if (!parsed || typeof parsed !== "object") return {}
+    const out: Record<string, string> = {}
+    for (const [chainId, url] of Object.entries(parsed as Record<string, unknown>)) {
+      // Only http(s). A wrong scheme here would fail on every call instead of
+      // falling back, which is worse than ignoring it.
+      if (typeof url === "string" && /^https?:\/\//i.test(url)) out[chainId] = url
+    }
+    return out
+  } catch {
+    return {}
+  }
+}
+
+export const CHAIN_CONFIGS: Record<string, ChainConfig> = (() => {
+  const overrides = rpcOverrides()
+  if (Object.keys(overrides).length === 0) return DEFAULT_CHAIN_CONFIGS
+  const merged: Record<string, ChainConfig> = {}
+  for (const [id, cfg] of Object.entries(DEFAULT_CHAIN_CONFIGS)) {
+    merged[id] = overrides[id] ? { ...cfg, rpcUrl: overrides[id]! } : cfg
+  }
+  return merged
+})()
