@@ -193,3 +193,24 @@ describe("computeInsights: honesty about sample size", () => {
     expect(out.themes).toEqual([])
   })
 })
+
+describe("computeInsights: doc-gap counts are true totals, not the capped list", () => {
+  it("counts every gap even when the displayed list is capped at 25", () => {
+    // The header says "N matched nothing". If that N came from the truncated
+    // list it would read 25 forever and understate the exact problem the
+    // section exists to raise. docGapCounts must be the real totals.
+    const conversations = []
+    const messages: WindowMessage[] = []
+    for (let i = 0; i < 40; i++) {
+      conversations.push(conv(`c${i}`))
+      messages.push(msg(`c${i}`, "user", `question number ${i}`, `2026-08-01T10:00:0${i % 10}Z`))
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      messages.push(msg(`c${i}`, "assistant", "…", `2026-08-01T10:00:1${i % 10}Z`, { retrieval: { matched: 0 } } as any))
+    }
+    const out = computeInsights(win({ conversations, messages }), 30)
+
+    expect(out.docGaps).toHaveLength(25)          // display is capped
+    expect(out.docGapCounts.none).toBe(40)        // the count is not
+    expect(out.docGapCounts.weak).toBe(0)
+  })
+})

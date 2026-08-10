@@ -50,11 +50,14 @@ export function InsightsPanel({ insights }: { insights: Insights | null }) {
 
   const {
     days, conversations, smallSample, truncated,
-    outcomes, basis, docGaps, themes, screens, screensUnknown,
+    outcomes, basis, docGaps, docGapCounts, themes, screens, screensUnknown,
   } = insights
 
-  const notCovered = docGaps.filter(g => g.kind === "none").length
-  const thin = docGaps.length - notCovered
+  // TRUE totals, not the length of the capped list: the header must not
+  // undercount the problem it is describing once there are more than we show.
+  const notCovered = docGapCounts.none
+  const thin = docGapCounts.weak
+  const shownOfTotal = notCovered + thin - docGaps.length
 
   return (
     <div className="space-y-4">
@@ -88,6 +91,11 @@ export function InsightsPanel({ insights }: { insights: Insights | null }) {
             <Empty>Nothing to write. This is the good outcome.</Empty>
           ) : (
             <ul className="space-y-1.5">
+              {shownOfTotal > 0 && (
+                <li className="px-2 pb-1 text-[10px] text-muted-foreground">
+                  Showing the first {docGaps.length} of {notCovered + thin}.
+                </li>
+              )}
               {docGaps.map((g, i) => (
                 <li key={`${g.conversationId}-${i}`}>
                   <Link
@@ -203,6 +211,15 @@ export function InsightsPanel({ insights }: { insights: Insights | null }) {
                         {s.feedback > 0 && (
                           <span className="rounded-full bg-muted px-2 py-0.5 text-muted-foreground">
                             {s.feedback} feedback
+                          </span>
+                        )}
+                        {/* How many DIFFERENT conversations, so three reports
+                            from one annoyed tester read differently from three
+                            testers hitting the same screen. Only worth showing
+                            once it disagrees with the raw finding count. */}
+                        {s.conversations > 1 && s.conversations < s.bugs + s.feedback && (
+                          <span className="text-muted-foreground/70">
+                            {s.conversations} sessions
                           </span>
                         )}
                       </span>

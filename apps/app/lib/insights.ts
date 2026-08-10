@@ -96,7 +96,6 @@ export interface Theme {
   phrase: string
   count: number
   example: string
-  conversationIds: string[]
 }
 
 export interface ScreenReport {
@@ -118,6 +117,14 @@ export interface Insights {
   outcomes: { outcome: Outcome; count: number }[]
   basis: { basis: TicketBasis; count: number }[]
   docGaps: DocGapQuestion[]
+  /**
+   * TRUE totals, before docGaps is capped for display. The header counts must
+   * come from here, not from the truncated list, or a busy account with 40
+   * uncovered questions reads "25 matched nothing" and the number understates
+   * the very problem the section exists to surface. Same "no silent caps" rule
+   * as `screensUnknown`.
+   */
+  docGapCounts: { none: number; weak: number }
   themes: Theme[]
   screens: ScreenReport[]
   /** Findings whose conversation never recorded a page. Never hidden. */
@@ -150,7 +157,8 @@ export function computeInsights(
 
   const empty: Insights = {
     days, conversations: 0, smallSample: true, truncated: false,
-    outcomes: [], basis: [], docGaps: [], themes: [], screens: [], screensUnknown: 0,
+    outcomes: [], basis: [], docGaps: [], docGapCounts: { none: 0, weak: 0 },
+    themes: [], screens: [], screensUnknown: 0,
   }
   if (conversations.length === 0) return empty
 
@@ -244,15 +252,11 @@ export function computeInsights(
     questionsByConv.set(m.conversation_id, list)
   }
 
-  const ranked = rankTopics([...questionsByConv.values()].flat())
-  const themes: Theme[] = ranked.map(t => {
-    const needle = t.phrase.toLowerCase()
-    const ids: string[] = []
-    for (const [convId, questions] of questionsByConv) {
-      if (questions.some(q => q.toLowerCase().includes(needle))) ids.push(convId)
-    }
-    return { ...t, conversationIds: ids.slice(0, 20) }
-  })
+  // The panel links each theme by searching its phrase in Conversations, so
+  // rankTopics gives us everything the theme needs. An earlier version also
+  // pre-scanned every conversation for matching ids and returned them: dead
+  // weight, because nothing rendered them and the phrase search does the job.
+  const themes: Theme[] = rankTopics([...questionsByConv.values()].flat())
 
   // ── Findings by screen ───────────────────────────────────────────────────
   // The page the tester was on, which almost nothing else in support knows.
@@ -295,6 +299,10 @@ export function computeInsights(
       .map(basis => ({ basis, count: basisCounts.get(basis) ?? 0 }))
       .filter(b => b.count > 0),
     docGaps: docGaps.slice(0, 25),
+    docGapCounts: {
+      none: docGaps.filter(g => g.kind === "none").length,
+      weak: docGaps.filter(g => g.kind === "weak").length,
+    },
     themes: themes.slice(0, 8),
     screens: [...screens.entries()]
       .map(([url, v]) => ({ url, bugs: v.bugs, feedback: v.feedback, conversations: v.convs.size }))
