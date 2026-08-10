@@ -32,7 +32,7 @@ export type {
   DecodedRevert,
   PendingDiagnosis,
 } from "./types"
-export { CHAIN_CONFIGS } from "./types"
+export { CHAIN_CONFIGS, canonicalChainId} from "./types"
 export { getTokenSafety } from "./safety"
 export type { TokenSafety } from "./safety"
 export { resolveEnsName, namehash } from "./ens"

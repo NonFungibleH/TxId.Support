@@ -165,6 +165,36 @@ const DEFAULT_CHAIN_CONFIGS: Record<string, ChainConfig> = {
  * Unlisted chains keep their default. A malformed value is ignored rather than
  * thrown, because a typo in an env var must not take every chain down.
  */
+/**
+ * One canonical spelling for a chain id, so two representations of the SAME
+ * chain never compare as different.
+ *
+ * WHY THIS EXISTS. Chain ids reach us in both forms: wallets return hex from
+ * `eth_chainId` ("0x38"), while interfaces and humans use decimal ("56"). They
+ * were compared as raw strings, so "56" did not match "0x38" and the assistant
+ * told users on BNB Chain that they were on the wrong network and should
+ * switch. That is the most damaging shape of wrong answer we can produce:
+ * confident, specific, actionable, and sending someone to fix something that
+ * was never broken. Found on the public demo, where every connected wallet hit
+ * it, because /check uses decimal and its contract list uses hex.
+ *
+ * Convention is the one wallets use: a leading 0x means hex, otherwise
+ * decimal. Non-EVM ids ("solana", "aptos") pass through untouched.
+ */
+export function canonicalChainId(chain: string): string {
+  const raw = chain.trim().toLowerCase()
+  if (!raw) return raw
+  if (/^0x[0-9a-f]+$/.test(raw)) {
+    const n = Number.parseInt(raw, 16)
+    return Number.isFinite(n) ? `0x${n.toString(16)}` : raw
+  }
+  if (/^[0-9]+$/.test(raw)) {
+    const n = Number.parseInt(raw, 10)
+    return Number.isFinite(n) ? `0x${n.toString(16)}` : raw
+  }
+  return raw
+}
+
 /** Extra spellings people actually type for a chain. */
 const CHAIN_ALIASES: Record<string, string> = {
   bsc: "0x38",

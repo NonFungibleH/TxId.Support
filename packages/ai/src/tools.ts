@@ -38,6 +38,8 @@ import {
   getTokenSafety,
   resolveEnsName,
   estimateAction,
+
+  canonicalChainId,
 } from "@txid/blockchain"
 import {
   getSolanaWalletBalance,
@@ -1244,7 +1246,13 @@ export async function executeTool(
       const protocolChains = Array.from(
         new Set(watchedContracts.map(c => c.chain).filter((c): c is string => !!c)),
       )
-      const onProtocolChain = protocolChains.length === 0 || protocolChains.includes(chainId)
+      // Compared CANONICALLY. A wallet reports hex ("0x38") and an interface
+      // uses decimal ("56"); as raw strings those never matched, so users on
+      // the right network were told to switch to the one they were already on.
+      const walletChain = canonicalChainId(chainId)
+      const onProtocolChain =
+        protocolChains.length === 0 ||
+        protocolChains.some(c => canonicalChainId(c) === walletChain)
       if (aptos) {
         // Include the protocol account (e.g. Decibel subaccount) in the
         // recent-failure count: delegated trading keeps failures off the
