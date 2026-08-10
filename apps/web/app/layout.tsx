@@ -23,14 +23,34 @@ const spaceMono = Space_Mono({
   display: "swap",
 });
 
+// SEO note: `description` is the Google SERP snippet, so it is kept under ~155
+// characters (Google truncates beyond that) and leads with the searchable terms
+// a protocol team actually types. The OG/Twitter description is the link-share
+// card, so it is written to sell the click rather than to rank. Both name the
+// three concrete capabilities, because "AI support" alone reads as a chatbot,
+// which is the thing this product beats.
 export const metadata: Metadata = {
   title: "TxID: The Support & Operations Layer for On-Chain Finance",
   description:
-    "An investigation behind every answer: TxID reads live chain state, diagnoses failed transactions, and keeps a reportable record of every case. EVM and Move-native Aptos.",
+    "TxID is the AI support agent for DeFi protocols: it reads live chain state, diagnoses failed transactions, and keeps a reportable record behind every answer.",
+  keywords: [
+    "DeFi support",
+    "AI support agent",
+    "on-chain support",
+    "failed transaction diagnosis",
+    "smart contract support",
+    "crypto customer support",
+    "Aptos support",
+    "EVM support",
+  ],
   metadataBase: new URL("https://txid.support"),
+  // NO canonical here: this layout wraps every page, and a canonical set in the
+  // root would point /security, /pricing and the rest all at "/". Each page
+  // declares its own (the homepage already sets canonical "/").
   openGraph: {
     title: "TxID: The Support & Operations Layer for On-Chain Finance",
-    description: "Expert support for every user, an investigation behind every answer. EVM and Aptos.",
+    description:
+      "Give every user of your protocol an expert on hand. TxID reads live chain state, diagnoses failed transactions, and keeps a reportable record behind every answer.",
     type: "website",
     url: "https://txid.support",
     siteName: "TxID",
@@ -38,7 +58,8 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "TxID: The Support & Operations Layer for On-Chain Finance",
-    description: "Expert support for every user, an investigation behind every answer. EVM and Aptos.",
+    description:
+      "Give every user of your protocol an expert on hand: live chain reads, failed-transaction diagnosis, and a reportable record behind every answer.",
   },
 };
 
