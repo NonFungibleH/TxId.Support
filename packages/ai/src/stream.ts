@@ -38,7 +38,19 @@ function getGroqClient(): OpenAI {
  * Pre-tool narration is a sentence or two ("Let me list the functions."), so
  * anything longer is real content and should stream rather than wait.
  */
-const NARRATION_CHARS = 200
+const NARRATION_CHARS = 80
+
+/**
+ * How long text may be held back before it streams regardless.
+ *
+ * The character cap alone made every answer under 200 characters appear as a
+ * dead pause followed by the whole thing at once, which reads as hesitation
+ * even when the total time is unchanged. Narration ("Let me check that.")
+ * arrives in a few hundred milliseconds and is followed almost immediately by
+ * the tool call that proves what it was, so a window this long still catches
+ * it, while a real answer starts moving when the user expects it to.
+ */
+const NARRATION_HOLD_MS = 700
 
 /** Keep a paragraph break between text from separate tool-loop rounds. */
 function separate(text: string, alreadyEmitted: boolean): string {
@@ -502,6 +514,7 @@ async function* streamChatWithToolsRaw(
     // The cap exists so a long final answer still streams: narration is a
     // sentence or two, so anything past it is real content and flushes live.
     let pending = ""
+    let pendingSince = 0
     let flushed = false
 
     for await (const event of stream) {
@@ -533,8 +546,9 @@ async function* streamChatWithToolsRaw(
           yield { type: "text", text: event.delta.text }
           continue
         }
+        if (!pending) pendingSince = Date.now()
         pending += event.delta.text
-        if (pending.length > NARRATION_CHARS) {
+        if (pending.length > NARRATION_CHARS || Date.now() - pendingSince > NARRATION_HOLD_MS) {
           flushed = true
           yield { type: "text", text: separate(pending, anyTextThisTurn) }
           anyTextThisTurn = true
