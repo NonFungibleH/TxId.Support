@@ -2838,7 +2838,7 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
                   value={input}
                   onChange={(e) => { setInput(e.target.value); if (suggestions.length) setSuggestions([]) }}
                   onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && sendMessage()}
-                  placeholder="Ask anything…"
+                  placeholder={mode === "bug" ? "Describe the bug…" : mode === "feedback" ? "Tell the team what you think…" : "Ask anything…"}
                   disabled={isStreaming}
                   className="flex-1 bg-transparent text-xs outline-none placeholder:opacity-40"
                   style={{ color: b.inputTextColor ?? adaptiveText }}
