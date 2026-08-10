@@ -2092,13 +2092,17 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
           {b.agentName?.trim() || config.projectName}
           {/* The pill reframes every rough edge a tester meets: this is a
               beta and they are part of testing it. Server-resolved, so it
-              disappears the moment the programme ends. */}
+              disappears the moment the programme ends.
+              "Copilot", not "tester": the pill sits beside the assistant's
+              name, so it should say what THIS is, not what the reader is.
+              Labelling the user as the tester made the badge read as an
+              accusation of rough edges rather than an offer of help. */}
           {config.beta && (
             <span
               className="ml-1.5 inline-block rounded-full px-1.5 py-px align-middle text-[9px] font-bold uppercase tracking-wider"
               style={{ backgroundColor: `${onPrimary}22`, color: onPrimary }}
             >
-              Beta tester
+              Beta copilot
             </span>
           )}
         </span>
