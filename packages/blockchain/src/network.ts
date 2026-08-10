@@ -1,19 +1,43 @@
 import { CHAIN_CONFIGS } from "./types"
 
+/**
+ * One JSON-RPC call, retried once on a THROTTLE or a transient failure.
+ *
+ * WHY THE RETRY. `diagnoseWallet` fires six of these, several concurrently,
+ * and a single failure among them collapses the whole diagnosis into "I could
+ * not reach the chain". Observed live: the three-call gas query succeeded while
+ * the six-call diagnosis failed seconds later against the same endpoint, which
+ * is the signature of a per-second cap rather than an outage. Losing the most
+ * valuable answer we have to one unlucky call in six is not a trade worth
+ * making when the fix is one retry.
+ *
+ * Retried on 429 and 5xx and on a network throw. NOT retried on other 4xx: a
+ * 401 from a bad key or a 404 from a wrong URL will fail identically the second
+ * time, and hammering it turns a configuration mistake into a rate-limit one.
+ */
 async function rpc(rpcUrl: string, method: string, params: unknown[]): Promise<unknown> {
-  try {
-    const res = await fetch(rpcUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }),
-      signal: AbortSignal.timeout(6000),
-    })
-    if (!res.ok) return null
-    const json = (await res.json()) as { result?: unknown }
-    return json.result ?? null
-  } catch {
-    return null
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const res = await fetch(rpcUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }),
+        signal: AbortSignal.timeout(6000),
+      })
+      if (res.ok) {
+        const json = (await res.json()) as { result?: unknown }
+        return json.result ?? null
+      }
+      const worthRetrying = res.status === 429 || res.status >= 500
+      if (!worthRetrying || attempt === 1) return null
+    } catch {
+      if (attempt === 1) return null
+    }
+    // Brief, jittered, so six concurrent calls do not all retry in lockstep
+    // and reproduce the burst that throttled them.
+    await new Promise(r => setTimeout(r, 250 + Math.floor(Math.random() * 250)))
   }
+  return null
 }
 
 function gwei(wei: bigint): string {
