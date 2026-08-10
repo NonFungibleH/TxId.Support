@@ -197,11 +197,56 @@ function stripEmDashes(text: string): string {
   return text.replace(/\s*[—–]\s*/g, ", ")
 }
 
+/**
+ * The public entry point: sanitises output, and falls back to Groq when the
+ * Claude attempt FAILS rather than only when Claude is unconfigured.
+ *
+ * WHY THIS EXISTS. The fallback was gated on `!getAnthropicClient()`, so it ran
+ * only when ANTHROPIC_API_KEY was absent. That is the one situation it was
+ * never needed in. The situations it WAS built for, an exhausted balance, a
+ * 429, a provider outage, all leave the key present and the call throwing, so
+ * every user got "Sorry, something went wrong" while a working second provider
+ * sat unused. Found during go-live review for the first pilot.
+ *
+ * ONLY BEFORE THE FIRST TOKEN. We stream, so once text has reached the user we
+ * cannot restart the turn on another model: they would see an answer change
+ * shape mid-sentence, or read two different answers stitched together. A
+ * failure after that point is re-thrown and handled by the route, which is the
+ * honest outcome. A failure before it is invisible to the user, which is the
+ * point.
+ */
 export async function* streamChatWithTools(
-  ...args: Parameters<typeof streamChatWithToolsRaw>
+  systemPrompt: string,
+  messages: ChatMessage[],
+  walletConfig: WalletConfig | null,
+  watchedContracts: WatchedContractSnapshot[] = [],
+  maxTokens = 800,
+  actions: ActionsContext | null = null,
+  docsBlock?: string,
 ): AsyncGenerator<StreamEvent> {
-  for await (const event of streamChatWithToolsRaw(...args)) {
-    yield event.type === "text" ? { ...event, text: stripEmDashes(event.text) } : event
+  const clean = (e: StreamEvent): StreamEvent =>
+    e.type === "text" ? { ...e, text: stripEmDashes(e.text) } : e
+
+  let textReachedUser = false
+  try {
+    for await (const event of streamChatWithToolsRaw(
+      systemPrompt, messages, walletConfig, watchedContracts, maxTokens, actions, docsBlock,
+    )) {
+      if (event.type === "text" && event.text.length > 0) textReachedUser = true
+      yield clean(event)
+    }
+    return
+  } catch (err) {
+    if (textReachedUser) throw err
+    // Nothing has been shown yet, so the turn can be run again on the other
+    // provider and the user never learns the first one failed.
+    console.error("[stream] Claude failed before first token, falling back to Groq:", err)
+  }
+
+  for await (const event of streamChatWithToolsRaw(
+    systemPrompt, messages, walletConfig, watchedContracts, maxTokens, actions, docsBlock, true,
+  )) {
+    yield clean(event)
   }
 }
 
@@ -213,8 +258,11 @@ async function* streamChatWithToolsRaw(
   maxTokens = 800,
   actions: ActionsContext | null = null,
   docsBlock?: string,
+  /** Take the Groq path even though Claude is configured. Set by the wrapper
+   *  when a Claude attempt has already failed. */
+  forceFallback = false,
 ): AsyncGenerator<StreamEvent> {
-  const anthropic = getAnthropicClient()
+  const anthropic = forceFallback ? null : getAnthropicClient()
 
   // ── Groq path with tool support ──────────────────────────────────────────
   if (!anthropic) {
