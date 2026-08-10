@@ -2798,7 +2798,7 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
                   crowding the other. */}
               {config?.beta?.feedback && (
                 <div
-                  className="shrink-0 flex items-center gap-1.5 border-t px-3 pt-2"
+                  className="shrink-0 flex items-center justify-center gap-1.5 border-t px-3 pt-2.5"
                   style={{ borderColor: `var(--w-border)` }}
                 >
                   {([
@@ -2833,9 +2833,21 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
                   })}
                 </div>
               )}
+              {/* THE INPUT NEEDS TO LOOK LIKE AN INPUT. It was bare text on
+                  the panel background with no edge, so on a dark host site it
+                  read as a caption rather than somewhere to type. A bordered,
+                  slightly lifted well is the difference between "there is a
+                  message here" and "you can write here". */}
               <div
-                className={`shrink-0 flex items-center gap-2 px-3 py-2${config?.beta?.feedback ? "" : " border-t"}`}
+                className={`shrink-0 px-3 py-2${config?.beta?.feedback ? "" : " border-t"}`}
                 style={config?.beta?.feedback ? undefined : { borderColor: `var(--w-border)` }}
+              >
+              <div
+                className="flex items-center gap-2 rounded-2xl border px-3 py-1.5 transition-colors"
+                style={{
+                  borderColor: `${b.primaryColor}66`,
+                  backgroundColor: `${onPrimary === "#111111" ? "#00000010" : "#ffffff0f"}`,
+                }}
               >
                 <input
                   ref={inputRef}
@@ -2851,7 +2863,7 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
                   onClick={() => sendMessage()}
                   disabled={isStreaming || !input.trim()}
                   aria-label="Send"
-                  className="flex size-8 shrink-0 items-center justify-center rounded-full transition-opacity disabled:opacity-40"
+                  className="flex size-7 shrink-0 items-center justify-center rounded-full transition-opacity disabled:opacity-40"
                   style={{ backgroundColor: b.primaryColor }}
                 >
                   {isStreaming ? (
@@ -2860,6 +2872,7 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
                     <SendIcon className="size-3.5" style={{ color: onPrimary }} />
                   )}
                 </button>
+              </div>
               </div>
               </>
             )}
