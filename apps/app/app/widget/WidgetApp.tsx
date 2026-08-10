@@ -929,6 +929,12 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
   // model, so recording it does not depend on the model choosing to call a
   // tool. It said "Recorded for the team" and recorded nothing, twice, because
   // the whole chain hung on that one optional call.
+  // WHICH CONVERSATION THIS IS, shown to the tester rather than inferred.
+  // Two unlabelled buttons left it ambiguous what pressing one would do and
+  // what state you were in afterwards. A selector with the current mode
+  // highlighted answers both, and it maps one to one onto the dashboard tabs,
+  // so what a tester chooses is what the team reads it as.
+  const [mode, setMode] = useState<"support" | "bug" | "feedback">("support")
   const awaitingFinding = useRef<"feedback" | "bug" | null>(null)
   const findingRecorded = useRef(false)
   const [ticketName, setTicketName] = useState("")
@@ -964,7 +970,13 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
   const hasCurated = curatedQuestions.length > 0
   // Curated chips are always on offer (they are starter questions, not
   // follow-ups), so they persist rather than clearing after each turn.
-  const visibleChips = hasCurated ? curatedQuestions : suggestions
+  // STARTERS ARE STARTERS. Curated questions showed for the whole
+  // conversation, so three turns into a diagnosis the widget was still
+  // offering "How do I get started?" in the most valuable space on screen.
+  // The AI's own suggestions are contextual follow-ups and DO belong there
+  // throughout; the configured ones are an opening move.
+  const conversationStarted = messages.some(m => m.role === "user")
+  const visibleChips = hasCurated && !conversationStarted ? curatedQuestions : suggestions
 
   // Token mode state
   const [dexData, setDexData] = useState<DexPair | null>(null)
@@ -1694,6 +1706,9 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
       awaitingFinding.current = null
       findingRecorded.current = true
       void recordFinding(msgText, kind)
+      // Back to support: the report is filed, and leaving the widget in bug
+      // mode would silently file their next question as another one.
+      setMode("support")
     }
 
     const userMsg: Message = { id: nanoid(), role: "user", content: msgText }
@@ -2779,45 +2794,39 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
                   crowding the other. */}
               {config?.beta?.feedback && (
                 <div
-                  className="shrink-0 flex items-center gap-2 border-t px-3 pt-2"
+                  className="shrink-0 flex items-center gap-1.5 border-t px-3 pt-2"
                   style={{ borderColor: `var(--w-border)` }}
                 >
-                {/* LABELLED, not icon-only. The bare pencil failed twice:
-                    the owner did not recognise it and predicted testers would
-                    not either. In a beta, feedback is a primary action, and
-                    primary actions get words. */}
-                <button
-                    onClick={() => sendMessage(FEEDBACK_OPENER)}
-                    disabled={isStreaming}
-                    aria-label="Leave feedback"
-                    className="flex h-8 shrink-0 items-center gap-1.5 rounded-full border px-2.5 text-[11px] font-semibold transition-opacity hover:opacity-90 disabled:opacity-40"
-                    style={{ backgroundColor: `${b.primaryColor}26`, borderColor: `${b.primaryColor}55`, color: adaptiveText }}
-                  >
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="M12 20h9" /><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z" />
-                    </svg>
-                    Feedback
-                  </button>
-                {/* BUGS ARE NOT FEEDBACK, and one button for both gets one of
-                    them. A tester with something broken wants it fixed; a
-                    tester with an opinion wants to be heard. Splitting the
-                    button is what lets the team read the two queues
-                    differently, which is the whole point. */}
-                <button
-                    onClick={() => sendMessage(BUG_OPENER)}
-                    disabled={isStreaming}
-                    aria-label="Report a bug"
-                    className="flex h-8 shrink-0 items-center gap-1.5 rounded-full border px-2.5 text-[11px] font-semibold transition-opacity hover:opacity-90 disabled:opacity-40"
-                    style={{ backgroundColor: `${b.primaryColor}26`, borderColor: `${b.primaryColor}55`, color: adaptiveText }}
-                  >
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="m8 2 1.88 1.88" /><path d="M14.12 3.88 16 2" />
-                      <path d="M9 7.13V6a3 3 0 1 1 6 0v1.13" />
-                      <path d="M12 20a6 6 0 0 0 6-6v-3a4 4 0 0 0-4-4h-4a4 4 0 0 0-4 4v3a6 6 0 0 0 6 6Z" />
-                      <path d="M6 13H2" /><path d="M22 13h-4" />
-                    </svg>
-                    Bug
-                  </button>
+                  {([
+                    { id: "support" as const, label: "Support" },
+                    { id: "bug" as const, label: "Bug" },
+                    { id: "feedback" as const, label: "Feedback" },
+                  ]).map(m => {
+                    const active = mode === m.id
+                    return (
+                      <button
+                        key={m.id}
+                        onClick={() => {
+                          if (m.id === mode) return
+                          setMode(m.id)
+                          // Support is the resting state, so choosing it just
+                          // cancels: nothing is sent and nothing is filed.
+                          if (m.id === "support") { awaitingFinding.current = null; return }
+                          sendMessage(m.id === "bug" ? BUG_OPENER : FEEDBACK_OPENER)
+                        }}
+                        disabled={isStreaming}
+                        aria-pressed={active}
+                        className="h-7 shrink-0 rounded-full border px-3 text-[11px] font-semibold transition-opacity hover:opacity-90 disabled:opacity-40"
+                        style={
+                          active
+                            ? { backgroundColor: b.primaryColor, borderColor: b.primaryColor, color: onPrimary }
+                            : { backgroundColor: "transparent", borderColor: `${b.primaryColor}55`, color: adaptiveText, opacity: 0.75 }
+                        }
+                      >
+                        {m.label}
+                      </button>
+                    )
+                  })}
                 </div>
               )}
               <div
