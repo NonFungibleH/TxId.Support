@@ -112,6 +112,13 @@
   btn.id = "txid-widget-btn";
   btn.setAttribute("aria-label", "Open support chat");
   btn.innerHTML = CHAT_ICON;
+  // HIDDEN UNTIL THE IFRAME CONFIRMS THE PROJECT IS LIVE. An inactive or
+  // not-yet-launched project must show NOTHING on the host page, never a
+  // "Project inactive" error where a support button should be. Revealed on the
+  // "txid-ready" message; the fail-open timer below still shows it if that
+  // message never arrives, so a messaging glitch can never hide a working one.
+  btn.style.display = "none";
+  var launcherDecided = false;
 
   var wrap = document.createElement("div");
   wrap.id = "txid-widget-frame-wrap";
@@ -144,6 +151,12 @@
   root.appendChild(btn);
   root.appendChild(wrap);
   document.body.appendChild(root);
+
+  // FAIL-OPEN: if the iframe never reports ready or inactive (blocked, stale
+  // cache, or an error we did not foresee), show the launcher anyway after a
+  // grace period. Hiding a working widget is a worse failure than briefly
+  // showing an inactive one, so uncertainty defaults to visible.
+  setTimeout(function () { if (!launcherDecided) btn.style.display = ""; }, 8000);
 
   // ── Toggle ───────────────────────────────────────────────────────────────
 
@@ -532,6 +545,11 @@
     // The widget has loaded its config and that project runs a beta programme
     // with auto-open on. Asked for by the iframe rather than decided up here,
     // because the loader never sees the project config.
+    // Config loaded and the project is live: reveal the launcher.
+    if (e.data === "txid-ready") { launcherDecided = true; btn.style.display = ""; return; }
+    // Project inactive, not found, or config failed: keep it hidden entirely.
+    if (e.data === "txid-inactive") { launcherDecided = true; return; }
+
     if (e.data === "txid-autoopen") { autoOpenOnce(); return; }
 
     // The tester sent their first message: the introduction has done its job,

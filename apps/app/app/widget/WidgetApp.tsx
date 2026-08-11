@@ -1016,8 +1016,19 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
     })
       .then((r) => r.json())
       .then((data: WidgetConfig | { error: string }) => {
-        if ("error" in data) setConfigError(data.error)
+        // Tell the loader whether to show the launcher AT ALL. An inactive,
+        // not-found, or otherwise unavailable project must render nothing on
+        // the host page, never the "Project inactive" panel where a working
+        // support button should be.
+        const tellHost = (msg: "txid-ready" | "txid-inactive") => {
+          try { if (typeof window !== "undefined" && window.parent !== window) window.parent.postMessage(msg, "*") } catch { /* host gone */ }
+        }
+        if ("error" in data) {
+          setConfigError(data.error)
+          tellHost("txid-inactive")
+        }
         else {
+          tellHost("txid-ready")
           setConfig(data)
           // Tell the host loader what the brand colour is. The launcher button
           // lives on the host page and has no other way to know it, so without
@@ -1049,7 +1060,10 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
           }
         }
       })
-      .catch(() => setConfigError("Failed to load widget config"))
+      .catch(() => {
+        setConfigError("Failed to load widget config")
+        try { if (typeof window !== "undefined" && window.parent !== window) window.parent.postMessage("txid-inactive", "*") } catch { /* host gone */ }
+      })
   }, [apiKey, isPreview, previewToken, embedHost])
 
   // ── Ask the embed (widget.js) to size the iframe. ───────────────────────────
