@@ -99,8 +99,8 @@ function AnswerCard() {
           <span style={{ marginLeft: "auto", fontSize: 10.5, fontWeight: 600, color: "#22A06B", background: "#E7F6EF", borderRadius: 6, padding: "3px 8px" }}>RESOLVED</span>
         </div>
         <p style={{ margin: "13px 0 0", fontSize: 13.5, lineHeight: 1.6, color: "#2C3345" }}>
-          The price moved past your 0.5% slippage tolerance, so the contract rejected the swap. No funds left your
-          wallet. <span style={{ color: BLUE, fontWeight: 600 }}>Fix: retry with slippage at 0.8%.</span>
+          The price moved past your 0.3% slippage tolerance, so the contract rejected the swap. No funds left your
+          wallet. <span style={{ color: BLUE, fontWeight: 600 }}>Fix: retry with slippage at 0.5%.</span>
         </p>
         <div style={{ marginTop: 13, fontSize: 11, fontWeight: 600, letterSpacing: "0.03em", color: "#8A8FA3", textTransform: "uppercase" }}>Evidence</div>
         <div style={{ display: "grid", gap: 6, marginTop: 8 }}>
