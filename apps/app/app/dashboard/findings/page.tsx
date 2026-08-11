@@ -32,7 +32,7 @@ export default async function FindingsPage() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: findings } = await (supabase as any)
     .from("tickets")
-    .select("id, ref, summary, created_at, conversation, reason")
+    .select("id, ref, summary, created_at, conversation, reason, wallet_address")
     .eq("project_id", typedProject.id)
     .in("reason", ["feedback", "bug"])
     .order("created_at", { ascending: false })

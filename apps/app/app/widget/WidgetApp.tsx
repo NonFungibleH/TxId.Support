@@ -814,6 +814,10 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
   // Wallet state
   const [walletAddress, setWalletAddress] = useState<string | null>(null)
   const [chainId, setChainId] = useState<string | null>(null)
+  // The host supplied the wallet via window.txid.identify(), so the widget must
+  // never show its own connect/disconnect controls: the user's one connection
+  // lives on the host site, not here.
+  const [hostIdentified, setHostIdentified] = useState(false)
   const [protocolAccount, setProtocolAccount] = useState<ProtocolAccountInfo>({ status: "off" })
   const [walletConnecting, setWalletConnecting] = useState(false)
   const isSolanaProject = (config?.chains ?? []).includes("solana")
@@ -1687,12 +1691,16 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
           summary,
           reason: kind,
           conversation: messagesRef.current.map(m => ({ role: m.role, content: m.content })),
+          // Per-user attribution: the wallet the host supplied via identify() or
+          // the one connected in the widget, so a bug report can be traced to
+          // the user who hit it.
+          ...(walletAddress ? { wallet: walletAddress } : {}),
           ...(hostContext.current.url ? { pageUrl: hostContext.current.url } : {}),
           ...(isPreview ? { preview: true, previewToken } : {}),
         }),
       })
     } catch { /* see above */ }
-  }, [apiKey, isPreview, previewToken])
+  }, [apiKey, isPreview, previewToken, walletAddress])
 
   // ── Submit support ticket ────────────────────────────────────────────────
   const submitTicket = useCallback(async () => {
@@ -1953,6 +1961,37 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
     // one of them takes a real dependency.
   }, [input, isStreaming, config, messages, apiKey, walletAddress, chainId, isPreview, previewToken, walletSetup, hasCurated, markOriented, recordFinding])
 
+  // ── Host page control (window.txid.* → widget.js → here) ──────────────────
+  // The embedding site drives the widget from its own code: identify() supplies
+  // the user's wallet so they never connect twice, and open({mode}) pops the
+  // panel straight into a report the moment their transaction fails. Placed
+  // AFTER sendMessage so it can trigger the bug/feedback opener. Only messages
+  // from our own loader (window.parent) are honoured, same guard as everything
+  // else here.
+  useEffect(() => {
+    const onHost = (e: MessageEvent) => {
+      if (e.source !== window.parent) return
+      const d = e.data as { type?: string; wallet?: string; chainId?: string; mode?: string } | null
+      if (!d || typeof d.type !== "string") return
+      if (d.type === "txid-identify" && typeof d.wallet === "string" && d.wallet.trim()) {
+        // Host-asserted identity: an identifier for attribution, not a signed
+        // proof. It suppresses the connect prompt (walletAddress is now set) and
+        // rides along on the bug report.
+        setHostIdentified(true)
+        setWalletAddress(d.wallet.trim())
+        if (typeof d.chainId === "string" && d.chainId) setChainId(d.chainId)
+        return
+      }
+      if (d.type === "txid-open") {
+        if (d.mode === "bug") { setMode("bug"); void sendMessage(BUG_OPENER) }
+        else if (d.mode === "feedback") { setMode("feedback"); void sendMessage(FEEDBACK_OPENER) }
+        return
+      }
+    }
+    window.addEventListener("message", onHost)
+    return () => window.removeEventListener("message", onHost)
+  }, [sendMessage])
+
   const sendActionResult = useCallback(async (actionId: string, txHash: string, status: "confirmed" | "failed", gasUsed?: string, blockNumber?: string) => {
     if (!config) return
     const assistantId = nanoid()
@@ -2155,7 +2194,7 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
             </span>
           )}
         </span>
-        {!isTokenMode && !b.hideWallet && (
+        {!isTokenMode && !b.hideWallet && !hostIdentified && (
           walletAddress ? (
             <button
               onClick={disconnectWallet}

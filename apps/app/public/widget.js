@@ -158,6 +158,40 @@
   // showing an inactive one, so uncertainty defaults to visible.
   setTimeout(function () { if (!launcherDecided) btn.style.display = ""; }, 8000);
 
+  // ── window.txid: host page control API ────────────────────────────────────
+  // The embedding site drives the widget from its own code:
+  //   window.txid.identify({ wallet, chainId })  — supply the user so they
+  //       never connect to us separately (their one connection to your app
+  //       stays the only one). An identifier for attribution, not a signature.
+  //   window.txid.open({ mode })                 — open the panel; mode "bug" or
+  //       "feedback" drops the user straight into that report. Call it from your
+  //       transaction-failure handler to pop it at the moment of failure.
+  //   window.txid.open() / window.txid.close()   — just open/close.
+  // Calls made before the widget has loaded are queued and replayed on ready,
+  // so integrators never have to care about timing.
+  var iframeReady = false;
+  var queuedIdentity = null;
+  var queuedOpen = null;
+  function sendToFrame(msg) { try { iframe.contentWindow.postMessage(msg, BASE); } catch (err) { /* frame gone */ } }
+  function flushHostQueue() {
+    if (queuedIdentity) { sendToFrame(queuedIdentity); }
+    if (queuedOpen) { setOpen(true); sendToFrame(queuedOpen); queuedOpen = null; }
+  }
+  window.txid = window.txid || {};
+  window.txid.identify = function (opts) {
+    opts = opts || {};
+    var msg = { type: "txid-identify", wallet: (opts.wallet != null ? String(opts.wallet) : null), chainId: (opts.chainId != null ? String(opts.chainId) : null) };
+    queuedIdentity = msg; // kept so a later reload still re-sends the identity
+    if (iframeReady) sendToFrame(msg);
+  };
+  window.txid.open = function (opts) {
+    opts = opts || {};
+    var msg = { type: "txid-open", mode: (opts.mode != null ? String(opts.mode) : null) };
+    if (iframeReady) { setOpen(true); sendToFrame(msg); }
+    else queuedOpen = msg;
+  };
+  window.txid.close = function () { setOpen(false); };
+
   // ── Toggle ───────────────────────────────────────────────────────────────
 
   var open = false;
@@ -545,8 +579,9 @@
     // The widget has loaded its config and that project runs a beta programme
     // with auto-open on. Asked for by the iframe rather than decided up here,
     // because the loader never sees the project config.
-    // Config loaded and the project is live: reveal the launcher.
-    if (e.data === "txid-ready") { launcherDecided = true; btn.style.display = ""; return; }
+    // Config loaded and the project is live: reveal the launcher, and flush any
+    // identify()/open() the host called before the widget was ready.
+    if (e.data === "txid-ready") { launcherDecided = true; btn.style.display = ""; iframeReady = true; flushHostQueue(); return; }
     // Project inactive, not found, or config failed: keep it hidden entirely.
     if (e.data === "txid-inactive") { launcherDecided = true; return; }
 

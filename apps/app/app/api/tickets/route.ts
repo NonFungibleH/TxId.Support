@@ -65,9 +65,19 @@ export async function POST(request: Request) {
       pageUrl?: string
       preview?: boolean
       previewToken?: string
+      /**
+       * The user's wallet, for per-user attribution. Either connected in the
+       * widget or supplied by the host site via window.txid.identify(). It is an
+       * identifier, never proof of ownership: no signature is involved.
+       */
+      wallet?: string
     }
 
     const { key, name, email, summary, reason, conversation, note } = body
+    // Cap length so a hostile caller cannot store arbitrary blobs in the field.
+    const wallet = typeof body.wallet === "string" && body.wallet.trim()
+      ? body.wallet.trim().slice(0, 128)
+      : null
 
     if (!key || !summary) {
       return new Response(JSON.stringify({ error: "Missing required fields" }), {
@@ -147,6 +157,7 @@ export async function POST(request: Request) {
         summary: safeSummary,
         reason: reason || null,
         conversation: safeConversation.length ? JSON.stringify(safeConversation) : null,
+        wallet_address: wallet,
         status: "open",
       }).select("id").single()
       insertError = result.error

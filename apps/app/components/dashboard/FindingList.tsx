@@ -17,6 +17,8 @@ export interface Finding {
    * assuming "string" silently turned every transcript into "none stored".
    */
   conversation: unknown
+  /** The user's wallet, when the host supplied it or the user connected. */
+  wallet_address?: string | null
 }
 
 /** Accept both shapes, and never let a malformed one break the page. */
@@ -72,6 +74,16 @@ export function FindingList({ findings, emptyHint }: { findings: Finding[]; empt
                   <span className="font-mono">{f.ref}</span>
                   <span className="opacity-40">·</span>
                   <span>{new Date(f.created_at).toLocaleString()}</span>
+                  {f.wallet_address && (
+                    <>
+                      <span className="opacity-40">·</span>
+                      <span className="font-mono" title={f.wallet_address}>
+                        {f.wallet_address.length > 13
+                          ? `${f.wallet_address.slice(0, 6)}…${f.wallet_address.slice(-4)}`
+                          : f.wallet_address}
+                      </span>
+                    </>
+                  )}
                   {turns.length > 0 && (
                     <>
                       <span className="opacity-40">·</span>
