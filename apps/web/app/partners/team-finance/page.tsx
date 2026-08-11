@@ -212,9 +212,10 @@ export default function TeamFinancePartnerPage() {
                 <div className="h-full rounded-2xl border border-[var(--border)] bg-[var(--bg-surface)] p-7">
                   <TeamFinanceWordmark className="mb-4" />
                   <p className="text-sm text-muted leading-relaxed">
-                    Team Finance provides token and liquidity locks, token launches, and vesting
-                    contracts. It is where projects lock their liquidity and vest their team tokens to
-                    show their community the fundamentals are secured, across the major EVM networks.
+                    Team Finance provides audited token and liquidity locks, token launches, and
+                    vesting contracts across 21+ blockchains. It is where projects lock their
+                    liquidity and vest their team tokens to say no to rug-pulls and show their
+                    community the fundamentals are secured, trusted by 40,000+ projects.
                   </p>
                   <a
                     href="https://www.team.finance/"
