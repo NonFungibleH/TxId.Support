@@ -1572,13 +1572,33 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
         )
         return
       }
-      // EVM - window.ethereum (MetaMask and other injected wallets)
+      // EVM - window.ethereum (MetaMask and other injected wallets).
+      //
+      // EMBEDDED FIRST, same reason as Aptos: an extension cannot show its
+      // approval popup for a cross-origin iframe, so an in-frame
+      // eth_requestAccounts often never resolves. Ask the loader (top level)
+      // first when we are embedded and it reported a wallet.
+      if (isEmbedded && bridgeWallet?.evm) {
+        const res = await connectViaBridge("evm")
+        if (res) { applyConn(res.address, res.chainId); return }
+      }
       if ("ethereum" in window) {
         const eth = (window as unknown as { ethereum: { request: (a: { method: string }) => Promise<string[]> } }).ethereum
-        const accounts = await eth.request({ method: "eth_requestAccounts" })
+        // RACE AGAINST A TIMEOUT. Without this, an injected wallet that cannot
+        // pop for an iframe leaves eth_requestAccounts pending forever and the
+        // button wedges on "Connecting…" with no error. Short when embedded,
+        // because there a non-answer means dead air, not a slow user.
+        const accounts = await Promise.race([
+          eth.request({ method: "eth_requestAccounts" }),
+          new Promise<never>((_, rej) => setTimeout(
+            () => rej(new Error(isEmbedded
+              ? "the wallet did not respond inside the embedded panel"
+              : "the wallet did not respond within 60 seconds")),
+            isEmbedded ? 6_000 : 60_000,
+          )),
+        ])
         const chain = await eth.request({ method: "eth_chainId" }) as unknown as string
-        applyConn(accounts[0], chain)
-        return
+        if (accounts?.[0]) { applyConn(accounts[0], chain); return }
       }
       if (isEmbedded) { const res = await connectViaBridge("evm"); if (res) { applyConn(res.address, res.chainId); return } }
       failConnect("no-evm-provider", "No wallet extension was detected in this page.")
