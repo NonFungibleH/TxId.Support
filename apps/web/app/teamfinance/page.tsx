@@ -45,8 +45,9 @@ export const metadata: Metadata = {
   title: "TxID × Team Finance: on-chain support that investigates what happened",
   description:
     "Add a custom-branded TxID support agent to your Team Finance project. It investigates failed transactions, reads your contracts and docs, and gives holders evidence-backed answers 24/7.",
-  alternates: { canonical: "/teamfinance" },
-  // Pitch page, shared by link. Keep it out of search and the sitemap.
+  // Pitch page, shared by link. Keep it out of search and the sitemap. No
+  // canonical: pairing rel=canonical with noindex is a mixed signal, and a
+  // link-only page has nothing to canonicalise.
   robots: { index: false, follow: false },
   openGraph: {
     title: "TxID × Team Finance",
@@ -99,7 +100,10 @@ export default function TeamFinancePage() {
 .tf .tf-link:hover, .tf .tf-nav:hover { color: ${BLUE_DEEP} !important; }
 .tf .tf-link-violet:hover { color: #4B2FE0 !important; }
 .tf .tf-foot:hover { color: #101223 !important; }
+.tf .tf-nav { padding: 6px 0; }
+.tf a:focus-visible { outline: 2px solid ${BLUE}; outline-offset: 3px; border-radius: 4px; }
 .tf .tf-card:hover { transform: translateY(-3px); box-shadow: 0 18px 40px -24px rgba(16,18,35,0.28); }
+@media (prefers-reduced-motion: reduce) { .tf .tf-card:hover { transform: none; } .tf .tf-float { animation: none; } }
 .tf .tf-grid-bg {
   background-image:
     linear-gradient(${BLUE}0f 1px, transparent 1px),
@@ -116,7 +120,7 @@ export default function TeamFinancePage() {
       />
 
       {/* Header */}
-      <header style={{ position: "sticky", top: 0, zIndex: 50, background: "rgba(255,255,255,0.85)", backdropFilter: "saturate(180%) blur(12px)", borderBottom: "1px solid #EDEFF6" }}>
+      <header style={{ position: "sticky", top: 0, zIndex: 50, background: "rgba(255,255,255,0.85)", backdropFilter: "saturate(180%) blur(12px)", WebkitBackdropFilter: "saturate(180%) blur(12px)", borderBottom: "1px solid #EDEFF6" }}>
         <div style={{ maxWidth: 1160, margin: "0 auto", padding: "13px 24px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 20, flexWrap: "wrap" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 13 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
@@ -139,7 +143,7 @@ export default function TeamFinancePage() {
       <section style={{ position: "relative", overflow: "hidden", padding: "clamp(48px,6vw,84px) 24px clamp(40px,5vw,64px)" }}>
         <div aria-hidden="true" className="tf-grid-bg" style={{ position: "absolute", inset: 0, pointerEvents: "none" }} />
         <div aria-hidden="true" style={{ position: "absolute", top: "-10%", right: "-6%", width: 620, height: 620, borderRadius: "50%", background: "radial-gradient(circle at center, rgba(29,101,220,0.16) 0%, transparent 68%)", pointerEvents: "none" }} />
-        <Reveal style={{ position: "relative", maxWidth: 1160, margin: "0 auto", display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(320px,1fr))", gap: "clamp(32px,5vw,56px)", alignItems: "center" }}>
+        <Reveal style={{ position: "relative", maxWidth: 1160, margin: "0 auto", display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,320px),1fr))", gap: "clamp(32px,5vw,56px)", alignItems: "center" }}>
           <div>
             <h1 style={{ margin: 0, fontSize: "clamp(30px,3.9vw,46px)", lineHeight: 1.15, letterSpacing: "-0.02em", fontWeight: 600, textWrap: "balance" }}>
               You secured your token.{" "}
@@ -153,7 +157,7 @@ export default function TeamFinancePage() {
               <a href="#cta" className="tf-btn-grad" style={{ background: GRAD, color: "#fff", fontSize: 15, fontWeight: 500, padding: "15px 24px", borderRadius: 8 }}>Get TxID for your project</a>
               <a href="#how" className="tf-btn-outline" style={{ border: "1px solid #DCE0EC", color: "#101223", fontSize: 15, fontWeight: 500, padding: "15px 24px", borderRadius: 8 }}>See how it works</a>
             </div>
-            <p style={{ margin: "16px 0 0", fontSize: 13, color: "#8A8FA3" }}>Special rates for Team Finance Pro customers.</p>
+            <p style={{ margin: "16px 0 0", fontSize: 13, color: "#6C7085" }}>Special rates for Team Finance Pro customers.</p>
           </div>
           <div className="tf-float" style={{ minWidth: 0, display: "flex", justifyContent: "center", position: "relative" }}>
             <div aria-hidden="true" style={{ position: "absolute", inset: "6% 4%", borderRadius: 24, background: "rgba(29,101,220,0.20)", filter: "blur(46px)" }} />
@@ -187,7 +191,10 @@ export default function TeamFinancePage() {
       {/* Stats band */}
       <section style={{ padding: "0 24px" }}>
         <Reveal style={{ maxWidth: 1160, margin: "0 auto", background: "#F1F5FC", borderRadius: 14, padding: "clamp(26px,3vw,34px)" }}>
-          <div style={{ fontSize: 15, fontWeight: 600, color: "#101223", textAlign: "center", marginBottom: 22 }}>In numbers we trust</div>
+          {/* Attributed to Team Finance: these are their numbers, not TxID's, and
+              an unlabeled band right after the TxID intro would read as TxID's. */}
+          <div style={{ fontSize: 15, fontWeight: 600, color: "#101223", textAlign: "center", marginBottom: 4 }}>Team Finance in numbers</div>
+          <div style={{ fontSize: 12.5, color: "#6C7085", textAlign: "center", marginBottom: 22 }}>The audited platform your token is already secured on</div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(200px,1fr))", gap: 28, justifyItems: "center" }}>
             {[
               { icon: (<><rect x="4" y="10" width="16" height="11" rx="3" fill={BLUE} /><path d="M8 10V7a4 4 0 0 1 8 0v3" stroke={BLUE} strokeWidth="1.8" strokeLinecap="round" /></>), value: "40,000+", label: "Projects" },
@@ -270,7 +277,7 @@ export default function TeamFinancePage() {
 
       {/* Trust */}
       <section id="trust" style={{ padding: "0 24px clamp(60px,7vw,96px)" }}>
-        <Reveal style={{ maxWidth: 1160, margin: "0 auto", display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(320px,1fr))", gap: "clamp(32px,5vw,56px)", alignItems: "center" }}>
+        <Reveal style={{ maxWidth: 1160, margin: "0 auto", display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,320px),1fr))", gap: "clamp(32px,5vw,56px)", alignItems: "center" }}>
           <div>
             <h2 style={{ margin: 0, fontSize: "clamp(24px,2.9vw,34px)", lineHeight: 1.2, letterSpacing: "-0.02em", fontWeight: 600, textWrap: "balance" }}>
               Trust doesn&apos;t stop at launch.
