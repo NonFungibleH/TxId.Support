@@ -10,6 +10,8 @@ const nextConfig = {
       { source: "/solutions/protocols", destination: "/solutions#protocols", permanent: true },
       { source: "/solutions/issuers", destination: "/solutions#issuers", permanent: true },
       { source: "/solutions/institutions", destination: "/solutions#institutions", permanent: true },
+      // The Team Finance partner page moved to a cleaner slug.
+      { source: "/partners/team-finance", destination: "/teamfinance", permanent: true },
     ];
   },
 };
