@@ -71,9 +71,10 @@ export function SubaccountsForm({
             ) : (
               <>
                 For protocols that hold each user&apos;s funds in a sub account rather than in their
-                wallet, such as a perps or margin venue. Your watched contracts do not use them, so
-                there is nothing to resolve yet. Support is added per protocol: get in touch if
-                yours holds user funds in a separate account object.
+                wallet, such as a perps or margin venue. This turns on only for protocols TxID has
+                sub account support for, and none of your watched contracts has it yet. That does not
+                mean yours has none: support is added per protocol. If yours holds user funds in a
+                separate account object, get in touch and we will add it.
               </>
             )}
           </p>
