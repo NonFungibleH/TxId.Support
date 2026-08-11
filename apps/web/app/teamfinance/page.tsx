@@ -48,15 +48,9 @@ export const metadata: Metadata = {
 };
 
 function TxidMark({ size = 22 }: { size?: number }) {
-  const radius = size >= 24 ? 7 : 6;
-  const glyph = Math.round(size * 0.62);
-  return (
-    <div style={{ width: size, height: size, borderRadius: radius, background: "#6C4CF7", display: "flex", alignItems: "center", justifyContent: "center", flex: "none" }}>
-      <svg width={glyph} height={glyph} viewBox="0 0 16 16" fill="none" aria-hidden="true">
-        <path d="M1.8 8.5h2.7l1.5-3.8 2.2 6.8 1.5-3h4.3" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-    </div>
-  );
+  // The REAL TxID icon, same asset the marketing site uses, not a stand-in.
+  // eslint-disable-next-line @next/next/no-img-element
+  return <img src="/brand/txid-icon-64.png" alt="" aria-hidden="true" style={{ width: size, height: size, borderRadius: Math.round(size * 0.27), display: "block", flex: "none" }} />;
 }
 
 function TeamFinanceLogo({ height = 20 }: { height?: number }) {
@@ -190,7 +184,15 @@ export default function TeamFinancePage() {
 .tf .tf-foot:hover { color: ${INK} !important; }
 .tf .tf-nav { padding: 6px 0; }
 .tf a:focus-visible { outline: 2px solid ${BLUE}; outline-offset: 3px; border-radius: 4px; }
-.tf .tf-card:hover { transform: translateY(-3px); box-shadow: 0 18px 40px -24px rgba(16,18,35,0.26); }
+.tf .tf-card { box-shadow: 0 8px 24px -18px rgba(16,18,35,0.16); }
+.tf .tf-card:hover { transform: translateY(-3px); border-color: rgba(24,99,220,0.35) !important; box-shadow: 0 22px 44px -22px rgba(24,99,220,0.28); }
+.tf .tf-chip { background: linear-gradient(135deg, #EAF1FC 0%, #DCE9FB 100%); box-shadow: inset 0 1px 0 rgba(255,255,255,0.8), 0 2px 6px -2px rgba(24,99,220,0.25); }
+.tf details.tf-faq { background: #fff; border: 1px solid #EDEFF6; border-radius: 12px; box-shadow: 0 8px 24px -18px rgba(16,18,35,0.14); }
+.tf details.tf-faq summary { cursor: pointer; list-style: none; padding: 18px 20px; font-weight: 600; font-size: 15.5px; color: #101223; display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.tf details.tf-faq summary::-webkit-details-marker { display: none; }
+.tf details.tf-faq summary::after { content: "+"; font-size: 20px; color: #1863DC; flex: none; }
+.tf details.tf-faq[open] summary::after { content: "−"; }
+.tf details.tf-faq p { margin: 0; padding: 0 20px 18px; font-size: 14.5px; line-height: 1.65; color: #4B5063; }
 @media (prefers-reduced-motion: reduce) { .tf .tf-card:hover { transform: none; } }
 /* Alternating copy / product-shot rows; copy first on mobile for reading order. */
 .tf .tf-row { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(36px,5vw,72px); align-items: center; }
@@ -217,21 +219,25 @@ export default function TeamFinancePage() {
       />
 
       {/* Header */}
-      <header style={{ position: "sticky", top: 0, zIndex: 50, background: "rgba(255,255,255,0.88)", backdropFilter: "saturate(180%) blur(12px)", WebkitBackdropFilter: "saturate(180%) blur(12px)", borderBottom: "1px solid #EDEFF6" }}>
+      {/* Solid background, no backdrop-filter: sticky + backdrop-filter is a
+          known Safari/Chrome rendering bug that left the header half-clipped
+          after anchor jumps. */}
+      <header style={{ position: "sticky", top: 0, zIndex: 50, background: "#fff", borderBottom: "1px solid #EDEFF6" }}>
         <div style={{ maxWidth: 1160, margin: "0 auto", padding: "13px 24px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 20, flexWrap: "wrap" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 13 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+            <a href="https://team.finance" target="_blank" rel="noopener noreferrer" aria-label="Team Finance" style={{ display: "block" }}><TeamFinanceLogo height={19} /></a>
+            <span style={{ width: 1, height: 18, background: "#DCE0EC" }} />
+            <a href="https://txid.support" aria-label="TxID" style={{ display: "flex", alignItems: "center", gap: 7 }}>
               <TxidMark size={22} />
               <span style={{ fontSize: 16, fontWeight: 600, color: "#6C4CF7", letterSpacing: "-0.01em" }}>TxID</span>
-            </div>
-            <span style={{ width: 1, height: 18, background: "#DCE0EC" }} />
-            <TeamFinanceLogo height={19} />
+            </a>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 26, flexWrap: "wrap" }}>
             <a href="#how" className="tf-nav" style={{ fontSize: 14.5, color: "#33374D" }}>How it works</a>
             <a href="#who" className="tf-nav" style={{ fontSize: 14.5, color: "#33374D" }}>Who it&apos;s for</a>
             <a href="#pricing" className="tf-nav" style={{ fontSize: 14.5, color: "#33374D" }}>Pricing</a>
-            <a href="#cta" className="tf-btn" style={{ background: BLUE, color: "#fff", fontSize: 14.5, fontWeight: 600, padding: "10px 18px", borderRadius: 8 }}>Get onboarded</a>
+            <a href="#faq" className="tf-nav" style={{ fontSize: 14.5, color: "#33374D" }}>FAQ</a>
+            <a href="#cta" className="tf-btn" style={{ background: BLUE, color: "#fff", fontSize: 14.5, fontWeight: 600, padding: "10px 18px", borderRadius: 8 }}>Talk to us</a>
           </div>
         </div>
       </header>
@@ -248,7 +254,7 @@ export default function TeamFinancePage() {
               contracts and docs, and gives holders clear, evidence-backed answers 24/7, in your branding.
             </p>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 12, marginTop: 30 }}>
-              <a href="#cta" className="tf-btn" style={{ background: BLUE, color: "#fff", fontSize: 15, fontWeight: 600, padding: "14px 24px", borderRadius: 8 }}>Get TxID for your project</a>
+              <a href="#cta" className="tf-btn" style={{ background: BLUE, color: "#fff", fontSize: 15, fontWeight: 600, padding: "14px 24px", borderRadius: 8 }}>Get started</a>
               <a href="#how" className="tf-btn-outline" style={{ border: "1px solid #DCE0EC", color: INK, fontSize: 15, fontWeight: 600, padding: "14px 24px", borderRadius: 8 }}>See how it works</a>
             </div>
             <p style={{ margin: "16px 0 0", fontSize: 13, color: "#6C7085" }}>Special rates for Team Finance Pro customers.</p>
@@ -344,10 +350,10 @@ export default function TeamFinancePage() {
         <div style={{ maxWidth: 1160, margin: "0 auto" }}>
           <Reveal style={{ maxWidth: 640, margin: "0 auto 44px", textAlign: "center" }}>
             <h2 style={{ margin: 0, fontSize: "clamp(24px,2.8vw,32px)", lineHeight: 1.2, letterSpacing: "-0.02em", fontWeight: 600, textWrap: "balance" }}>
-              One agent, three teams it takes work off
+              Built for everyone around your token
             </h2>
             <p style={{ margin: "16px 0 0", fontSize: "clamp(15px,1.1vw,16.5px)", lineHeight: 1.65, color: BODY }}>
-              Team Finance secures the fundamentals. TxID supports the people interacting with them.
+              Your holders get instant answers. Your support team gets its time back. Your compliance team gets the record.
             </p>
           </Reveal>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,260px),1fr))", gap: 20 }}>
@@ -357,7 +363,7 @@ export default function TeamFinancePage() {
               { t: "For your compliance team", d: "Every answer records the transaction, contract state and sources it rested on, as a reviewable trail you can export.", icon: (<><path d="M12 3l7 2.8v5.4c0 4.3-2.9 7.7-7 9.2-4.1-1.5-7-4.9-7-9.2V5.8L12 3Z" stroke={BLUE} strokeWidth="1.8" strokeLinejoin="round" /><path d="M9 12l2.3 2.3L15.4 10" stroke={BLUE} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></>) },
             ].map((c) => (
               <div key={c.t} className="tf-card" style={{ height: "100%", background: "#fff", border: "1px solid #EDEFF6", borderRadius: 14, padding: 30 }}>
-                <div style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 46, height: 46, borderRadius: 12, background: BLUE_TINT, marginBottom: 18 }}>
+                <div className="tf-chip" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 46, height: 46, borderRadius: 12, marginBottom: 18 }}>
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">{c.icon}</svg>
                 </div>
                 <h3 style={{ margin: "0 0 9px", fontSize: 18, fontWeight: 600, letterSpacing: "-0.01em" }}>{c.t}</h3>
@@ -366,29 +372,6 @@ export default function TeamFinancePage() {
             ))}
           </div>
         </div>
-      </section>
-
-      {/* Stats band (attributed to Team Finance) */}
-      <section style={{ padding: "clamp(56px,7vw,96px) 24px 0" }}>
-        <Reveal style={{ maxWidth: 1160, margin: "0 auto", background: "#F4F7FD", borderRadius: 16, padding: "clamp(28px,3vw,36px)" }}>
-          <div style={{ fontSize: 15, fontWeight: 600, color: INK, textAlign: "center", marginBottom: 4 }}>Team Finance in numbers</div>
-          <div style={{ fontSize: 13, color: "#6C7085", textAlign: "center", marginBottom: 24 }}>The audited platform your token is already secured on</div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(200px,1fr))", gap: 28, justifyItems: "center" }}>
-            {[
-              { icon: (<><rect x="4" y="10" width="16" height="11" rx="3" fill={BLUE} /><path d="M8 10V7a4 4 0 0 1 8 0v3" stroke={BLUE} strokeWidth="1.8" strokeLinecap="round" /></>), value: "40,000+", label: "Projects" },
-              { icon: (<><circle cx="12" cy="12" r="8.5" stroke={BLUE} strokeWidth="1.8" /><path d="M9.5 9.5h5M12 9.5V16" stroke={BLUE} strokeWidth="1.8" strokeLinecap="round" /></>), value: "$498M", label: "Total value locked" },
-              { icon: (<><rect x="3.5" y="3.5" width="7" height="7" rx="2" fill={BLUE} /><rect x="13.5" y="3.5" width="7" height="7" rx="2" fill="#9DBAF3" /><rect x="3.5" y="13.5" width="7" height="7" rx="2" fill="#9DBAF3" /><rect x="13.5" y="13.5" width="7" height="7" rx="2" fill={BLUE} /></>), value: "28+", label: "Blockchains supported" },
-            ].map((s) => (
-              <div key={s.label} style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                <svg width="30" height="30" viewBox="0 0 24 24" fill="none" aria-hidden="true">{s.icon}</svg>
-                <div>
-                  <div style={{ fontSize: "clamp(20px,2vw,25px)", fontWeight: 700, letterSpacing: "-0.02em", color: INK }}>{s.value}</div>
-                  <div style={{ fontSize: 13, color: "#6C7085" }}>{s.label}</div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </Reveal>
       </section>
 
       {/* Pricing */}
@@ -400,24 +383,35 @@ export default function TeamFinancePage() {
               Priced per resolution, not per seat.
             </h2>
             <p style={{ margin: "16px 0 0", fontSize: "clamp(15px,1.1vw,16.5px)", lineHeight: 1.65, color: BODY }}>
-              Human support tools like Intercom and Zendesk bill per seat, and still need a person for on-chain
-              questions. TxID resolves those automatically, so you pay for answers your holders actually got, not for
-              headcount.
+              Traditional support desks bill per seat, and still need a person for every on-chain question. TxID
+              resolves those automatically, so you pay for answers your holders actually got, not for headcount.
             </p>
           </Reveal>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,280px),1fr))", gap: 20, maxWidth: 760, margin: "0 auto" }}>
-            <div className="tf-card" style={{ height: "100%", background: "#F7F8FC", borderRadius: 14, padding: 30 }}>
-              <div style={{ fontSize: 18, fontWeight: 600, color: INK, marginBottom: 8, letterSpacing: "-0.01em" }}>Pay for resolutions</div>
-              <p style={{ margin: 0, fontSize: 14.5, lineHeight: 1.65, color: BODY }}>
-                You are billed for the conversations TxID actually resolves, not for seats sitting idle or tickets that
-                never needed a human.
-              </p>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,300px),1fr))", gap: 20, maxWidth: 860, margin: "0 auto", alignItems: "stretch" }}>
+            <div className="tf-card" style={{ height: "100%", background: "#fff", border: `2px solid ${BLUE}`, borderRadius: 16, padding: 30, position: "relative" }}>
+              <div style={{ position: "absolute", top: -12, left: 24, background: BLUE, color: "#fff", fontSize: 11.5, fontWeight: 600, letterSpacing: "0.03em", padding: "4px 12px", borderRadius: 999 }}>FOR TEAM FINANCE PROJECTS</div>
+              <div style={{ fontSize: 19, fontWeight: 700, color: INK, letterSpacing: "-0.01em", marginTop: 4 }}>Per resolution</div>
+              <p style={{ margin: "6px 0 18px", fontSize: 14, lineHeight: 1.6, color: BODY }}>Sized to your holder base, with special rates for Team Finance Pro projects.</p>
+              <div style={{ display: "grid", gap: 10 }}>
+                {["Custom branded to your platform", "Failed-transaction investigation on 28+ chains", "Answers from your contracts, locks and docs", "Escalations into Slack, Telegram, Linear and more", "The Case Record: a reviewable compliance trail", "Hands-on onboarding, live in minutes"].map((f) => (
+                  <div key={f} style={{ display: "flex", alignItems: "flex-start", gap: 10, fontSize: 14, lineHeight: 1.5, color: "#33374D" }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true" style={{ flex: "none", marginTop: 2 }}><path d="M5 12.5l4.5 4.5L19 7.5" stroke={BLUE} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                    {f}
+                  </div>
+                ))}
+              </div>
             </div>
-            <div style={{ height: "100%", background: BLUE, borderRadius: 14, padding: 30, color: "#fff" }}>
-              <div style={{ fontSize: 18, fontWeight: 600, marginBottom: 8, letterSpacing: "-0.01em" }}>Special rates for Team Finance Pro</div>
-              <p style={{ margin: 0, fontSize: 14.5, lineHeight: 1.65, color: "rgba(255,255,255,0.9)" }}>
-                Team Finance Pro projects get preferential pricing. Talk to us and we will size it to your holder base.
-              </p>
+            <div className="tf-card" style={{ height: "100%", background: "#F7F8FC", border: "1px solid #EDEFF6", borderRadius: 16, padding: 30 }}>
+              <div style={{ fontSize: 19, fontWeight: 700, color: INK, letterSpacing: "-0.01em" }}>Why per resolution?</div>
+              <p style={{ margin: "6px 0 18px", fontSize: 14, lineHeight: 1.6, color: BODY }}>You are billed for conversations TxID actually resolves.</p>
+              <div style={{ display: "grid", gap: 10 }}>
+                {["No per-seat licences sitting idle", "No paying for tickets that never needed a human", "Scales down in quiet weeks, not just up", "A clear number your finance team can forecast"].map((f) => (
+                  <div key={f} style={{ display: "flex", alignItems: "flex-start", gap: 10, fontSize: 14, lineHeight: 1.5, color: "#33374D" }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true" style={{ flex: "none", marginTop: 2 }}><path d="M5 12.5l4.5 4.5L19 7.5" stroke={BLUE} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                    {f}
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
           <Reveal style={{ textAlign: "center", marginTop: 28 }}>
@@ -432,7 +426,7 @@ export default function TeamFinancePage() {
       <section style={{ padding: "0 24px clamp(56px,7vw,96px)" }}>
         <div style={{ maxWidth: 1160, margin: "0 auto" }}>
           <Reveal style={{ marginBottom: 32, textAlign: "center" }}>
-            <h2 style={{ margin: 0, fontSize: "clamp(22px,2.5vw,28px)", lineHeight: 1.2, letterSpacing: "-0.02em", fontWeight: 600 }}>About the partners</h2>
+            <h2 style={{ margin: 0, fontSize: "clamp(22px,2.5vw,28px)", lineHeight: 1.2, letterSpacing: "-0.02em", fontWeight: 600 }}>Who&apos;s behind this</h2>
           </Reveal>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,300px),1fr))", gap: 20 }}>
             <Reveal>
@@ -464,6 +458,30 @@ export default function TeamFinancePage() {
         </div>
       </section>
 
+      {/* FAQ */}
+      <section id="faq" style={{ padding: "0 24px clamp(64px,8vw,110px)" }}>
+        <div style={{ maxWidth: 760, margin: "0 auto" }}>
+          <Reveal style={{ marginBottom: 28, textAlign: "center" }}>
+            <h2 style={{ margin: 0, fontSize: "clamp(24px,2.8vw,32px)", lineHeight: 1.2, letterSpacing: "-0.02em", fontWeight: 600 }}>Frequently asked questions</h2>
+          </Reveal>
+          <div style={{ display: "grid", gap: 12 }}>
+            {[
+              { q: "What does TxID need access to?", a: "Nothing sensitive. TxID reads public chain state, your verified contracts and the documentation you point it at. It is read-only: it never holds funds or keys, and it cannot move anything." },
+              { q: "What if it doesn't know the answer?", a: "It says so, and escalates. When a question needs a human, the full conversation lands with your team in the tools you already use (Slack, Telegram, Linear, GitHub, Jira). It never guesses at an answer it cannot back with evidence." },
+              { q: "How do we know the answers are right?", a: "Every answer is built from what TxID actually read: the transaction, live contract state and your docs, and it shows those sources so a holder can check them. Answers with nothing behind them are flagged to your team, not dressed up." },
+              { q: "How does this help with compliance?", a: "Every conversation is kept as a reviewable record: what was asked, what was answered, and the exact chain state and sources each answer rested on, exportable when an auditor or regulator asks. Support stops being a black box." },
+              { q: "How long does setup take?", a: "Onboarding is hands-on: you share your token, contracts and docs; we connect TxID and set your branding; you add one line to your site. Most projects are live the same day." },
+              { q: "What does it cost?", a: "You pay per resolved conversation, not per seat, with special rates for Team Finance Pro projects. Talk to us and we will size it to your holder base." },
+            ].map((f) => (
+              <details key={f.q} className="tf-faq">
+                <summary>{f.q}</summary>
+                <p>{f.a}</p>
+              </details>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* Strong final CTA */}
       <section id="cta" style={{ padding: "0 24px clamp(64px,8vw,110px)" }}>
         <Reveal style={{ maxWidth: 1160, margin: "0 auto", background: BLUE, borderRadius: 18, padding: "clamp(44px,6vw,72px) clamp(24px,4vw,48px)", textAlign: "center", color: "#fff" }}>
@@ -475,13 +493,14 @@ export default function TeamFinancePage() {
             normally reach your team.
           </p>
           <a href={ONBOARD} className="tf-btn-white" style={{ display: "inline-flex", alignItems: "center", gap: 9, marginTop: 28, background: "#fff", color: BLUE, fontSize: 15, fontWeight: 600, padding: "15px 28px", borderRadius: 8 }}>
-            Get TxID for your project <span aria-hidden="true">&rarr;</span>
+            Get started <span aria-hidden="true">&rarr;</span>
           </a>
           <p style={{ margin: "18px 0 0", fontSize: 13, color: "rgba(255,255,255,0.85)" }}>Special rates for Team Finance Pro customers.</p>
           <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 22, marginTop: 16, fontSize: 13, color: "rgba(255,255,255,0.85)" }}>
             <span>Custom branded</span>
             <span>Live in minutes</span>
-            <span>Read-only, evidence-backed</span>
+            <span>Read-only, non-custodial</span>
+            <span>Compliance-ready record of every answer</span>
           </div>
         </Reveal>
       </section>
@@ -491,15 +510,15 @@ export default function TeamFinancePage() {
         <div style={{ maxWidth: 1160, margin: "0 auto", display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,200px),1fr))", gap: 32 }}>
           <div style={{ maxWidth: 300 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 11, marginBottom: 14 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <a href="https://team.finance" target="_blank" rel="noopener noreferrer" aria-label="Team Finance"><TeamFinanceLogo height={16} /></a>
+              <span style={{ width: 1, height: 15, background: "#DCE0EC" }} />
+              <a href="https://txid.support" aria-label="TxID" style={{ display: "flex", alignItems: "center", gap: 6 }}>
                 <TxidMark size={20} />
                 <span style={{ fontSize: 14.5, fontWeight: 600, color: "#6C4CF7" }}>TxID</span>
-              </div>
-              <span style={{ width: 1, height: 15, background: "#DCE0EC" }} />
-              <TeamFinanceLogo height={16} />
+              </a>
             </div>
             <p style={{ margin: 0, fontSize: 13.5, lineHeight: 1.6, color: "#6C7085" }}>
-              Evidence-backed on-chain support for Team Finance projects.
+              TxID is an AI support agent that investigates on-chain questions and answers with the evidence behind them.
             </p>
           </div>
           <div>
@@ -508,6 +527,7 @@ export default function TeamFinancePage() {
               <a href="#how" className="tf-foot" style={{ color: "#6C7085" }}>How it works</a>
               <a href="#who" className="tf-foot" style={{ color: "#6C7085" }}>Who it&apos;s for</a>
               <a href="#pricing" className="tf-foot" style={{ color: "#6C7085" }}>Pricing</a>
+              <a href="#faq" className="tf-foot" style={{ color: "#6C7085" }}>FAQ</a>
             </div>
           </div>
           <div>
