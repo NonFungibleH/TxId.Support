@@ -76,6 +76,79 @@ function ProductShot({ children, maxWidth = 440 }: { children: React.ReactNode; 
   );
 }
 
+/** A light UI card floated with a soft shadow (for stages without a dark mockup). */
+function LightShot({ children, maxWidth = 420 }: { children: React.ReactNode; maxWidth?: number }) {
+  return (
+    <div style={{ position: "relative", display: "flex", justifyContent: "center", minWidth: 0 }}>
+      <div style={{ position: "relative", width: "100%", maxWidth }}>
+        <div aria-hidden="true" style={{ position: "absolute", inset: "9% -5% -7% 6%", background: BLUE_TINT, borderRadius: 20 }} />
+        <div style={{ position: "relative", background: "#fff", border: "1px solid #EDEFF6", borderRadius: 16, boxShadow: "0 26px 50px -20px rgba(16,18,35,0.20)" }}>{children}</div>
+      </div>
+    </div>
+  );
+}
+
+/** Stage 03 visual: the evidence-backed answer the holder sees, in your branding. */
+function AnswerCard() {
+  return (
+    <LightShot maxWidth={420}>
+      <div style={{ padding: 20 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 9, paddingBottom: 13, borderBottom: "1px solid #F1F3F8" }}>
+          <TxidMark size={24} />
+          <div style={{ fontSize: 13, fontWeight: 600, color: INK }}>Your support agent</div>
+          <span style={{ marginLeft: "auto", fontSize: 10.5, fontWeight: 600, color: "#22A06B", background: "#E7F6EF", borderRadius: 6, padding: "3px 8px" }}>RESOLVED</span>
+        </div>
+        <p style={{ margin: "13px 0 0", fontSize: 13.5, lineHeight: 1.6, color: "#2C3345" }}>
+          The price moved past your 0.5% slippage tolerance, so the contract rejected the swap. No funds left your
+          wallet. <span style={{ color: BLUE, fontWeight: 600 }}>Fix: retry with slippage at 0.8%.</span>
+        </p>
+        <div style={{ marginTop: 13, fontSize: 11, fontWeight: 600, letterSpacing: "0.03em", color: "#8A8FA3", textTransform: "uppercase" }}>Evidence</div>
+        <div style={{ display: "grid", gap: 6, marginTop: 8 }}>
+          {[
+            { k: "Transaction", v: "0x8f2a…e41c" },
+            { k: "Pool state", v: "block 21944258" },
+            { k: "Lock & vesting", v: "team.finance" },
+          ].map((r) => (
+            <div key={r.k} style={{ display: "flex", justifyContent: "space-between", gap: 10, background: "#F7F8FC", border: "1px solid #EDEFF6", borderRadius: 8, padding: "8px 11px" }}>
+              <span style={{ fontSize: 12.5, color: "#5A6076" }}>{r.k}</span>
+              <span style={{ fontSize: 11.5, fontFamily: "var(--font-mono-accent), ui-monospace, monospace", color: BLUE }}>{r.v}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </LightShot>
+  );
+}
+
+/** Stage 04 visual: only what needs a human reaches your team, in your tools. */
+function RoutingCard() {
+  return (
+    <LightShot maxWidth={420}>
+      <div style={{ padding: 22 }}>
+        <div style={{ fontSize: 13, fontWeight: 600, color: INK, marginBottom: 14 }}>What reaches your team</div>
+        <div style={{ display: "grid", gap: 9 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, background: "#F7F8FC", border: "1px solid #EDEFF6", borderRadius: 9, padding: "11px 13px" }}>
+            <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#22A06B", flex: "none" }} />
+            <span style={{ fontSize: 13, color: "#5A6076" }}>Routine on-chain questions</span>
+            <span style={{ marginLeft: "auto", fontSize: 12, fontWeight: 600, color: "#22A06B" }}>Resolved by TxID</span>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, background: "#fff", border: `1px solid ${BLUE}33`, borderRadius: 9, padding: "11px 13px" }}>
+            <span style={{ width: 8, height: 8, borderRadius: "50%", background: BLUE, flex: "none" }} />
+            <span style={{ fontSize: 13, color: INK, fontWeight: 500 }}>Genuinely needs a human</span>
+            <span style={{ marginLeft: "auto", fontSize: 12, fontWeight: 600, color: BLUE }}>Escalated</span>
+          </div>
+        </div>
+        <div style={{ marginTop: 16, fontSize: 11, fontWeight: 600, letterSpacing: "0.03em", color: "#8A8FA3", textTransform: "uppercase" }}>Sent to your tools</div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 7, marginTop: 9 }}>
+          {["Slack", "Discord", "Telegram", "Linear", "GitHub", "Jira"].map((t) => (
+            <span key={t} style={{ fontSize: 12, color: "#33374D", background: "#F4F7FD", border: "1px solid #E3EAF7", borderRadius: 7, padding: "5px 10px" }}>{t}</span>
+          ))}
+        </div>
+      </div>
+    </LightShot>
+  );
+}
+
 /** One numbered stage of the walkthrough, hung off the tracing rail. */
 function Stage({ n, who, title, body, reverse, children }: {
   n: string; who: string; title: string; body: string; reverse?: boolean; children: React.ReactNode;
@@ -238,9 +311,28 @@ export default function TeamFinancePage() {
 
           <Stage
             n="03"
-            who="Your team & compliance"
-            title="You keep the record, without the workload."
-            body="Routine on-chain questions resolve themselves, so your team only sees the ones that need a human. Every conversation is kept as a reviewable, exportable record, read-only and never custodial."
+            who="Your holder"
+            title="They get a clear answer, instantly."
+            body="What happened, why, and exactly what to do next, in plain English, with the evidence shown so they can check it themselves. No waiting for your team to wake up, and no guesswork."
+          >
+            <AnswerCard />
+          </Stage>
+
+          <Stage
+            n="04"
+            who="Your team"
+            title="You only see what needs a human."
+            body="The routine questions resolve themselves. The ones that genuinely need your team escalate with the full conversation attached, into the tools you already use."
+            reverse
+          >
+            <RoutingCard />
+          </Stage>
+
+          <Stage
+            n="05"
+            who="Compliance & product"
+            title="Every conversation becomes a trusted record."
+            body="Read-only and never custodial, with every answer recording the transaction, contract state and sources it rested on. A reviewable, exportable trail your compliance team can stand behind."
           >
             <ProductShot maxWidth={380}><TrustMockup className="relative" /></ProductShot>
           </Stage>
