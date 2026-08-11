@@ -1,53 +1,48 @@
 import type { Metadata } from "next";
-import { Poppins } from "next/font/google";
 import { InvestigationMockup } from "@/components/sections/InvestigationMockup";
+import { WidgetMockup } from "@/components/sections/WidgetMockup";
+import { ApiCallMockup } from "@/components/sections/ApiCallMockup";
+import { TrustMockup } from "@/components/sections/TrustMockup";
 import { Reveal } from "./Reveal";
 
 /**
  * TxID × Team Finance partnership landing page.
  *
- * The visitor arrives cold from team.finance and has never heard of TxID, so
- * this page has to explain the product properly, the way the homepage does, not
- * just badge it. It reuses the homepage's animated investigation graphic and
- * mirrors its How-it-works and compliance messaging, all restyled into Team
- * Finance's own light world so it reads as a Team Finance page with TxID as the
- * product offered inside it.
+ * A cold visitor arrives from team.finance never having heard of TxID, so this
+ * page has to SHOW the product working, not just describe it. It is built to
+ * read as a genuine Team Finance page:
+ *   - Inter (their actual brand face, already loaded site-wide), not a stand-in.
+ *   - Their real flat brand blue #1863DC, no gradients (their UI has none).
+ *   - Their signature layout device: alternating copy / floating-product-shot
+ *     rows. Here the "screenshots" are the widget's own LIVE animations reused
+ *     from the marketing site (InvestigationMockup, WidgetMockup, ApiCallMockup,
+ *     TrustMockup), floated in light frames with a soft shadow.
+ *   - Their official logo (public/brand/teamfinance-logotype.svg) and an all-
+ *     light world; TxID's dark identity appears only inside the product shots,
+ *     which is correct: that is the product itself.
  *
- * BRANDING: uses Team Finance's OFFICIAL assets from their brand kit, their blue
- * logotype SVG (public/brand/teamfinance-logotype.svg) and their real brand blue
- * (a #1D65DC → #0A4BB3 gradient, taken from the logotype itself). TxID's own
- * dark/violet identity appears only inside the investigation graphic, which is
- * the product shot. The agent is CUSTOM BRANDED to each project's platform,
- * never "co-branded", never "Team Finance branded": say custom branded, your
- * branding.
+ * COPY RULE: the agent is CUSTOM BRANDED to each project's platform, never
+ * "co-branded". Say "evidence-backed", never "verified". No em dashes.
  *
- * NOINDEX: this is a pitch page shown to Team Finance directly, not a public
- * marketing page, so it is kept out of the index and the sitemap. It is meant to
- * be shared by link (a Vercel preview), not discovered.
+ * NOINDEX: partner pitch page shared by link (a Vercel preview), kept out of the
+ * index and the sitemap.
  */
-
-const poppins = Poppins({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-  variable: "--font-poppins",
-  display: "swap",
-});
 
 const ONBOARD =
   "mailto:team@txid.support?subject=TxID%20%C3%97%20Team%20Finance%20onboarding&body=Hi%20TxID%20team%2C%20we%20came%20from%20Team%20Finance%20and%20would%20like%20to%20add%20the%20support%20agent%20to%20our%20token.";
 
-// Team Finance's real brand blue, from their logotype gradient.
-const BLUE = "#1D65DC";
-const BLUE_DEEP = "#0A4BB3";
-const GRAD = "linear-gradient(135deg,#1D65DC 0%,#0A4BB3 100%)";
+// Team Finance's real UI blue (flat, from their live buttons), plus a darker
+// hover taken from their logotype gradient's deep stop.
+const BLUE = "#1863DC";
+const BLUE_HOVER = "#0F4CAF";
+const BLUE_TINT = "#EAF1FC";
+const INK = "#101223";
+const BODY = "#4B5063";
 
 export const metadata: Metadata = {
   title: "TxID × Team Finance: on-chain support that investigates what happened",
   description:
     "Add a custom-branded TxID support agent to your Team Finance project. It investigates failed transactions, reads your contracts and docs, and gives holders evidence-backed answers 24/7.",
-  // Pitch page, shared by link. Keep it out of search and the sitemap. No
-  // canonical: pairing rel=canonical with noindex is a mixed signal, and a
-  // link-only page has nothing to canonicalise.
   robots: { index: false, follow: false },
   openGraph: {
     title: "TxID × Team Finance",
@@ -77,11 +72,31 @@ function TeamFinanceLogo({ height = 20 }: { height?: number }) {
   return <img src="/brand/teamfinance-logotype.svg" alt="Team Finance" style={{ height, width: "auto", display: "block" }} />;
 }
 
+/** A dark product animation floated in a light frame, Team Finance style. */
+function ProductShot({ children, maxWidth = 440 }: { children: React.ReactNode; maxWidth?: number }) {
+  return (
+    <div style={{ position: "relative", display: "flex", justifyContent: "center", minWidth: 0 }}>
+      <div style={{ position: "relative", width: "100%", maxWidth }}>
+        <div aria-hidden="true" style={{ position: "absolute", inset: "9% -5% -7% 6%", background: BLUE_TINT, borderRadius: 20 }} />
+        <div style={{ position: "relative", filter: "drop-shadow(0 26px 50px rgba(16,18,35,0.22))" }}>{children}</div>
+      </div>
+    </div>
+  );
+}
+
+function BlueLink({ href, children }: { href: string; children: React.ReactNode }) {
+  return (
+    <a href={href} className="tf-link" style={{ display: "inline-flex", alignItems: "center", gap: 7, marginTop: 22, fontSize: 15, fontWeight: 600, color: BLUE }}>
+      {children} <span aria-hidden="true">&rsaquo;</span>
+    </a>
+  );
+}
+
 export default function TeamFinancePage() {
   return (
     <div
-      className={`tf ${poppins.variable}`}
-      style={{ position: "relative", zIndex: 10, background: "#fff", color: "#101223", fontFamily: "var(--font-poppins), system-ui, sans-serif", WebkitFontSmoothing: "antialiased" }}
+      className="tf"
+      style={{ position: "relative", zIndex: 10, background: "#fff", color: INK, fontFamily: "var(--font-inter), system-ui, sans-serif", WebkitFontSmoothing: "antialiased" }}
     >
       <style
         dangerouslySetInnerHTML={{
@@ -89,78 +104,71 @@ export default function TeamFinancePage() {
 .tf { scroll-behavior: smooth; }
 .tf a { text-decoration: none; }
 .tf [id] { scroll-margin-top: 80px; }
-.tf .tf-btn-blue, .tf .tf-btn-grad, .tf .tf-btn-outline, .tf .tf-btn-white,
-.tf .tf-link, .tf .tf-link-violet, .tf .tf-nav, .tf .tf-foot, .tf .tf-card {
+.tf .tf-btn, .tf .tf-btn-outline, .tf .tf-btn-white, .tf .tf-link, .tf .tf-link-violet, .tf .tf-nav, .tf .tf-foot, .tf .tf-card {
   transition: background-color .15s ease, border-color .15s ease, color .15s ease, transform .15s ease, box-shadow .15s ease;
 }
-.tf .tf-btn-blue:hover { background: ${BLUE_DEEP} !important; }
-.tf .tf-btn-grad:hover { filter: brightness(1.06); }
+.tf .tf-btn:hover { background: ${BLUE_HOVER} !important; }
 .tf .tf-btn-outline:hover { border-color: ${BLUE} !important; color: ${BLUE} !important; }
-.tf .tf-btn-white:hover { background: #EAF0FD !important; color: ${BLUE_DEEP} !important; }
-.tf .tf-link:hover, .tf .tf-nav:hover { color: ${BLUE_DEEP} !important; }
+.tf .tf-btn-white:hover { background: ${BLUE_TINT} !important; }
+.tf .tf-link:hover, .tf .tf-nav:hover { color: ${BLUE_HOVER} !important; }
 .tf .tf-link-violet:hover { color: #4B2FE0 !important; }
-.tf .tf-foot:hover { color: #101223 !important; }
+.tf .tf-foot:hover { color: ${INK} !important; }
 .tf .tf-nav { padding: 6px 0; }
 .tf a:focus-visible { outline: 2px solid ${BLUE}; outline-offset: 3px; border-radius: 4px; }
-.tf .tf-card:hover { transform: translateY(-3px); box-shadow: 0 18px 40px -24px rgba(16,18,35,0.28); }
-@media (prefers-reduced-motion: reduce) { .tf .tf-card:hover { transform: none; } .tf .tf-float { animation: none; } }
-.tf .tf-grid-bg {
-  background-image:
-    linear-gradient(${BLUE}0f 1px, transparent 1px),
-    linear-gradient(90deg, ${BLUE}0f 1px, transparent 1px);
-  background-size: 46px 46px;
-  -webkit-mask-image: radial-gradient(ellipse 80% 70% at 65% 30%, #000 0%, transparent 72%);
-  mask-image: radial-gradient(ellipse 80% 70% at 65% 30%, #000 0%, transparent 72%);
+.tf .tf-card:hover { transform: translateY(-3px); box-shadow: 0 18px 40px -24px rgba(16,18,35,0.26); }
+@media (prefers-reduced-motion: reduce) { .tf .tf-card:hover { transform: none; } }
+/* Alternating copy / product-shot rows, Team Finance style. Copy always first
+   on mobile for reading order, regardless of the desktop side. */
+.tf .tf-row { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(36px,5vw,80px); align-items: center; }
+.tf .tf-row.reverse .tf-row-copy { order: 2; }
+.tf .tf-row.reverse .tf-row-media { order: 1; }
+@media (max-width: 860px) {
+  .tf .tf-row { grid-template-columns: 1fr; gap: 40px; }
+  .tf .tf-row .tf-row-copy, .tf .tf-row.reverse .tf-row-copy { order: 1; }
+  .tf .tf-row .tf-row-media, .tf .tf-row.reverse .tf-row-media { order: 2; }
 }
-@keyframes tfFloat { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
-.tf .tf-float { animation: tfFloat 6s ease-in-out infinite; }
-@media (prefers-reduced-motion: reduce) { .tf .tf-float { animation: none; } }
 `,
         }}
       />
 
       {/* Header */}
-      <header style={{ position: "sticky", top: 0, zIndex: 50, background: "rgba(255,255,255,0.85)", backdropFilter: "saturate(180%) blur(12px)", WebkitBackdropFilter: "saturate(180%) blur(12px)", borderBottom: "1px solid #EDEFF6" }}>
+      <header style={{ position: "sticky", top: 0, zIndex: 50, background: "rgba(255,255,255,0.88)", backdropFilter: "saturate(180%) blur(12px)", WebkitBackdropFilter: "saturate(180%) blur(12px)", borderBottom: "1px solid #EDEFF6" }}>
         <div style={{ maxWidth: 1160, margin: "0 auto", padding: "13px 24px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 20, flexWrap: "wrap" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 13 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
               <TxidMark size={22} />
-              <span style={{ fontSize: 15.5, fontWeight: 600, color: "#6C4CF7", letterSpacing: "-0.01em" }}>TxID</span>
+              <span style={{ fontSize: 16, fontWeight: 600, color: "#6C4CF7", letterSpacing: "-0.01em" }}>TxID</span>
             </div>
             <span style={{ width: 1, height: 18, background: "#DCE0EC" }} />
             <TeamFinanceLogo height={19} />
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 24, flexWrap: "wrap" }}>
-            <a href="#how" className="tf-nav" style={{ fontSize: 14, color: "#33374D" }}>How it works</a>
-            <a href="#what" className="tf-nav" style={{ fontSize: 14, color: "#33374D" }}>What it does</a>
-            <a href="#pricing" className="tf-nav" style={{ fontSize: 14, color: "#33374D" }}>Pricing</a>
-            <a href="#cta" className="tf-btn-grad" style={{ background: GRAD, color: "#fff", fontSize: 14, fontWeight: 500, padding: "10px 18px", borderRadius: 8 }}>Get onboarded</a>
+          <div style={{ display: "flex", alignItems: "center", gap: 26, flexWrap: "wrap" }}>
+            <a href="#how" className="tf-nav" style={{ fontSize: 14.5, color: "#33374D" }}>How it works</a>
+            <a href="#what" className="tf-nav" style={{ fontSize: 14.5, color: "#33374D" }}>What it does</a>
+            <a href="#pricing" className="tf-nav" style={{ fontSize: 14.5, color: "#33374D" }}>Pricing</a>
+            <a href="#cta" className="tf-btn" style={{ background: BLUE, color: "#fff", fontSize: 14.5, fontWeight: 600, padding: "10px 18px", borderRadius: 8 }}>Get onboarded</a>
           </div>
         </div>
       </header>
 
-      {/* Hero */}
-      <section style={{ position: "relative", overflow: "hidden", padding: "clamp(48px,6vw,84px) 24px clamp(40px,5vw,64px)" }}>
-        <div aria-hidden="true" className="tf-grid-bg" style={{ position: "absolute", inset: 0, pointerEvents: "none" }} />
-        <div aria-hidden="true" style={{ position: "absolute", top: "-10%", right: "-6%", width: 620, height: 620, borderRadius: "50%", background: "radial-gradient(circle at center, rgba(29,101,220,0.16) 0%, transparent 68%)", pointerEvents: "none" }} />
-        <Reveal style={{ position: "relative", maxWidth: 1160, margin: "0 auto", display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,320px),1fr))", gap: "clamp(32px,5vw,56px)", alignItems: "center" }}>
+      {/* Hero — clean white, floating product shot, Team Finance style */}
+      <section style={{ padding: "clamp(56px,7vw,96px) 24px clamp(48px,6vw,80px)" }}>
+        <Reveal style={{ maxWidth: 1160, margin: "0 auto", display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,340px),1fr))", gap: "clamp(36px,5vw,64px)", alignItems: "center" }}>
           <div>
-            <h1 style={{ margin: 0, fontSize: "clamp(30px,3.9vw,46px)", lineHeight: 1.15, letterSpacing: "-0.02em", fontWeight: 600, textWrap: "balance" }}>
-              You secured your token.{" "}
-              <span style={{ color: BLUE }}>Now give your holders answers they can trust.</span>
+            <h1 style={{ margin: 0, fontSize: "clamp(30px,3.6vw,42px)", lineHeight: 1.16, letterSpacing: "-0.02em", fontWeight: 600, textWrap: "balance" }}>
+              You secured your token. <span style={{ color: BLUE }}>Now give your holders answers they can trust.</span>
             </h1>
-            <p style={{ margin: "20px 0 0", fontSize: "clamp(14.5px,1.15vw,16px)", lineHeight: 1.65, color: "#4B5063", maxWidth: 510, textWrap: "pretty" }}>
+            <p style={{ margin: "20px 0 0", fontSize: "clamp(15px,1.15vw,16.5px)", lineHeight: 1.65, color: BODY, maxWidth: 520 }}>
               Add a custom-branded TxID support agent to your platform. It investigates transactions, reads your
               contracts and docs, and gives holders clear, evidence-backed answers 24/7, in your branding.
             </p>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 12, marginTop: 28 }}>
-              <a href="#cta" className="tf-btn-grad" style={{ background: GRAD, color: "#fff", fontSize: 15, fontWeight: 500, padding: "15px 24px", borderRadius: 8 }}>Get TxID for your project</a>
-              <a href="#how" className="tf-btn-outline" style={{ border: "1px solid #DCE0EC", color: "#101223", fontSize: 15, fontWeight: 500, padding: "15px 24px", borderRadius: 8 }}>See how it works</a>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 12, marginTop: 30 }}>
+              <a href="#cta" className="tf-btn" style={{ background: BLUE, color: "#fff", fontSize: 15, fontWeight: 600, padding: "14px 24px", borderRadius: 8 }}>Get TxID for your project</a>
+              <a href="#what" className="tf-btn-outline" style={{ border: "1px solid #DCE0EC", color: INK, fontSize: 15, fontWeight: 600, padding: "14px 24px", borderRadius: 8 }}>See it in action</a>
             </div>
             <p style={{ margin: "16px 0 0", fontSize: 13, color: "#6C7085" }}>Special rates for Team Finance Pro customers.</p>
           </div>
-          <div className="tf-float" style={{ minWidth: 0, display: "flex", justifyContent: "center", position: "relative" }}>
-            <div aria-hidden="true" style={{ position: "absolute", inset: "6% 4%", borderRadius: 24, background: "rgba(29,101,220,0.20)", filter: "blur(46px)" }} />
+          <ProductShot maxWidth={460}>
             <InvestigationMockup
               className="relative"
               caseSubtitle="Failed swap"
@@ -171,40 +179,25 @@ export default function TeamFinancePage() {
                 { label: "Checked wallet impact", detail: "no funds moved" },
               ]}
             />
-          </div>
+          </ProductShot>
         </Reveal>
       </section>
 
-      {/* Investigation statement */}
-      <section style={{ padding: "0 24px clamp(40px,5vw,64px)" }}>
-        <Reveal style={{ maxWidth: 720, margin: "0 auto", textAlign: "center" }}>
-          <h2 style={{ margin: 0, fontSize: "clamp(22px,2.6vw,30px)", lineHeight: 1.25, letterSpacing: "-0.02em", fontWeight: 600, textWrap: "balance" }}>
-            Don&apos;t just answer the question. Investigate what happened.
-          </h2>
-          <p style={{ margin: "14px 0 0", fontSize: "clamp(14.5px,1.1vw,16px)", lineHeight: 1.65, color: "#4B5063", textWrap: "pretty" }}>
-            Most support bots search your docs and guess. TxID reads the actual transaction, checks live contract state
-            and uses your documentation to explain why something happened, and what the holder should do next.
-          </p>
-        </Reveal>
-      </section>
-
-      {/* Stats band */}
+      {/* Stats band (attributed to Team Finance) */}
       <section style={{ padding: "0 24px" }}>
-        <Reveal style={{ maxWidth: 1160, margin: "0 auto", background: "#F1F5FC", borderRadius: 14, padding: "clamp(26px,3vw,34px)" }}>
-          {/* Attributed to Team Finance: these are their numbers, not TxID's, and
-              an unlabeled band right after the TxID intro would read as TxID's. */}
-          <div style={{ fontSize: 15, fontWeight: 600, color: "#101223", textAlign: "center", marginBottom: 4 }}>Team Finance in numbers</div>
-          <div style={{ fontSize: 12.5, color: "#6C7085", textAlign: "center", marginBottom: 22 }}>The audited platform your token is already secured on</div>
+        <Reveal style={{ maxWidth: 1160, margin: "0 auto", background: "#F4F7FD", borderRadius: 16, padding: "clamp(28px,3vw,36px)" }}>
+          <div style={{ fontSize: 15, fontWeight: 600, color: INK, textAlign: "center", marginBottom: 4 }}>Team Finance in numbers</div>
+          <div style={{ fontSize: 13, color: "#6C7085", textAlign: "center", marginBottom: 24 }}>The audited platform your token is already secured on</div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(200px,1fr))", gap: 28, justifyItems: "center" }}>
             {[
               { icon: (<><rect x="4" y="10" width="16" height="11" rx="3" fill={BLUE} /><path d="M8 10V7a4 4 0 0 1 8 0v3" stroke={BLUE} strokeWidth="1.8" strokeLinecap="round" /></>), value: "40,000+", label: "Projects" },
               { icon: (<><circle cx="12" cy="12" r="8.5" stroke={BLUE} strokeWidth="1.8" /><path d="M9.5 9.5h5M12 9.5V16" stroke={BLUE} strokeWidth="1.8" strokeLinecap="round" /></>), value: "$498M", label: "Total value locked" },
-              { icon: (<><rect x="3.5" y="3.5" width="7" height="7" rx="2" fill={BLUE} /><rect x="13.5" y="3.5" width="7" height="7" rx="2" fill="#9DB8F4" /><rect x="3.5" y="13.5" width="7" height="7" rx="2" fill="#9DB8F4" /><rect x="13.5" y="13.5" width="7" height="7" rx="2" fill={BLUE} /></>), value: "28+", label: "Blockchains supported" },
+              { icon: (<><rect x="3.5" y="3.5" width="7" height="7" rx="2" fill={BLUE} /><rect x="13.5" y="3.5" width="7" height="7" rx="2" fill="#9DBAF3" /><rect x="3.5" y="13.5" width="7" height="7" rx="2" fill="#9DBAF3" /><rect x="13.5" y="13.5" width="7" height="7" rx="2" fill={BLUE} /></>), value: "28+", label: "Blockchains supported" },
             ].map((s) => (
               <div key={s.label} style={{ display: "flex", alignItems: "center", gap: 12 }}>
                 <svg width="30" height="30" viewBox="0 0 24 24" fill="none" aria-hidden="true">{s.icon}</svg>
                 <div>
-                  <div style={{ fontSize: "clamp(20px,2vw,25px)", fontWeight: 600, letterSpacing: "-0.02em", color: "#101223" }}>{s.value}</div>
+                  <div style={{ fontSize: "clamp(20px,2vw,25px)", fontWeight: 700, letterSpacing: "-0.02em", color: INK }}>{s.value}</div>
                   <div style={{ fontSize: 13, color: "#6C7085" }}>{s.label}</div>
                 </div>
               </div>
@@ -213,100 +206,137 @@ export default function TeamFinancePage() {
         </Reveal>
       </section>
 
-      {/* How it works */}
-      <section id="how" style={{ padding: "clamp(60px,7vw,96px) 24px" }}>
-        <div style={{ maxWidth: 1160, margin: "0 auto" }}>
-          <Reveal style={{ maxWidth: 620, margin: "0 auto 44px", textAlign: "center" }}>
-            <p style={{ margin: "0 0 10px", fontSize: 13, fontWeight: 600, letterSpacing: "0.04em", textTransform: "uppercase", color: BLUE }}>How TxID works</p>
-            <h2 style={{ margin: 0, fontSize: "clamp(24px,2.9vw,34px)", lineHeight: 1.2, letterSpacing: "-0.02em", fontWeight: 600, textWrap: "balance" }}>
-              New to TxID? Here is what it actually does.
-            </h2>
-            <p style={{ margin: "16px 0 0", fontSize: "clamp(14.5px,1.1vw,16px)", lineHeight: 1.65, color: "#4B5063", textWrap: "pretty" }}>
-              TxID is an on-chain support agent. It learns your project, investigates what happened on the blockchain,
-              and answers your holders with the evidence behind it.
-            </p>
+      {/* Statement */}
+      <section style={{ padding: "clamp(64px,8vw,110px) 24px clamp(24px,3vw,40px)" }}>
+        <Reveal style={{ maxWidth: 720, margin: "0 auto", textAlign: "center" }}>
+          <h2 style={{ margin: 0, fontSize: "clamp(24px,2.8vw,32px)", lineHeight: 1.2, letterSpacing: "-0.02em", fontWeight: 600, textWrap: "balance" }}>
+            Don&apos;t just answer the question. <span style={{ color: BLUE }}>Investigate what happened.</span>
+          </h2>
+          <p style={{ margin: "16px 0 0", fontSize: "clamp(15px,1.1vw,16.5px)", lineHeight: 1.65, color: BODY }}>
+            Most support bots search your docs and guess. TxID reads the actual transaction, checks live contract state
+            and uses your documentation to explain why something happened, and what the holder should do next.
+          </p>
+        </Reveal>
+      </section>
+
+      {/* What it does — alternating copy / live-product rows */}
+      <section id="what" style={{ padding: "clamp(24px,3vw,40px) 24px 0" }}>
+        <div style={{ maxWidth: 1160, margin: "0 auto", display: "grid", gap: "clamp(64px,8vw,110px)" }}>
+
+          {/* Row 1: the live widget answering a failed swap */}
+          <Reveal>
+            <div className="tf-row">
+              <div className="tf-row-copy">
+                <div style={{ display: "inline-block", fontSize: 12.5, fontWeight: 600, letterSpacing: "0.04em", textTransform: "uppercase", color: BLUE, marginBottom: 12 }}>A transaction failed?</div>
+                <h2 style={{ margin: 0, fontSize: "clamp(24px,2.8vw,32px)", lineHeight: 1.2, letterSpacing: "-0.02em", fontWeight: 600, textWrap: "balance" }}>
+                  TxID investigates why, right in your widget.
+                </h2>
+                <p style={{ margin: "16px 0 0", fontSize: "clamp(15px,1.1vw,16.5px)", lineHeight: 1.7, color: BODY }}>
+                  A holder asks what went wrong. TxID reads the transaction, identifies the failure and explains it in
+                  plain English, with the next step to take, without them ever leaving your site.
+                </p>
+                <BlueLink href="#cta">Add TxID to your project</BlueLink>
+              </div>
+              <div className="tf-row-media"><ProductShot maxWidth={400}><WidgetMockup className="relative" /></ProductShot></div>
+            </div>
           </Reveal>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(280px,1fr))", gap: 20 }}>
-            {[
-              { n: "01", t: "It learns your project", d: "TxID reads your Team Finance locks and vesting, your smart contracts and your documentation, so it answers from your project, not generic blockchain knowledge." },
-              { n: "02", t: "It investigates on-chain", d: "When a holder asks, TxID reads the live transaction and contract state, replays a failed transaction and decodes exactly what went wrong." },
-              { n: "03", t: "It answers with evidence", d: "The holder gets a clear answer and the next step to take, with the sources behind it, 24/7, inside your own branding." },
-            ].map((s, i) => (
-              <Reveal key={s.n} delay={i * 0.08}>
-                <div className="tf-card" style={{ height: "100%", background: "#fff", border: "1px solid #EDEFF6", borderRadius: 14, padding: 28 }}>
-                  <div style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 40, height: 40, borderRadius: 11, background: "#EAF0FD", color: BLUE, fontWeight: 700, fontSize: 15, marginBottom: 18 }}>{s.n}</div>
-                  <h3 style={{ margin: "0 0 9px", fontSize: 17.5, fontWeight: 600, letterSpacing: "-0.01em" }}>{s.t}</h3>
-                  <p style={{ margin: 0, fontSize: 14.5, lineHeight: 1.65, color: "#4B5063" }}>{s.d}</p>
-                </div>
-              </Reveal>
-            ))}
-          </div>
+
+          {/* Row 2: evidence behind every answer (diagnose call) */}
+          <Reveal>
+            <div className="tf-row reverse">
+              <div className="tf-row-copy">
+                <div style={{ display: "inline-block", fontSize: 12.5, fontWeight: 600, letterSpacing: "0.04em", textTransform: "uppercase", color: BLUE, marginBottom: 12 }}>Evidence-backed</div>
+                <h2 style={{ margin: 0, fontSize: "clamp(24px,2.8vw,32px)", lineHeight: 1.2, letterSpacing: "-0.02em", fontWeight: 600, textWrap: "balance" }}>
+                  Every answer carries the evidence behind it.
+                </h2>
+                <p style={{ margin: "16px 0 0", fontSize: "clamp(15px,1.1vw,16.5px)", lineHeight: 1.7, color: BODY }}>
+                  TxID replays the transaction against live chain state, decodes exactly what happened, and shows the
+                  sources behind its answer, so a holder can check it instead of taking a bot&apos;s word for it.
+                </p>
+                <BlueLink href="#cta">See how it investigates</BlueLink>
+              </div>
+              <div className="tf-row-media"><ProductShot maxWidth={430}><ApiCallMockup className="relative" /></ProductShot></div>
+            </div>
+          </Reveal>
+
+          {/* Row 3: read-only, on the record */}
+          <Reveal>
+            <div className="tf-row">
+              <div className="tf-row-copy">
+                <div style={{ display: "inline-block", fontSize: 12.5, fontWeight: 600, letterSpacing: "0.04em", textTransform: "uppercase", color: BLUE, marginBottom: 12 }}>Safe by design</div>
+                <h2 style={{ margin: 0, fontSize: "clamp(24px,2.8vw,32px)", lineHeight: 1.2, letterSpacing: "-0.02em", fontWeight: 600, textWrap: "balance" }}>
+                  Read-only, and on the record.
+                </h2>
+                <p style={{ margin: "16px 0 0", fontSize: "clamp(15px,1.1vw,16.5px)", lineHeight: 1.7, color: BODY }}>
+                  TxID never holds keys, funds, or the ability to move anything. It keeps a reviewable record of every
+                  conversation, so support is something your compliance team can stand behind, not a black box.
+                </p>
+                <BlueLink href="#cta">Talk to us</BlueLink>
+              </div>
+              <div className="tf-row-media"><ProductShot maxWidth={380}><TrustMockup className="relative" /></ProductShot></div>
+            </div>
+          </Reveal>
         </div>
       </section>
 
-      {/* What it does */}
-      <section id="what" style={{ padding: "0 24px clamp(60px,7vw,96px)" }}>
+      {/* Who it's for — Team Finance style 3-audience cards */}
+      <section style={{ padding: "clamp(64px,8vw,110px) 24px" }}>
         <div style={{ maxWidth: 1160, margin: "0 auto" }}>
           <Reveal style={{ maxWidth: 640, margin: "0 auto 44px", textAlign: "center" }}>
-            <h2 style={{ margin: 0, fontSize: "clamp(24px,2.9vw,34px)", lineHeight: 1.2, letterSpacing: "-0.02em", fontWeight: 600, textWrap: "balance" }}>
-              A support agent that knows your token, smart contracts and docs
+            <h2 style={{ margin: 0, fontSize: "clamp(24px,2.8vw,32px)", lineHeight: 1.2, letterSpacing: "-0.02em", fontWeight: 600, textWrap: "balance" }}>
+              One agent, three teams it takes work off
             </h2>
-            <p style={{ margin: "16px 0 0", fontSize: "clamp(14.5px,1.1vw,16px)", lineHeight: 1.65, color: "#4B5063", textWrap: "pretty" }}>
-              Not a generic chatbot. It investigates your on-chain activity using your contracts, live chain state and
-              documentation, so holders get answers based on what is actually happening, not a guess.
+            <p style={{ margin: "16px 0 0", fontSize: "clamp(15px,1.1vw,16.5px)", lineHeight: 1.65, color: BODY }}>
+              Team Finance secures the fundamentals. TxID supports the people interacting with them.
             </p>
           </Reveal>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(280px,1fr))", gap: 20 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,260px),1fr))", gap: 20 }}>
             {[
-              { title: "A transaction failed? TxID investigates why.", body: "It reads the transaction, identifies the failure and explains it in plain English, with the next step the holder should take.", icon: (<><circle cx="10.5" cy="10.5" r="6.5" stroke={BLUE} strokeWidth="1.8" /><path d="M15.5 15.5 20 20" stroke={BLUE} strokeWidth="1.8" strokeLinecap="round" /></>) },
-              { title: "Answers from your actual project data.", body: "From vesting schedules and claim windows to lock and unlock dates, TxID answers from your contracts and documentation, not generic blockchain knowledge.", icon: (<><rect x="5" y="3" width="14" height="18" rx="2.5" stroke={BLUE} strokeWidth="1.8" /><path d="M8.5 8h7M8.5 12h7M8.5 16h4" stroke={BLUE} strokeWidth="1.6" strokeLinecap="round" /></>) },
-              { title: "Every answer comes with evidence.", body: "TxID checks live chain state and shows the sources behind its answer, so holders can verify what they are told instead of taking a bot's word for it.", icon: (<><path d="M12 3l7 2.8v5.4c0 4.3-2.9 7.7-7 9.2-4.1-1.5-7-4.9-7-9.2V5.8L12 3Z" stroke={BLUE} strokeWidth="1.8" strokeLinejoin="round" /><path d="M9 12l2.3 2.3L15.4 10" stroke={BLUE} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></>) },
-              { title: "One line to embed. Your branding throughout.", body: "Add TxID to your website with a single snippet. Apply your colours and logo so holders get support without ever leaving your product.", icon: <path d="M8.5 7 4 12l4.5 5M15.5 7 20 12l-4.5 5" stroke={BLUE} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /> },
-            ].map((card, i) => (
-              <Reveal key={card.title} delay={i * 0.06}>
-                <div className="tf-card" style={{ height: "100%", background: "#F7F8FC", borderRadius: 14, padding: 28 }}>
-                  <svg width="34" height="34" viewBox="0 0 24 24" fill="none" aria-hidden="true" style={{ marginBottom: 18 }}>{card.icon}</svg>
-                  <h3 style={{ margin: "0 0 9px", fontSize: 17, fontWeight: 600, letterSpacing: "-0.01em" }}>{card.title}</h3>
-                  <p style={{ margin: 0, fontSize: 14.5, lineHeight: 1.65, color: "#4B5063" }}>{card.body}</p>
+              { t: "For your holders", d: "A straight answer the moment a transaction fails or a claim is confusing, 24/7, in your branding, without leaving your site.", icon: (<><circle cx="12" cy="8" r="3.4" stroke={BLUE} strokeWidth="1.8" /><path d="M5 20c0-3.6 3.1-6 7-6s7 2.4 7 6" stroke={BLUE} strokeWidth="1.8" strokeLinecap="round" /></>) },
+              { t: "For your support team", d: "The routine on-chain questions answer themselves, so your team only sees the conversations that actually need a human.", icon: (<><path d="M4 5.5h16v10H8l-4 3.5z" stroke={BLUE} strokeWidth="1.8" strokeLinejoin="round" /><path d="M8.5 9h7M8.5 12h4" stroke={BLUE} strokeWidth="1.6" strokeLinecap="round" /></>) },
+              { t: "For your compliance team", d: "Every answer records the transaction, contract state and sources it rested on, as a reviewable trail you can export.", icon: (<><path d="M12 3l7 2.8v5.4c0 4.3-2.9 7.7-7 9.2-4.1-1.5-7-4.9-7-9.2V5.8L12 3Z" stroke={BLUE} strokeWidth="1.8" strokeLinejoin="round" /><path d="M9 12l2.3 2.3L15.4 10" stroke={BLUE} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></>) },
+            ].map((c) => (
+              <div key={c.t} className="tf-card" style={{ height: "100%", background: "#F7F8FC", borderRadius: 14, padding: 30 }}>
+                <div style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 46, height: 46, borderRadius: 12, background: BLUE_TINT, marginBottom: 18 }}>
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">{c.icon}</svg>
                 </div>
-              </Reveal>
+                <h3 style={{ margin: "0 0 9px", fontSize: 18, fontWeight: 600, letterSpacing: "-0.01em" }}>{c.t}</h3>
+                <p style={{ margin: 0, fontSize: 14.5, lineHeight: 1.65, color: BODY }}>{c.d}</p>
+              </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Trust */}
-      <section id="trust" style={{ padding: "0 24px clamp(60px,7vw,96px)" }}>
-        <Reveal style={{ maxWidth: 1160, margin: "0 auto", display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,320px),1fr))", gap: "clamp(32px,5vw,56px)", alignItems: "center" }}>
+      {/* Trust two-column */}
+      <section id="trust" style={{ padding: "0 24px clamp(64px,8vw,110px)" }}>
+        <Reveal style={{ maxWidth: 1160, margin: "0 auto", display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,320px),1fr))", gap: "clamp(36px,5vw,64px)", alignItems: "center" }}>
           <div>
-            <h2 style={{ margin: 0, fontSize: "clamp(24px,2.9vw,34px)", lineHeight: 1.2, letterSpacing: "-0.02em", fontWeight: 600, textWrap: "balance" }}>
+            <h2 style={{ margin: 0, fontSize: "clamp(24px,2.8vw,32px)", lineHeight: 1.2, letterSpacing: "-0.02em", fontWeight: 600, textWrap: "balance" }}>
               Trust doesn&apos;t stop at launch.
             </h2>
-            <p style={{ margin: "18px 0 0", fontSize: "clamp(14.5px,1.1vw,16px)", lineHeight: 1.7, color: "#4B5063", textWrap: "pretty" }}>
+            <p style={{ margin: "18px 0 0", fontSize: "clamp(15px,1.1vw,16.5px)", lineHeight: 1.7, color: BODY }}>
               Creating, vesting, locking and managing your tokens with Team Finance&apos;s audited tools shows your
               community the fundamentals are secure. But trust is also built in the everyday moments: when a transaction
               fails, a claim is rejected, or a holder isn&apos;t sure where their funds went.
             </p>
-            <p style={{ margin: "14px 0 0", fontSize: "clamp(14.5px,1.1vw,16px)", lineHeight: 1.7, color: "#101223", fontWeight: 500, textWrap: "pretty" }}>
+            <p style={{ margin: "14px 0 0", fontSize: "clamp(15px,1.1vw,16.5px)", lineHeight: 1.7, color: INK, fontWeight: 500 }}>
               TxID investigates those questions directly from your contracts and live chain state, giving holders a clear
               answer with the evidence behind it.
             </p>
-            <p style={{ margin: "18px 0 0", paddingLeft: 14, borderLeft: `3px solid ${BLUE}`, fontSize: "clamp(14.5px,1.1vw,16px)", lineHeight: 1.6, color: "#101223", textWrap: "pretty" }}>
+            <p style={{ margin: "20px 0 0", paddingLeft: 15, borderLeft: `3px solid ${BLUE}`, fontSize: "clamp(15px,1.1vw,16.5px)", lineHeight: 1.6, color: INK }}>
               Team Finance helps you secure the infrastructure. TxID helps you support the people using it.
             </p>
-            <a href="#cta" className="tf-link" style={{ display: "inline-flex", alignItems: "center", gap: 7, marginTop: 22, fontSize: 14.5, fontWeight: 500, color: BLUE }}>
-              Add TxID to your project <span>&rsaquo;</span>
-            </a>
           </div>
-          <div style={{ background: "#F7F8FC", borderRadius: 14, padding: "clamp(22px,2.4vw,30px)", minWidth: 0 }}>
-            <div style={{ fontSize: 14, fontWeight: 600, color: "#101223", marginBottom: 10 }}>What your holders ask</div>
+          <div style={{ background: "#F7F8FC", borderRadius: 16, padding: "clamp(24px,2.4vw,32px)", minWidth: 0 }}>
+            <div style={{ fontSize: 14.5, fontWeight: 600, color: INK, marginBottom: 10 }}>What your holders ask</div>
             <p style={{ margin: "0 0 16px", fontSize: 13.5, lineHeight: 1.65, color: "#5A6076" }}>
-              These aren&apos;t questions your team should have to investigate by hand. TxID reads the relevant contracts,
-              transactions, documentation and live chain state to answer them automatically.
+              These aren&apos;t questions your team should have to investigate by hand. TxID answers them automatically,
+              with evidence your holders can check.
             </p>
             <div style={{ display: "grid", gap: 8 }}>
               {["Why did my swap fail?", "When can I claim my vested tokens?", "Is my transaction stuck, or did it go through?", "Why was my claim rejected?", "Is the liquidity actually locked?"].map((q) => (
-                <div key={q} style={{ display: "flex", alignItems: "center", gap: 11, background: "#fff", border: "1px solid #EDEFF6", borderRadius: 9, padding: "13px 15px", fontSize: 14, color: "#101223" }}>
+                <div key={q} style={{ display: "flex", alignItems: "center", gap: 11, background: "#fff", border: "1px solid #EDEFF6", borderRadius: 10, padding: "13px 15px", fontSize: 14, color: INK }}>
                   <span style={{ width: 5, height: 5, borderRadius: "50%", background: BLUE, flex: "none" }} />
                   {q}
                 </div>
@@ -316,202 +346,166 @@ export default function TeamFinancePage() {
         </Reveal>
       </section>
 
-      {/* Compliance strip */}
-      <section style={{ padding: "0 24px clamp(60px,7vw,96px)" }}>
+      {/* How it works — 3 steps */}
+      <section id="how" style={{ background: "#F7F8FC", borderTop: "1px solid #EDEFF6", borderBottom: "1px solid #EDEFF6", padding: "clamp(64px,8vw,110px) 24px" }}>
         <div style={{ maxWidth: 1160, margin: "0 auto" }}>
-          <Reveal style={{ maxWidth: 620, margin: "0 auto 40px", textAlign: "center" }}>
-            <h2 style={{ margin: 0, fontSize: "clamp(24px,2.9vw,34px)", lineHeight: 1.2, letterSpacing: "-0.02em", fontWeight: 600, textWrap: "balance" }}>
-              Built for teams that need a record.
-            </h2>
-            <p style={{ margin: "16px 0 0", fontSize: "clamp(14.5px,1.1vw,16px)", lineHeight: 1.65, color: "#4B5063", textWrap: "pretty" }}>
-              TxID is read-only and keeps a reviewable record of every conversation, so support is something your
-              compliance team can stand behind, not a black box.
-            </p>
+          <Reveal style={{ maxWidth: 620, margin: "0 auto 44px", textAlign: "center" }}>
+            <div style={{ fontSize: 12.5, fontWeight: 600, letterSpacing: "0.04em", textTransform: "uppercase", color: BLUE, marginBottom: 10 }}>How it works</div>
+            <h2 style={{ margin: 0, fontSize: "clamp(24px,2.8vw,32px)", lineHeight: 1.2, letterSpacing: "-0.02em", fontWeight: 600 }}>New to TxID? Live in three steps.</h2>
+            <p style={{ margin: "16px 0 0", fontSize: "clamp(15px,1.1vw,16.5px)", lineHeight: 1.65, color: BODY }}>Hands-on onboarding, with your project live quickly.</p>
           </Reveal>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(240px,1fr))", gap: 20 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,260px),1fr))", gap: 20 }}>
             {[
-              { t: "Read-only, never custodial", d: "TxID reads chain state and your docs. It never holds funds or keys, and can never move anything." },
-              { t: "Evidence behind every answer", d: "Each answer records the transaction, contract state and sources it rested on, so it can be reviewed later." },
-              { t: "Every conversation on file", d: "A reviewable record of what was asked, what was answered, and the chain state at that moment." },
-              { t: "No financial advice", d: "It explains what happened and what to do next. It never tells a holder to buy, sell or hold." },
-            ].map((c, i) => (
-              <Reveal key={c.t} delay={i * 0.06}>
-                <div className="tf-card" style={{ height: "100%", background: "#F7F8FC", borderRadius: 14, padding: 24 }}>
-                  <div style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 34, height: 34, borderRadius: 9, background: "#EAF0FD", marginBottom: 14 }}>
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3l7 2.8v5.4c0 4.3-2.9 7.7-7 9.2-4.1-1.5-7-4.9-7-9.2V5.8L12 3Z" stroke={BLUE} strokeWidth="1.8" strokeLinejoin="round" /><path d="M9 12l2.3 2.3L15.4 10" stroke={BLUE} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>
-                  </div>
-                  <div style={{ fontSize: 15.5, fontWeight: 600, color: "#101223", marginBottom: 8, letterSpacing: "-0.01em" }}>{c.t}</div>
-                  <p style={{ margin: 0, fontSize: 14, lineHeight: 1.65, color: "#4B5063" }}>{c.d}</p>
-                </div>
-              </Reveal>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* More than a chatbot */}
-      <section style={{ padding: "0 24px clamp(60px,7vw,96px)" }}>
-        <Reveal style={{ maxWidth: 1160, margin: "0 auto", borderRadius: 16, padding: "clamp(36px,4.5vw,60px) clamp(24px,4vw,48px)", background: "#0E1024", position: "relative", overflow: "hidden" }}>
-          <div aria-hidden="true" style={{ position: "absolute", top: "-40%", left: "-10%", width: 520, height: 520, borderRadius: "50%", background: "radial-gradient(circle at center, rgba(29,101,220,0.4) 0%, transparent 70%)", pointerEvents: "none" }} />
-          <div style={{ position: "relative", maxWidth: 720, margin: "0 auto", textAlign: "center" }}>
-            <h2 style={{ margin: 0, fontSize: "clamp(24px,2.9vw,34px)", lineHeight: 1.2, letterSpacing: "-0.02em", fontWeight: 600, color: "#fff", textWrap: "balance" }}>
-              More than a chatbot. An on-chain investigator.
-            </h2>
-            <p style={{ margin: "16px 0 0", fontSize: "clamp(14.5px,1.1vw,16px)", lineHeight: 1.7, color: "rgba(255,255,255,0.72)", textWrap: "pretty" }}>
-              Most support bots can search documentation and generate an answer.{" "}
-              <span style={{ color: "#fff", fontWeight: 500 }}>TxID can investigate what actually happened on-chain</span>, bringing together transaction data,
-              smart contract state, live blockchain data and your documentation to explain what happened and why.
-            </p>
-            <p style={{ margin: "22px 0 0", fontSize: "clamp(15px,1.2vw,17px)", fontWeight: 500, color: "#8FB3FF" }}>
-              The result: an answer your holder can understand, and verify.
-            </p>
-          </div>
-        </Reveal>
-      </section>
-
-      {/* Onboarding */}
-      <section id="onboarding" style={{ background: "#F7F8FC", borderTop: "1px solid #EDEFF6", borderBottom: "1px solid #EDEFF6", padding: "clamp(60px,7vw,96px) 24px" }}>
-        <div style={{ maxWidth: 1160, margin: "0 auto" }}>
-          <Reveal style={{ maxWidth: 600, margin: "0 auto 40px", textAlign: "center" }}>
-            <h2 style={{ margin: 0, fontSize: "clamp(24px,2.9vw,34px)", lineHeight: 1.2, letterSpacing: "-0.02em", fontWeight: 600 }}>Onboarding, start to finish</h2>
-            <p style={{ margin: "14px 0 0", fontSize: "clamp(14.5px,1.1vw,16px)", lineHeight: 1.65, color: "#4B5063" }}>Hands-on onboarding, with your project live quickly.</p>
-          </Reveal>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(240px,1fr))", gap: 20 }}>
-            {[
-              { n: "1", t: "Tell us about your project", d: "Contact us and share your token, contracts and where your holders interact with you." },
-              { n: "2", t: "We connect TxID", d: "We connect TxID to your contracts and documentation and set up your branding." },
-              { n: "3", t: "Go live", d: "Add one line to your website and give your holders 24/7, evidence-backed on-chain support." },
-            ].map((s, i) => (
-              <Reveal key={s.n} delay={i * 0.08}>
-                <div className="tf-card" style={{ height: "100%", background: "#fff", border: "1px solid #EDEFF6", borderRadius: 14, padding: 26 }}>
-                  <div style={{ width: 30, height: 30, borderRadius: 8, background: GRAD, color: "#fff", fontSize: 13, fontWeight: 600, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 16 }}>{s.n}</div>
-                  <h3 style={{ margin: "0 0 8px", fontSize: 16.5, fontWeight: 600, letterSpacing: "-0.01em" }}>{s.t}</h3>
-                  <p style={{ margin: 0, fontSize: 14.5, lineHeight: 1.65, color: "#4B5063" }}>{s.d}</p>
-                </div>
-              </Reveal>
+              { n: "01", t: "Tell us about your project", d: "Contact us and share your token, contracts and where your holders interact with you." },
+              { n: "02", t: "We connect TxID", d: "We point it at your Team Finance locks and vesting, your contracts and your docs, and set your branding." },
+              { n: "03", t: "Go live", d: "Add one line to your website and give your holders 24/7, evidence-backed on-chain support." },
+            ].map((s) => (
+              <div key={s.n} className="tf-card" style={{ height: "100%", background: "#fff", border: "1px solid #EDEFF6", borderRadius: 14, padding: 28 }}>
+                <div style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 40, height: 40, borderRadius: 10, background: BLUE_TINT, color: BLUE, fontSize: 15, fontWeight: 700, marginBottom: 18 }}>{s.n}</div>
+                <h3 style={{ margin: "0 0 8px", fontSize: 17.5, fontWeight: 600, letterSpacing: "-0.01em" }}>{s.t}</h3>
+                <p style={{ margin: 0, fontSize: 14.5, lineHeight: 1.65, color: BODY }}>{s.d}</p>
+              </div>
             ))}
           </div>
         </div>
       </section>
 
       {/* Pricing */}
-      <section id="pricing" style={{ padding: "clamp(60px,7vw,96px) 24px" }}>
+      <section id="pricing" style={{ padding: "clamp(64px,8vw,110px) 24px" }}>
         <div style={{ maxWidth: 1160, margin: "0 auto" }}>
           <Reveal style={{ maxWidth: 640, margin: "0 auto 40px", textAlign: "center" }}>
-            <p style={{ margin: "0 0 10px", fontSize: 13, fontWeight: 600, letterSpacing: "0.04em", textTransform: "uppercase", color: BLUE }}>Pricing</p>
-            <h2 style={{ margin: 0, fontSize: "clamp(24px,2.9vw,34px)", lineHeight: 1.2, letterSpacing: "-0.02em", fontWeight: 600, textWrap: "balance" }}>
+            <div style={{ fontSize: 12.5, fontWeight: 600, letterSpacing: "0.04em", textTransform: "uppercase", color: BLUE, marginBottom: 10 }}>Pricing</div>
+            <h2 style={{ margin: 0, fontSize: "clamp(24px,2.8vw,32px)", lineHeight: 1.2, letterSpacing: "-0.02em", fontWeight: 600, textWrap: "balance" }}>
               Priced per resolution, not per seat.
             </h2>
-            <p style={{ margin: "16px 0 0", fontSize: "clamp(14.5px,1.1vw,16px)", lineHeight: 1.65, color: "#4B5063", textWrap: "pretty" }}>
+            <p style={{ margin: "16px 0 0", fontSize: "clamp(15px,1.1vw,16.5px)", lineHeight: 1.65, color: BODY }}>
               Human support tools like Intercom and Zendesk bill per seat, and still need a person for on-chain
-              questions. TxID resolves those questions automatically, so you pay for answers your holders actually got,
-              not for headcount.
+              questions. TxID resolves those automatically, so you pay for answers your holders actually got, not for
+              headcount.
             </p>
           </Reveal>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(280px,1fr))", gap: 20, maxWidth: 760, margin: "0 auto" }}>
-            <Reveal>
-              <div className="tf-card" style={{ height: "100%", background: "#F7F8FC", borderRadius: 14, padding: 28 }}>
-                <div style={{ fontSize: 17, fontWeight: 600, color: "#101223", marginBottom: 8, letterSpacing: "-0.01em" }}>Pay for resolutions</div>
-                <p style={{ margin: 0, fontSize: 14.5, lineHeight: 1.65, color: "#4B5063" }}>
-                  You are billed for the conversations TxID actually resolves, not for seats sitting idle or tickets that
-                  never needed a human.
-                </p>
-              </div>
-            </Reveal>
-            <Reveal delay={0.08}>
-              <div style={{ height: "100%", background: GRAD, borderRadius: 14, padding: 28, color: "#fff" }}>
-                <div style={{ fontSize: 17, fontWeight: 600, marginBottom: 8, letterSpacing: "-0.01em" }}>Special rates for Team Finance Pro</div>
-                <p style={{ margin: 0, fontSize: 14.5, lineHeight: 1.65, color: "rgba(255,255,255,0.88)" }}>
-                  Team Finance Pro projects get preferential pricing. Talk to us and we will size it to your holder base.
-                </p>
-              </div>
-            </Reveal>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,280px),1fr))", gap: 20, maxWidth: 760, margin: "0 auto" }}>
+            <div className="tf-card" style={{ height: "100%", background: "#F7F8FC", borderRadius: 14, padding: 30 }}>
+              <div style={{ fontSize: 18, fontWeight: 600, color: INK, marginBottom: 8, letterSpacing: "-0.01em" }}>Pay for resolutions</div>
+              <p style={{ margin: 0, fontSize: 14.5, lineHeight: 1.65, color: BODY }}>
+                You are billed for the conversations TxID actually resolves, not for seats sitting idle or tickets that
+                never needed a human.
+              </p>
+            </div>
+            <div style={{ height: "100%", background: BLUE, borderRadius: 14, padding: 30, color: "#fff" }}>
+              <div style={{ fontSize: 18, fontWeight: 600, marginBottom: 8, letterSpacing: "-0.01em" }}>Special rates for Team Finance Pro</div>
+              <p style={{ margin: 0, fontSize: 14.5, lineHeight: 1.65, color: "rgba(255,255,255,0.9)" }}>
+                Team Finance Pro projects get preferential pricing. Talk to us and we will size it to your holder base.
+              </p>
+            </div>
           </div>
           <Reveal style={{ textAlign: "center", marginTop: 28 }}>
-            <a href={ONBOARD} className="tf-btn-blue" style={{ display: "inline-flex", alignItems: "center", gap: 9, background: BLUE, color: "#fff", fontSize: 15, fontWeight: 600, padding: "14px 26px", borderRadius: 8 }}>
-              Talk to us about pricing <span>&rarr;</span>
+            <a href={ONBOARD} className="tf-btn" style={{ display: "inline-flex", alignItems: "center", gap: 9, background: BLUE, color: "#fff", fontSize: 15, fontWeight: 600, padding: "14px 26px", borderRadius: 8 }}>
+              Talk to us about pricing <span aria-hidden="true">&rarr;</span>
             </a>
           </Reveal>
         </div>
       </section>
 
       {/* About the partners */}
-      <section style={{ padding: "0 24px clamp(60px,7vw,96px)" }}>
+      <section style={{ padding: "0 24px clamp(64px,8vw,110px)" }}>
         <div style={{ maxWidth: 1160, margin: "0 auto" }}>
           <Reveal style={{ marginBottom: 32, textAlign: "center" }}>
-            <h2 style={{ margin: 0, fontSize: "clamp(22px,2.6vw,30px)", lineHeight: 1.2, letterSpacing: "-0.02em", fontWeight: 600 }}>About the partners</h2>
+            <h2 style={{ margin: 0, fontSize: "clamp(22px,2.5vw,28px)", lineHeight: 1.2, letterSpacing: "-0.02em", fontWeight: 600 }}>About the partners</h2>
           </Reveal>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(300px,1fr))", gap: 20 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,300px),1fr))", gap: 20 }}>
             <Reveal>
-              <div style={{ height: "100%", background: "#F7F8FC", borderRadius: 14, padding: "clamp(24px,2.6vw,32px)" }}>
+              <div style={{ height: "100%", background: "#F7F8FC", borderRadius: 16, padding: "clamp(26px,2.6vw,34px)" }}>
                 <div style={{ marginBottom: 16 }}><TeamFinanceLogo height={22} /></div>
-                <p style={{ margin: 0, fontSize: 14.5, lineHeight: 1.7, color: "#4B5063" }}>
+                <p style={{ margin: 0, fontSize: 14.5, lineHeight: 1.7, color: BODY }}>
                   Team Finance provides audited token and liquidity locks, token launches, and vesting contracts across
                   28+ blockchains. It is where projects lock their liquidity and vest their team tokens to say no to
                   rug-pulls and show their community the fundamentals are secured, trusted by 40,000+ projects.
                 </p>
-                <a href="https://team.finance" target="_blank" rel="noopener noreferrer" className="tf-link" style={{ display: "inline-flex", alignItems: "center", gap: 7, marginTop: 18, fontSize: 14.5, fontWeight: 500, color: BLUE }}>team.finance <span>&rsaquo;</span></a>
+                <a href="https://team.finance" target="_blank" rel="noopener noreferrer" className="tf-link" style={{ display: "inline-flex", alignItems: "center", gap: 7, marginTop: 18, fontSize: 14.5, fontWeight: 600, color: BLUE }}>team.finance <span aria-hidden="true">&rsaquo;</span></a>
               </div>
             </Reveal>
-            <Reveal delay={0.08}>
-              <div style={{ height: "100%", background: "#F7F8FC", borderRadius: 14, padding: "clamp(24px,2.6vw,32px)" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 16 }}>
+            <Reveal delay={0.06}>
+              <div style={{ height: "100%", background: "#F7F8FC", borderRadius: 16, padding: "clamp(26px,2.6vw,34px)" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
                   <TxidMark size={22} />
-                  <span style={{ fontSize: 16.5, fontWeight: 600, color: "#6C4CF7", letterSpacing: "-0.01em" }}>TxID</span>
+                  <span style={{ fontSize: 17, fontWeight: 600, color: "#6C4CF7", letterSpacing: "-0.01em" }}>TxID</span>
                 </div>
-                <p style={{ margin: 0, fontSize: 14.5, lineHeight: 1.7, color: "#4B5063" }}>
+                <p style={{ margin: 0, fontSize: 14.5, lineHeight: 1.7, color: BODY }}>
                   TxID is the support layer for on-chain finance. It gives a protocol&apos;s users an AI support agent
                   that reads its contracts, documentation and live chain state, answers with the evidence behind every
                   claim, and keeps a reviewable record of every conversation.
                 </p>
-                <a href="https://txid.support" className="tf-link-violet" style={{ display: "inline-flex", alignItems: "center", gap: 7, marginTop: 18, fontSize: 14.5, fontWeight: 500, color: "#6C4CF7" }}>txid.support <span>&rsaquo;</span></a>
+                <a href="https://txid.support" className="tf-link-violet" style={{ display: "inline-flex", alignItems: "center", gap: 7, marginTop: 18, fontSize: 14.5, fontWeight: 600, color: "#6C4CF7" }}>txid.support <span aria-hidden="true">&rsaquo;</span></a>
               </div>
             </Reveal>
           </div>
         </div>
       </section>
 
-      {/* CTA */}
-      <section id="cta" style={{ padding: "0 24px clamp(60px,7vw,96px)" }}>
-        <Reveal style={{ maxWidth: 1160, margin: "0 auto", background: GRAD, borderRadius: 16, padding: "clamp(38px,5vw,60px) clamp(24px,4vw,48px)", textAlign: "center", color: "#fff", position: "relative", overflow: "hidden" }}>
-          <div aria-hidden="true" style={{ position: "absolute", inset: 0, backgroundImage: "linear-gradient(rgba(255,255,255,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.06) 1px, transparent 1px)", backgroundSize: "46px 46px", pointerEvents: "none" }} />
-          <div style={{ position: "relative" }}>
-            <h2 style={{ margin: 0, fontSize: "clamp(24px,2.9vw,34px)", lineHeight: 1.2, letterSpacing: "-0.02em", fontWeight: 600, textWrap: "balance" }}>
-              Give your holders answers they can verify.
-            </h2>
-            <p style={{ margin: "16px auto 0", maxWidth: 520, fontSize: "clamp(14.5px,1.1vw,16px)", lineHeight: 1.65, color: "rgba(255,255,255,0.85)" }}>
-              Add TxID to your Team Finance project and give your community 24/7 support for the on-chain questions that
-              normally reach your team.
-            </p>
-            <a href={ONBOARD} className="tf-btn-white" style={{ display: "inline-flex", alignItems: "center", gap: 9, marginTop: 26, background: "#fff", color: BLUE, fontSize: 15, fontWeight: 600, padding: "15px 26px", borderRadius: 8 }}>
-              Get TxID for your project <span>&rarr;</span>
-            </a>
-            <p style={{ margin: "18px 0 0", fontSize: 13, color: "rgba(255,255,255,0.85)" }}>Special rates for Team Finance Pro customers.</p>
-            <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 22, marginTop: 14, fontSize: 13, color: "rgba(255,255,255,0.85)" }}>
-              <span>Custom branded</span>
-              <span>Live in minutes</span>
-              <span>Read-only, evidence-backed</span>
-            </div>
+      {/* Final CTA — flat blue band, Team Finance style */}
+      <section id="cta" style={{ padding: "0 24px clamp(64px,8vw,110px)" }}>
+        <Reveal style={{ maxWidth: 1160, margin: "0 auto", background: BLUE, borderRadius: 18, padding: "clamp(44px,6vw,72px) clamp(24px,4vw,48px)", textAlign: "center", color: "#fff" }}>
+          <h2 style={{ margin: 0, fontSize: "clamp(26px,3vw,38px)", lineHeight: 1.15, letterSpacing: "-0.02em", fontWeight: 600, textWrap: "balance" }}>
+            Give your holders answers they can verify.
+          </h2>
+          <p style={{ margin: "16px auto 0", maxWidth: 540, fontSize: "clamp(15px,1.1vw,16.5px)", lineHeight: 1.65, color: "rgba(255,255,255,0.88)" }}>
+            Add TxID to your Team Finance project and give your community 24/7 support for the on-chain questions that
+            normally reach your team.
+          </p>
+          <a href={ONBOARD} className="tf-btn-white" style={{ display: "inline-flex", alignItems: "center", gap: 9, marginTop: 28, background: "#fff", color: BLUE, fontSize: 15, fontWeight: 600, padding: "15px 28px", borderRadius: 8 }}>
+            Get TxID for your project <span aria-hidden="true">&rarr;</span>
+          </a>
+          <p style={{ margin: "18px 0 0", fontSize: 13, color: "rgba(255,255,255,0.85)" }}>Special rates for Team Finance Pro customers.</p>
+          <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 22, marginTop: 16, fontSize: 13, color: "rgba(255,255,255,0.85)" }}>
+            <span>Custom branded</span>
+            <span>Live in minutes</span>
+            <span>Read-only, evidence-backed</span>
           </div>
         </Reveal>
       </section>
 
-      {/* Footer */}
-      <footer style={{ borderTop: "1px solid #EDEFF6", padding: "26px 24px" }}>
-        <div style={{ maxWidth: 1160, margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 20, flexWrap: "wrap" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <TxidMark size={20} />
-              <span style={{ fontSize: 13.5, fontWeight: 600, color: "#6C4CF7" }}>TxID</span>
+      {/* Footer — richer multi-column, Team Finance style */}
+      <footer style={{ borderTop: "1px solid #EDEFF6", padding: "clamp(40px,5vw,56px) 24px 32px" }}>
+        <div style={{ maxWidth: 1160, margin: "0 auto", display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,200px),1fr))", gap: 32 }}>
+          <div style={{ maxWidth: 300 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 11, marginBottom: 14 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <TxidMark size={20} />
+                <span style={{ fontSize: 14.5, fontWeight: 600, color: "#6C4CF7" }}>TxID</span>
+              </div>
+              <span style={{ width: 1, height: 15, background: "#DCE0EC" }} />
+              <TeamFinanceLogo height={16} />
             </div>
-            <span style={{ width: 1, height: 15, background: "#DCE0EC" }} />
-            <TeamFinanceLogo height={16} />
+            <p style={{ margin: 0, fontSize: 13.5, lineHeight: 1.6, color: "#6C7085" }}>
+              Evidence-backed on-chain support for Team Finance projects.
+            </p>
           </div>
-          <div style={{ display: "flex", gap: 22, fontSize: 13 }}>
-            <a href="https://txid.support" className="tf-foot" style={{ color: "#6C7085" }}>txid.support</a>
-            <a href="https://team.finance" target="_blank" rel="noopener noreferrer" className="tf-foot" style={{ color: "#6C7085" }}>team.finance</a>
-            <a href="/privacy" className="tf-foot" style={{ color: "#6C7085" }}>Privacy</a>
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 600, color: INK, marginBottom: 12 }}>Product</div>
+            <div style={{ display: "grid", gap: 9, fontSize: 13.5 }}>
+              <a href="#what" className="tf-foot" style={{ color: "#6C7085" }}>What it does</a>
+              <a href="#how" className="tf-foot" style={{ color: "#6C7085" }}>How it works</a>
+              <a href="#pricing" className="tf-foot" style={{ color: "#6C7085" }}>Pricing</a>
+            </div>
           </div>
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 600, color: INK, marginBottom: 12 }}>Partners</div>
+            <div style={{ display: "grid", gap: 9, fontSize: 13.5 }}>
+              <a href="https://txid.support" className="tf-foot" style={{ color: "#6C7085" }}>txid.support</a>
+              <a href="https://team.finance" target="_blank" rel="noopener noreferrer" className="tf-foot" style={{ color: "#6C7085" }}>team.finance</a>
+            </div>
+          </div>
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 600, color: INK, marginBottom: 12 }}>Legal</div>
+            <div style={{ display: "grid", gap: 9, fontSize: 13.5 }}>
+              <a href="/privacy" className="tf-foot" style={{ color: "#6C7085" }}>Privacy</a>
+              <a href="/terms" className="tf-foot" style={{ color: "#6C7085" }}>Terms</a>
+            </div>
+          </div>
+        </div>
+        <div style={{ maxWidth: 1160, margin: "clamp(28px,3vw,40px) auto 0", paddingTop: 20, borderTop: "1px solid #EDEFF6", fontSize: 12.5, color: "#8A8FA3" }}>
+          A partnership between TxID and Team Finance.
         </div>
       </footer>
     </div>
