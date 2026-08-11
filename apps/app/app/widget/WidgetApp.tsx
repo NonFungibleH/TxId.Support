@@ -106,6 +106,12 @@ const WIDGET_SIZE_VALUE: Record<string, number> = { standard: 1.0, large: 1.18, 
 // Shared with the dashboard, which reads them back to label a thread. See
 // lib/finding-openers.ts.
 const { FEEDBACK_OPENER, BUG_OPENER } = OPENERS
+
+// Safety net for bug capture. A bug is normally filed when the model calls
+// create_support_ticket (the report is complete). If the model never files, we
+// record anyway once the tester has answered this many questions, so a bug is
+// never lost. The bug flow asks up to two (what + where, expected vs actual).
+const BUG_REPLY_CAP = 2
 /** Default is "large": the base 380x560 reads as small on a dense desktop app. */
 const DEFAULT_WIDGET_SIZE = "large"
 
@@ -155,7 +161,7 @@ interface WidgetConfig {
   /** Actions: AI-prepared, user-signed transactions (opt-in, paid plans). */
   actions?: { enabled: boolean }
   /** Beta programme. Resolved server-side, so null means "not running one". */
-  beta?: { autoOpen: boolean; feedback: boolean; intro?: string | null } | null
+  beta?: { autoOpen: boolean; feedback: boolean; bugReports?: boolean; intro?: string | null } | null
 }
 
 // Returns perceived luminance 0-1; > 0.5 = light background
@@ -317,6 +323,17 @@ const MD_LINK_RE = /^\[([^\]\n]+)\]\((https?:\/\/[^\s)]+)\)$/
 
 const LONG_HEX_RE = /^0x[0-9a-fA-F]{20,}$/
 const MODULE_PATH_RE = /^(0x[0-9a-fA-F]{20,})((?:::[A-Za-z_][A-Za-z0-9_]*)+)$/
+
+// Wallet-format check, mirroring /api/chat/route.ts exactly. Used to reject a
+// bad address from the host's identify() BEFORE it is committed to state: an
+// invalid one would make every chat request 400 while hostIdentified hid the
+// connect UI, bricking the widget with no way out. Keep in sync with the route.
+const WALLET_EVM_RE = /^0x[0-9a-fA-F]{40}$/
+const WALLET_SOL_RE = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/
+const WALLET_APTOS_RE = /^0x[0-9a-fA-F]{1,64}$/
+function isValidWalletFormat(addr: string, chainId?: string | null): boolean {
+  return WALLET_EVM_RE.test(addr) || WALLET_SOL_RE.test(addr) || (chainId === "aptos" && WALLET_APTOS_RE.test(addr))
+}
 
 /**
  * Display form for a long hex value: middle-truncated so a 66 char Aptos
@@ -779,6 +796,11 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
   // the domain guard on widget-config has nothing to check and passes
   // everyone. Found in audit: the loader reported it and this file dropped it.
   const embedHost = params?.get("h") ?? ""
+  // Per-load nonce the loader minted into this URL. window.parent is shared by
+  // every script on the host page, so it authenticates OUR loader (which alone
+  // could read this URL) against a co-resident script posting identify()/open().
+  // Empty when an older loader embeds us: we then fall back to the source check.
+  const embedNonce = params?.get("n") ?? ""
 
   const [config, setConfig] = useState<WidgetConfig | null>(null)
   const [configError, setConfigError] = useState<string | null>(null)
@@ -857,16 +879,17 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
   const hostContext = useRef<{ url?: string; vw?: number; vh?: number }>({})
   useEffect(() => {
     const onMsg = (e: MessageEvent) => {
-      // ONLY the embedding page, same guard the wallet listeners already use.
-      // Without it any co-resident script on the host page (an ad tag, an
-      // analytics snippet, a second widget) could post this and overwrite the
-      // page URL we record, which becomes evidence.request.pageUrl: the Case
-      // Record field and the "where problems were found" insight. That is
-      // evidence a protocol answers to an auditor with, so it must come from
-      // the loader we put on the page, not from anything sharing it.
+      // The page URL this records becomes evidence.request.pageUrl: a Case
+      // Record field a protocol answers to an auditor with, so it must come from
+      // the loader we put on the page, not from anything sharing it. `e.source
+      // === window.parent` is necessary but NOT sufficient: every script in the
+      // host window shares window.parent, so the loader's per-load nonce is what
+      // actually authenticates it against a co-resident ad tag or analytics
+      // snippet. (Empty nonce = older loader; fall back to the source check.)
       if (e.source !== window.parent) return
-      const d = e.data as { type?: string; url?: string; vw?: number; vh?: number } | null
+      const d = e.data as { type?: string; url?: string; vw?: number; vh?: number; nonce?: string } | null
       if (d?.type !== "txid-host-context") return
+      if (embedNonce && d.nonce !== embedNonce) return
       hostContext.current = {
         ...(typeof d.url === "string" ? { url: d.url.slice(0, 500) } : {}),
         ...(typeof d.vw === "number" ? { vw: d.vw } : {}),
@@ -875,7 +898,7 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
     }
     window.addEventListener("message", onMsg)
     return () => window.removeEventListener("message", onMsg)
-  }, [])
+  }, [embedNonce])
 
   const openerFetched = useRef<string | null>(null)
   useEffect(() => {
@@ -960,6 +983,9 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
   const controls = betaControls(config?.beta)
   const awaitingFinding = useRef<"feedback" | "bug" | null>(null)
   const findingRecorded = useRef(false)
+  // The tester's answers during a bug report, accumulated so the report is
+  // filed once, complete, rather than on the first reply. See flushBugReport.
+  const bugReplies = useRef<string[]>([])
   const [ticketName, setTicketName] = useState("")
   const [ticketEmail, setTicketEmail] = useState("")
   // WHAT THE TRANSCRIPT CANNOT KNOW. The ticket already carries the full
@@ -1701,16 +1727,26 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
    * deliberately quiet: telling someone their compliment failed to send is
    * worse than the compliment not sending.
    */
-  const recordFinding = useCallback(async (summary: string, kind: "feedback" | "bug") => {
+  const recordFinding = useCallback(async (
+    summary: string,
+    kind: "feedback" | "bug",
+    convo?: { role: string; content: string }[],
+  ) => {
     try {
       await fetch("/api/tickets", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        // keepalive so a flush fired from pagehide/close still completes after
+        // the widget starts unloading.
+        keepalive: true,
         body: JSON.stringify({
           key: apiKey,
           summary,
           reason: kind,
-          conversation: messagesRef.current.map(m => ({ role: m.role, content: m.content })),
+          // A bug is filed with the WHOLE conversation, passed explicitly, so
+          // both answers (what + where, expected vs actual) are on the report.
+          // Feedback falls back to the live transcript.
+          conversation: convo ?? messagesRef.current.map(m => ({ role: m.role, content: m.content })),
           // Per-user attribution: the wallet the host supplied via identify() or
           // the one connected in the widget, so a bug report can be traced to
           // the user who hit it.
@@ -1721,6 +1757,28 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
       })
     } catch { /* see above */ }
   }, [apiKey, isPreview, previewToken, walletAddress])
+
+  /**
+   * File the accumulated bug report: the tester's own answers as the summary,
+   * the full transcript (with wallet, page and chain auto-attached by
+   * recordFinding) as the detail. Idempotent and guarded so the model's
+   * create_support_ticket call and the reply-cap / close safety nets cannot
+   * double-file. Only fires while a bug is genuinely pending.
+   */
+  const flushBugReport = useCallback((
+    convo: { role: string; content: string }[],
+    fallbackSummary?: string,
+  ) => {
+    if (findingRecorded.current || awaitingFinding.current !== "bug") return
+    findingRecorded.current = true
+    awaitingFinding.current = null
+    const answers = bugReplies.current.filter(Boolean).join("\n\n")
+    bugReplies.current = []
+    void recordFinding(answers || fallbackSummary || "Bug report", "bug", convo)
+    // Back to support: leaving the widget in bug mode would file their next
+    // message as another report.
+    setMode("support")
+  }, [recordFinding])
 
   // ── Submit support ticket ────────────────────────────────────────────────
   const submitTicket = useCallback(async () => {
@@ -1768,19 +1826,44 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
     const msgText = (textArg ?? input).trim()
     if (!msgText || isStreaming || !config) return
 
-    // Pressing Feedback sends a fixed opener. The message AFTER it is the
-    // feedback itself, so capture it here rather than hoping for a tool call.
+    // The mode buttons send a fixed opener; the messages after it are the
+    // report itself. FEEDBACK is one message and done, so capture it here rather
+    // than hoping for a tool call. A BUG is different: we let the assistant
+    // gather BOTH answers (what + where, expected vs actual) and file the WHOLE
+    // conversation when the report is complete, not on the first reply, so an
+    // engineer gets something actionable. Completion is normally the model's
+    // create_support_ticket call (handled in the stream below); the reply cap
+    // here is the safety net so a bug is never lost even if the model never files.
     if (msgText === FEEDBACK_OPENER || msgText === BUG_OPENER) {
       awaitingFinding.current = msgText === BUG_OPENER ? "bug" : "feedback"
       findingRecorded.current = false
+      bugReplies.current = []
     } else if (awaitingFinding.current && !findingRecorded.current) {
-      const kind = awaitingFinding.current
-      awaitingFinding.current = null
-      findingRecorded.current = true
-      void recordFinding(msgText, kind)
-      // Back to support: the report is filed, and leaving the widget in bug
-      // mode would silently file their next question as another one.
-      setMode("support")
+      if (awaitingFinding.current === "feedback") {
+        awaitingFinding.current = null
+        findingRecorded.current = true
+        // Pass the full conversation INCLUDING this reply: messagesRef has not
+        // been updated with it yet (state syncs post-render), so relying on the
+        // fallback would drop the tester's actual note from the transcript.
+        void recordFinding(msgText, "feedback", [
+          ...messagesRef.current.map(m => ({ role: m.role, content: m.content })),
+          { role: "user", content: msgText },
+        ])
+        // Back to support: the note is filed, and leaving the widget in feedback
+        // mode would silently file their next message as another one.
+        setMode("support")
+      } else {
+        // Bug: accumulate this answer. Do NOT file or leave bug mode yet, the
+        // assistant still has its second question to ask. Only the reply cap
+        // forces a record here; the normal path is the model's tool call.
+        bugReplies.current.push(msgText)
+        if (bugReplies.current.length >= BUG_REPLY_CAP) {
+          flushBugReport([
+            ...messagesRef.current.map(m => ({ role: m.role, content: m.content })),
+            { role: "user", content: msgText },
+          ])
+        }
+      }
     }
 
     const userMsg: Message = { id: nanoid(), role: "user", content: msgText }
@@ -1883,10 +1966,19 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
               // wrong instrument: they are not waiting for a reply, and the
               // point of the button is that leaving a note costs nothing.
               if (esc.reason === "feedback" || esc.reason === "bug") {
-                // Fallback only. The button path above has almost always
-                // recorded it already; this covers a report that arrives
-                // without the opener, and never double-records.
-                if (!findingRecorded.current) {
+                if (esc.reason === "bug" && awaitingFinding.current === "bug") {
+                  // The model has filed: the report is complete. This is the
+                  // NORMAL bug path. Record the WHOLE conversation (messagesRef
+                  // now holds both answers), with the tester's own answers as
+                  // the summary and the model's summary as the fallback.
+                  flushBugReport(
+                    messagesRef.current.map(m => ({ role: m.role, content: m.content })),
+                    esc.summary,
+                  )
+                } else if (!findingRecorded.current) {
+                  // Fallback: feedback recording itself, or a report that
+                  // arrived without going through the button opener. The button
+                  // path has usually recorded it already; never double-records.
                   findingRecorded.current = true
                   void recordFinding(esc.summary, esc.reason as "feedback" | "bug")
                 }
@@ -1979,7 +2071,7 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
     // were omitted, which is harmless today only because they never change,
     // and is exactly the omission that turns into a stale closure the moment
     // one of them takes a real dependency.
-  }, [input, isStreaming, config, messages, apiKey, walletAddress, chainId, isPreview, previewToken, walletSetup, hasCurated, markOriented, recordFinding])
+  }, [input, isStreaming, config, messages, apiKey, walletAddress, chainId, isPreview, previewToken, walletSetup, hasCurated, markOriented, recordFinding, flushBugReport])
 
   // ── Host page control (window.txid.* → widget.js → here) ──────────────────
   // The embedding site drives the widget from its own code: identify() supplies
@@ -1991,26 +2083,80 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
   useEffect(() => {
     const onHost = (e: MessageEvent) => {
       if (e.source !== window.parent) return
-      const d = e.data as { type?: string; wallet?: string; chainId?: string; mode?: string } | null
+      const d = e.data as { type?: string; wallet?: string; chainId?: string; mode?: string; nonce?: string } | null
       if (!d || typeof d.type !== "string") return
-      if (d.type === "txid-identify" && typeof d.wallet === "string" && d.wallet.trim()) {
-        // Host-asserted identity: an identifier for attribution, not a signed
-        // proof. It suppresses the connect prompt (walletAddress is now set) and
-        // rides along on the bug report.
+      // window.parent is shared by every script on the host page, so authenticate
+      // the loader by the per-load nonce before honouring anything that sets a
+      // wallet or pops a report. Empty nonce = older loader, fall back to source.
+      if (embedNonce && d.nonce !== embedNonce) return
+
+      if (d.type === "txid-identify") {
+        const w = typeof d.wallet === "string" ? d.wallet.trim().slice(0, 128) : ""
+        const cid = typeof d.chainId === "string" && d.chainId ? d.chainId : chainId
+        // REJECT a wrong-format wallet instead of committing it. An ENS name, a
+        // shortened "0x12…ab", or a missing 0x would make /api/chat 400 on every
+        // message while hostIdentified hid the connect UI, leaving a permanently
+        // dead widget with no recovery. Rejecting it keeps the normal connect UI.
+        if (!w || !isValidWalletFormat(w, cid)) {
+          if (w) console.warn("[txid] identify() ignored: not a valid wallet address")
+          return
+        }
+        // Host identity is asserted, never signed: an identifier for attribution,
+        // not proof. Treat it as a MANUAL wallet so walletMode stays "manual" and
+        // the Actions gate stays closed even if the user connected in-widget first.
         setHostIdentified(true)
-        setWalletAddress(d.wallet.trim())
+        setWalletSetup("manual")
+        setWalletAddress(w)
         if (typeof d.chainId === "string" && d.chainId) setChainId(d.chainId)
         return
       }
+
+      // The user dismissed the panel via the host launcher (or window.txid.close),
+      // which never reaches our in-frame close handler, so a half-answered bug
+      // would be lost. File what we have.
+      if (d.type === "txid-closing") {
+        if (awaitingFinding.current === "bug" && bugReplies.current.length > 0) {
+          flushBugReport(messagesRef.current.map(m => ({ role: m.role, content: m.content })))
+        }
+        return
+      }
+
       if (d.type === "txid-open") {
-        if (d.mode === "bug") { setMode("bug"); void sendMessage(BUG_OPENER) }
-        else if (d.mode === "feedback") { setMode("feedback"); void sendMessage(FEEDBACK_OPENER) }
+        const c = betaControls(config?.beta)
+        const wants = d.mode === "bug" ? "bug" : d.mode === "feedback" ? "feedback" : null
+        const allowed = wants === "bug" ? c.bugs : wants === "feedback" ? c.feedback : false
+        // Plain open, or a report mode this project does not run: the loader has
+        // already opened the panel to support, so do nothing here.
+        if (!wants || !allowed) return
+        // Already in this exact report: do not re-send the opener (which would
+        // reset findingRecorded and re-arm recording, risking a second ticket).
+        if (awaitingFinding.current === wants) return
+        // Switching from a half-answered bug into a different report: file it first.
+        if (awaitingFinding.current === "bug" && bugReplies.current.length > 0) {
+          flushBugReport(messagesRef.current.map(m => ({ role: m.role, content: m.content })))
+        }
+        setMode(wants)
+        void sendMessage(wants === "bug" ? BUG_OPENER : FEEDBACK_OPENER)
         return
       }
     }
     window.addEventListener("message", onHost)
     return () => window.removeEventListener("message", onHost)
-  }, [sendMessage])
+  }, [sendMessage, config, chainId, embedNonce, flushBugReport])
+
+  // Last-ditch flush: a tester who answered part of a bug report and then
+  // navigated the host SPA or closed the tab (without any close gesture we see)
+  // still gave us signal. pagehide is the one unload event that fires reliably
+  // on mobile; recordFinding posts with keepalive so it survives the unload.
+  useEffect(() => {
+    const onHide = () => {
+      if (awaitingFinding.current === "bug" && bugReplies.current.length > 0) {
+        flushBugReport(messagesRef.current.map(m => ({ role: m.role, content: m.content })))
+      }
+    }
+    window.addEventListener("pagehide", onHide)
+    return () => window.removeEventListener("pagehide", onHide)
+  }, [flushBugReport])
 
   const sendActionResult = useCallback(async (actionId: string, txHash: string, status: "confirmed" | "failed", gasUsed?: string, blockNumber?: string) => {
     if (!config) return
@@ -2214,6 +2360,18 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
             </span>
           )}
         </span>
+        {/* Host supplied the wallet from their own site: show it read-only (no
+            disconnect) so the user can still see which address the agent is
+            acting on, consistent with the anti-lookalike-scam framing. */}
+        {!isTokenMode && !b.hideWallet && hostIdentified && walletAddress && (
+          <span
+            title={walletAddress}
+            className="flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-mono"
+            style={{ backgroundColor: b.secondaryColor, color: onSecondary }}
+          >
+            {shortAddr(walletAddress)}
+          </span>
+        )}
         {!isTokenMode && !b.hideWallet && !hostIdentified && (
           walletAddress ? (
             <button
@@ -2288,6 +2446,12 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
           type="button"
           aria-label="Close"
           onClick={() => {
+            // A tester who answered part of a bug report and then closed the
+            // widget still gave us real signal. File what we have rather than
+            // lose it, in case the model never got to file it itself.
+            if (awaitingFinding.current === "bug" && bugReplies.current.length > 0) {
+              flushBugReport(messagesRef.current.map(m => ({ role: m.role, content: m.content })))
+            }
             if (onClose) {
               onClose()
             } else if (typeof window !== "undefined" && window.parent !== window) {
@@ -2927,9 +3091,14 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
                         key={m.id}
                         onClick={() => {
                           if (m.id === mode) return
+                          // A half-answered BUG is real signal: file it before
+                          // leaving bug mode for ANY other tab, not just Support,
+                          // otherwise switching Bug -> Feedback drops it silently.
+                          if (awaitingFinding.current === "bug" && bugReplies.current.length > 0) {
+                            flushBugReport(messagesRef.current.map(mm => ({ role: mm.role, content: mm.content })))
+                          }
                           setMode(m.id)
-                          // Support is the resting state, so choosing it just
-                          // cancels: nothing is sent and nothing is filed.
+                          // Support is the resting state: nothing is sent.
                           if (m.id === "support") { awaitingFinding.current = null; return }
                           sendMessage(m.id === "bug" ? BUG_OPENER : FEEDBACK_OPENER)
                         }}

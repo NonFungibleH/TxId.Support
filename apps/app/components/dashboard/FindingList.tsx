@@ -77,11 +77,18 @@ export function FindingList({ findings, emptyHint }: { findings: Finding[]; empt
                   {f.wallet_address && (
                     <>
                       <span className="opacity-40">·</span>
-                      <span className="font-mono" title={f.wallet_address}>
+                      {/* Asserted by the host site, not proven by a signature.
+                          Labelled so a support lead does not read it as an
+                          authenticated wallet. */}
+                      <span
+                        className="font-mono"
+                        title={`${f.wallet_address} (asserted by the host site, not a signed proof of ownership)`}
+                      >
                         {f.wallet_address.length > 13
                           ? `${f.wallet_address.slice(0, 6)}…${f.wallet_address.slice(-4)}`
                           : f.wallet_address}
                       </span>
+                      <span className="opacity-50">(unverified)</span>
                     </>
                   )}
                   {turns.length > 0 && (

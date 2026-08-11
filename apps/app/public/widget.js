@@ -133,7 +133,22 @@
   // popup for a cross-origin iframe, so the connect has to run up here on the
   // host page. These two carry the signed preview token through.
   var previewToken = script.getAttribute("data-pt");
+  // Per-load nonce, minted here and threaded into the iframe URL (?n=) and onto
+  // every control message we post into the frame. window.parent is shared by
+  // EVERY script on the host page, so `e.source === window.parent` cannot tell
+  // OUR loader apart from a co-resident ad tag or analytics snippet. The nonce
+  // can: only code that read our iframe's own URL knows it. Not a secret against
+  // the frame itself, just against its same-window neighbours.
+  var NONCE = (function () {
+    try {
+      var a = new Uint8Array(16);
+      (window.crypto || window.msCrypto).getRandomValues(a);
+      var s = ""; for (var i = 0; i < a.length; i++) s += (a[i] + 0x100).toString(16).slice(1);
+      return s;
+    } catch (e) { return String(new Date().getTime()) + Math.random().toString(16).slice(2); }
+  })();
   iframe.src = BASE + "/widget?key=" + encodeURIComponent(key) +
+    "&n=" + encodeURIComponent(NONCE) +
     (script.getAttribute("data-preview") === "1" ? "&preview=1" : "") +
     // Forwarded so the iframe knows this is a deliberate owner launch: the
     // widget suppresses auto-open in preview mode, and without this flag the
@@ -172,7 +187,7 @@
   var iframeReady = false;
   var queuedIdentity = null;
   var queuedOpen = null;
-  function sendToFrame(msg) { try { iframe.contentWindow.postMessage(msg, BASE); } catch (err) { /* frame gone */ } }
+  function sendToFrame(msg) { try { if (msg && typeof msg === "object") msg.nonce = NONCE; iframe.contentWindow.postMessage(msg, BASE); } catch (err) { /* frame gone */ } }
   function flushHostQueue() {
     if (queuedIdentity) { sendToFrame(queuedIdentity); }
     if (queuedOpen) { setOpen(true); sendToFrame(queuedOpen); queuedOpen = null; }
@@ -215,6 +230,10 @@
       wrap.classList.remove("open");
       btn.innerHTML = CHAT_ICON;
       btn.setAttribute("aria-label", "Open support chat");
+      // Closing via the LAUNCHER (or window.txid.close()) never reaches the
+      // iframe's own close handler, so a half-answered bug report would be lost.
+      // Tell the frame it is closing so it can file what it has.
+      sendToFrame({ type: "txid-closing" });
     }
   }
 
@@ -237,7 +256,8 @@
         url: String(location.href).slice(0, 500),
         vw: window.innerWidth,
         vh: window.innerHeight,
-      }, "*");
+        nonce: NONCE,
+      }, BASE);
     } catch (e) { /* fine: context is best-effort */ }
   }
   iframe.addEventListener("load", postHostContext);
@@ -575,6 +595,13 @@
   }
 
   window.addEventListener("message", function (e) {
+    // AUTHENTICATE FIRST, for every message type. Every message this listener
+    // handles (ready/inactive/autoopen/close/resize/brand/wallet) legitimately
+    // originates from our own iframe, so pin origin AND source up front. Without
+    // this at the top, a co-resident script or a nested ad iframe on the host
+    // page could post "txid-ready" (revealing the launcher on an inactive
+    // project, undoing that guarantee), "txid-autoopen", "txid-close", etc.
+    if (e.origin !== BASE || e.source !== iframe.contentWindow) return;
     // Close when the iframe posts a "txid-close" message
     // The widget has loaded its config and that project runs a beta programme
     // with auto-open on. Asked for by the iframe rather than decided up here,
@@ -634,9 +661,6 @@
       }
       return;
     }
-
-    // Wallet messages are sensitive: only ever honour them from OUR own iframe.
-    if (e.origin !== BASE || e.source !== iframe.contentWindow) return;
 
     if (e.data && e.data.type === "txid-brand" && typeof e.data.primaryColor === "string") {
       // Only accept a plain hex colour: this value goes straight into a style

@@ -283,9 +283,9 @@ export function buildSystemPrompt(params: StreamChatParams): string {
         ? `\n**Bug reports are a separate thing, and shorter.**\n` +
           `The exact opener "I want to report a bug." means something is broken. Follow the same rules, with a different question set.\n` +
           `Ask UP TO TWO short questions, one at a time, and only ones whose answer you do not already have:\n` +
-          `  1. What were you trying to do?\n` +
-          `  2. WHERE in the product, and what happened instead? Name the screen, the button or the link if they can. "A broken link" is unactionable; "the Docs link in the footer" is a fix.\n` +
-          `Stop as soon as you could hand it to an engineer who has never seen the product and they would know where to look. If their first answer already contains the what and the where, ask nothing and record it.\n` +
+          `  1. What were you trying to do, and WHERE in the product? Name the screen, the button or the link if they can. "A broken link" is unactionable; "the Docs link in the footer" is a fix.\n` +
+          `  2. What did you EXPECT to happen, and what happened instead? The gap between expected and actual is the single most useful line an engineer can get, so capture it unless their first answer already made it plain.\n` +
+          `Stop as soon as you could hand it to an engineer who has never seen the product and they would know where to look and what is wrong. If their first answer already contains the what, the where and the expected-vs-actual, ask nothing and record it.\n` +
           `DO NOT ask which browser, which wallet, which network, what time it happened, or for a transaction hash. We already have all of it: the page they were on, their wallet and chain, their browser, the whole conversation and the chain state at that moment are attached to the report automatically. Asking a tester to type facts we already hold is how bug reports go unfiled.\n` +
           `Then call create_support_ticket with reason "bug" and a summary in THEIR words. Confirm it is logged, and never promise a fix or a timeline: that is the team's to give, not yours.\n`
         : ``)
