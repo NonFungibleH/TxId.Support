@@ -9,6 +9,7 @@ import type { Database } from "@/lib/supabase/types"
 import { log } from "@/lib/logger"
 import { rateLimit } from "@/lib/rate-limit"
 import { TELEGRAM_LIMITS } from "@/lib/limits"
+import { checkSpendBudget } from "@/lib/spend-guard"
 import { dispatchEscalation } from "@/lib/integrations/escalation"
 
 // The tool loop makes real on-chain reads across up to 5 rounds, so a reply
@@ -308,10 +309,27 @@ export async function POST(
   const tgLimits = await Promise.all([
     rateLimit(`tg:${project.id}:${message.chat.id}`, TELEGRAM_LIMITS.perChatPerWindow, TELEGRAM_LIMITS.windowMs),
     rateLimit(`tg:${project.id}:u:${message.from.id}`, TELEGRAM_LIMITS.perUserPerWindow, TELEGRAM_LIMITS.windowMs),
+    // Daily ceiling per chat. The per-minute windows bound the RATE but not
+    // the total: a busy group at 20 msgs/min could still run ~29k full tool
+    // loops in a day with the monthly quota never biting (one chat is one
+    // conversation forever). This is the Telegram equivalent of the widget's
+    // per-session message cap.
+    rateLimit(`tg-day:${project.id}:${message.chat.id}`, TELEGRAM_LIMITS.perChatPerDay, 86_400_000),
   ])
   if (tgLimits.some(r => !r.allowed)) {
     log.warn("Telegram rate limited", { event: "telegram.rate_limited", projectId: project.id, chatId: String(message.chat.id) })
     // 200 so Telegram does not retry the update into the same wall.
+    return new Response("OK", { status: 200 })
+  }
+
+  // Last line of defence on cost, same breaker the widget chat runs behind.
+  // Telegram was the one surface that skipped it: a spammy group ran the full
+  // tool loop all day with no automatic stop. Checked after the cheap rate
+  // limits and before any model call, so a breach costs nothing.
+  const tgBudget = await checkSpendBudget(supabase, project.id)
+  if (!tgBudget.allowed) {
+    log.warn("Telegram blocked by spend guard", { event: "telegram.spend_blocked", projectId: project.id, scope: tgBudget.scope })
+    // Silent to the chat: a budget message in a public group invites probing.
     return new Response("OK", { status: 200 })
   }
 

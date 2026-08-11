@@ -89,6 +89,9 @@ export default async function DashboardPage() {
       .from("conversations")
       .select("id", { count: "exact", head: true })
       .eq("project_id", typedProject.id)
+      // Match quota enforcement: preview sessions never count, so they must
+      // not inflate the usage bar either.
+      .not("session_id", "like", "preview-%")
       .gte("created_at", monthStart.toISOString()),
     supabase
       .from("conversations")

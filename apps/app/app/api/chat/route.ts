@@ -24,7 +24,11 @@ import { demoContractsFor, demoContractDescription, DEMO_PROTOCOLS } from "@/lib
 // then reads collateral, positions and history) sit at the heavy end. The
 // platform default cuts that off mid-answer, so raise it: streaming keeps
 // the connection open but the function still has to be allowed to live.
-export const maxDuration = 60
+// 300, not 60: a worst-case turn (5 tool rounds x up to 25s tool timeout,
+// plus the model streams and the suggestions call) arithmetically clears 60s,
+// and Vercel killed it mid-stream with no [DONE], no error event and no
+// persist. Fluid Compute is enabled on this project, which allows 300.
+export const maxDuration = 300
 
 // The public demo key. Checks BOTH env names so the exemption works whether
 // Vercel has DEMO_WIDGET_KEY, NEXT_PUBLIC_DEMO_WIDGET_KEY, or both set to it.
@@ -181,10 +185,25 @@ export async function POST(request: Request) {
     let inspectContracts: ProjectConfigSnapshot["watchedContracts"] | null = null
     let inspectMode = false
 
-    // Cap message history to prevent context-stuffing / runaway LLM costs
+    // Cap message history to prevent context-stuffing / runaway LLM costs.
+    //
+    // REJECT non-string content outright rather than passing it through: the
+    // Anthropic API accepts content-block ARRAYS, so `content: [{type:"text",
+    // text:"<200k chars>"}]` used to sail past the per-message character cap
+    // entirely, re-sent on every tool round, inside the spend-guard's cache
+    // window. The length cap only means anything if every message is a string.
+    // Roles are pinned for the same reason: this array goes to the model as-is.
+    for (const m of messages.slice(-CHAT_LIMITS.maxHistoryMessages)) {
+      if (typeof m?.content !== "string" || (m.role !== "user" && m.role !== "assistant")) {
+        return new Response(JSON.stringify({ error: "Malformed message history" }), {
+          status: 400,
+          headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
+        })
+      }
+    }
     const safeMessages = messages
       .slice(-CHAT_LIMITS.maxHistoryMessages)
-      .map(m => ({ ...m, content: typeof m.content === "string" ? m.content.slice(0, CHAT_LIMITS.maxMessageChars) : m.content }))
+      .map(m => ({ ...m, content: (m.content as string).slice(0, CHAT_LIMITS.maxMessageChars) }))
 
     // F2: validate wallet address format before it touches any downstream URL
     // Accepts EVM (0x + 40 hex), Solana (base58, 32-44 chars), or Aptos
@@ -486,20 +505,34 @@ export async function POST(request: Request) {
       // New session - atomically claim a slot against the monthly + daily caps.
       const { monthly, daily } = conversationLimitsFor(plan)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: slot } = await (supabase as any).rpc("claim_conversation_slot", {
+      const { data: slot, error: slotError } = await (supabase as any).rpc("claim_conversation_slot", {
         p_project_id: typedProject.id,
         p_session_id: sessionId,
         p_monthly_limit: monthly === Infinity ? -1 : monthly,
         p_daily_limit: daily === Infinity ? -1 : daily,
       })
-      if (slot === "month_limit") {
-        return new Response(JSON.stringify({ error: "Monthly conversation limit reached. Contact us to upgrade." }), {
-          status: 429,
-          headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
-        })
+      // The RPC missing (schema drift, a documented recurring failure here)
+      // used to FAIL OPEN: `slot` came back undefined, neither branch fired,
+      // and no cap was enforced at all, silently. Fall back to a plain count
+      // so a drifted deployment still enforces the monthly ceiling; the
+      // advisory-lock atomicity is lost in the fallback, the cap is not.
+      let effectiveSlot: string | undefined = slot
+      if (slotError && monthly !== Infinity) {
+        log.error("claim_conversation_slot RPC failed; using fallback count", slotError, { event: "chat.quota_rpc_failed", projectId: typedProject.id })
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { count } = await (supabase as any)
+          .from("conversations")
+          .select("id", { count: "exact", head: true })
+          .eq("project_id", typedProject.id)
+          .not("session_id", "like", "preview-%")
+          .gte("created_at", new Date(Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth(), 1)).toISOString())
+        effectiveSlot = typeof count === "number" && count >= monthly ? "month_limit" : "ok"
       }
-      if (slot === "day_limit") {
-        return new Response(JSON.stringify({ error: "Daily conversation limit reached. Please try again tomorrow." }), {
+      // NEUTRAL END-USER COPY. This message renders in the customer's widget
+      // to the PROTOCOL'S user, who cannot upgrade anything; billing language
+      // belongs in the dashboard, which has its own usage warnings.
+      if (effectiveSlot === "month_limit" || effectiveSlot === "day_limit") {
+        return new Response(JSON.stringify({ error: "The assistant is temporarily unavailable. Please try again later, or reach the team through their usual support channels." }), {
           status: 429,
           headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
         })
@@ -694,13 +727,72 @@ export async function POST(request: Request) {
 
     // Stream the response - Claude uses tools as needed for on-chain data
     const encoder = new TextEncoder()
+    let streamCancelled = false
     const stream = new ReadableStream({
       async start(controller) {
+        // A closed tab mid-answer used to throw out of enqueue, and the throw
+        // skipped BOTH the transcript write and the token_usage row: the case
+        // record lost the turn (against the product's core claim) and the
+        // spend breaker undercounted exactly the connect-fire-disconnect
+        // pattern an abuser would use. safeEnqueue swallows the cancellation
+        // and lets the model loop RUN TO COMPLETION - deliberate: the cost is
+        // already committed, and finishing means the answer, evidence and
+        // usage all still land in the record.
+        const safeEnqueue = (chunk: Uint8Array) => {
+          if (streamCancelled) return
+          try { controller.enqueue(chunk) } catch { streamCancelled = true }
+        }
+
+        let fullResponseText = ""
+        let wasEscalated = false
+        let usage: { inputTokens: number; outputTokens: number; cacheReadTokens: number; cacheWriteTokens: number; model: string } | null = null
+        const toolEvidence: ToolEvidence[] = []
+
+        // Persistence for the WHOLE turn, called exactly once from `finally`
+        // so it runs on the happy path, on an error, and on a disconnect
+        // alike, with whatever partial state exists at that moment.
+        const persistTurn = async () => {
+          // Assemble the provenance list: what the tools touched, which
+          // documentation pages backed it and at which version, and any hash
+          // the USER supplied, kept distinct from ones we found.
+          const merged = mergeToolEvidence(toolEvidence)
+          const lastUser = [...safeMessages].reverse().find(m => m.role === "user")
+          const provenance = [
+            ...merged.sources,
+            ...(await documentationSources(supabase, typedProject.id, retrievalEvidence?.sources ?? []).catch(() => [])),
+            ...(lastUser ? userSuppliedHashes(lastUser.content, chainId ?? undefined) : []),
+          ]
+
+          // Which figures in the answer trace to nothing that was read. The
+          // fatal failure for this product is a confident, specific, wrong
+          // NUMBER about a user's own position, and that class is mechanically
+          // checkable because every legitimate figure came from a tool result
+          // or a documentation excerpt.
+          const unverified = unverifiedNumbers(fullResponseText, merged.numbers, ragContext)
+
+          const grounding: AnswerEvidence["grounding"] = merged.anyReadSucceeded
+            ? "verified"
+            : (retrievalEvidence?.matched ?? 0) > 0
+              ? "documented"
+              : "ungrounded"
+
+          // The action-update marker is a system-generated status note, not a
+          // user turn - persist it as an assistant-side row so it never counts
+          // against the per-session user-message cap on subsequent requests.
+          await persistMessages(supabase, typedProject.id, sessionId, validActionResult ? [...safeMessages, { role: "assistant" as const, content: `⚙️ Action update: ${validActionResult.row.summary ?? "transaction"} ${validActionResult.confirmed ? "confirmed" : "failed"} (${validActionResult.txHash})` }] : safeMessages, walletAddress, chainId, fullResponseText || undefined, usage, {
+            ...requestEvidence,
+            investigation: merged,
+            ...(retrievalEvidence ? { retrieval: retrievalEvidence } : {}),
+            ...(provenance.length ? { sources: provenance } : {}),
+            ...(unverified.length ? { unverifiedNumbers: unverified } : {}),
+            grounding,
+            ...(chainId ? { chainId } : {}),
+            surface: "widget",
+            ...(config.branding?.language ? { language: config.branding.language } : {}),
+          }, visitorId)
+        }
+
         try {
-          let fullResponseText = ""
-          let wasEscalated = false
-          let usage: { inputTokens: number; outputTokens: number; cacheReadTokens: number; cacheWriteTokens: number; model: string } | null = null
-          const toolEvidence: ToolEvidence[] = []
 
           const streamMessages = validActionResult
             ? [
@@ -757,18 +849,19 @@ export async function POST(request: Request) {
               fullResponseText += event.text
               data = `data: ${JSON.stringify({ text: event.text })}\n\n`
             }
-            controller.enqueue(encoder.encode(data))
+            safeEnqueue(encoder.encode(data))
           }
 
           // Generate contextual follow-up chips after the main response.
           // Skipped when the team has curated its own chips: the widget would
-          // ignore these anyway, so don't pay for the extra model call.
+          // ignore these anyway, so don't pay for the extra model call. Also
+          // skipped when nobody is listening any more.
           const hasCuratedChips = (config.suggestedQuestions ?? []).some(q => q.trim().length > 0)
-          if (!wasEscalated && !hasCuratedChips && fullResponseText.length > 20) {
+          if (!streamCancelled && !wasEscalated && !hasCuratedChips && fullResponseText.length > 20) {
             try {
               const items = await generateSuggestions(safeMessages, fullResponseText, ragContext)
               if (items.length > 0) {
-                controller.enqueue(
+                safeEnqueue(
                   encoder.encode(`data: ${JSON.stringify({ suggestions: { items } })}\n\n`),
                 )
               }
@@ -777,32 +870,7 @@ export async function POST(request: Request) {
             }
           }
 
-          controller.enqueue(encoder.encode("data: [DONE]\n\n"))
-
-          // Persist user message + assistant response after stream completes
-          // Assemble the provenance list: what the tools touched, which
-          // documentation pages backed it and at which version, and any hash
-          // the USER supplied, kept distinct from ones we found.
-          const merged = mergeToolEvidence(toolEvidence)
-          const lastUser = [...safeMessages].reverse().find(m => m.role === "user")
-          const provenance = [
-            ...merged.sources,
-            ...(await documentationSources(supabase, typedProject.id, retrievalEvidence?.sources ?? []).catch(() => [])),
-            ...(lastUser ? userSuppliedHashes(lastUser.content, chainId ?? undefined) : []),
-          ]
-
-          // Which figures in the answer trace to nothing that was read. The
-          // fatal failure for this product is a confident, specific, wrong
-          // NUMBER about a user's own position, and that class is mechanically
-          // checkable because every legitimate figure came from a tool result
-          // or a documentation excerpt.
-          const unverified = unverifiedNumbers(fullResponseText, merged.numbers, ragContext)
-
-          const grounding: AnswerEvidence["grounding"] = merged.anyReadSucceeded
-            ? "verified"
-            : (retrievalEvidence?.matched ?? 0) > 0
-              ? "documented"
-              : "ungrounded"
+          safeEnqueue(encoder.encode("data: [DONE]\n\n"))
 
           // NO CAVEAT IS APPENDED TO THE ANSWER. Removed 2026-08-07.
           //
@@ -817,10 +885,10 @@ export async function POST(request: Request) {
           // costs exactly the one occasion it matters.
           //
           // NOTHING ABOUT THE DETECTION CHANGED. `grounding` and
-          // `unverifiedNumbers` are still computed and still written to
-          // messages.evidence below, still drive the `untraceable_figures` and
-          // `ungrounded` ticket signals, the basis badge and the gaps view. The
-          // team still sees every one of these; the end user no longer does.
+          // `unverifiedNumbers` are still computed inside persistTurn and still
+          // written to messages.evidence, still drive the `untraceable_figures`
+          // and `ungrounded` ticket signals, the basis badge and the gaps view.
+          // The team still sees every one of these; the end user no longer does.
           //
           // WHAT IT GIVES UP, PLAINLY: an ungrounded answer now looks
           // identical to a verified one to the person reading it. That was the
@@ -828,38 +896,37 @@ export async function POST(request: Request) {
           // needs claim-level provenance (roadmap a-audit-*) so the warning
           // attaches to the specific claim that lacks support, rather than a
           // blanket line under an answer that is mostly sourced.
-
-          // The action-update marker is a system-generated status note, not a
-          // user turn - persist it as an assistant-side row so it never counts
-          // against the per-session user-message cap on subsequent requests.
+        } catch (err) {
+          log.error("Chat stream error", err, { event: "chat.stream_error", projectId: typedProject.id })
+          // For our own demo/publicDemo projects, surface the real reason to make
+          // the demo creator debuggable. Never leak internals to real customers.
+          const detail = isDemo ? `: ${(err instanceof Error ? err.message : String(err)).slice(0, 300)}` : ""
+          safeEnqueue(
+            encoder.encode(`data: ${JSON.stringify({ error: `Stream error${detail}` })}\n\n`),
+          )
+        } finally {
+          // Persist on EVERY path - happy, errored, or disconnected - with
+          // whatever partial state exists. Before this ran only on the happy
+          // path, so a tab closed mid-answer erased the turn from the case
+          // record and its usage row from the spend breaker.
+          //
           // waitUntil, NOT void. A bare void meant the serverless function
           // could be FROZEN the instant the stream closed, so whether a
           // conversation was ever persisted was a race the platform usually
           // won: an empty Conversations tab after real conversations.
           // waitUntil keeps the function alive until the write completes
           // without delaying the stream's close by a millisecond.
-          waitUntil(persistMessages(supabase, typedProject.id, sessionId, validActionResult ? [...safeMessages, { role: "assistant" as const, content: `⚙️ Action update: ${validActionResult.row.summary ?? "transaction"} ${validActionResult.confirmed ? "confirmed" : "failed"} (${validActionResult.txHash})` }] : safeMessages, walletAddress, chainId, fullResponseText || undefined, usage, {
-            ...requestEvidence,
-            investigation: merged,
-            ...(retrievalEvidence ? { retrieval: retrievalEvidence } : {}),
-            ...(provenance.length ? { sources: provenance } : {}),
-            ...(unverified.length ? { unverifiedNumbers: unverified } : {}),
-            grounding,
-            ...(chainId ? { chainId } : {}),
-            surface: "widget",
-            ...(config.branding?.language ? { language: config.branding.language } : {}),
-          }, visitorId))
-        } catch (err) {
-          log.error("Chat stream error", err, { event: "chat.stream_error", projectId: typedProject.id })
-          // For our own demo/publicDemo projects, surface the real reason to make
-          // the demo creator debuggable. Never leak internals to real customers.
-          const detail = isDemo ? `: ${(err instanceof Error ? err.message : String(err)).slice(0, 300)}` : ""
-          controller.enqueue(
-            encoder.encode(`data: ${JSON.stringify({ error: `Stream error${detail}` })}\n\n`),
-          )
-        } finally {
-          controller.close()
+          waitUntil(persistTurn().catch(err =>
+            log.error("Chat persist failed", err, { event: "chat.persist_error", projectId: typedProject.id }),
+          ))
+          try { controller.close() } catch { /* already closed by cancellation */ }
         }
+      },
+      cancel() {
+        // The client went away (tab close, navigation). Flag it so enqueues
+        // become no-ops; the model loop finishes and persistTurn still records
+        // the completed turn + usage.
+        streamCancelled = true
       },
     })
 

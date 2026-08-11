@@ -87,6 +87,9 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Se
     .from("conversations")
     .select("id", { count: "exact", head: true })
     .eq("project_id", projectId)
+    // Match quota enforcement: preview sessions never count toward the quota,
+    // so they must not inflate the usage figure either.
+    .not("session_id", "like", "preview-%")
     .gte("created_at", monthStart.toISOString())
 
   const monthlyUsed = monthlyCount ?? 0

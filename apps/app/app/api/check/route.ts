@@ -47,8 +47,16 @@ export async function POST(request: Request) {
   try {
     const ip = clientIp(request)
     // Generous but real: this guards RPC/indexer spend, not an LLM bill.
-    const { allowed } = await rateLimit(`check:${ip}`, 20, 60_000, { degradedLimit: 8 })
-    if (!allowed) {
+    // The GLOBAL bucket exists because per-IP alone is farmable: a botnet of
+    // fresh IPs sending never-mined hashes (each one a unique cache key that
+    // fans out across every chain, twice) could exhaust the Moralis/explorer
+    // quota that PAYING widgets' tool calls share. 600/min globally is far
+    // above organic use of a free utility and still caps the worst case.
+    const [perIp, global] = await Promise.all([
+      rateLimit(`check:${ip}`, 20, 60_000, { degradedLimit: 8 }),
+      rateLimit(`check:global`, 600, 60_000, { degradedLimit: 120 }),
+    ])
+    if (!perIp.allowed || !global.allowed) {
       return json({ error: "Too many checks in a short time. Please wait a moment and try again." }, 429)
     }
 

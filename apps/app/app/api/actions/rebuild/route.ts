@@ -1,5 +1,6 @@
 import { createServiceClient } from "@/lib/supabase/server"
 import { rateLimit, clientIp } from "@/lib/rate-limit"
+import { originAllowed, originRefused } from "@/lib/origin-guard"
 import { actionsGate, effectiveMaxSwapUsd } from "@/lib/actions-gate"
 import type { ProjectConfig, Plan } from "@/lib/types/config"
 import { prepareSwap, prepareContractAction } from "@txid/ai"
@@ -45,6 +46,11 @@ export async function POST(request: Request) {
     const typed = project as { id: string; config: unknown }
     const config = typed.config as ProjectConfig
     const plan = (config.plan ?? "free") as Plan
+
+    // Same origin guard as every other widget endpoint. A lifted publishable
+    // key could otherwise fetch fresh quotes/estimates cross-origin (bounded
+    // RPC cost, but no reason to allow it).
+    if (!originAllowed(request, config.allowedDomains)) return originRefused(CORS_HEADERS)
 
     const { data: row } = await supabase
       .from("action_events")

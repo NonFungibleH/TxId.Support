@@ -158,10 +158,10 @@ export function ChainToggles({ projectId, initialChains, chainUsage, plan, chain
         <div className="flex items-start gap-3 rounded-lg border border-indigo-500/30 bg-indigo-500/10 px-4 py-3">
           <Lock className="size-4 text-indigo-400 shrink-0 mt-0.5" />
           <p className="text-sm text-indigo-300">
-            {plan === "free" || plan === "starter"
-              ? <><Link href="/dashboard/account" className="underline underline-offset-2 hover:text-white">Upgrade to Pro</Link> to unlock up to 3 chains.</>
-              : <>You&apos;ve reached the Pro limit of 3 chains. <a href="mailto:team@txid.support" className="underline underline-offset-2 hover:text-white">Contact us</a> for Enterprise access.</>
-            }
+            {/* Copy matches PLAN_CHAIN_LIMITS: free/starter/pro are single-chain;
+                multi-chain is Enterprise/Custom. The old line promised "3 chains
+                on Pro", which no tier delivers. */}
+            <><Link href="/dashboard/upgrade" className="underline underline-offset-2 hover:text-white">Talk to us about Enterprise</Link> to watch contracts on more than one chain.</>
           </p>
         </div>
       )}

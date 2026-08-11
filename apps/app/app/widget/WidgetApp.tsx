@@ -1921,13 +1921,22 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
       const reader = res.body.getReader()
       const decoder = new TextDecoder()
       let accumulated = ""
+      // SSE events are NOT aligned to network chunks: a `data:` line can be
+      // split across two reads, and the old per-chunk parse silently dropped
+      // whichever half failed JSON.parse - lost words at best, a lost
+      // `escalate` or `wallet_action` (the ticket form / signing card never
+      // appearing) at worst. Buffer and only parse complete lines; and decode
+      // with {stream:true} so a multibyte char split across chunks survives.
+      let sseBuf = ""
 
       while (true) {
         const { done, value } = await reader.read()
         if (done) break
 
-        const raw = decoder.decode(value)
-        for (const line of raw.split("\n")) {
+        sseBuf += decoder.decode(value, { stream: true })
+        const sseLines = sseBuf.split("\n")
+        sseBuf = sseLines.pop() ?? ""
+        for (const line of sseLines) {
           if (!line.startsWith("data:")) continue
           const payload = line.slice(5).trim()
           if (payload === "[DONE]") break
@@ -2180,10 +2189,15 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
       const reader = res.body.getReader()
       const decoder = new TextDecoder()
       let accumulated = ""
+      // Same chunk-boundary buffering as the main chat stream above.
+      let sseBuf = ""
       while (true) {
         const { done, value } = await reader.read()
         if (done) break
-        for (const line of decoder.decode(value).split("\n")) {
+        sseBuf += decoder.decode(value, { stream: true })
+        const sseLines = sseBuf.split("\n")
+        sseBuf = sseLines.pop() ?? ""
+        for (const line of sseLines) {
           if (!line.startsWith("data:")) continue
           const payload = line.slice(5).trim()
           if (payload === "[DONE]") break

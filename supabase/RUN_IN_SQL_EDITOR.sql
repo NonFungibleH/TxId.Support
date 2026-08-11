@@ -1058,3 +1058,111 @@ create trigger ticket_events_no_update
   for each row execute function ticket_events_no_rewrite();
 
 alter table ticket_events enable row level security;
+
+-- ============================================================================
+-- 20260808000001_visitor_id — returning-browser recognition on conversations
+-- (safe to re-run: IF NOT EXISTS throughout)
+-- ============================================================================
+
+alter table conversations add column if not exists visitor_id text;
+
+create index if not exists conversations_project_visitor_idx
+  on conversations (project_id, visitor_id)
+  where visitor_id is not null;
+
+create index if not exists conversations_project_wallet_idx
+  on conversations (project_id, wallet_address)
+  where wallet_address is not null;
+
+comment on column conversations.visitor_id is
+  'Random per-browser id from the embed''s localStorage. Recognises a returning browser, not a person. Cleared with site data; absent in private browsing.';
+
+-- ============================================================================
+-- 20260808000002_distinct_wallets — count unique wallets server-side
+-- (safe to re-run: CREATE OR REPLACE)
+-- ============================================================================
+
+create or replace function distinct_wallets(p_project_id uuid)
+returns bigint
+language sql
+stable
+as $$
+  select count(distinct wallet_address)
+  from conversations
+  where project_id = p_project_id
+    and wallet_address is not null;
+$$;
+
+comment on function distinct_wallets(uuid) is
+  'Unique connected wallets for a project. Exists because PostgREST cannot express count(distinct).';
+
+-- ============================================================================
+-- 20260811000001_ticket_wallet — per-user attribution on tickets
+-- (safe to re-run: IF NOT EXISTS throughout)
+-- CODE DEPENDS ON THIS: /api/tickets inserts wallet_address unconditionally,
+-- so a deployment without this column fails EVERY widget-raised ticket.
+-- ============================================================================
+
+alter table public.tickets add column if not exists wallet_address text;
+
+create index if not exists tickets_project_wallet_idx
+  on public.tickets (project_id, wallet_address)
+  where wallet_address is not null;
+
+-- ============================================================================
+-- 20260812000001_quota_preview_exclusion — preview sessions never consume quota
+-- (safe to re-run: CREATE OR REPLACE)
+-- ============================================================================
+
+create or replace function claim_conversation_slot(
+  p_project_id     uuid,
+  p_session_id     text,
+  p_monthly_limit  int,
+  p_daily_limit    int
+)
+returns text
+language plpgsql
+security definer
+as $$
+declare
+  v_exists      boolean;
+  v_month_count int;
+  v_day_count   int;
+begin
+  select exists(
+    select 1 from conversations
+    where project_id = p_project_id and session_id = p_session_id
+  ) into v_exists;
+  if v_exists then
+    return 'ok';
+  end if;
+
+  perform pg_advisory_xact_lock(hashtext(p_project_id::text));
+
+  if p_monthly_limit >= 0 then
+    select count(*) into v_month_count from conversations
+    where project_id = p_project_id
+      and session_id not like 'preview-%'
+      and created_at >= date_trunc('month', now() at time zone 'utc');
+    if v_month_count >= p_monthly_limit then
+      return 'month_limit';
+    end if;
+  end if;
+
+  if p_daily_limit >= 0 then
+    select count(*) into v_day_count from conversations
+    where project_id = p_project_id
+      and session_id not like 'preview-%'
+      and created_at >= date_trunc('day', now() at time zone 'utc');
+    if v_day_count >= p_daily_limit then
+      return 'day_limit';
+    end if;
+  end if;
+
+  insert into conversations (project_id, session_id)
+  values (p_project_id, p_session_id)
+  on conflict (project_id, session_id) do nothing;
+
+  return 'ok';
+end;
+$$;

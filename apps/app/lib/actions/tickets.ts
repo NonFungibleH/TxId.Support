@@ -1,7 +1,7 @@
 "use server"
 
-import { auth } from "@clerk/nextjs/server"
 import { createServiceClient } from "@/lib/supabase/server"
+import { requireCapability } from "@/lib/roles-server"
 import { revalidatePath } from "next/cache"
 import { getProject } from "@/lib/actions/project"
 
@@ -97,8 +97,10 @@ export async function updateTicketStatus(
   ticketId: string,
   status: "open" | "in_progress" | "resolved",
 ) {
-  const { userId } = await auth()
-  if (!userId) throw new Error("Unauthenticated")
+  // Capability gate, not just a session check: the Auditor role is sold as
+  // read-only, and these two legacy actions were the one path that let it
+  // mutate tickets. Same gate the newer ticket-inbox actions use.
+  await requireCapability("tickets")
 
   const { project } = await getProject()
   if (!project) throw new Error("No project")
@@ -116,8 +118,7 @@ export async function updateTicketStatus(
 }
 
 export async function updateTicketNotes(ticketId: string, notes: string) {
-  const { userId } = await auth()
-  if (!userId) throw new Error("Unauthenticated")
+  await requireCapability("tickets")
 
   const { project } = await getProject()
   if (!project) throw new Error("No project")

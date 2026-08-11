@@ -400,7 +400,11 @@ When a product fact changes (chains, plans, limits), update BOTH systems plus th
 > from (values ('organisations'),('projects'),('documents'),('conversations'),
 > ('messages'),('rate_limits'),('indexing_jobs'),('tickets'),('webhook_logs'),
 > ('token_usage'),('action_events'),('case_access_log'),
-> ('escalation_deliveries')) as t(name) order by exists, t.name;
+> ('escalation_deliveries'),('audit_logs'),('org_members'),('doc_sources'),
+> ('ticket_events')) as t(name) order by exists, t.name;
+> -- COLUMN adds a table check can't see (both load-bearing):
+> select table_name, column_name from information_schema.columns
+> where (table_name,column_name) in (('tickets','wallet_address'),('conversations','visitor_id'));
 > ```
 >
 > `supabase/RUN_IN_SQL_EDITOR.sql` is a regenerable catch-up file (every
@@ -421,7 +425,7 @@ When a product fact changes (chains, plans, limits), update BOTH systems plus th
 | `documents` | RAG chunks with `embedding vector(1024)` |
 | `conversations` | Chat sessions, `session_id`, `project_id` |
 | `messages` | Individual chat turns |
-| `support_tickets` | Escalated issues, `ref` unique constraint |
+| `tickets` | Escalated issues + findings, `ref` unique constraint, `wallet_address` (asserted, migration 20260811000001) |
 | `webhook_logs` | Outbound webhook event log |
 | `token_usage` | Per-message input/output token counts; aggregated by `admin_token_usage()` SQL function for the /admin cost cockpit (migration `20260706000003_token_usage.sql`) |
 | `case_access_log` | Who viewed/exported/erased a case record. Append-only, no update or delete path (migration `20260803000002`) |
@@ -800,7 +804,7 @@ Public plans are Free + Custom. Plan is stored in `projects.config.plan`. Stripe
 - `lib/actions/billing.ts` — `createCheckoutSession()` (ensures a Stripe customer on the org), `createPortalSession()`
 - `app/api/stripe/webhook/route.ts` — verifies signature, reconciles `checkout.session.completed` + subscription created/updated/deleted into `organisations` (sub id/status) and `projects.config.plan`. **The webhook is the only writer of the paid plan** — never granted client-side.
 - Upgrade page + Account page show live Stripe buttons when configured, else the email fallback.
-- Public webhook route is exempted in `middleware.ts` (alongside `/api/telegram`, `/api/tickets`, `/api/widget/feedback` — all self-authenticating).
+- Public webhook route is exempted in `middleware.ts` (alongside `/api/telegram`, `/api/tickets`, `/api/feedback` — all self-authenticating).
 - Setup needed in Stripe dashboard: create the Pro product/price, add the webhook endpoint (`/api/stripe/webhook`) subscribed to `checkout.session.completed` + `customer.subscription.*`, then set the three `STRIPE_*` env vars.
 
 ---

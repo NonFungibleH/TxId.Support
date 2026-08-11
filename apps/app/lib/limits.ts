@@ -111,6 +111,12 @@ export const TELEGRAM_LIMITS = {
    *  several times a plain completion. */
   perUserPerWindow: 5,
   windowMs: 60_000,
+  /** Daily total per chat. The per-minute windows bound the rate, not the
+   *  total: one Telegram chat is one conversation forever, so the monthly
+   *  conversation quota never bites and a busy group could otherwise run the
+   *  tool loop thousands of times a day. 300 is far above any legitimate
+   *  support load for a single chat. */
+  perChatPerDay: 300,
 } as const
 
 /** Ticket creation endpoint (`/api/tickets`). */
@@ -130,7 +136,7 @@ export const TICKET_LIMITS = {
  * A value of Infinity means no daily cap.
  */
 export const PLAN_DAILY_CONV_LIMITS: Record<Plan, number> = {
-  free:       50,     // == monthly, so the monthly cap is what bites
+  free:       50,     // spike breaker; the monthly cap is 150, so this bites first on a burst
   starter:    100,
   pro:        500,
   enterprise: 5000,   // "unlimited" plans still get a spike breaker
