@@ -45,15 +45,22 @@ export async function ensureCurrentUserRole(): Promise<void> {
   if (existing) return
 
   const user = await currentUser()
-  const email = user?.primaryEmailAddress?.emailAddress?.toLowerCase()
-  if (!email) return
+  // Match on ANY of the user's verified emails, not just the Clerk primary: an
+  // invitee invited on their work email but whose Clerk primary is a personal
+  // email would otherwise never match, get no role row, and fall through to
+  // DEFAULT_ROLE = admin. (getTeamMembers uses the membership identifier for
+  // the same reason.)
+  const userEmails = new Set(
+    (user?.emailAddresses ?? []).map((e) => e.emailAddress.toLowerCase()),
+  )
+  if (userEmails.size === 0) return
 
   const clerk = await clerkClient()
   const accepted = await clerk.organizations.getOrganizationInvitationList({
     organizationId: orgId,
     status: ["accepted"],
   })
-  const inv = accepted.data.find((i) => i.emailAddress.toLowerCase() === email)
+  const inv = accepted.data.find((i) => userEmails.has(i.emailAddress.toLowerCase()))
   const role = (inv?.publicMetadata as { txidRole?: string } | undefined)?.txidRole
   if (!role || !ROLES.includes(role as Role)) return
 
