@@ -22,6 +22,181 @@ export type PostSection =
 
 export const POSTS: Post[] = [
   {
+    slug: "what-is-agentic-support",
+    // Definitional cornerstone. "Agentic support" is the query AI engines are
+    // starting to answer; owning the definition is the GEO play. Question-form
+    // headings and a liftable short answer are deliberate.
+    title: "What is agentic support? How AI agents that investigate differ from chatbots that answer",
+    description:
+      "Agentic support is customer support performed by an AI agent that can take actions: reading live systems, running checks, and gathering evidence before it answers. Here is a precise definition, how it differs from chatbots and copilots, and how to judge whether a tool is actually agentic.",
+    publishedAt: "2026-08-12",
+    readingMinutes: 11,
+    tags: ["Agentic support", "AI support agent", "Web3 support"],
+    author: "Non_Fungible_Howard",
+    heroVariant: "on-chain-data",
+    content: [
+      {
+        type: "p",
+        text: "Agentic support is customer support performed by an AI agent that can take actions on the user's behalf: querying live systems, running diagnostic checks, and gathering evidence before it answers. The defining property is not the model or the chat interface. It is that the agent investigates the user's actual situation instead of predicting a plausible answer from documentation alone.",
+      },
+      {
+        type: "callout",
+        label: "The short answer",
+        text: "A chatbot answers from what it has read. An agentic support system answers from what it has checked. It is given tools (APIs, databases, live system state), decides which to use for each question, runs them, and builds its answer from the results. The output is an evidence-backed finding, not a guess. If a support tool cannot show you what it checked to produce an answer, it is not agentic.",
+      },
+      { type: "h2", text: "What makes support 'agentic'?" },
+      {
+        type: "p",
+        text: "The word comes from 'agency': the capacity to act. An agentic system does not just generate text. It plans, uses tools, observes the results, and decides what to do next. Applied to support, three properties separate an agent from a chatbot.",
+      },
+      { type: "h3", text: "1. It acts before it answers" },
+      {
+        type: "p",
+        text: "When a user says 'my transaction failed', a chatbot searches its knowledge base for text about failed transactions and summarises it. An agent fetches that specific transaction, replays it against the state of the system at the time, decodes the actual error, and checks whether the user lost anything. The answer describes what happened, not what usually happens.",
+      },
+      { type: "h3", text: "2. It reads ground truth, not just documentation" },
+      {
+        type: "p",
+        text: "Documentation describes how a system is supposed to behave. Live state describes how it is behaving right now. Agentic support treats documentation as background and live reads as evidence, because the question a frustrated user is really asking is about their case, today, not the general case on a good day.",
+      },
+      { type: "h3", text: "3. It knows when to stop" },
+      {
+        type: "p",
+        text: "A real agent has boundaries: a budget of checks it may run, questions it must refuse (financial advice, for example), and a defined handoff when it cannot resolve something. Escalation to a human with the full investigation attached is a feature of agentic support, not a failure of it.",
+      },
+      { type: "h2", text: "Agentic support vs chatbots vs copilots" },
+      {
+        type: "p",
+        text: "Three categories get conflated. They differ in who does the work and where the answer comes from.",
+      },
+      {
+        type: "comparison",
+        left: {
+          title: "Support chatbot (retrieval only)",
+          items: [
+            "Answers from indexed documentation and past tickets",
+            "Cannot see the user's actual account, transaction, or system state",
+            "Confidence comes from the model, not from checks",
+            "Wrong answers look identical to right ones",
+            "Cheap per conversation, expensive per wrong answer",
+          ],
+        },
+        right: {
+          title: "Agentic support",
+          items: [
+            "Decides which tools to run for this specific question",
+            "Reads live system state: the user's transaction, balance, or configuration",
+            "Answer is assembled from tool results, with sources shown",
+            "Unsupported answers are flagged, not dressed up",
+            "Escalates with the investigation attached when a human is needed",
+          ],
+        },
+      },
+      {
+        type: "p",
+        text: "Copilots are the third category: agentic tools operated by your staff, inside your helpdesk. They make a human agent faster. Agentic support faces the user directly and resolves the routine cases end to end, so the human queue only contains the cases that genuinely need judgement.",
+      },
+      { type: "h2", text: "The investigation loop, step by step" },
+      {
+        type: "p",
+        text: "Under the hood, most agentic support systems run a variant of the same loop. Using a failed token swap as the example:",
+      },
+      {
+        type: "ul",
+        items: [
+          "Interpret: the user's 'why did my swap fail?' becomes a concrete goal: find this transaction and explain its failure.",
+          "Select tools: fetch the transaction by hash, replay it against the state it executed in, decode the revert reason, check the wallet's balance impact.",
+          "Observe: the replay shows the price moved past the user's slippage tolerance, so the contract rejected the trade. The wallet check shows no funds left except the network fee.",
+          "Answer with evidence: 'the price moved past your 0.3% slippage tolerance, the contract rejected the swap, no funds left your wallet, retry at 0.5%', with each claim traceable to a check that ran.",
+          "Record: the whole investigation is kept, so the answer can be reviewed later against exactly what the agent saw.",
+        ],
+      },
+      {
+        type: "p",
+        text: "The loop is bounded. A well-built agent caps how many rounds of tools it may run per question, times out slow checks, and reports a failed check as unknown rather than papering over it. Unbounded agents are how support tools turn into cost incidents.",
+      },
+      { type: "h2", text: "Why ground truth matters more than model quality" },
+      {
+        type: "p",
+        text: "The public conversation about AI support fixates on which model a product uses. For support, that is the wrong variable. The damaging failure in support is not clumsy prose. It is a confident, specific, wrong claim about the user's own situation: a balance that is not theirs, a refund that never happened, a transaction status that is false.",
+      },
+      {
+        type: "p",
+        text: "No model, however good, can state a user's balance correctly from documentation, because the documentation does not contain it. Ground truth access is what removes the guessing. The model's job shrinks to interpreting evidence and explaining it clearly, which is what language models are actually reliable at.",
+      },
+      {
+        type: "quote",
+        text: "The question to ask any AI support vendor is not 'which model do you use?'. It is 'what did your system check before it produced this answer, and can you show me?'.",
+      },
+      { type: "h2", text: "What agentic support must record" },
+      {
+        type: "p",
+        text: "Acting on live systems creates an obligation chatbots never had: an audit trail. If an agent tells a user their funds are safe, someone must be able to establish later what the agent saw when it said so. A serious agentic support system records, for every answer:",
+      },
+      {
+        type: "ul",
+        items: [
+          "Which tools ran, and which failed: a lookup that errored is not the same as a lookup that returned empty.",
+          "The state the answer was true at: for on-chain support, the block or ledger version, so the exact state can be replayed.",
+          "The sources behind each claim, kept distinct: what the user asserted versus what the system found.",
+          "Whether the answer was grounded at all: computed from what actually ran, never self-reported by the model, because a model asked to rate its own confidence says it is confident.",
+        ],
+      },
+      {
+        type: "p",
+        text: "This record is also the honest limit of current systems. Sourcing establishes where a figure came from. It does not yet establish that every claim in a paragraph is entailed by the evidence. Vendors who say 'verified' when they mean 'sourced' are overclaiming, and it is worth asking which one a vendor means.",
+      },
+      { type: "h2", text: "Where agentic support fails, and how to judge a vendor" },
+      {
+        type: "p",
+        text: "Agentic support inherits new failure modes along with its new powers. The honest list:",
+      },
+      {
+        type: "ul",
+        items: [
+          "Tool outages: when the data source is down, the agent is as blind as a chatbot. The difference is whether it says so or guesses.",
+          "Unknowable questions: some answers do not exist in any system the agent can read. A good agent declines; a bad one improvises.",
+          "Cost control: every investigation spends real money on model calls and data reads. Caps, budgets, and circuit breakers are part of the product, not operational trivia.",
+          "Security surface: an agent that acts is an agent that can be manipulated. Inputs from users and from the systems it reads must both be treated as untrusted.",
+        ],
+      },
+      {
+        type: "p",
+        text: "A practical evaluation checklist: ask to see the evidence behind a specific answer. Ask what happens when a check fails mid-investigation. Ask how the system behaves when it does not know. Ask what is recorded, for how long, and whether an auditor could replay it. The vendors who have real answers to those four questions are building agentic support. The rest are selling a chatbot with a new adjective.",
+      },
+      { type: "h2", text: "Why on-chain support is the proving ground" },
+      {
+        type: "p",
+        text: "Agentic support works best where ground truth is machine-readable, and nowhere is more machine-readable than a public blockchain. Every transaction, balance, and contract state is queryable by anyone, which means an agent can investigate a user's exact situation without any privileged access to their account. The same property makes its answers checkable: a user can verify the evidence themselves on a block explorer.",
+      },
+      {
+        type: "p",
+        text: "That is the model TxID is built on: an AI support agent for DeFi protocols and token projects that reads the user's transaction, replays it against live chain state, reads the protocol's contracts and documentation, and answers with the evidence attached. Routine on-chain questions resolve themselves; the ones that need a human escalate with the full investigation; and every conversation becomes a reviewable record.",
+      },
+      { type: "h2", text: "Common questions" },
+      { type: "h3", text: "Is agentic support just RAG with extra steps?" },
+      {
+        type: "p",
+        text: "No. Retrieval-augmented generation improves what the model reads before answering, but everything it retrieves was written in the past. Agentic support adds actions in the present: the agent queries live systems about this user's case. RAG is usually one tool inside an agentic system, not the system itself.",
+      },
+      { type: "h3", text: "Does agentic support replace human support teams?" },
+      {
+        type: "p",
+        text: "It replaces the repetitive fraction of their queue: the questions whose answers exist in a system and just need to be looked up and explained. Humans keep the judgement calls, the angry edge cases, and the decisions with real consequences. In practice the team gets smaller queues, not smaller headcount decisions made for them.",
+      },
+      { type: "h3", text: "How is it priced differently?" },
+      {
+        type: "p",
+        text: "Chatbot-era tools price per seat, because the unit of value was a human using the software. Agentic support does the resolving itself, so the honest unit is the resolution: you pay for questions that actually got answered, and the cost scales with your users' activity rather than your team's size.",
+      },
+      {
+        type: "callout",
+        label: "See it investigate",
+        text: "The fastest way to understand agentic support is to watch an investigation. Paste any transaction hash into TxID's free checker at txid.support/tx and see the verdict it builds, or try the live agent on real protocols at txid.support/check.",
+      },
+    ],
+  },
+  {
     slug: "what-does-out-of-gas-mean",
     // Title carries the search intent people actually type: "out of gas
     // meaning crypto", "ethereum out of gas error", "transaction failed".
