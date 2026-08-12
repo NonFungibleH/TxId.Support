@@ -8,9 +8,34 @@ import {
   Send, Wallet, Users, FlaskConical,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import type { Capability } from "@/lib/roles"
 
 type NavItem = { href: string; label: string; icon: React.ElementType; beta?: boolean }
 type NavGroup = { label?: string; items: NavItem[] }
+
+// Which capability each destination needs. Items with no entry (Overview) are
+// always shown. A Support user (tickets + records) therefore sees Overview,
+// Conversations, Bugs & Feedback, Tickets and Analytics, but none of the Setup
+// / Launch / Team / Actions pages they cannot change anyway. Read-only pages
+// stay URL-reachable; the server actions are the real gate. Keys are folded
+// into "settings" here because the Embed page's secret is separately gated.
+const NAV_CAPABILITY: Record<string, Capability> = {
+  "/dashboard/contracts": "settings",
+  "/dashboard/docs": "settings",
+  "/dashboard/branding": "settings",
+  "/dashboard/persona": "settings",
+  "/dashboard/beta": "settings",
+  "/dashboard/content": "settings",
+  "/dashboard/preview": "settings",
+  "/dashboard/embed": "settings",
+  "/dashboard/telegram": "settings",
+  "/dashboard/conversations": "records",
+  "/dashboard/findings": "tickets",
+  "/dashboard/tickets": "tickets",
+  "/dashboard/analytics": "records",
+  "/dashboard/team": "team",
+  "/dashboard/actions": "settings",
+}
 
 const SUPPORT_GROUPS: NavGroup[] = [
   {
@@ -94,20 +119,35 @@ interface SidebarProps {
   mode?: string
   /** A beta programme is configured. Reveals its tab; hidden otherwise. */
   beta?: boolean
+  /** The viewer's capabilities. Nav items needing a capability they lack are
+   *  hidden. Undefined = show everything (a caller that does not gate). */
+  caps?: Capability[]
   isOpen?: boolean
   onClose?: () => void
 }
 
-export function Sidebar({ mode = "support", beta = false, isOpen = false, onClose }: SidebarProps) {
+export function Sidebar({ mode = "support", beta = false, caps, isOpen = false, onClose }: SidebarProps) {
   const pathname = usePathname()
   // The Beta programme tab appears only once one is set up, so the menu is not
   // carrying a feature most protocols will never use. It is NOT how you turn
   // it on: that would be a switch you can only reach after flipping it. The
   // choice lives on Overview, which every project sees.
   const base = mode === "token" ? TOKEN_GROUPS : SUPPORT_GROUPS
-  const GROUPS = beta
+  const betaFiltered = beta
     ? base
     : base.map(g => ({ ...g, items: g.items.filter(i => i.href !== "/dashboard/beta") }))
+  // Hide destinations the viewer's role cannot use, then drop any now-empty
+  // group. Undefined caps = no filtering (backwards compatible).
+  const GROUPS = (caps
+    ? betaFiltered.map(g => ({
+        ...g,
+        items: g.items.filter(i => {
+          const need = NAV_CAPABILITY[i.href]
+          return !need || caps.includes(need)
+        }),
+      }))
+    : betaFiltered
+  ).filter(g => g.items.length > 0)
 
   return (
     <aside

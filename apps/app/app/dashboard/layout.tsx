@@ -5,7 +5,8 @@ import { MobileShell } from "@/components/dashboard/MobileShell"
 import { DashboardFooter } from "@/components/dashboard/DashboardFooter"
 import { getProject } from "@/lib/actions/project"
 import { isCurrentUserAdmin } from "@/lib/admin-auth"
-import { ensureCurrentUserRole } from "@/lib/roles-server"
+import { ensureCurrentUserRole, currentActor } from "@/lib/roles-server"
+import { capabilitiesOf } from "@/lib/roles"
 import { publicHost } from "@/lib/public-host"
 import type { ProjectConfig } from "@/lib/types/config"
 
@@ -28,6 +29,11 @@ export default async function DashboardLayout({
   // fresh invitee is never briefly treated as the default admin.
   await ensureCurrentUserRole()
 
+  // The viewer's capabilities drive which nav items the sidebar shows: a Support
+  // user should not see Setup / Launch / Team pages they cannot change.
+  const actor = await currentActor()
+  const caps = actor ? capabilitiesOf(actor.role) : undefined
+
   const typedProject = project as unknown as { mode?: string; config?: ProjectConfig }
   const mode = typedProject.mode ?? "support"
   const plan = (typedProject.config as ProjectConfig | undefined)?.plan ?? "free"
@@ -41,7 +47,7 @@ export default async function DashboardLayout({
   return (
     <div className="flex min-h-screen flex-col bg-background">
       <OrgSyncGuard serverOrgId={orgId ?? null} />
-      <MobileShell orgName={org.name} mode={mode} beta={beta} />
+      <MobileShell orgName={org.name} mode={mode} beta={beta} caps={caps} />
       <main className="mt-14 flex-1 p-4 pb-20 md:ml-60 md:p-6 md:pb-20">
         <div className="mx-auto max-w-4xl">{children}</div>
       </main>
