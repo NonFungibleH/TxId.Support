@@ -45,10 +45,8 @@ export default async function FindingsPage() {
       .order("created_at", { ascending: false })
       .limit(200)
 
-  let { data: findings, error } = await findingsQuery(`${BASE_COLS}, request`)
-  if (error) {
-    ;({ data: findings } = await findingsQuery(BASE_COLS))
-  }
+  const primary = await findingsQuery(`${BASE_COLS}, request`)
+  const findings = primary.error ? (await findingsQuery(BASE_COLS)).data : primary.data
 
   const rows = (findings ?? []) as (Finding & { reason: string })[]
   const bugs = rows.filter(r => r.reason === "bug")
