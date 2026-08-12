@@ -16,7 +16,7 @@ const PAGE_LABELS: Record<string, string> = {
   "/dashboard/preview":      "Preview",
   "/dashboard/embed":        "Embed & Go Live",
   "/dashboard/conversations":"Conversations",
-  "/dashboard/findings":     "Findings",
+  "/dashboard/findings":     "Bugs & Feedback",
   "/dashboard/tickets":      "Tickets",
   "/dashboard/analytics":    "Analytics",
   "/dashboard/telegram":     "Telegram",
