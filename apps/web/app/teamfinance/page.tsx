@@ -393,7 +393,7 @@ export default function TeamFinancePage() {
               <div style={{ fontSize: 19, fontWeight: 700, color: INK, letterSpacing: "-0.01em", marginTop: 4 }}>Per resolution</div>
               <p style={{ margin: "6px 0 18px", fontSize: 14, lineHeight: 1.6, color: BODY }}>Sized to your holder base, with special rates for Team Finance Pro projects.</p>
               <div style={{ display: "grid", gap: 10 }}>
-                {["Custom branded to your platform", "Failed-transaction investigation on 28+ chains", "Answers from your contracts, locks and docs", "Escalations into Slack, Telegram, Linear and more", "The Case Record: a reviewable compliance trail", "Hands-on onboarding, live in minutes"].map((f) => (
+                {["Custom branded to your platform", "Failed-transaction investigation, EVM and Aptos", "Answers from your contracts, locks and docs", "Escalations into Slack, Telegram, Linear and more", "The Case Record: a reviewable compliance trail", "Hands-on onboarding, live in minutes"].map((f) => (
                   <div key={f} style={{ display: "flex", alignItems: "flex-start", gap: 10, fontSize: 14, lineHeight: 1.5, color: "#33374D" }}>
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true" style={{ flex: "none", marginTop: 2 }}><path d="M5 12.5l4.5 4.5L19 7.5" stroke={BLUE} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" /></svg>
                     {f}
