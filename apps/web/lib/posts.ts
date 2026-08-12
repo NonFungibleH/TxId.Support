@@ -20,8 +20,54 @@ export type PostSection =
   | { type: "stat-grid"; stats: Array<{ value: string; label: string }> }
   | { type: "comparison"; left: { title: string; items: string[] }; right: { title: string; items: string[] } }
   | { type: "figure"; kind: string; caption?: string }
+  | { type: "grid"; items: Array<{ title: string; description: string }> }
 
 export const POSTS: Post[] = [
+  {
+    slug: "recording-ai-support-conversations-compliance",
+    title: "Recording AI support conversations: what compliance actually requires",
+    description:
+      "AI support agents make consequential statements to your users. Here is what a defensible record of those conversations needs, why regulators and auditors increasingly expect it, and how to keep one without over-collecting personal data.",
+    publishedAt: "2026-08-13",
+    readingMinutes: 8,
+    tags: ["Compliance", "AI support agent", "DeFi operations"],
+    author: "Non_Fungible_Howard",
+    heroVariant: "compliance-records",
+    content: [
+      { type: "p", text: "An AI support agent answers your users in your name. It tells them why a transaction failed, whether their funds are safe, what a contract is doing. Most of the time that is exactly what you want. The question a compliance team asks is the uncomfortable one: when an answer is disputed weeks later, can you show what was said, what it was based on, and that the record has not been touched since?" },
+      { type: "p", text: "For a long time nobody asked, because support was a human in a chat window and the transcript was the whole story. An AI agent changes the stakes. It answers at volume, it makes claims about money, and it does so from data that was true at a single moment in time. Recording those conversations well is now a compliance question, not a nice-to-have." },
+      { type: "callout", label: "The short version", text: "A defensible record of an AI support conversation needs five things: the full exchange, kept so it cannot be silently edited; the conditions each answer was produced under, so it can be reproduced; a log of who read or exported it; a lawful way to delete on request; and the restraint to not collect personal data you never needed. A plain chat transcript gives you the first and none of the rest." },
+      { type: "h2", text: "Why recording AI conversations became a compliance question" },
+      { type: "p", text: "Three forces meet here. Record-keeping duties: a financial-adjacent business is expected to reconstruct what it told a customer and when, and \"the AI said it\" is not an answer a regulator or a court accepts without the record behind it. Data-protection law: a conversation with a user is personal data, which brings rights to access, export and erasure, and an obligation to minimise what you keep. And disputes: when a user claims they were told their funds were safe and then were not, the only thing that resolves it is a record of the exact answer and the state of the world it was given in." },
+      { type: "p", text: "None of this is unique to crypto, but DeFi sharpens it. The answers are about irreversible transactions and real balances, and the ground truth is a chain state that moves every block. An answer that was correct when it was given can look wrong an hour later, and only the record tells the two apart." },
+      { type: "h2", text: "What a defensible record needs" },
+      { type: "figure", kind: "case-record", caption: "A defensible record is the answer plus the conditions it was produced under, kept append-only." },
+      { type: "h3", text: "1. The exchange, kept so it cannot be quietly changed" },
+      { type: "p", text: "A record you can edit after the fact is not a record, it is a draft. The transcript, and everything attached to it, has to be append-only: writable once, never rewritten, with deletion possible only through an explicit, logged erasure rather than a quiet update. If immutability lives only in application code, it is one bug or one admin away from failing. Enforced in the database, it holds even when the application is wrong." },
+      { type: "h3", text: "2. The conditions each answer was produced under" },
+      { type: "p", text: "This is the part a plain transcript throws away, and the part that actually settles a dispute. \"You were down $312\" cannot be checked later without the prices it rested on. \"Your withdrawal is pending\" cannot be reproduced without the chain state it was read from. A defensible record captures, per answer: the ledger version it was true as of, the prices any figure used, which lookups ran and which failed, and a hash of the answer text so any later change is detectable." },
+      { type: "h3", text: "3. Who read it, and who took a copy" },
+      { type: "p", text: "Access to a customer record is itself an event worth recording. Who viewed a case, who exported one, and when, is the difference between controlling the data and hoping you do. The access log has to be append-only for the same reason the record is." },
+      { type: "h3", text: "4. A lawful way to delete" },
+      { type: "p", text: "Append-only and delete-on-request sound contradictory, and reconciling them is where most systems get it wrong. The answer is not to make the record editable. It is to make erasure a distinct, deliberate operation that removes the personal content and leaves a tombstone: a marker that a record existed and was erased, by whom and when. The trail stays intact, the personal data does not." },
+      { type: "h3", text: "5. Restraint: record enough, not everything" },
+      { type: "p", text: "The instinct to keep everything is the wrong one under data-protection law, which asks you to collect only what you need. The location behind an answer matters for context, but the exact IP address does not need to live in the record: country-level is enough, and the raw address is a liability you chose to hold. Device information can stop at the browser family rather than a fingerprint. A good record is disciplined about what it does not keep." },
+      { type: "h2", text: "How TxID records conversations" },
+      { type: "p", text: "This is the part of the product institutional buyers are really evaluating, so it is built to the requirements above rather than bolted on afterwards." },
+      { type: "grid", items: [
+        { title: "The case record", description: "Every answer stores the ledger version it was true as of, the prices it rested on, the lookups that ran and any that failed, the model, and a SHA-256 of the answer text. The answer can be reproduced, not just re-read." },
+        { title: "Append-only, in the database", description: "Message content and evidence are append-only, enforced in Postgres, not the application. A later edit is rejected by the database itself, so immutability does not depend on the app being bug-free." },
+        { title: "Erasure that leaves a trail", description: "Deletion is refused unless erasure is explicitly requested, and an erasure leaves a tombstone recording who did it and when. Erasure without a hole in the record." },
+        { title: "An access log", description: "Views, exports and erasures are themselves recorded, append-only, so who looked at a customer has an answer." },
+        { title: "Provenance, computed not claimed", description: "Each answer is marked as verified against a live read, supported by documentation, or ungrounded, computed from what actually happened rather than the model's own confidence." },
+        { title: "Change history", description: "Every configuration change is logged with who made it and what it was before. Credential values are never recorded, only that one changed." },
+      ]},
+      { type: "p", text: "A conversation can be exported with its full record attached: ledger version, the time the chain state was read, country, model and answer hash, and the export logs itself as a disclosure. On privacy: no IP address is kept in these records, only country-level location. Infrastructure providers still process IP addresses to route and rate-limit requests under their own retention policies, which is the honest way to state it." },
+      { type: "callout", label: "A note on wording", text: "We say a record is verifiable and reproducible, not that it makes you compliant. Compliance is a judgement about your whole operation that only you and your advisers can make. What a good record does is remove the part of that judgement that used to be a shrug: it lets you show, precisely, what your assistant said and the state of the world it said it in." },
+      { type: "h2", text: "The test to apply" },
+      { type: "p", text: "Whatever you use to put an AI agent in front of your users, ask it one question: if an answer it gave is challenged in three months, what can you produce? If the answer is a chat transcript, you have the words but not the case. If it is the words, the chain state and prices behind them, a hash that proves they are unchanged, and a log of everyone who touched the record, you have something you can stand behind." },
+    ],
+  },
   {
     slug: "how-to-evaluate-ai-support-for-defi",
     // Decision-stage buyer's guide. Targets "best AI support for crypto/DeFi",

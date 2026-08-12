@@ -119,6 +119,17 @@ function Section({ section }: { section: PostSection }) {
       )
     case "figure":
       return <Figure kind={section.kind} caption={section.caption} />
+    case "grid":
+      return (
+        <div className="grid sm:grid-cols-2 gap-4 my-8">
+          {(section.items ?? []).map((item, i) => (
+            <div key={i} className="rounded-xl border border-[var(--border)] bg-[var(--bg-surface)] p-4">
+              <p className="font-display font-semibold text-white text-sm mb-1.5">{item.title}</p>
+              <p className="text-sm text-muted leading-relaxed">{item.description}</p>
+            </div>
+          ))}
+        </div>
+      )
     default:
       return null
   }
