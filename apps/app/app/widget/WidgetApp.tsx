@@ -2005,8 +2005,8 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
                   prev.map(m =>
                     m.id === assistantId && !m.content.trim()
                       ? { ...m, content: esc.reason === "bug"
-                            ? "Thanks, that's logged for the team with everything I could see."
-                            : "Thanks, that's recorded for the team." }
+                            ? "Thanks, that's logged for the team with everything I could see. Anything else I can help with?"
+                            : "Thanks, that's recorded for the team. Anything else I can help with?" }
                       : m,
                   ),
                 )
@@ -2029,7 +2029,7 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
                 setMessages(prev =>
                   prev.map(m =>
                     m.id === assistantId && !m.content.trim()
-                      ? { ...m, content: "Thanks, that's logged for the team with everything I could see." }
+                      ? { ...m, content: "Thanks, that's logged for the team with everything I could see. Anything else I can help with?" }
                       : m,
                   ),
                 )
