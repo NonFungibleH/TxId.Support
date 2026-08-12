@@ -315,8 +315,47 @@ function TelegramFlow() {
   )
 }
 
+/** What is kept behind every answer, and the fact that it cannot be rewritten. */
+function CaseRecord() {
+  const fields = [
+    { t: "Chain state", s: "the ledger version it was true as of" },
+    { t: "Prices at read time", s: "so a figure can be checked later" },
+    { t: "What was checked", s: "tools that ran, and any that failed" },
+    { t: "Request context", s: "country, device, surface, no raw IP" },
+    { t: "Model and latency", s: "which model answered, how long it took" },
+    { t: "Answer hash", s: "SHA-256, so any later edit is detectable" },
+  ]
+  const colW = 272, gapX = 16, rowH = 58, gapY = 12, gridTop = 108
+  const xOf = (i: number) => 40 + (i % 2) * (colW + gapX)
+  const yOf = (i: number) => gridTop + Math.floor(i / 2) * (rowH + gapY)
+  return (
+    <Svg h={356} label="Every answer keeps the conditions it was produced under, stored append-only in the database.">
+      {/* the answer */}
+      <rect x="40" y="8" width="560" height="72" rx="12" fill={ACCENT_SOFT} stroke={ACCENT} strokeOpacity="0.5" />
+      <circle cx="66" cy="44" r="10" fill="rgba(52,211,153,0.15)" />
+      <path d="M61 44 l3.5 3.5 l7 -7" fill="none" stroke={SUCCESS} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <text x="86" y="34" fill={ACCENT} fontSize="11" fontWeight="700" letterSpacing="0.5">A SUPPORT ANSWER</text>
+      <text x="86" y="56" fill={WHITE} fontSize="13">Withdrawals are paused in the contract right now. Your funds are safe.</text>
+
+      <text x="40" y="100" fill={MUTED} fontSize="11" fontWeight="700" letterSpacing="0.5">STORED WITH IT, AUTOMATICALLY</text>
+
+      {fields.map((f, i) => (
+        <g key={f.t}>
+          <rect x={xOf(i)} y={yOf(i)} width={colW} height={rowH} rx="10" fill={SURFACE} stroke={BORDER} />
+          <text x={xOf(i) + 16} y={yOf(i) + 24} fill={WHITE} fontSize="12.5" fontWeight="600">{f.t}</text>
+          <text x={xOf(i) + 16} y={yOf(i) + 42} fill={MUTED} fontSize="11">{f.s}</text>
+        </g>
+      ))}
+
+      <rect x="40" y="316" width="560" height="34" rx="9" fill="rgba(99,102,241,0.06)" stroke={ACCENT} strokeOpacity="0.35" />
+      <text x="56" y="337" fill={MUTED} fontSize="11.5">Append-only in the database. Deletion is refused unless erasure is requested, and it leaves a tombstone.</text>
+    </Svg>
+  )
+}
+
 const FIGURES: Record<string, () => JSX.Element> = {
   "decode-flow": DecodeFlow,
+  "case-record": CaseRecord,
   "support-tiers": SupportTiers,
   "chatbot-vs-agent": ChatbotVsAgent,
   "gas-gauge": GasGauge,

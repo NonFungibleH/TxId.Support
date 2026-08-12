@@ -13,7 +13,65 @@ export function PostHeroImage({ variant, className }: { variant: string; classNa
       {variant === "agentic" && <AgenticSVG />}
       {variant === "gas" && <GasSVG />}
       {variant === "revert" && <RevertSVG />}
+      {variant === "compliance-records" && <ComplianceRecordsSVG />}
     </div>
+  )
+}
+
+function ComplianceRecordsSVG() {
+  const record = [
+    "chain state @ ledger 184,220,517",
+    "prices at read time",
+    "sources: docs v7a2, contract, tx",
+    "model, latency, country",
+    "answer SHA-256: 9f31…c0ad",
+  ]
+  return (
+    <svg viewBox="0 0 700 280" xmlns="http://www.w3.org/2000/svg" className="w-full h-auto">
+      <defs>
+        <style>{`
+          @keyframes cr_in { from { opacity: 0; transform: translateX(6px); } to { opacity: 1; transform: translateX(0); } }
+          .cr_0 { animation: cr_in .4s ease forwards; animation-delay: .6s; opacity: 0; }
+          .cr_1 { animation: cr_in .4s ease forwards; animation-delay: .75s; opacity: 0; }
+          .cr_2 { animation: cr_in .4s ease forwards; animation-delay: .9s; opacity: 0; }
+          .cr_3 { animation: cr_in .4s ease forwards; animation-delay: 1.05s; opacity: 0; }
+          .cr_4 { animation: cr_in .4s ease forwards; animation-delay: 1.2s; opacity: 0; }
+          @keyframes cr_lock { from { opacity: 0; transform: scale(.7); } to { opacity: 1; transform: scale(1); } }
+          .cr_lock { animation: cr_lock .4s ease forwards; animation-delay: 1.5s; opacity: 0; transform-origin: 250px 210px; }
+        `}</style>
+      </defs>
+      <rect width="700" height="280" fill="#07070d" />
+      <text x="24" y="34" fontFamily="monospace" fontSize="13" fill="white" fontWeight="bold">Every answer keeps the record behind it</text>
+
+      {/* The answer */}
+      <rect x="24" y="60" width="300" height="118" rx="10" fill="#0d1a0d" stroke="#10b981" strokeWidth="1.5" />
+      <text x="40" y="84" fontFamily="monospace" fontSize="9" fill="#64748b">User: why did my withdrawal fail?</text>
+      <line x1="24" y1="92" x2="324" y2="92" stroke="#10b981" strokeWidth="0.5" strokeOpacity="0.3" />
+      <text x="40" y="112" fontFamily="monospace" fontSize="9" fill="#94a3b8">Agent: Withdrawals are paused in</text>
+      <text x="40" y="126" fontFamily="monospace" fontSize="9" fill="#94a3b8">the contract right now. Your funds</text>
+      <text x="40" y="140" fontFamily="monospace" fontSize="9" fill="#94a3b8">are unaffected, nothing was sent.</text>
+      <text x="40" y="162" fontFamily="monospace" fontSize="8" fill="#10b981">✓ sourced from chain + docs</text>
+
+      {/* Shield / append-only lock */}
+      <g className="cr_lock">
+        <path d="M250 190 L272 197 L272 214 Q272 230 250 238 Q228 230 228 214 L228 197 Z" fill="#6366f120" stroke="#6366f1" strokeWidth="1.5" />
+        <rect x="243" y="208" width="14" height="11" rx="2" fill="none" stroke="#6366f1" strokeWidth="1.5" />
+        <path d="M246 208 v-3 a4 4 0 0 1 8 0 v3" fill="none" stroke="#6366f1" strokeWidth="1.5" />
+      </g>
+      <text x="24" y="212" fontFamily="monospace" fontSize="9" fill="#64748b">Append-only.</text>
+      <text x="24" y="226" fontFamily="monospace" fontSize="9" fill="#64748b">Views and</text>
+      <text x="24" y="240" fontFamily="monospace" fontSize="9" fill="#64748b">exports logged.</text>
+
+      {/* The record panel */}
+      <text x="360" y="60" fontFamily="monospace" fontSize="10" fill="#6366f1" fontWeight="bold">THE RECORD</text>
+      <rect x="360" y="70" width="316" height="168" rx="10" fill="#0f0f1a" stroke="#1e1e3a" strokeWidth="1.5" />
+      {record.map((r, i) => (
+        <g key={r} className={`cr_${i}`}>
+          <circle cx="378" cy={95 + i * 30} r="3" fill="#6366f1" />
+          <text x="392" y={99 + i * 30} fontFamily="monospace" fontSize="9.5" fill="#94a3b8">{r}</text>
+        </g>
+      ))}
+    </svg>
   )
 }
 
