@@ -101,6 +101,7 @@ Ports: web=3000, app=3001, docs=3002, widget=3003
 
 ### Blockchain (EVM)
 - `MORALIS_API_KEY`
+- `RPC_URLS` — optional per-chain RPC overrides, JSON keyed by chain name or hex id (see .env.example); unset chains use free public defaults
 - `ETHERSCAN_API_KEY` — Etherscan V2 unified key, covers ALL EVM chains (Base, BSC, etc.); the old per-chain BASESCAN/BSCSCAN keys are no longer used
 
 ### Blockchain (Solana)
@@ -692,6 +693,13 @@ One shared implementation, used by `/api/chat` and the four previously unguarded
 
 **`/api/widget-config` used its own inline copy of the check** until 2026-08-11, and that copy had the exact same-origin bug the shared guard fixes: the config fetch is same-origin, so it sends no Origin and a Referer of `app.txid.support`, and the inline check read that as the embedding site. The first customer to add a domain would have got "Domain not registered" and a widget that never loaded. Now uses `originAllowed()`, and `widget.js` reports the embedding host as `&h=` on the iframe URL, which `WidgetApp` forwards on the config fetch (verified in a live browser). **The thumbs route had the mirror mistake:** `/api/feedback` (the one the widget calls) had NO guard while a dead `/api/widget/feedback` had it; the guard moved to the live route and the dead one was deleted.
 
+### window.txid host page API + bug capture (2026-08-11/12, Yamata pilot)
+`apps/app/public/widget.js` exposes `window.txid = { identify, open, close }`. Calls before `txid-ready` are queued and replayed (`flushHostQueue`); `queuedIdentity` is deliberately kept for re-sends. **Loader messages are authenticated by a per-load NONCE** minted into the iframe URL (`&n=`) and stamped on every message: `window.parent` is shared by every script on the host page, so `e.source === window.parent` alone cannot tell our loader from a co-resident ad tag. The loader's own listener pins `e.origin === BASE && e.source === iframe.contentWindow` at the TOP (hoisting this broke the embed smoke harness, which impersonated the iframe from the top window; the harness now posts from inside the iframe's frame).
+
+`identify({wallet, chainId})` is HOST-ASSERTED identity: validated client-side against the same regexes as /api/chat (a malformed value is IGNORED with a console.warn, never committed — an invalid address used to 400 every message while `hostIdentified` hid the connect UI, bricking the widget); forces `walletSetup "manual"` so `walletMode` stays `manual` and the Actions gate stays closed; shows a read-only pill (no disconnect) unless `branding.hideWallet`. `open({mode})` is gated on `betaControls` (a mode the project does not run is a no-op) and guarded against re-arming a finished report (no duplicate tickets).
+
+**Bug capture is split from feedback.** Feedback records on the first reply. A BUG accumulates answers (`bugReplies`) and files the WHOLE conversation on completion: normally the model's `create_support_ticket` (client-side only — the server never writes tickets from the tool), else safety nets: `BUG_REPLY_CAP` (2), the in-frame close, the loader close (`txid-closing` via `setOpen(false)`), `pagehide` (fetch `keepalive: true`), and any mode-switch away from bug. All idempotent via `findingRecorded`/`awaitingFinding` refs. Tickets carry `wallet_address` (migration `20260811000001`); FindingList renders it labelled "(unverified)".
+
 ### Widget disclaimer
 `branding.disclaimer`, `DEFAULT_DISCLAIMER` + `resolveDisclaimer()` in `lib/types/config.ts`. **Unset means the DEFAULT, not silence**; empty string is the explicit opt-out. Rendered under the composer in BOTH modes (one and not the other looks deliberate) and appended in `plainBody`, so all six escalation integrations carry it without touching an adapter. All three escalation paths pass it: widget, dashboard, Telegram.
 
@@ -783,6 +791,13 @@ The differentiator for institutional buyers, and the part they think they are bu
 `/check/aptos` has a "use a live trader wallet" escape hatch backed by `apps/web/app/api/aptos/sample-trader/route.ts`, which walks recent Decibel traders until one holds an open book (cached 5 min). `primary_subaccount` resolves for ANY wallet, so a reviewer connecting a fresh wallet otherwise sees a correct but empty answer.
 
 ---
+
+## Shipping workflow (since 2026-08-12)
+
+**`master` is protected**: required status check `test` (the Tests workflow: vitest + embed smoke + build), `enforce_admins` on, no force pushes. Direct pushes are rejected; land changes via PR (`gh pr create`, merge when green) or fast-forward a commit already carrying a green check (the staging promotion path). A persistent **`staging` branch** is the pre-prod surface; it carries `apps/app/public/harness.html` (widget host-API click-through, `/harness.html?key=pk_…`) which must NEVER be merged to master. Migrations run on the staging Supabase first (project pending), production second. Pure content (blog posts) may PR straight to master. The embed smoke (`pnpm --filter @txid/app run smoke:embed`) is part of the local gate for ANY widget.js change: it caught nothing locally on 2026-08-11 only because it was not run.
+
+### Launch-audit hardening (2026-08-12, all shipped)
+Four-auditor CTO audit; every finding fixed: `/api/chat` rejects non-string message content + pins roles (content-block arrays bypassed the length cap); `safeEnqueue` + persistence moved to `finally` so a disconnect mid-stream loses neither the transcript nor the `token_usage` row (the model loop deliberately runs to completion); `maxDuration` 300; Telegram runs behind `checkSpendBudget` + `TELEGRAM_LIMITS.perChatPerDay` (300); preview sessions excluded from the conversation quota (migration `20260812000001`) and from both usage displays; quota RPC failure falls back to an explicit count (was fail-open); Groq fallback + `completeChatWithUsage` record real token usage (was zero during Anthropic outages); `/api/check` has a global 600/min bucket; widget SSE parsing buffers across chunk boundaries; quota 429 copy is end-user-neutral; `requireCapability("tickets")` on the legacy ticket actions; `app/dashboard/error.tsx` boundary; origin guards on `actions/rebuild` + `ack`.
 
 ## Plans / billing
 
