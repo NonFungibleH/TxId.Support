@@ -76,6 +76,13 @@ export function ThemedClerkProvider({ children }: { children: React.ReactNode })
   const { resolvedTheme } = useTheme()
   return (
     <ClerkProvider
+      // Clerk must know where these pages live, or an ORG INVITATION ticket has
+      // nowhere to route: without signUpUrl it dropped invited colleagues on
+      // /sign-in (no account) and their "Sign up" click landed on a ticket-less
+      // /sign-up, which is gated to a holding page. With these set, the ticket
+      // is carried to /sign-up, which already lets an invitee straight through.
+      signInUrl="/sign-in"
+      signUpUrl="/sign-up"
       signInFallbackRedirectUrl="/dashboard"
       afterSignUpUrl="/onboarding"
       appearance={resolvedTheme === "light" ? LIGHT_APPEARANCE : DARK_APPEARANCE}
