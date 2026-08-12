@@ -660,7 +660,13 @@ export function buildSystemPrompt(params: StreamChatParams): string {
             `Give the single most likely cause plainly with the concrete fix, do not dump all five.`
         )
       )
-    } else {
+      // `else if (diagnosticsOn)`, not `else`: with diagnostics OFF, walletConfig
+      // is always null, so this "no wallet connected" branch would otherwise be
+      // the one that fires, and it is ALL transaction-lookup / connect-wallet
+      // instructions (the exact source of the leak the top hard-rule was
+      // fighting). Gating it means a docs-only project emits no wallet section
+      // at all.
+    } else if (diagnosticsOn) {
       const isSolanaProject = (config.watchedContracts ?? []).some(c => c.chain === "solana")
       const isAptosProject = (config.watchedContracts ?? []).some(c => c.chain === "aptos")
       // No wallet connected
