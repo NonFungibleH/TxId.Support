@@ -46,6 +46,11 @@ export const POSTS: Post[] = [
         label: "The short version",
         text: "Judge an AI support tool on what it can CHECK, not how well it writes. Ask to see the evidence behind a specific answer, ask what it does when a lookup fails, ask what it records, and ask how it behaves when it does not know. A tool that has real answers to those four questions investigates. A tool that deflects them is a chatbot with a confident voice, and confidence is exactly the wrong thing to buy for support.",
       },
+      {
+        type: "figure",
+        kind: "support-tiers",
+        caption: "Support tools sit on a ladder: keyword search and docs chatbots answer from your text, while agentic support reads the user's live chain state before answering.",
+      },
       { type: "h2", text: "Why the usual criteria mislead" },
       {
         type: "p",
@@ -158,6 +163,11 @@ export const POSTS: Post[] = [
         type: "callout",
         label: "The short answer",
         text: "A chatbot answers from what it has read. An agentic support system answers from what it has checked. It is given tools (APIs, databases, live system state), decides which to use for each question, runs them, and builds its answer from the results. The output is an evidence-backed finding, not a guess. If a support tool cannot show you what it checked to produce an answer, it is not agentic.",
+      },
+      {
+        type: "figure",
+        kind: "chatbot-vs-agent",
+        caption: "A retrieval chatbot answers the question in general; an agent investigates the user's actual transaction and answers it specifically.",
       },
       { type: "h2", text: "What makes support 'agentic'?" },
       {
@@ -336,6 +346,11 @@ export const POSTS: Post[] = [
         type: "callout",
         label: "The short answer",
         text: "An 'out of gas' error usually means the gas limit was too low for the transaction to complete. The fix is usually to retry with a higher gas limit, not to add more ETH. However, some failed transactions are incorrectly diagnosed as 'out of gas' when the real issue is a contract revert. The only way to know what happened is to inspect the transaction execution itself. This is exactly the type of problem TxID is built to diagnose: understanding what happened on-chain, explaining why, and showing the fix.",
+      },
+      {
+        type: "figure",
+        kind: "gas-gauge",
+        caption: "Out of gas is about the gas limit you set, the compute ceiling for the transaction, not the amount of ETH in your wallet.",
       },
       {
         type: "h2",
@@ -728,6 +743,11 @@ export const POSTS: Post[] = [
         text: "This isn't a coincidence. Discord's design makes it structurally impossible to run safe, trustworthy support at scale. And protocols keep using it anyway, because there hasn't been a better option.",
       },
       {
+        type: "figure",
+        kind: "scam-vs-safe",
+        caption: "The scam depends on support happening in a private DM. An assistant that lives inside your app never messages first and never asks for keys.",
+      },
+      {
         type: "h2",
         text: "The anatomy of a Discord support scam",
       },
@@ -852,6 +872,11 @@ export const POSTS: Post[] = [
         ],
       },
       {
+        type: "figure",
+        kind: "deflection-funnel",
+        caption: "Answer the common questions at the source, and only the genuine edge cases reach a human.",
+      },
+      {
         type: "h2",
         text: "Step 1: Know your top five questions",
       },
@@ -967,6 +992,11 @@ export const POSTS: Post[] = [
       {
         type: "p",
         text: "The pitch is accurate, but it glosses over some things that matter. The quality of the answers is directly proportional to the quality of the source material. A crawler can only work with what's there.",
+      },
+      {
+        type: "figure",
+        kind: "rag-pipeline",
+        caption: "Your docs are crawled, chunked and embedded once. Each question then retrieves the right passages, and the answer cites them.",
       },
       {
         type: "h2",
@@ -1108,6 +1138,11 @@ export const POSTS: Post[] = [
       {
         type: "p",
         text: "This isn't a problem with the underlying AI. The problem is that the bot has no context. It doesn't know who the user is. It doesn't know what they were trying to do. It doesn't know what actually happened. Without that, the best it can do is ask questions, which is the last thing a frustrated user wants.",
+      },
+      {
+        type: "figure",
+        kind: "wallet-aware",
+        caption: "Same question, two answers: a generic chatbot guesses, while wallet-aware support reads the transaction and tells the user exactly what happened.",
       },
       {
         type: "h2",
@@ -1283,6 +1318,11 @@ export const POSTS: Post[] = [
         text: "The difference in user experience is enormous. A doc-only bot can tell a user what slippage is. A context-aware bot can tell them that their specific swap failed because their 0.5% slippage tolerance was too tight for the ETH/USDC pool at that moment, and suggest what to try instead.",
       },
       {
+        type: "figure",
+        kind: "four-sources",
+        caption: "Each on-chain data source maps to a support question it lets the assistant answer with certainty.",
+      },
+      {
         type: "h2",
         text: "The four data sources that matter",
       },
@@ -1404,6 +1444,11 @@ export const POSTS: Post[] = [
       {
         type: "p",
         text: "A user posts that their transaction failed. Mods scramble to respond. Scammers DM the user first with a fake 'recovery tool'. The protocol team writes another pinned message reminding everyone that 'we will never DM you first'. The cycle repeats.",
+      },
+      {
+        type: "figure",
+        kind: "telegram-flow",
+        caption: "In a group, the bot diagnoses from the chain and answers in the open, which is also what closes the DM scam vector.",
       },
       {
         type: "h2",
