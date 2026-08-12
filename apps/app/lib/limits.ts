@@ -123,6 +123,11 @@ export const TELEGRAM_LIMITS = {
 export const TICKET_LIMITS = {
   /** Submissions per IP per window (email/webhook side-effect → stricter). */
   ratePerWindow: 5,
+  /** Beta FINDINGS (bug/feedback) are lower-stakes and a tester legitimately
+   *  files several in a bug-bash, so they get their own, higher cap under a
+   *  separate key. Below this the support-ticket cap of 5 was silently dropping
+   *  the 6th+ finding while the widget still said "recorded". */
+  findingRatePerWindow: 30,
   windowMs: 10 * 60_000,
   maxSummaryChars: 500,
   maxConversationMsgs: 30,

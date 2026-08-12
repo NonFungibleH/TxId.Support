@@ -43,16 +43,6 @@ export async function POST(request: Request) {
   try {
     const ip = clientIp(request)
 
-    // Stricter than chat (creating a ticket emails the team + fires a webhook).
-    // Distributed via Upstash when configured; see lib/rate-limit.ts.
-    const { allowed } = await rateLimit(`ticket:${ip}`, TICKET_LIMITS.ratePerWindow, TICKET_LIMITS.windowMs)
-    if (!allowed) {
-      return new Response(JSON.stringify({ error: "Too many requests. Please try again later." }), {
-        status: 429,
-        headers: { ...CORS_HEADERS, "Content-Type": "application/json", "Retry-After": "600" },
-      })
-    }
-
     const body = (await request.json()) as {
       key: string
       name?: string
@@ -84,6 +74,23 @@ export async function POST(request: Request) {
       return new Response(JSON.stringify({ error: "Missing required fields" }), {
         status: 400,
         headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
+      })
+    }
+
+    // Rate limit AFTER the reason is known: beta findings (bug/feedback) get a
+    // higher cap under their own key, so a tester filing several does not hit
+    // the strict support-ticket cap and silently lose reports. Both still
+    // email/webhook, hence still capped. Distributed via Upstash when set.
+    const isFinding = reason === "bug" || reason === "feedback"
+    const { allowed } = await rateLimit(
+      isFinding ? `finding:${ip}` : `ticket:${ip}`,
+      isFinding ? TICKET_LIMITS.findingRatePerWindow : TICKET_LIMITS.ratePerWindow,
+      TICKET_LIMITS.windowMs,
+    )
+    if (!allowed) {
+      return new Response(JSON.stringify({ error: "Too many requests. Please try again later." }), {
+        status: 429,
+        headers: { ...CORS_HEADERS, "Content-Type": "application/json", "Retry-After": "600" },
       })
     }
 
