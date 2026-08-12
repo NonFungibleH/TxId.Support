@@ -3,6 +3,7 @@
 import { waitUntil } from "@vercel/functions"
 import { ROLES, DEFAULT_ROLE, type Role } from "@/lib/roles"
 import { requireCapability, rolesForOrg, currentActor } from "@/lib/roles-server"
+import { isAdminEmail, isCurrentUserAdmin } from "@/lib/admin-auth"
 import { createServiceClient } from "@/lib/supabase/server"
 import { recordAudit } from "@/lib/audit"
 import { revalidatePath } from "next/cache"
@@ -84,7 +85,17 @@ export async function getTeamMembers() {
     }
   })
 
-  return { members, pending }
+  // Platform operators (ADMIN_EMAILS) are hidden super-admins: they hold full
+  // access to support the account, but a CUSTOMER should not see them in their
+  // own team list. Hide them from everyone EXCEPT a viewer who is themselves an
+  // operator, so an operator can still see and manage their own presence. The
+  // member count shown in the UI derives from this list, so it follows.
+  const viewerIsOperator = await isCurrentUserAdmin()
+  if (viewerIsOperator) return { members, pending }
+  return {
+    members: members.filter(m => !isAdminEmail(m.email)),
+    pending: pending.filter(p => !isAdminEmail(p.email)),
+  }
 }
 
 export async function inviteTeamMember(formData: FormData): Promise<ActionResult> {
@@ -158,24 +169,34 @@ export async function setMemberRole(clerkUserId: string, role: Role): Promise<Ac
     return refuse("You cannot change your own role. Ask another Admin to do it, so an account cannot lock itself out.")
   }
 
+  const { orgId: clerkOrgId } = await resolveOrg()
+  const clerk = await clerkClient()
+  const list = clerkOrgId
+    ? (await clerk.organizations.getOrganizationMembershipList({ organizationId: clerkOrgId })).data
+    : []
+  const targetEmail = list.find(m => m.publicUserData?.userId === clerkUserId)?.publicUserData?.identifier
+
+  // A hidden platform operator cannot be re-roled by a customer admin: that
+  // would strip the vendor's support access. The UI hides operators, but the
+  // action is reachable directly, so it is guarded here too.
+  if (isAdminEmail(targetEmail) && !(await isCurrentUserAdmin())) {
+    return refuse("You can't change that member's access.")
+  }
+
   const supabase = createServiceClient()
 
   // Refuse to remove the last admin. Roles default to Admin when unset, so the
-  // count has to consider members with no row, which is why it is computed
-  // from the Clerk member list rather than from this table alone.
+  // count considers members with no row. Operators are EXCLUDED, so this guard
+  // protects the customer's OWN last admin, not the hidden operator.
   if (role !== "admin") {
-    const { orgId: clerkOrgId } = await resolveOrg()
-    if (clerkOrgId) {
-      const clerk = await clerkClient()
-      const list = await clerk.organizations.getOrganizationMembershipList({ organizationId: clerkOrgId })
-      const explicit = await rolesForOrg(actor.orgId)
-      const admins = list.data.filter(m => {
-        const uid = m.publicUserData?.userId
-        return uid ? (explicit[uid] ?? DEFAULT_ROLE) === "admin" : false
-      })
-      if (admins.length <= 1 && admins.some(m => m.publicUserData?.userId === clerkUserId)) {
-        return refuse("This is the only Admin on the account. Promote someone else first, or the company loses access to its own team settings.")
-      }
+    const explicit = await rolesForOrg(actor.orgId)
+    const admins = list.filter(m => {
+      if (isAdminEmail(m.publicUserData?.identifier)) return false
+      const uid = m.publicUserData?.userId
+      return uid ? (explicit[uid] ?? DEFAULT_ROLE) === "admin" : false
+    })
+    if (admins.length <= 1 && admins.some(m => m.publicUserData?.userId === clerkUserId)) {
+      return refuse("This is the only Admin on the account. Promote someone else first, or the company loses access to its own team settings.")
     }
   }
 
@@ -224,21 +245,30 @@ export async function removeMember(clerkUserId: string): Promise<ActionResult> {
   const { orgId } = await resolveOrg()
   if (!orgId) throw new Error("No organisation")
 
-  // Refuse to remove the last Admin, for the same reason a demotion is
-  // refused: it locks the organisation out of its own team settings.
   const clerk = await clerkClient()
   const list = await clerk.organizations.getOrganizationMembershipList({ organizationId: orgId })
+  const membership = list.data.find(m => m.publicUserData?.userId === clerkUserId)
+  const email = membership?.publicUserData?.identifier ?? clerkUserId
+
+  // A hidden platform operator cannot be removed by a customer admin: that would
+  // revoke the vendor's support access. The UI hides operators, so a customer
+  // never sees the control, but the action is reachable directly, so guard it.
+  if (isAdminEmail(email) && !(await isCurrentUserAdmin())) {
+    return refuse("You can't remove that member.")
+  }
+
+  // Refuse to remove the last Admin, for the same reason a demotion is refused:
+  // it locks the organisation out of its own team settings. Operators are
+  // EXCLUDED, so this protects the customer's own last admin, not the operator.
   const explicit = await rolesForOrg(actor.orgId)
   const admins = list.data.filter(m => {
+    if (isAdminEmail(m.publicUserData?.identifier)) return false
     const uid = m.publicUserData?.userId
     return uid ? (explicit[uid] ?? DEFAULT_ROLE) === "admin" : false
   })
   if (admins.length <= 1 && admins.some(m => m.publicUserData?.userId === clerkUserId)) {
     throw new Error("This is the only Admin. Promote someone else first.")
   }
-
-  const membership = list.data.find(m => m.publicUserData?.userId === clerkUserId)
-  const email = membership?.publicUserData?.identifier ?? clerkUserId
 
   await clerk.organizations.deleteOrganizationMembership({ organizationId: orgId, userId: clerkUserId })
 
