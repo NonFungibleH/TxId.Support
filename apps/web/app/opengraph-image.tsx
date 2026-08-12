@@ -12,6 +12,9 @@ const CHAINS = [
   { name: "MATIC", color: "#8247E5" },
   { name: "OP",    color: "#FF0420" },
   { name: "BNB",   color: "#F3BA2F" },
+  { name: "AVAX",  color: "#E84142" },
+  { name: "XTZ",   color: "#38FF9C" },
+  { name: "APT",   color: "#ffffff" },
 ]
 
 export default function Image() {
@@ -86,7 +89,7 @@ export default function Image() {
           </div>
 
           {/* Chain badges */}
-          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 6, maxWidth: 470 }}>
             <span style={{ color: "#374151", fontSize: 12, marginRight: 4 }}>Available on</span>
             {CHAINS.map(({ name, color }) => (
               <div

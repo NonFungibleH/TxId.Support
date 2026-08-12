@@ -19,6 +19,7 @@ export type PostSection =
   | { type: "quote"; text?: string }
   | { type: "stat-grid"; stats: Array<{ value: string; label: string }> }
   | { type: "comparison"; left: { title: string; items: string[] }; right: { title: string; items: string[] } }
+  | { type: "figure"; kind: string; caption?: string }
 
 export const POSTS: Post[] = [
   {
@@ -580,6 +581,11 @@ export const POSTS: Post[] = [
         type: "callout",
         label: "The short answer",
         text: "A failed transaction means the network ran your transaction but the smart contract rejected it, so your action was undone while you still pay for the gas used. The cause is almost always one of: not enough gas, a require() check that failed, a custom contract error, a Solidity panic such as arithmetic overflow, or a slippage or deadline guard on a swap.",
+      },
+      {
+        type: "figure",
+        kind: "decode-flow",
+        caption: "How TxID reads a failed transaction: it replays the revert and tries each cause in order, then answers in plain English.",
       },
       {
         type: "h2",
