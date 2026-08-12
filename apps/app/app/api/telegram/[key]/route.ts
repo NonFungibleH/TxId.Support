@@ -405,10 +405,16 @@ export async function POST(
   // A pasted address unlocks the wallet toolset, exactly like connecting in
   // the widget. Scan the current message first, then recent history, so a
   // follow-up question keeps the wallet from two messages ago.
-  const walletConfig = detectWalletConfig(
-    [...historyMessages.filter(m => m.role === "user").map(m => m.content), userText],
-    config,
-  )
+  // Same on-chain-diagnosis switch as the widget: a diagnostics-off protocol
+  // must refuse transaction debugging on every surface, Telegram included.
+  const diagnosticsOn = config.diagnostics !== false
+
+  const walletConfig = diagnosticsOn
+    ? detectWalletConfig(
+        [...historyMessages.filter(m => m.role === "user").map(m => m.content), userText],
+        config,
+      )
+    : null
 
   const systemPrompt = buildSystemPrompt({
     projectName: project.name,
@@ -419,6 +425,7 @@ export async function POST(
     persona: config.branding?.persona ?? "concise",
     customTone: config.branding?.customTone ?? undefined,
     ...(config.branding?.language ? { language: config.branding.language } : {}),
+    diagnostics: diagnosticsOn,
   })
 
   sendTypingAction(botToken, message.chat.id)
@@ -427,7 +434,7 @@ export async function POST(
   let usage: { inputTokens: number; outputTokens: number; cacheReadTokens: number; cacheWriteTokens: number; model: string } | null = null
   let escalation: { summary: string; reason: string } | null = null
   try {
-    const res = await completeChatWithToolsUsage(systemPrompt, messages, walletConfig, watchedContracts, 800)
+    const res = await completeChatWithToolsUsage(systemPrompt, messages, walletConfig, watchedContracts, 800, diagnosticsOn)
     reply = res.text
     usage = res.usage
     escalation = res.escalation

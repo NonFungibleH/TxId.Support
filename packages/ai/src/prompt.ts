@@ -39,7 +39,7 @@ function chainName(chainId: string): string {
 // These apply regardless of persona. They define what a good response looks
 // like mechanically — the persona layer controls tone and register on top.
 
-function buildUniversalRules(language: string | null | undefined): string {
+function buildUniversalRules(language: string | null | undefined, diagnosticsOn = true): string {
   const languageRule = language && language !== "en"
     ? `- **Language.** Always respond in the configured protocol language: **${language}**. If a user writes in a different language, you may briefly acknowledge them in their language (one short sentence), then continue in ${language}.`
     : `- **Language.** Detect the language the user writes in and respond in that same language. If the user switches language, switch with them. Default to English only if no other language is detectable.`
@@ -59,10 +59,10 @@ ${languageRule}
 - **Never write text before a tool call.** Not "I need to look up…", not "Let me check…", not "I see there is a module, let me look at it". The user already sees a live status line for every lookup you make, so anything you write there is a second, worse version of it. Call the tool silently and write only when you have the answer. If you already know the answer, give it, don't go and check something to be seen checking.
 - **Let them ask for more.** If there's further detail available, stop and let them ask. Don't pre-empt follow-ups with sections nobody requested.
 
-This is the target shape for a failed transaction:
+${diagnosticsOn ? `This is the target shape for a failed transaction:
 > Slippage. The price moved between signing and execution, so the swap reverted. Nothing left your wallet apart from the gas fee, try again with slippage at 1%.
 
-Four short sentences: cause, mechanism, reassurance, fix. That is a complete answer to a hard question. Anything materially longer than this needs a reason.
+Four short sentences: cause, mechanism, reassurance, fix. That is a complete answer to a hard question. Anything materially longer than this needs a reason.` : ``}
 - **No em dashes.** Use a colon, a comma or a full stop instead. They read as machine-written and the protocol's own copy avoids them.
 - **Bullet points only for 3+ distinct items.** Don't bullet a single thought or break one continuous idea into fragments.
 - **Always give addresses in full, in a \`code\` block.** Never write a shortened address like \`0x7f30…ff0b\` as the only form. Scammers rely on lookalike shortened addresses where the first and last characters match, so an abbreviation is never enough for a user to verify anything. Shortened forms are fine only alongside the full address, never instead of it.
@@ -109,7 +109,9 @@ You are a support agent, not an adviser. Telling a user what to DO with their mo
 **These remain fine, and you should answer them fully.** Current price, mark price or funding rate from a tool. A user's own positions, collateral, margin ratio, liquidation price, or pending orders. How a mechanism works, what a fee is, what a parameter means. Why a past transaction did what it did. What this protocol's own published rules say, including its own eligibility or regional policy, quoted as the protocol's position rather than as legal advice. Explaining the risk a mechanism carries in general terms is documentation; telling this user whether to accept that risk is advice.
 
 ### Scope & behaviour
-- **Stay in scope.** You support this protocol and the people using it. Diagnose the user's OWN transactions and wallet activity, even when they route through contracts not listed above (users often interact via per-user smart wallets, routers, or helper contracts). Decline only requests to support a DIFFERENT protocol's product, in one sentence.
+${diagnosticsOn
+  ? `- **Stay in scope.** You support this protocol and the people using it. Diagnose the user's OWN transactions and wallet activity, even when they route through contracts not listed above (users often interact via per-user smart wallets, routers, or helper contracts). Decline only requests to support a DIFFERENT protocol's product, in one sentence.`
+  : `- **Stay in scope.** You answer questions about this protocol from its documentation and you log bug reports. You do NOT diagnose transactions or read on-chain data. If asked to investigate a transaction, wallet, or contract, decline in one sentence and offer the documentation or a bug report instead.`}
 - **Look it up, don't ask.** Never ask the user for data you can fetch yourself. Ask a clarifying question only when genuinely ambiguous (e.g. which of two contracts).
 - **Suggest only what you can answer.** Never steer the user toward a question you cannot handle.
 - **Escalate cleanly.** If you genuinely cannot help after trying, offer to create a support ticket rather than repeating yourself.
@@ -249,7 +251,12 @@ export function buildDocsBlock(ragContext: string | undefined): string {
 }
 
 export function buildSystemPrompt(params: StreamChatParams): string {
-  const { projectName, config, walletConfig, ragContext, mode, tokenModeAsk, persona, language, customTone, docsSeparate, protocolAccount, statusNotice, beta } = params
+  const { projectName, config, walletConfig, ragContext, mode, tokenModeAsk, persona, language, customTone, docsSeparate, protocolAccount, statusNotice, beta, diagnostics } = params
+  // On-chain diagnosis is ON unless the project explicitly turned it off. When
+  // off, the model is given no diagnostic tools (see stream.ts) and the prompt
+  // is swapped to refuse transaction questions, so it can neither look one up
+  // nor guess at one.
+  const diagnosticsOn = diagnostics !== false
   const parts: string[] = []
 
   // BETA PROGRAMME. Placed high, because it changes who is asking and what some
@@ -362,6 +369,21 @@ export function buildSystemPrompt(params: StreamChatParams): string {
       `Never fabricate on-chain data, contract addresses, or transaction details.`
     )
 
+    // Diagnosis OFF: the protocol has opted out of transaction/on-chain
+    // debugging (a wrong debug suggestion is a risk they will not carry). The
+    // model also has no diagnostic tools (see stream.ts); this block makes the
+    // refusal explicit so it cannot guess a "wrong debug suggestion" instead.
+    if (!diagnosticsOn) {
+      parts.push(
+        `## You do not diagnose transactions or on-chain activity\n` +
+        `This assistant answers questions from ${projectName}'s documentation and records bug reports for the team. It does NOT investigate transactions or debug on-chain problems, and you have no tools to do so.\n` +
+        `- If a user asks why a transaction failed, pastes a transaction hash, or asks about gas, approvals, balances, a specific on-chain action, or anything that would need reading the chain: do NOT attempt it and do NOT guess. A wrong technical answer here is worse than no answer.\n` +
+        `- Reply in one line that you can't look into transaction specifics, then point them to what you CAN do: answer questions about how ${projectName} works, and log a bug for the team.\n` +
+        `- If what they describe sounds broken, stuck, or wrong, offer to log it as a bug report.\n` +
+        `- Never speculate about the cause, amount, state, or fix of an on-chain issue, even in general terms.`
+      )
+    }
+
     if (config.token) {
       const t = config.token
       const lines = [`## Protocol Token`]
@@ -372,7 +394,7 @@ export function buildSystemPrompt(params: StreamChatParams): string {
       parts.push(lines.join("\n"))
     }
 
-    if (config.watchedContracts && config.watchedContracts.length > 0) {
+    if (config.watchedContracts && config.watchedContracts.length > 0 && diagnosticsOn) {
       const lines = ["## Smart Contracts"]
       for (const c of config.watchedContracts) {
         lines.push(`- **${c.name}** (\`${c.address}\` on ${chainName(c.chain)}): ${c.description}`)
@@ -666,7 +688,7 @@ export function buildSystemPrompt(params: StreamChatParams): string {
       `Try to help first, but do not keep the user looping. If you cannot resolve it within a few turns, call create_support_ticket and explain what you've tried.`
     )
 
-    parts.push(buildUniversalRules(language))
+    parts.push(buildUniversalRules(language, diagnosticsOn))
     parts.push(personaStyle(persona))
     parts.push(customToneBlock(customTone))
   }

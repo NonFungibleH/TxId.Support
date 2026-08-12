@@ -497,6 +497,16 @@ export interface ProjectConfig {
    */
   allowUnrestrictedKey?: boolean
   watchedContracts: WatchedContract[]
+  /**
+   * On-chain diagnosis. `false` turns it OFF: the assistant answers from the
+   * documentation and takes bug reports, but never looks up or debugs a
+   * transaction. For a protocol that opted out of diagnosis (a wrong debug
+   * suggestion is a risk they will not carry, e.g. the Yamata pilot), this
+   * strips the blockchain tools at the chat route AND swaps the prompt to
+   * refuse, so debugging is impossible rather than merely discouraged.
+   * Undefined or true keeps the full diagnostic agent.
+   */
+  diagnostics?: boolean
   audits?: AuditEntry[]
   community: CommunityConfig | null
   /**

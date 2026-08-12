@@ -619,9 +619,15 @@ export async function POST(request: Request) {
       }
     }
 
+    // On-chain diagnosis. OFF (config.diagnostics === false) means this protocol
+    // opted out of transaction/on-chain debugging: no wallet context, no
+    // diagnostic tools (below), and a prompt that refuses. A wrong debug
+    // suggestion is a risk some protocols will not carry.
+    const diagnosticsOn = config.diagnostics !== false
+
     // Wallet config - passed to the AI so Claude can decide whether to use tools
     const walletConfig =
-      projectMode === "support" && walletAddress && chainId
+      projectMode === "support" && walletAddress && chainId && diagnosticsOn
         ? { address: walletAddress, chainId }
         : null
 
@@ -700,6 +706,7 @@ export async function POST(request: Request) {
       ...(betaProgramme ? { beta: betaControlsForPrompt } : {}),
       customTone: config.branding?.customTone ?? undefined,
       ...(config.branding?.language ? { language: config.branding.language } : {}),
+      diagnostics: diagnosticsOn,
     })
 
     // Actions guardrails: execute-only, never solicit. The hard enforcement is
@@ -825,6 +832,7 @@ export async function POST(request: Request) {
             // team's docs. Token mode never retrieves at all, so it should not
             // gain a "no documentation matched" section it never had.
             projectMode === "support" ? buildDocsBlock(ragContext) : undefined,
+            diagnosticsOn,
           )) {
             let data: string
             if (event.type === "tool_call") {
