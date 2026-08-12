@@ -462,7 +462,9 @@ export async function POST(
     // an empty Telegram message: it 400s and the user sees silence.
     reply = escalation
       ? "This needs a human from the team to look at."
-      : "Sorry, I couldn't work that one out. Could you rephrase, or share a transaction hash?"
+      : diagnosticsOn
+        ? "Sorry, I couldn't work that one out. Could you rephrase, or share a transaction hash?"
+        : "Sorry, I couldn't work that one out. Could you rephrase your question?"
   }
 
   // Escalation in a chat channel: notify the team's configured integrations

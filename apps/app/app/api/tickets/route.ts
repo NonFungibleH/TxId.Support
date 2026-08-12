@@ -180,16 +180,22 @@ export async function POST(request: Request) {
     }
 
     let insertError = null
-    for (let attempt = 0; attempt < 4; attempt++) {
+    for (let attempt = 0; attempt < 6; attempt++) {
       ref = makeRef()
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await (supabase as any).from("tickets").insert({ ...payload, ref }).select("id").single()
       insertError = result.error
       ticketDbId = result.data?.id ?? null
       if (!insertError) break
-      if (insertError.code === "42703" && "request" in payload) {
-        delete payload.request // column not migrated yet; file the report anyway
-        continue
+      // A column the report carries may not be migrated in this database yet.
+      // Drop optional evidence columns one at a time and file the report anyway,
+      // rather than 500-ing over a compliance nicety. wallet_address matters
+      // most here: a hidden-wallet customer sends it on every report, so if that
+      // migration lagged we would otherwise lose every single bug report.
+      // (Postgres 42703 = undefined_column.)
+      if (insertError.code === "42703") {
+        if ("request" in payload) { delete payload.request; continue }
+        if ("wallet_address" in payload) { delete payload.wallet_address; continue }
       }
       if (insertError.code !== "23505") break // only retry on unique violation
     }

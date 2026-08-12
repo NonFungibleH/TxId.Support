@@ -530,7 +530,11 @@ export function buildSystemPrompt(params: StreamChatParams): string {
         `- **Addresses**: shorten to \`0x1234…abcd\` in prose; give the full address in a code block only when the user needs to copy it.`
     )
 
-    if (walletConfig) {
+    // Gated on diagnosticsOn as belt-and-braces: every live caller already nulls
+    // walletConfig when diagnostics is off, but this block is pure
+    // transaction-lookup and diagnosis instruction, so it must never render for a
+    // docs-only project even if a future caller forgets to null the wallet.
+    if (walletConfig && diagnosticsOn) {
       const isSolana = walletConfig.chainId === "solana"
       const isAptos = walletConfig.chainId === "aptos"
       // Wrong-network detection: is the wallet on one of the protocol's chains?
