@@ -22,6 +22,18 @@ function getAnthropicClient(): Anthropic | null {
   return _anthropic
 }
 
+
+// Groq reports token usage on non-streaming responses via `usage`, and on the
+// FINAL chunk of a stream via its `x_groq.usage` extension (untyped by the
+// OpenAI SDK). Read both defensively: whichever appears, we count it. Without
+// this the entire Groq fallback path recorded ZERO token usage, so the spend
+// breaker went blind exactly when an Anthropic outage shifted all traffic here.
+type GroqUsage = { prompt_tokens?: number; completion_tokens?: number }
+function groqChunkUsage(chunk: unknown): GroqUsage | null {
+  const c = chunk as { usage?: GroqUsage; x_groq?: { usage?: GroqUsage } }
+  return c.usage ?? c.x_groq?.usage ?? null
+}
+
 function getGroqClient(): OpenAI {
   if (!_groq) {
     const apiKey = process.env.GROQ_API_KEY
@@ -279,6 +291,10 @@ async function* streamChatWithToolsRaw(
   // ── Groq path with tool support ──────────────────────────────────────────
   if (!anthropic) {
     const client = getGroqClient()
+    let gIn = 0
+    let gOut = 0
+    const addGroqUsage = (u: GroqUsage | null | undefined) => { if (u) { gIn += u.prompt_tokens ?? 0; gOut += u.completion_tokens ?? 0 } }
+    const groqUsageEvent = () => ({ type: "usage" as const, inputTokens: gIn, outputTokens: gOut, cacheReadTokens: 0, cacheWriteTokens: 0, model: "llama-3.3-70b-versatile" })
 
     // Offer wallet tools whenever a wallet is connected — same rule as the
     // Claude path. (A previous keyword-regex gate produced false negatives:
@@ -345,6 +361,8 @@ async function* streamChatWithToolsRaw(
           stream: false,
         })
 
+        addGroqUsage(response.usage)
+
         const msg = response.choices[0]?.message
         if (!msg) break
 
@@ -359,6 +377,7 @@ async function* streamChatWithToolsRaw(
               input = JSON.parse(escalationCall.function.arguments || "{}") as { summary?: string; reason?: string }
             } catch { /* malformed args from the model, escalate with defaults */ }
             yield { type: "escalate", summary: input.summary ?? "Issue needs further attention", reason: input.reason ?? "unresolved" }
+            yield groqUsageEvent()
             return
           }
 
@@ -400,6 +419,7 @@ async function* streamChatWithToolsRaw(
         // No tool calls — emit the text response
         if (msg.content) {
           yield { type: "text", text: msg.content }
+          yield groqUsageEvent()
           return
         }
         // Groq sometimes returns null content when tools are present but unused;
@@ -411,9 +431,11 @@ async function* streamChatWithToolsRaw(
           stream: true,
         })
         for await (const chunk of fallbackStream) {
+          addGroqUsage(groqChunkUsage(chunk))
           const text = chunk.choices[0]?.delta?.content
           if (text) yield { type: "text", text }
         }
+        yield groqUsageEvent()
         return
       }
 
@@ -425,9 +447,11 @@ async function* streamChatWithToolsRaw(
         stream: true,
       })
       for await (const chunk of groqStream) {
+        addGroqUsage(groqChunkUsage(chunk))
         const text = chunk.choices[0]?.delta?.content
         if (text) yield { type: "text", text }
       }
+      yield groqUsageEvent()
       return
     }
 
@@ -441,12 +465,14 @@ async function* streamChatWithToolsRaw(
     })
     let emittedClosing = false
     for await (const chunk of closing) {
+      addGroqUsage(groqChunkUsage(chunk))
       const text = chunk.choices[0]?.delta?.content
       if (text) { emittedClosing = true; yield { type: "text", text } }
     }
     if (!emittedClosing) {
       yield { type: "text", text: "I looked into that but couldn't complete the diagnosis in one go. Could you rephrase, or share the specific transaction hash so I can dig in directly?" }
     }
+    yield groqUsageEvent()
     return
   }
 
@@ -756,8 +782,9 @@ export async function completeChat(
 
 /**
  * Like completeChat but also returns token usage, so callers (e.g. the Telegram
- * webhook) can record it for the admin cost cockpit. usage is null on the Groq
- * fallback path (no per-turn accounting there).
+ * webhook) can record it for the admin cost cockpit. The Groq fallback now
+ * reports real usage too (non-streaming call), so an Anthropic outage no
+ * longer goes unaccounted.
  */
 export async function completeChatWithUsage(
   systemPrompt: string,
@@ -787,9 +814,22 @@ export async function completeChatWithUsage(
       model: MODEL,
     } }
   }
-  let text = ""
-  for await (const chunk of streamChat(systemPrompt, messages, maxTokens)) text += chunk
-  return { text, usage: null }
+  // Groq fallback: a non-streaming call so the response carries real usage,
+  // instead of the old streamChat collect that returned usage: null and left
+  // the outage window unaccounted.
+  const client = getGroqClient()
+  const res = await client.chat.completions.create({
+    model: "llama-3.3-70b-versatile",
+    max_tokens: maxTokens,
+    messages: [
+      { role: "system", content: systemPrompt },
+      ...messages.map((m) => ({ role: m.role, content: m.content })),
+    ],
+    stream: false,
+  })
+  const text = res.choices[0]?.message?.content ?? ""
+  const u = res.usage
+  return { text, usage: u ? { inputTokens: u.prompt_tokens ?? 0, outputTokens: u.completion_tokens ?? 0, cacheReadTokens: 0, cacheWriteTokens: 0, model: "llama-3.3-70b-versatile" } : null }
 }
 
 /**
