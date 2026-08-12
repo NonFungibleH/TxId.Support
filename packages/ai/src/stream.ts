@@ -247,6 +247,7 @@ export async function* streamChatWithTools(
   maxTokens = 800,
   actions: ActionsContext | null = null,
   docsBlock?: string,
+  diagnosticsEnabled = true,
 ): AsyncGenerator<StreamEvent> {
   const clean = (e: StreamEvent): StreamEvent =>
     e.type === "text" ? { ...e, text: stripEmDashes(e.text) } : e
@@ -254,7 +255,7 @@ export async function* streamChatWithTools(
   let textReachedUser = false
   try {
     for await (const event of streamChatWithToolsRaw(
-      systemPrompt, messages, walletConfig, watchedContracts, maxTokens, actions, docsBlock,
+      systemPrompt, messages, walletConfig, watchedContracts, maxTokens, actions, docsBlock, false, diagnosticsEnabled,
     )) {
       if (event.type === "text" && event.text.length > 0) textReachedUser = true
       yield clean(event)
@@ -268,7 +269,7 @@ export async function* streamChatWithTools(
   }
 
   for await (const event of streamChatWithToolsRaw(
-    systemPrompt, messages, walletConfig, watchedContracts, maxTokens, actions, docsBlock, true,
+    systemPrompt, messages, walletConfig, watchedContracts, maxTokens, actions, docsBlock, true, diagnosticsEnabled,
   )) {
     yield clean(event)
   }
@@ -285,6 +286,10 @@ async function* streamChatWithToolsRaw(
   /** Take the Groq path even though Claude is configured. Set by the wrapper
    *  when a Claude attempt has already failed. */
   forceFallback = false,
+  /** When false, on-chain diagnosis is OFF for this project: the ONLY tool
+   *  offered is create_support_ticket, so the model cannot look up or debug a
+   *  transaction. The prompt is swapped to refuse in lockstep (see prompt.ts). */
+  diagnosticsEnabled = true,
 ): AsyncGenerator<StreamEvent> {
   const anthropic = forceFallback ? null : getAnthropicClient()
 
@@ -308,7 +313,11 @@ async function* streamChatWithToolsRaw(
       buildContractHoldingsTool, buildContractStateTool, buildContractDataTool,
       buildContractInfoTool, buildContractFunctionsTool, buildUpgradeHistoryTool,
     ].map(b => b(watchedContracts)).filter((t): t is NonNullable<typeof t> => t !== null)
-    const anthropicTools = [
+    // Diagnostics OFF: the escalation tool is the ONLY tool, so the model has
+    // no way to look up or debug a transaction, whatever it's asked.
+    const anthropicTools = !diagnosticsEnabled
+      ? [buildEscalationTool()]
+      : [
       ...(needsWalletTools ? buildWalletTools(watchedContracts) : []),
       buildTxLookupTool(),
       ...contractToolset,
@@ -482,7 +491,11 @@ async function* streamChatWithToolsRaw(
     buildContractHoldingsTool, buildContractStateTool, buildContractDataTool,
     buildContractInfoTool, buildContractFunctionsTool, buildUpgradeHistoryTool,
   ].map(b => b(watchedContracts)).filter((t): t is NonNullable<typeof t> => t !== null)
-  const tools = [
+  // Diagnostics OFF: the escalation tool is the ONLY tool, so the model has no
+  // way to look up or debug a transaction, whatever it's asked.
+  const tools = !diagnosticsEnabled
+    ? [buildEscalationTool()]
+    : [
     ...(walletConfig ? buildWalletTools(watchedContracts) : []),
     buildTxLookupTool(),
     ...contractToolset,
@@ -846,6 +859,7 @@ export async function completeChatWithToolsUsage(
   walletConfig: WalletConfig | null,
   watchedContracts: WatchedContractSnapshot[] = [],
   maxTokens = 800,
+  diagnosticsEnabled = true,
 ): Promise<{
   text: string
   usage: { inputTokens: number; outputTokens: number; cacheReadTokens: number; cacheWriteTokens: number; model: string } | null
@@ -856,7 +870,7 @@ export async function completeChatWithToolsUsage(
   let usage: { inputTokens: number; outputTokens: number; cacheReadTokens: number; cacheWriteTokens: number; model: string } | null = null
   let escalation: { summary: string; reason: string } | null = null
   const toolsUsed: string[] = []
-  for await (const event of streamChatWithTools(systemPrompt, messages, walletConfig, watchedContracts, maxTokens)) {
+  for await (const event of streamChatWithTools(systemPrompt, messages, walletConfig, watchedContracts, maxTokens, null, undefined, diagnosticsEnabled)) {
     if (event.type === "text") text += event.text
     else if (event.type === "usage") {
       usage = {

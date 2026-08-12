@@ -110,4 +110,14 @@ export interface StreamChatParams {
    * inline makes the entire prefix per-question and defeats caching.
    */
   docsSeparate?: boolean
+  /**
+   * On-chain diagnosis for this project. `false` turns it OFF: the assistant
+   * answers from the documentation and records bug reports, but must NEVER look
+   * up or debug a transaction. A protocol that opted out of diagnosis (a wrong
+   * debug suggestion is a risk they will not carry) needs that to be
+   * mechanically impossible, not merely discouraged, so this both strips the
+   * on-chain tools (see stream.ts) and swaps the prompt to refuse. Undefined or
+   * true keeps the full diagnostic agent.
+   */
+  diagnostics?: boolean
 }
