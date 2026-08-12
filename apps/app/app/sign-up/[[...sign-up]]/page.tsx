@@ -1,9 +1,13 @@
 import Link from "next/link";
 import { SignUp } from "@clerk/nextjs";
 
-// Sign-ups are PAUSED while early deployments are hand-onboarded. Flip this to
-// true to open public registration. Existing accounts keep signing in as normal.
-const SIGNUPS_OPEN = false;
+// TEMPORARILY OPEN (2026-08-12) so the Yamata pilot team can accept their
+// invites: Clerk's invitation email lands invitees on /sign-in without the
+// ticket (a Dashboard "Paths" setting we still need to fix), so the ticket
+// bypass on this page never fired. With sign-ups open, an invitee signs up with
+// their invited email and Clerk auto-joins them to the org. FLIP BACK TO false
+// once the team is onboarded and the Clerk sign-up URL is configured.
+const SIGNUPS_OPEN = true;
 
 /**
  * AN INVITATION IS NOT A PUBLIC SIGN-UP, and this page could not tell them
