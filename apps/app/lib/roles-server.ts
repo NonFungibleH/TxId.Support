@@ -1,13 +1,70 @@
 import { resolveOrg } from "@/lib/clerk-org"
 import { createServiceClient } from "@/lib/supabase/server"
+import { clerkClient, currentUser } from "@clerk/nextjs/server"
 import {
   DEFAULT_ROLE,
   ROLE_LABEL,
+  ROLES,
   isRole,
   roleCan,
   type Capability,
   type Role,
 } from "@/lib/roles"
+
+/**
+ * Apply a newly-joined member's INVITED role, once.
+ *
+ * DEFAULT_ROLE is admin, so a member with no org_members row has FULL access
+ * until their role is written. getTeamMembers writes it, but only when the Team
+ * page is opened, so an invitee who went straight to the dashboard was admin in
+ * the meantime, which is how a "Support" invite ended up able to change
+ * everything. This writes the role from their accepted invitation on any
+ * dashboard load, before they can act. Idempotent and cheap: the Clerk lookup
+ * only runs when there is no row yet.
+ */
+export async function ensureCurrentUserRole(): Promise<void> {
+  const { userId, orgId } = await resolveOrg()
+  if (!userId || !orgId) return
+
+  const supabase = createServiceClient()
+  const { data: org } = await supabase
+    .from("organisations")
+    .select("id")
+    .eq("clerk_org_id", orgId)
+    .maybeSingle()
+  if (!org) return
+  const internalOrgId = (org as { id: string }).id
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: existing } = await (supabase as any)
+    .from("org_members")
+    .select("role")
+    .eq("org_id", internalOrgId)
+    .eq("clerk_user_id", userId)
+    .maybeSingle()
+  if (existing) return
+
+  const user = await currentUser()
+  const email = user?.primaryEmailAddress?.emailAddress?.toLowerCase()
+  if (!email) return
+
+  const clerk = await clerkClient()
+  const accepted = await clerk.organizations.getOrganizationInvitationList({
+    organizationId: orgId,
+    status: ["accepted"],
+  })
+  const inv = accepted.data.find((i) => i.emailAddress.toLowerCase() === email)
+  const role = (inv?.publicMetadata as { txidRole?: string } | undefined)?.txidRole
+  if (!role || !ROLES.includes(role as Role)) return
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await (supabase as any)
+    .from("org_members")
+    .upsert(
+      { org_id: internalOrgId, clerk_user_id: userId, role },
+      { onConflict: "org_id,clerk_user_id" },
+    )
+}
 
 /**
  * The server half of the role system.

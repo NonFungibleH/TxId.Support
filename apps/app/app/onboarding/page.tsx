@@ -29,7 +29,10 @@ export default async function OnboardingPage() {
   return (
     <div className="min-h-screen">
       <div className="flex items-center justify-end gap-3 p-4">
-        <OrganizationSwitcher afterSelectOrganizationUrl="/dashboard" />
+        {/* Operator-only: the switcher lets an operator escape a wrong active
+            org and manage companies. A regular member must not create or switch
+            orgs, so they only get the sign-out control. */}
+        {isOperator && <OrganizationSwitcher afterSelectOrganizationUrl="/dashboard" />}
         <UserButton />
       </div>
 
