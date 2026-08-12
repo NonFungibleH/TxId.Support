@@ -7,6 +7,7 @@ import { Figure } from "@/components/blog/Figures"
 import Link from "next/link"
 import { ArrowLeft, Clock, Tag } from "lucide-react"
 import { PostHeroImage } from "@/components/blog/PostHeroImage"
+import { blogPostingSchema, breadcrumbSchema } from "@/lib/seo"
 
 export async function generateStaticParams() {
   return POSTS.map((p) => ({ slug: p.slug }))
@@ -22,11 +23,19 @@ export async function generateMetadata({
   return {
     title: `${post.title} | TxID`,
     description: post.description,
+    alternates: { canonical: `/blog/${post.slug}` },
     openGraph: {
       title: post.title,
       description: post.description,
       type: "article",
+      url: `/blog/${post.slug}`,
       publishedTime: post.publishedAt,
+      images: [`/blog/${post.slug}/opengraph-image`],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: post.title,
+      description: post.description,
     },
   }
 }
@@ -139,15 +148,20 @@ export default function BlogPostPage({ params }: { params: { slug: string } }) {
   const post = getPost(params.slug)
   if (!post) notFound()
 
-  const jsonLd = {
-    "@context": "https://schema.org",
-    "@type": "BlogPosting",
-    headline: post.title,
-    description: post.description,
-    datePublished: post.publishedAt,
-    author: { "@type": "Person", name: post.author },
-    publisher: { "@type": "Organization", name: "TxID" },
-  }
+  const jsonLd = blogPostingSchema(post)
+  const breadcrumb = breadcrumbSchema([
+    { name: "Home", url: "/" },
+    { name: "Blog", url: "/blog" },
+    { name: post.title, url: `/blog/${post.slug}` },
+  ])
+  // Related reading: posts sharing a tag, newest first, topped up with recent
+  // posts if there are not three. Gives every article internal links out.
+  const related = [
+    ...POSTS.filter((p) => p.slug !== post.slug && p.tags.some((t) => post.tags.includes(t))),
+    ...POSTS.filter((p) => p.slug !== post.slug && !p.tags.some((t) => post.tags.includes(t))),
+  ]
+    .filter((p, i, arr) => arr.findIndex((x) => x.slug === p.slug) === i)
+    .slice(0, 3)
 
   const formatted = new Date(post.publishedAt).toLocaleDateString("en-GB", {
     day: "numeric",
@@ -160,6 +174,10 @@ export default function BlogPostPage({ params }: { params: { slug: string } }) {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumb) }}
       />
       <Navbar />
       <main className="min-h-screen pt-28 pb-24">
@@ -232,6 +250,28 @@ export default function BlogPostPage({ params }: { params: { slug: string } }) {
               Evaluate it: 150 conversations a month
             </a>
           </div>
+
+          {/* Related reading: internal links out to sibling articles */}
+          {related.length > 0 && (
+            <div className="mt-12">
+              <p className="font-mono text-xs text-muted uppercase tracking-wider mb-4">Related reading</p>
+              <div className="flex flex-col gap-2">
+                {related.map((r) => (
+                  <Link
+                    key={r.slug}
+                    href={`/blog/${r.slug}`}
+                    className="group flex items-start justify-between gap-4 rounded-xl border border-[var(--border)] bg-[var(--bg-surface)] p-4 hover:border-[var(--border-accent)] transition-colors"
+                  >
+                    <div className="min-w-0">
+                      <p className="font-display font-semibold text-white text-sm leading-snug group-hover:text-accent transition-colors">{r.title}</p>
+                      <p className="text-xs text-muted mt-1 line-clamp-1">{r.description}</p>
+                    </div>
+                    <ArrowLeft className="size-4 rotate-180 text-muted shrink-0 mt-0.5 group-hover:text-accent transition-colors" />
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </main>
       <Footer />

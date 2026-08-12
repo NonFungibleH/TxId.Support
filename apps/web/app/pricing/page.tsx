@@ -4,6 +4,7 @@ import { Footer } from "@/components/layout/Footer";
 import { PricingSection } from "@/components/sections/PricingSection";
 import { ClosingCTA } from "@/components/sections/ClosingCTA";
 import { FadeIn } from "@/components/ui/FadeIn";
+import { faqPageSchema } from "@/lib/seo";
 
 export const metadata: Metadata = {
   title: "Pricing | TxID",
@@ -30,8 +31,13 @@ const NOTES = [
 ];
 
 export default function PricingPage() {
+  const faqSchema = faqPageSchema(NOTES.map((n) => ({ q: n.title, a: n.body })));
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+      />
       <Navbar />
       <main className="pt-24">
         <div className="max-w-6xl mx-auto px-6 text-center pt-10 pb-0">
