@@ -144,6 +144,16 @@ export const WEAK_MATCH = 0.5
 const FINDING_REASONS = new Set(["bug", "feedback"])
 
 /**
+ * The Bug / Feedback buttons inject a fixed opener as the first user message.
+ * It is not the tester's own words and it appears in EVERY bug/feedback thread,
+ * so it must be excluded everywhere a "what did users ask" list is built: the
+ * themes ranking AND the documentation-gap list. A bug-flow reply legitimately
+ * matches no docs, but "I want to report a bug." is not a documentation gap, and
+ * leading the panel with it three times says nothing a docs owner can act on.
+ */
+const CANNED_OPENERS = new Set([BUG_OPENER, FEEDBACK_OPENER])
+
+/**
  * PURE, and separate from the read on purpose. Every rule worth getting right
  * is in here: which question a failed retrieval belongs to, which screen a
  * finding is attributed to, what counts as a theme. Testing those through a
@@ -220,6 +230,9 @@ export function computeInsights(
         }
       }
       if (!question) continue
+      // A canned Bug / Feedback opener is not a documentation gap. Its reply
+      // matches no docs by nature, so it would otherwise top the list.
+      if (CANNED_OPENERS.has(question)) continue
 
       docGaps.push({
         question,
@@ -242,12 +255,9 @@ export function computeInsights(
   // ── Themes ───────────────────────────────────────────────────────────────
   // Over the questions testers ASKED, across every conversation, not only the
   // ones that went badly. The gaps report already ranks failures; this answers
-  // the different question of what the beta was about at all.
-  // The Bug / Feedback buttons inject a fixed opener as the first user message.
-  // It is not the tester's own words, and it appears in EVERY bug/feedback
-  // conversation, so without this it always tops the themes ("I want to report
-  // a bug"), drowning out what testers actually asked.
-  const CANNED_OPENERS = new Set([BUG_OPENER, FEEDBACK_OPENER])
+  // the different question of what the beta was about at all. Canned Bug /
+  // Feedback openers are filtered here too (see CANNED_OPENERS above), or they
+  // always top the themes ("I want to report a bug").
   const questionsByConv = new Map<string, string[]>()
   for (const m of messages) {
     if (m.role !== "user" || typeof m.content !== "string") continue

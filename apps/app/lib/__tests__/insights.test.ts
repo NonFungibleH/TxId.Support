@@ -64,6 +64,20 @@ describe("computeInsights: documentation gaps", () => {
     expect(out.docGaps.map(g => g.kind)).toEqual(["none", "weak"])
   })
 
+  it("a canned Bug / Feedback opener is not a documentation gap", () => {
+    // The Bug button injects "I want to report a bug." and the reply matches no
+    // docs by nature. Without the filter it tops the list in every bug thread,
+    // telling a docs owner nothing they can act on.
+    const messages = [
+      msg("c1", "user", "I want to report a bug.", "2026-08-01T10:00:00Z"),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      msg("c1", "assistant", "What went wrong?", "2026-08-01T10:00:01Z", { retrieval: { matched: 0 } } as any),
+    ]
+    const out = computeInsights(win({ conversations: [conv("c1")], messages }), 30)
+    expect(out.docGaps).toHaveLength(0)
+    expect(out.docGapCounts.none).toBe(0)
+  })
+
   it("a good search is not a gap, and an answer with no question above it is dropped", () => {
     const messages = [
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
