@@ -19,6 +19,36 @@ export interface Finding {
   conversation: unknown
   /** The user's wallet, when the host supplied it or the user connected. */
   wallet_address?: string | null
+  /**
+   * The case record: the request context the finding was filed under (the page
+   * they were on, coarse device, country/region), the same compliance evidence
+   * the Conversations tab shows. jsonb, so it arrives already parsed. No raw IP.
+   */
+  request?: {
+    pageUrl?: string
+    surface?: string
+    country?: string
+    region?: string
+    deviceType?: string
+    platform?: string
+    browser?: string
+  } | null
+}
+
+function pageLabel(url?: string): string | null {
+  if (!url) return null
+  try { const u = new URL(url); return u.host + (u.pathname === "/" ? "" : u.pathname) } catch { return url.slice(0, 120) }
+}
+function deviceLabel(r: NonNullable<Finding["request"]>): string | null {
+  const parts = [r.platform, r.browser, r.deviceType].filter(Boolean)
+  return parts.length ? parts.join(" · ") : null
+}
+function locationLabel(r: NonNullable<Finding["request"]>): string | null {
+  const parts = [r.region, r.country].filter(Boolean)
+  return parts.length ? parts.join(", ") : null
+}
+function hasCaseRecord(r?: Finding["request"]): r is NonNullable<Finding["request"]> {
+  return !!r && !!(r.pageUrl || r.platform || r.browser || r.deviceType || r.country || r.region)
 }
 
 /** Accept both shapes, and never let a malformed one break the page. */
@@ -109,6 +139,37 @@ export function FindingList({ findings, emptyHint }: { findings: Finding[]; empt
 
             {isOpen && (
               <div className="border-t border-border px-3 py-3">
+                {hasCaseRecord(f.request) && (
+                  <div className="mb-3 rounded-md bg-muted/40 px-2.5 py-2 text-[11px]">
+                    <p className="mb-1 font-medium text-foreground/80">Case record</p>
+                    <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 text-muted-foreground">
+                      {pageLabel(f.request!.pageUrl) && (
+                        <>
+                          <dt>Page</dt>
+                          <dd className="break-all font-mono text-foreground/90" title={f.request!.pageUrl}>{pageLabel(f.request!.pageUrl)}</dd>
+                        </>
+                      )}
+                      {deviceLabel(f.request!) && (
+                        <>
+                          <dt>Device</dt>
+                          <dd className="text-foreground/90">{deviceLabel(f.request!)}</dd>
+                        </>
+                      )}
+                      {locationLabel(f.request!) && (
+                        <>
+                          <dt>Location</dt>
+                          <dd className="text-foreground/90">{locationLabel(f.request!)}</dd>
+                        </>
+                      )}
+                      {f.wallet_address && (
+                        <>
+                          <dt>Wallet</dt>
+                          <dd className="break-all font-mono text-foreground/90">{f.wallet_address} <span className="text-muted-foreground">(unverified)</span></dd>
+                        </>
+                      )}
+                    </dl>
+                  </div>
+                )}
                 {turns.length === 0 ? (
                   <p className="text-xs text-muted-foreground">
                     No transcript was stored with this one.
