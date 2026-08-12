@@ -31,7 +31,11 @@ const DARK_APPEARANCE = {
     formFieldLabel: "text-zinc-300",
     dividerLine: "bg-indigo-900/40",
     dividerText: "text-zinc-500",
-    socialButtonsBlockButton: "border-indigo-900/40 text-zinc-100 hover:bg-white/5",
+    // Social sign-in is hidden: the OAuth connections are not set up, so the
+    // buttons only lead to a broken flow. Email is the one supported path.
+    socialButtonsRoot: "hidden",
+    socialButtonsBlockButton: "hidden",
+    dividerRow: "hidden",
     badge: "bg-indigo-500/10 text-indigo-400 border-indigo-500/20",
     userButtonPopoverCard: "shadow-2xl border border-indigo-900/40 bg-[#1a1b2e]",
     userButtonPopoverActionButton: "hover:bg-white/10 text-zinc-200 hover:text-white",
@@ -62,7 +66,11 @@ const LIGHT_APPEARANCE = {
     formFieldLabel: "text-gray-700",
     dividerLine: "bg-gray-100",
     dividerText: "text-gray-400",
-    socialButtonsBlockButton: "border-gray-200 text-gray-700 hover:bg-gray-50",
+    // Social sign-in is hidden: the OAuth connections are not set up, so the
+    // buttons only lead to a broken flow. Email is the one supported path.
+    socialButtonsRoot: "hidden",
+    socialButtonsBlockButton: "hidden",
+    dividerRow: "hidden",
     badge: "bg-indigo-50 text-indigo-600 border-indigo-200",
     userButtonPopoverCard: "shadow-lg border border-gray-200 bg-white",
     userButtonPopoverActionButton: "hover:bg-gray-50 text-gray-700 hover:text-gray-900",
