@@ -70,6 +70,7 @@ export function Hero() {
                   { name: "Polygon",  file: "Polygon.png",  whiteBg: true  },
                   { name: "Optimism", file: "Optimism.png", whiteBg: false },
                   { name: "Avalanche", file: "Avalanche.png", whiteBg: false },
+                  { name: "Etherlink", file: "Etherlink.png", whiteBg: false },
                   { name: "BNB",      file: "BNB.png",      whiteBg: false },
                 ].map(({ name, file, whiteBg }) => (
                   <div

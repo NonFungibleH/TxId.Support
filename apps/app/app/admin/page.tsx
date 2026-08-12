@@ -10,13 +10,23 @@ import { PlanControl } from "@/components/admin/PlanControl"
 import { PublicDemoToggle } from "@/components/admin/PublicDemoToggle"
 import { checkSchema } from "@/lib/schema-check"
 
-// Approximate Claude Haiku 4.5 pricing, in USD per million tokens. Adjust to
-// match current Anthropic pricing - this drives the estimated-cost columns.
+// Claude Haiku 4.5 pricing, in USD per million tokens. Adjust to match current
+// Anthropic pricing - this drives the estimated-cost columns. Prompt caching
+// bills the cached prefix separately: a cache WRITE at 1.25x input, a cache READ
+// at 0.1x input. Leaving those out (as this page did) under-reports spend,
+// because with caching most input tokens are cache reads, not fresh input.
 const USD_PER_MTOK_INPUT = 1.0
 const USD_PER_MTOK_OUTPUT = 5.0
+const USD_PER_MTOK_CACHE_WRITE = USD_PER_MTOK_INPUT * 1.25
+const USD_PER_MTOK_CACHE_READ = USD_PER_MTOK_INPUT * 0.1
 
-function estCostUsd(inputTokens: number, outputTokens: number): number {
-  return (inputTokens / 1_000_000) * USD_PER_MTOK_INPUT + (outputTokens / 1_000_000) * USD_PER_MTOK_OUTPUT
+function estCostUsd(inputTokens: number, outputTokens: number, cacheReadTokens = 0, cacheWriteTokens = 0): number {
+  return (
+    (inputTokens / 1_000_000) * USD_PER_MTOK_INPUT +
+    (outputTokens / 1_000_000) * USD_PER_MTOK_OUTPUT +
+    (cacheWriteTokens / 1_000_000) * USD_PER_MTOK_CACHE_WRITE +
+    (cacheReadTokens / 1_000_000) * USD_PER_MTOK_CACHE_READ
+  )
 }
 
 function fmtUsd(n: number): string {
@@ -29,7 +39,11 @@ function fmtTokens(n: number): string {
   return String(n)
 }
 
-type TokenRow = { project_id: string; input_all: number; output_all: number; input_month: number; output_month: number }
+type TokenRow = {
+  project_id: string
+  input_all: number; output_all: number; input_month: number; output_month: number
+  cache_read_all: number; cache_write_all: number; cache_read_month: number; cache_write_month: number
+}
 
 const PLAN_COLOR: Record<string, string> = {
   free:       "bg-muted text-muted-foreground",
@@ -105,6 +119,10 @@ export default async function AdminPage() {
       project_id: t.project_id,
       input_all: Number(t.input_all), output_all: Number(t.output_all),
       input_month: Number(t.input_month), output_month: Number(t.output_month),
+      // Guarded so a database that has not yet run the cache-columns migration
+      // (RPC returns the older shape) reads 0 rather than NaN.
+      cache_read_all: Number(t.cache_read_all ?? 0), cache_write_all: Number(t.cache_write_all ?? 0),
+      cache_read_month: Number(t.cache_read_month ?? 0), cache_write_month: Number(t.cache_write_month ?? 0),
     })
   }
 
@@ -115,17 +133,22 @@ export default async function AdminPage() {
   // Fetched once per unique key.
   const uniqueClerkOrgIds = [...new Set(stats.map(r => r.clerk_org_id).filter(Boolean))]
   const ownerByClerkOrg = new Map<string, string>()
+  // How many people are in each org (Clerk memberships). A personal account is a
+  // team of one; the Demos sentinel is not a real team, so it stays unset.
+  const memberCountByClerkOrg = new Map<string, number>()
   const clerk = await clerkClient()
   await Promise.all(
     uniqueClerkOrgIds.map(async (orgId) => {
       try {
         if (orgId.startsWith("org_")) {
-          const { data: members } = await clerk.organizations.getOrganizationMembershipList({ organizationId: orgId, limit: 100 })
+          const { data: members, totalCount } = await clerk.organizations.getOrganizationMembershipList({ organizationId: orgId, limit: 100 })
+          memberCountByClerkOrg.set(orgId, totalCount ?? members.length)
           const owner = members.find(m => m.role === "org:admin") ?? members[0]
           const email = owner?.publicUserData?.identifier
           if (email) ownerByClerkOrg.set(orgId, email)
         } else if (orgId.startsWith("user_")) {
           const u = await clerk.users.getUser(orgId)
+          memberCountByClerkOrg.set(orgId, 1)
           const email = u.emailAddresses.find(e => e.id === u.primaryEmailAddressId)?.emailAddress
             ?? u.emailAddresses[0]?.emailAddress
           if (email) ownerByClerkOrg.set(orgId, email)
@@ -161,9 +184,9 @@ export default async function AdminPage() {
   const totalDocs = stats.reduce((s, r) => s + Number(r.doc_count), 0)
 
   const allTokenRows = [...tokensByProject.values()]
-  const totalTokensMonth = allTokenRows.reduce((s, t) => s + t.input_month + t.output_month, 0)
-  const totalCostMonth = allTokenRows.reduce((s, t) => s + estCostUsd(t.input_month, t.output_month), 0)
-  const totalCostAll = allTokenRows.reduce((s, t) => s + estCostUsd(t.input_all, t.output_all), 0)
+  const totalTokensMonth = allTokenRows.reduce((s, t) => s + t.input_month + t.output_month + t.cache_read_month + t.cache_write_month, 0)
+  const totalCostMonth = allTokenRows.reduce((s, t) => s + estCostUsd(t.input_month, t.output_month, t.cache_read_month, t.cache_write_month), 0)
+  const totalCostAll = allTokenRows.reduce((s, t) => s + estCostUsd(t.input_all, t.output_all, t.cache_read_all, t.cache_write_all), 0)
 
   const planCounts: Record<string, number> = {}
   for (const r of stats) {
@@ -262,7 +285,7 @@ export default async function AdminPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border bg-muted/30">
-                {["Organisation", "Owner", "Project", "Plan", "Public demo", "Mode", "Status", "Convs (mo)", "Convs (total)", "Messages", "Docs", "Tokens (mo)", "Est. $ (mo)", "Joined"].map(h => (
+                {["Organisation", "Owner", "Team", "Project", "Plan", "Public demo", "Mode", "Status", "Convs (mo)", "Convs (total)", "Messages", "Docs", "Tokens (mo)", "Est. $ (mo)", "Joined"].map(h => (
                   <th key={h} className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">{h}</th>
                 ))}
               </tr>
@@ -277,6 +300,12 @@ export default async function AdminPage() {
                       if (!owner) return <span className="text-muted-foreground/50">-</span>
                       if (owner === "internal") return <span className="text-xs text-muted-foreground italic">internal</span>
                       return <span className="text-xs text-muted-foreground font-mono">{owner}</span>
+                    })()}
+                  </td>
+                  <td className="px-4 py-3 tabular-nums text-muted-foreground">
+                    {(() => {
+                      const n = memberCountByClerkOrg.get(row.clerk_org_id)
+                      return n != null ? n : <span className="text-muted-foreground/50">-</span>
                     })()}
                   </td>
                   <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">{row.project_name}</td>
@@ -300,8 +329,8 @@ export default async function AdminPage() {
                   <td className="px-4 py-3 tabular-nums text-muted-foreground">{fmt(row.doc_count)}</td>
                   {(() => {
                     const t = tokensByProject.get(row.project_id)
-                    const monthTokens = t ? t.input_month + t.output_month : 0
-                    const monthCost = t ? estCostUsd(t.input_month, t.output_month) : 0
+                    const monthTokens = t ? t.input_month + t.output_month + t.cache_read_month + t.cache_write_month : 0
+                    const monthCost = t ? estCostUsd(t.input_month, t.output_month, t.cache_read_month, t.cache_write_month) : 0
                     return (
                       <>
                         <td className="px-4 py-3 tabular-nums text-muted-foreground">{monthTokens > 0 ? fmtTokens(monthTokens) : "-"}</td>
@@ -314,7 +343,7 @@ export default async function AdminPage() {
               ))}
               {stats.length === 0 && (
                 <tr>
-                  <td colSpan={14} className="px-4 py-10 text-center text-muted-foreground text-sm">
+                  <td colSpan={15} className="px-4 py-10 text-center text-muted-foreground text-sm">
                     No projects found.
                   </td>
                 </tr>
@@ -330,7 +359,8 @@ export default async function AdminPage() {
         <p className="text-sm text-muted-foreground">
           Token counts are live from the <code className="font-mono text-xs bg-muted px-1 py-0.5 rounded">token_usage</code> table
           (one row per AI turn, widget and Telegram). Costs apply Claude Haiku 4.5 pricing
-          (${USD_PER_MTOK_INPUT.toFixed(2)}/M input, ${USD_PER_MTOK_OUTPUT.toFixed(2)}/M output) to <em>all</em> turns; Groq-fallback
+          (${USD_PER_MTOK_INPUT.toFixed(2)}/M input, ${USD_PER_MTOK_OUTPUT.toFixed(2)}/M output, plus cached input at
+          ${USD_PER_MTOK_CACHE_WRITE.toFixed(2)}/M on write and ${USD_PER_MTOK_CACHE_READ.toFixed(2)}/M on read) to <em>all</em> turns; Groq-fallback
           turns are cheaper or free, so the figures are an upper bound. Turns before token tracking
           was deployed aren&apos;t counted. If every project reads $0, the{" "}
           <code className="font-mono text-xs bg-muted px-1 py-0.5 rounded">20260706000003_token_usage</code> migration
