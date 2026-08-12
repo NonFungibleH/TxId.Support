@@ -27,7 +27,7 @@ function ComplianceRecordsSVG() {
     "answer SHA-256: 9f31…c0ad",
   ]
   return (
-    <svg viewBox="0 0 700 280" xmlns="http://www.w3.org/2000/svg" className="w-full h-auto">
+    <svg viewBox="0 0 700 280" xmlns="http://www.w3.org/2000/svg" className="w-full h-auto" role="img" aria-label="A support answer stored with its full record: chain state, prices, sources, model and answer hash, kept append-only.">
       <defs>
         <style>{`
           @keyframes cr_in { from { opacity: 0; transform: translateX(6px); } to { opacity: 1; transform: translateX(0); } }
@@ -78,7 +78,7 @@ function ComplianceRecordsSVG() {
 function EvaluateSVG() {
   const rows = ["Reads the connected wallet", "Cites the source of the answer", "Says when it cannot verify", "Resolves without a human"]
   return (
-    <svg viewBox="0 0 700 280" xmlns="http://www.w3.org/2000/svg" className="w-full h-auto">
+    <svg viewBox="0 0 700 280" xmlns="http://www.w3.org/2000/svg" className="w-full h-auto" role="img" aria-label="A buyer scorecard comparing a chatbot with an agent across wallet reads, citations, verification and resolution.">
       <defs>
         <style>{`
           @keyframes ev_in { from { opacity: 0; transform: translateX(-8px); } to { opacity: 1; transform: translateX(0); } }
@@ -111,7 +111,7 @@ function EvaluateSVG() {
 function AgenticSVG() {
   const tools = ["get_transaction", "read_contract_state", "get_wallet_balance"]
   return (
-    <svg viewBox="0 0 700 280" xmlns="http://www.w3.org/2000/svg" className="w-full h-auto">
+    <svg viewBox="0 0 700 280" xmlns="http://www.w3.org/2000/svg" className="w-full h-auto" role="img" aria-label="An agent reading the chain with three tools before giving a grounded answer to why a transaction failed.">
       <defs>
         <style>{`
           @keyframes ag_in { from { opacity: 0; } to { opacity: 1; } }
@@ -157,7 +157,7 @@ function AgenticSVG() {
 
 function GasSVG() {
   return (
-    <svg viewBox="0 0 700 280" xmlns="http://www.w3.org/2000/svg" className="w-full h-auto">
+    <svg viewBox="0 0 700 280" xmlns="http://www.w3.org/2000/svg" className="w-full h-auto" role="img" aria-label="A gas gauge filling to the limit and reverting, showing out of gas concerns the gas limit, not the ETH balance.">
       <defs>
         <style>{`
           @keyframes gs_fill { from { width: 0; } to { width: 470px; } }
@@ -199,7 +199,7 @@ function RevertSVG() {
     { t: "Signature lookup", hit: false },
   ]
   return (
-    <svg viewBox="0 0 700 280" xmlns="http://www.w3.org/2000/svg" className="w-full h-auto">
+    <svg viewBox="0 0 700 280" xmlns="http://www.w3.org/2000/svg" className="w-full h-auto" role="img" aria-label="A failed transaction decoded through a ladder of causes into a plain-English answer.">
       <defs>
         <style>{`
           @keyframes rv_in { from { opacity: 0; } to { opacity: 1; } }
@@ -243,7 +243,7 @@ function RevertSVG() {
 
 function TelegramSupportSVG() {
   return (
-    <svg viewBox="0 0 700 280" xmlns="http://www.w3.org/2000/svg" className="w-full h-auto">
+    <svg viewBox="0 0 700 280" xmlns="http://www.w3.org/2000/svg" className="w-full h-auto" role="img" aria-label="A Telegram group where the support bot diagnoses a failed swap in the open, from the chain.">
       <defs>
         <style>{`
           @keyframes tg_in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
@@ -294,7 +294,7 @@ function TelegramSupportSVG() {
 
 function DiscordScamSVG() {
   return (
-    <svg viewBox="0 0 700 280" xmlns="http://www.w3.org/2000/svg" className="w-full h-auto">
+    <svg viewBox="0 0 700 280" xmlns="http://www.w3.org/2000/svg" className="w-full h-auto" role="img" aria-label="A Discord support channel where a fake admin sends a scam recovery link, contrasted with safe in-app support.">
       <defs>
         <style>{`
           @keyframes ds_fadeIn {
@@ -380,7 +380,7 @@ function DiscordScamSVG() {
 
 function TicketReductionSVG() {
   return (
-    <svg viewBox="0 0 700 280" xmlns="http://www.w3.org/2000/svg" className="w-full h-auto">
+    <svg viewBox="0 0 700 280" xmlns="http://www.w3.org/2000/svg" className="w-full h-auto" role="img" aria-label="A bar chart of support ticket volume falling week by week to a sixty percent reduction.">
       <defs>
         <style>{`
           @keyframes tr_grow1 { from { height: 0; y: 240; } to { height: 160; y: 80; } }
@@ -445,7 +445,7 @@ function TicketReductionSVG() {
 
 function DocsQaSVG() {
   return (
-    <svg viewBox="0 0 700 280" xmlns="http://www.w3.org/2000/svg" className="w-full h-auto">
+    <svg viewBox="0 0 700 280" xmlns="http://www.w3.org/2000/svg" className="w-full h-auto" role="img" aria-label="Documentation flowing through an AI retrieval pipeline into a grounded support answer.">
       <defs>
         <style>{`
           @keyframes dq_fadeIn { from { opacity: 0; } to { opacity: 1; } }
@@ -515,7 +515,7 @@ function DocsQaSVG() {
 
 function WalletVsGenericSVG() {
   return (
-    <svg viewBox="0 0 700 280" xmlns="http://www.w3.org/2000/svg" className="w-full h-auto">
+    <svg viewBox="0 0 700 280" xmlns="http://www.w3.org/2000/svg" className="w-full h-auto" role="img" aria-label="A generic chatbot asking clarifying questions, next to wallet-aware support answering the failed swap in seconds.">
       <defs>
         <style>{`
           @keyframes wv_dot1 { 0%, 100% { opacity: 0.2; } 33% { opacity: 1; } }
@@ -596,7 +596,7 @@ function WalletVsGenericSVG() {
 
 function OnChainDataSVG() {
   return (
-    <svg viewBox="0 0 700 280" xmlns="http://www.w3.org/2000/svg" className="w-full h-auto">
+    <svg viewBox="0 0 700 280" xmlns="http://www.w3.org/2000/svg" className="w-full h-auto" role="img" aria-label="Four on-chain data sources, transaction history, token balances, chain ID and contract state, feeding one AI agent.">
       <defs>
         <style>{`
           @keyframes oc_pulse {

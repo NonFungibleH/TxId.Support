@@ -55,11 +55,13 @@ export const metadata: Metadata = {
     url: "https://txid.support",
     siteName: "TxID",
   },
+  // Card type only, deliberately no title/description: a twitter.title set here
+  // is inherited by EVERY page, so a blog post shared to X showed the generic
+  // homepage card instead of its own. With these absent, scrapers fall back to
+  // each page's og:title/og:description, which are page-specific wherever a
+  // page overrides openGraph (blog, docs, chains, home).
   twitter: {
     card: "summary_large_image",
-    title: "TxID: The Support & Operations Layer for On-Chain Finance",
-    description:
-      "Give every user of your protocol an expert on hand: live chain reads, failed-transaction diagnosis, and a reportable record behind every answer.",
   },
 };
 
