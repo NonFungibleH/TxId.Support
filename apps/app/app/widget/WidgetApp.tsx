@@ -1025,7 +1025,14 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
   // The AI's own suggestions are contextual follow-ups and DO belong there
   // throughout; the configured ones are an opening move.
   const conversationStarted = messages.some(m => m.role === "user")
-  const visibleChips = hasCurated && !conversationStarted ? curatedQuestions : suggestions
+  // Never lead a BUG report with pre-determined questions. The model's
+  // follow-up chips ("Did a transaction fail?", "Paste the transaction hash?")
+  // put words in the tester's mouth and, on a docs-only project, suggest things
+  // the assistant will not do. A bug report is the tester's own account, so the
+  // capture flow stays a blank prompt.
+  const visibleChips = mode === "bug"
+    ? []
+    : hasCurated && !conversationStarted ? curatedQuestions : suggestions
 
   // Token mode state
   const [dexData, setDexData] = useState<DexPair | null>(null)
