@@ -35,10 +35,12 @@ const PLAN_BADGE: Record<string, { label: string; cls: string }> = {
 export function DashboardFooter({
   plan = "free",
   isAdmin = false,
+  orgName = "",
   webUrl,
 }: {
   plan?: string
   isAdmin?: boolean
+  orgName?: string
   webUrl: string
 }) {
   const pathname = usePathname()
@@ -57,22 +59,32 @@ export function DashboardFooter({
             A new organisation has no project, so /dashboard sends it to
             /onboarding, which is why afterCreateOrganizationUrl points there:
             create the company, then create its project. */}
-        <OrganizationSwitcher
-          afterCreateOrganizationUrl="/onboarding"
-          afterSelectOrganizationUrl="/dashboard"
-          afterSelectPersonalUrl="/dashboard"
-          afterLeaveOrganizationUrl="/dashboard"
-          appearance={{
-            elements: {
-              // text-foreground on BOTH: Clerk ships its own light-theme text
-              // colour, which rendered the company name dark-on-dark the moment
-              // night mode was on. Inheriting our token makes it track the theme.
-              organizationSwitcherTrigger:
-                "rounded-md px-2 py-1 text-xs text-foreground hover:bg-accent/50",
-              organizationPreviewMainIdentifier: "text-foreground text-xs",
-            },
-          }}
-        />
+        {/* OPERATOR-ONLY. A customer's own team member must NOT see the switcher:
+            it lets them jump to their personal account (which has no project and
+            traps them on /onboarding) or "Create organization" (a self-serve
+            project that bypasses the beta gate). Only a platform operator
+            (ADMIN_EMAILS) manages organisations. Members just see their company
+            name. */}
+        {isAdmin ? (
+          <OrganizationSwitcher
+            afterCreateOrganizationUrl="/onboarding"
+            afterSelectOrganizationUrl="/dashboard"
+            afterSelectPersonalUrl="/dashboard"
+            afterLeaveOrganizationUrl="/dashboard"
+            appearance={{
+              elements: {
+                // text-foreground on BOTH: Clerk ships its own light-theme text
+                // colour, which rendered the company name dark-on-dark the moment
+                // night mode was on. Inheriting our token makes it track the theme.
+                organizationSwitcherTrigger:
+                  "rounded-md px-2 py-1 text-xs text-foreground hover:bg-accent/50",
+                organizationPreviewMainIdentifier: "text-foreground text-xs",
+              },
+            }}
+          />
+        ) : (
+          <span className="px-2 py-1 text-xs font-medium text-foreground">{orgName}</span>
+        )}
 
         {isAdmin && (
           <Link
