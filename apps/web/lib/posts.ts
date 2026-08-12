@@ -22,6 +22,120 @@ export type PostSection =
 
 export const POSTS: Post[] = [
   {
+    slug: "how-to-evaluate-ai-support-for-defi",
+    // Decision-stage buyer's guide. Targets "best AI support for crypto/DeFi",
+    // "AI customer support evaluation", "Intercom Fin alternative web3".
+    // Interlinks the agentic-support cornerstone; makes TxID's differentiators
+    // the evaluation criteria without naming itself until the end.
+    title: "How to evaluate an AI support tool for your protocol: a buyer's checklist",
+    description:
+      "Most AI support tools demo well and fail quietly in production. Here is the checklist a DeFi protocol team should run before buying one: the questions that separate a tool that investigates from a chatbot that guesses.",
+    publishedAt: "2026-08-12",
+    readingMinutes: 10,
+    tags: ["AI support agent", "Buyer's guide", "Web3 support"],
+    author: "Non_Fungible_Howard",
+    heroVariant: "ticket-reduction",
+    content: [
+      {
+        type: "p",
+        text: "Every AI support tool demos well. The vendor pastes in a clean question, the model returns a fluent answer, and it looks like the support problem is solved. Then it ships, a real user asks about their own failed transaction, and the tool confidently states a balance that is not theirs. The gap between the demo and production is where protocol teams lose money and trust, and it is almost always invisible in a sales call.",
+      },
+      {
+        type: "callout",
+        label: "The short version",
+        text: "Judge an AI support tool on what it can CHECK, not how well it writes. Ask to see the evidence behind a specific answer, ask what it does when a lookup fails, ask what it records, and ask how it behaves when it does not know. A tool that has real answers to those four questions investigates. A tool that deflects them is a chatbot with a confident voice, and confidence is exactly the wrong thing to buy for support.",
+      },
+      { type: "h2", text: "Why the usual criteria mislead" },
+      {
+        type: "p",
+        text: "Buyers tend to evaluate AI support on three things: which model it uses, how good the writing is, and how fast it responds. All three are easy to demo and none of them predict the failure that actually hurts you.",
+      },
+      {
+        type: "p",
+        text: "The damaging failure in support is not a clumsy sentence. It is a confident, specific, wrong claim about a user's own situation: their balance, their transaction status, whether their funds are safe. A better model writes that wrong claim more fluently. Faster responses deliver it sooner. The variable that matters is whether the tool checked the user's actual situation before it answered, and that is precisely the thing a scripted demo hides. (For the underlying distinction, see our piece on what agentic support actually is.)",
+      },
+      { type: "h2", text: "The five-part checklist" },
+      { type: "h3", text: "1. Can it read the user's actual situation, or only your docs?" },
+      {
+        type: "p",
+        text: "This is the first fork and it eliminates most tools. A retrieval chatbot can only answer from documentation and past tickets. It cannot see this user's transaction, this wallet's balance, or the contract's current state. Ask directly: when a user says 'my swap failed', does the tool fetch that transaction and inspect it, or does it summarise generic text about swaps failing? If it cannot read live state, every answer about a specific user is a guess dressed as a fact.",
+      },
+      {
+        type: "ul",
+        items: [
+          "Green flag: it fetches the transaction, replays it, and describes what happened to that user.",
+          "Red flag: every answer is a paraphrase of your documentation, however well written.",
+        ],
+      },
+      { type: "h3", text: "2. Can it show the evidence behind a specific answer?" },
+      {
+        type: "p",
+        text: "In the demo, ask a question and then ask: what did you check to produce that answer, and can you show me? A tool built to investigate can point at the transaction it read, the contract state it replayed against, and the documentation it drew on. A tool built to generate cannot, because there was nothing behind the answer except the model's training. This one question is the fastest way to tell the two apart.",
+      },
+      {
+        type: "quote",
+        text: "If a vendor cannot show you what their tool checked before it answered, they are selling you fluency, not support.",
+      },
+      { type: "h3", text: "3. What does it do when it does not know?" },
+      {
+        type: "p",
+        text: "Ask the tool something genuinely unanswerable from any system it can read, or something outside its scope. Watch what it does. The correct behaviours are to decline clearly, or to escalate to a human with the context attached. The dangerous behaviour is to improvise a plausible answer anyway. A support tool that never says 'I do not know' is not confident, it is unaware of its own limits, and it will invent an answer about your users' funds with the same fluency it invents everything else.",
+      },
+      { type: "h3", text: "4. What does it record, and could an auditor replay it?" },
+      {
+        type: "p",
+        text: "Any tool that answers questions about money creates an obligation: to establish, later, what it saw when it answered. This matters for two reasons. Internally, it is how you improve the tool and catch bad answers. Externally, it is what you show a partner, an auditor, or a regulator who asks 'what did your support system tell users during that incident?'. Ask what is recorded per answer.",
+      },
+      {
+        type: "ul",
+        items: [
+          "Which checks ran, and which failed: a lookup that errored is not the same as one that returned nothing.",
+          "The state the answer was true as of, so it can be reproduced, not just re-generated.",
+          "Whether the answer was grounded in a real read at all, computed from what ran rather than the model rating its own confidence.",
+          "An integrity guarantee: can a stored answer be quietly edited after the fact, or is the record tamper-evident?",
+        ],
+      },
+      {
+        type: "p",
+        text: "Press on the wording here. 'Verified' and 'sourced' are not the same claim. Sourced means a figure came from a real read. Verified means every claim is entailed by the evidence, which very few systems can honestly assert today. A vendor who says 'verified' when they mean 'sourced' is overclaiming on exactly the axis you are buying for.",
+      },
+      { type: "h3", text: "5. Is it read-only, and what can it be tricked into doing?" },
+      {
+        type: "p",
+        text: "A tool that can act on live systems is a tool that can be manipulated into acting. For DeFi support specifically, confirm it is read-only by default: it should read chain state and answer, never hold keys or move funds on a user's say-so. If the tool can take on-chain actions, ask how those are gated, and treat both user input and the on-chain data it reads as untrusted, because a hostile token name or transaction memo is an injection vector. Support that can move money is a different, larger risk purchase than support that can only explain.",
+      },
+      { type: "h2", text: "Questions that expose a weak tool in the demo" },
+      {
+        type: "p",
+        text: "Bring your own examples to any demo. Vendors curate the questions that work; you should ask the ones that break:",
+      },
+      {
+        type: "ul",
+        items: [
+          "Paste a real failed transaction hash from your own protocol and ask why it failed. A generic answer means it did not actually read it.",
+          "Ask about a claim window or vesting schedule specific to your contracts. If it answers from general knowledge instead of your data, retrieval is shallow.",
+          "Ask it something false as if it were true ('why did my withdrawal of 500 tokens fail?' when no such transaction exists). A good tool checks and corrects you; a weak one accepts the premise and invents a reason.",
+          "Ask for financial advice ('should I sell?'). It must refuse, every time, including when the question is reframed as a hypothetical.",
+        ],
+      },
+      { type: "h2", text: "On pricing: seats vs resolutions" },
+      {
+        type: "p",
+        text: "How a tool is priced tells you what era it is from. Seat-based pricing is a holdover from software a human operates: you pay per agent using the dashboard. A tool that resolves questions itself has a more honest unit, the resolution: you pay for questions that actually got answered, and cost scales with your users' activity rather than your headcount. Neither is wrong, but seat pricing on a tool that claims to be autonomous is worth a raised eyebrow.",
+      },
+      { type: "h2", text: "The one-line test" },
+      {
+        type: "p",
+        text: "If you remember nothing else: ask the vendor to answer one hard question about a real transaction, then ask them to prove it. The tools worth buying will show you the transaction they read, the state they checked, and the sources behind the answer. Everything else is a language model with a support-shaped prompt, and you will discover the difference in production, on your users, at the worst possible time.",
+      },
+      {
+        type: "callout",
+        label: "Run the test yourself",
+        text: "You can run the evidence test on TxID right now, no sales call: paste any transaction hash into the free checker at txid.support/tx and see the verdict and evidence it builds, or try the live agent on real protocols at txid.support/check. It is built for exactly the questions above: it reads the transaction, replays it against live chain state, answers with the sources attached, and records every conversation as a reviewable trail.",
+      },
+    ],
+  },
+  {
     slug: "what-is-agentic-support",
     // Definitional cornerstone. "Agentic support" is the query AI engines are
     // starting to answer; owning the definition is the GEO play. Question-form
