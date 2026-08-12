@@ -227,6 +227,9 @@ export default async function AdminPage() {
           <Link href="/admin/architecture" className="rounded-lg border border-border px-3 py-1.5 text-sm font-medium hover:border-indigo-500/40 hover:text-indigo-400 transition-colors">
             System architecture →
           </Link>
+          <Link href="/admin/tech-stack" className="rounded-lg border border-border px-3 py-1.5 text-sm font-medium hover:border-indigo-500/40 hover:text-indigo-400 transition-colors">
+            Tech stack →
+          </Link>
           <Link href="/admin/eval" className="rounded-lg border border-border px-3 py-1.5 text-sm font-medium hover:border-border/80 transition-colors text-muted-foreground hover:text-foreground">
             Evaluation harness →
           </Link>
@@ -244,8 +247,8 @@ export default async function AdminPage() {
             { label: "Organisations",     value: fmt(totalOrgs) },
             { label: "Projects",          value: fmt(totalProjects) },
             { label: "Active projects",   value: fmt(activeProjects) },
-            { label: "Convs this month",  value: fmt(totalConvsMonth) },
-            { label: "Convs all time",    value: fmt(totalConvsAll) },
+            { label: "Resolutions this month", value: fmt(totalConvsMonth) },
+            { label: "Resolutions all time",   value: fmt(totalConvsAll) },
             { label: "Total messages",    value: fmt(totalMessages) },
             { label: "Knowledge docs",    value: fmt(totalDocs) },
             { label: "Tokens this month", value: fmtTokens(totalTokensMonth) },
@@ -285,7 +288,7 @@ export default async function AdminPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border bg-muted/30">
-                {["Organisation", "Owner", "Team", "Project", "Plan", "Public demo", "Mode", "Status", "Convs (mo)", "Convs (total)", "Messages", "Docs", "Tokens (mo)", "Est. $ (mo)", "Joined"].map(h => (
+                {["Organisation", "Owner", "Team", "Project", "Plan", "Public demo", "Mode", "Status", "Resolutions (mo)", "Resolutions (total)", "Messages", "Docs", "Tokens (mo)", "Est. $ (mo)", "Joined"].map(h => (
                   <th key={h} className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">{h}</th>
                 ))}
               </tr>
