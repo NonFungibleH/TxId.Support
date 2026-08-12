@@ -53,6 +53,12 @@ Add one script tag before the closing `</body>` tag. No SDK, no build step. Work
 - [Company](https://txid.support/company): who builds it
 - [Blog](https://txid.support/blog): articles
 
+## Error reference
+
+- [Transaction error reference](https://txid.support/errors): every failure message a wallet or explorer shows, each on its own page with what it means and the fix. Grouped: gas and fees, mempool and nonce, contract reverts, Solidity panics, wallet and RPC errors.
+- [Custom error selector lookup](https://txid.support/selector): maps raw 4-byte revert selectors (like 0x118cdaa7) to their named error, meaning, and fix. Covers Solidity built-ins, OpenZeppelin 5, Uniswap Permit2 and Universal Router, and common DeFi conventions.
+- [Q&A feed](https://txid.support/llms-errors.txt): the full error and selector reference as plain question-and-answer pairs, machine-readable, always in sync with the pages above.
+
 ## Articles
 
 - [Transaction error messages explained](https://txid.support/blog/transaction-error-messages-explained): a plain-English key to every failure message (intrinsic gas too low, execution reverted, nonce too low, insufficient allowance, custom errors, panics) and how to fix each.

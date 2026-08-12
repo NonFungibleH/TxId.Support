@@ -2,6 +2,8 @@ import type { MetadataRoute } from "next"
 import { POSTS } from "@/lib/posts"
 import { DOCS } from "@/lib/docs"
 import { VISIBLE_CHAINS } from "@/lib/chains"
+import { TX_ERRORS } from "@/lib/errors"
+import { SELECTORS } from "@/lib/selectors"
 
 const BASE = "https://txid.support"
 
@@ -27,6 +29,20 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: 0.6,
   }))
 
+  const errors: MetadataRoute.Sitemap = TX_ERRORS.map((e) => ({
+    url: `${BASE}/errors/${e.slug}`,
+    lastModified: new Date(),
+    changeFrequency: "monthly",
+    priority: 0.6,
+  }))
+
+  const selectors: MetadataRoute.Sitemap = SELECTORS.map((s) => ({
+    url: `${BASE}/selector/${s.selector}`,
+    lastModified: new Date(),
+    changeFrequency: "monthly",
+    priority: 0.5,
+  }))
+
   return [
     { url: BASE,               lastModified: new Date(), changeFrequency: "weekly",  priority: 1.0 },
     { url: `${BASE}/pricing`,  lastModified: new Date(), changeFrequency: "monthly", priority: 0.9 },
@@ -48,7 +64,11 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${BASE}/contact`,  lastModified: new Date(), changeFrequency: "yearly",  priority: 0.4 },
     { url: `${BASE}/terms`,    lastModified: new Date(), changeFrequency: "yearly",  priority: 0.3 },
     { url: `${BASE}/privacy`,  lastModified: new Date(), changeFrequency: "yearly",  priority: 0.3 },
+    { url: `${BASE}/errors`,   lastModified: new Date(), changeFrequency: "weekly",  priority: 0.8 },
+    { url: `${BASE}/selector`, lastModified: new Date(), changeFrequency: "weekly",  priority: 0.7 },
     ...docs,
     ...posts,
+    ...errors,
+    ...selectors,
   ]
 }
