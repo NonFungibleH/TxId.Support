@@ -2,7 +2,7 @@ import { getProject } from "@/lib/actions/project"
 import { createServiceClient } from "@/lib/supabase/server"
 import { StatsCard } from "@/components/dashboard/StatsCard"
 import {
-  MessageSquare, Users, Zap, Globe, ArrowRight, CheckCircle2, Paintbrush, Code,
+  MessageSquare, Users, Zap, Globe, ArrowRight, CheckCircle2, Paintbrush, Code, Bug, MessageCircle,
 } from "lucide-react"
 import Link from "next/link"
 import { redirect } from "next/navigation"
@@ -12,7 +12,7 @@ import { WelcomeBanner } from "@/components/dashboard/WelcomeBanner"
 import { BetaStartCard } from "@/components/dashboard/BetaStartCard"
 import { currentUser } from "@clerk/nextjs/server"
 import type { ProjectConfig } from "@/lib/types/config"
-import { PLAN_CHAIN_LIMITS, PLAN_CONV_LIMITS, PLAN_LABELS, SELECTABLE_CHAINS, SUPPORTED_CHAINS, isPaidPlan } from "@/lib/types/config"
+import { PLAN_CHAIN_LIMITS, PLAN_CONV_LIMITS, PLAN_LABELS, SELECTABLE_CHAINS, SUPPORTED_CHAINS, isPaidPlan, activeBeta } from "@/lib/types/config"
 import type { Database } from "@/lib/supabase/types"
 import { cn } from "@/lib/utils"
 
@@ -60,7 +60,7 @@ export default async function DashboardPage() {
 
   const WALLET_FALLBACK_CAP = 5000
   const DOC_CHUNK_CAP = 10000
-  const [convResult, docsResult, walletsResult, monthlyResult, recentResult] = await Promise.all([
+  const [convResult, docsResult, walletsResult, monthlyResult, recentResult, bugResult, feedbackResult] = await Promise.all([
     supabase
       .from("conversations")
       .select("id", { count: "exact", head: true })
@@ -99,6 +99,16 @@ export default async function DashboardPage() {
       .eq("project_id", typedProject.id)
       .order("created_at", { ascending: false })
       .limit(5),
+    supabase
+      .from("tickets")
+      .select("id", { count: "exact", head: true })
+      .eq("project_id", typedProject.id)
+      .eq("reason", "bug"),
+    supabase
+      .from("tickets")
+      .select("id", { count: "exact", head: true })
+      .eq("project_id", typedProject.id)
+      .eq("reason", "feedback"),
   ])
 
   const uniqueWalletsFallback = new Set(
@@ -122,6 +132,11 @@ export default async function DashboardPage() {
   } catch { /* function not applied yet: keep the fallback */ }
 
   const config = typedProject.config as unknown as ProjectConfig
+  // A beta programme's dashboard leads with what the programme is FOR: the bug
+  // and feedback counts, not the knowledge base / chains a customer sets up once.
+  const betaActive = activeBeta(config) !== null
+  const bugCount = bugResult.count ?? 0
+  const feedbackCount = feedbackResult.count ?? 0
   // Pasted text has no source_url, so every such chunk collapses into ONE
   // source, which is how the Docs page already presents it. Two pages showing
   // different counts for the same knowledge base is worse than either number.
@@ -231,9 +246,19 @@ export default async function DashboardPage() {
       {/* Stats */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-4">
         <StatsCard title="Conversations" value={convResult.count ?? 0} description="All time" icon={MessageSquare} />
-        <StatsCard title="Connected wallets" value={uniqueWallets} description={walletsAreExact ? "Unique addresses" : "Unique addresses, recent sample"} icon={Users} />
-        <StatsCard title="Knowledge base" value={docSources} description={docSourcesAreExact ? (docSources === 1 ? "Page indexed" : "Pages indexed") : "Pages indexed, partial count"} icon={Globe} />
-        <StatsCard title="Chains enabled" value={activeChains.length} description={plan === "demo" ? `of ${chainLimitLabel}` : `of ${chainLimitLabel} on ${PLAN_LABELS[plan]}`} icon={Zap} />
+        {betaActive ? (
+          <>
+            <StatsCard title="Bugs" value={bugCount} description="Reported" icon={Bug} />
+            <StatsCard title="Feedback" value={feedbackCount} description="Received" icon={MessageCircle} />
+            <StatsCard title="Connected wallets" value={uniqueWallets} description={walletsAreExact ? "Unique addresses" : "Unique addresses, recent sample"} icon={Users} />
+          </>
+        ) : (
+          <>
+            <StatsCard title="Connected wallets" value={uniqueWallets} description={walletsAreExact ? "Unique addresses" : "Unique addresses, recent sample"} icon={Users} />
+            <StatsCard title="Knowledge base" value={docSources} description={docSourcesAreExact ? (docSources === 1 ? "Page indexed" : "Pages indexed") : "Pages indexed, partial count"} icon={Globe} />
+            <StatsCard title="Chains enabled" value={activeChains.length} description={plan === "demo" ? `of ${chainLimitLabel}` : `of ${chainLimitLabel} on ${PLAN_LABELS[plan]}`} icon={Zap} />
+          </>
+        )}
       </div>
 
       {/* Plan usage toward the monthly ceiling - always visible (both free and
