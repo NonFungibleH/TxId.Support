@@ -52,7 +52,16 @@ try {
       caption: !!document.getElementById("txid-widget-caption"),
     }
   })
-  const post = msg => page.evaluate(m => window.postMessage(m, "*"), msg)
+  // Post from INSIDE the widget iframe, not the top window: the loader now
+  // authenticates messages by origin AND source (a co-resident script must not
+  // be able to impersonate the iframe), so the harness has to speak as the
+  // iframe itself, exactly like the real widget does. The iframe's /widget URL
+  // 404s in this harness, but its window + origin (== BASE) are real.
+  const post = msg => {
+    const frame = page.frames().find(f => f.url().includes("/widget"))
+    if (!frame) throw new Error("widget iframe frame not found")
+    return frame.evaluate(m => window.parent.postMessage(m, "*"), msg)
+  }
   const freshSpotlight = async () => {
     await page.evaluate(() => {
       sessionStorage.clear()
