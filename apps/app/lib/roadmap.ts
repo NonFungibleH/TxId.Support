@@ -49,41 +49,6 @@ export const FRAMING = {
 
 export const ROADMAP: RoadmapItem[] = [
   // ── Phase 0 - Foundations ─────────────────────────────────────────────────
-  {
-    // id kept as "f-seats" so any status you have already set on the board
-    // survives. The work it describes changed; the row is the same row.
-    id: "f-seats",
-    title: "Enforce roles on server actions",
-    area: "compliance",
-    phase: 0,
-    complexity: "Low",
-    effort: "~2-3 days",
-    status: "done",
-    what: "DONE. Four roles (Admin, Developer, Support, Auditor) in our own org_members table, expressed as capabilities and checked in every server action. Clerk stays authoritative for membership, we own permission. Defaults to Admin so existing teams are not silently demoted. SEATS ALREADY EXISTED and this item used to claim otherwise. /dashboard/team invites real people through Clerk as Admin or Member, and several can hold accounts on one org today. What does NOT exist is any difference between those roles: not one of the ~60 server actions gates on role, so a Member can rotate keys, rewrite escalation routing, clear the knowledge base and switch the widget off. The only role check in the codebase validates the role string when sending an invite. The work is a requireRole() helper alongside resolveProjectWithOwnership, applied to the destructive and credential-touching actions first (delete/clear/remove/toggle/rotate/invite/revoke), then everything else.",
-    depends: "Nothing. Clerk already returns the member's role, and the audit log already records who acted.",
-  },
-  {
-    id: "f-cron",
-    title: "Async job / cron runner",
-    area: "foundation",
-    phase: 0,
-    complexity: "Low",
-    effort: "~0.5 wk",
-    status: "done",
-    what: "DONE, but NOT via Vercel Cron: scheduled from .github/workflows/cron.yml, because the Hobby plan caps crons at two per project. apps/app/vercel.json no longer exists and must not come back (a stray comment key in it fails the BUILD, which once looked like unrelated features silently not updating). Both jobs run daily at 03:00 and authorise with CRON_SECRET. Adding another scheduled job is a route plus a step in that workflow.",
-    depends: "Unblocked: knowledge auto-sync, compliance retention purge.",
-  },
-  {
-    id: "f-logging",
-    title: "Per-message signal logging",
-    area: "foundation",
-    phase: 0,
-    complexity: "Low",
-    effort: "~0.5 wk",
-    status: "done",
-    what: "DONE. messages.evidence.retrieval carries matched count, top score, chunks dropped by the character budget, characters sent and the pages consulted, alongside the tools and prices already recorded. Analytics gains a Documentation coverage section: what found nothing, what found only a weak match, and what the context cost. Source citations in answers are now a small step rather than a build.",
-    depends: "Unblocked: ranked gap clustering, and source citations.",
-  },
 
   {
     id: "a-audit-claims",
@@ -140,48 +105,6 @@ export const ROADMAP: RoadmapItem[] = [
   },
 
   // ── Phase 1 - Quick wins ──────────────────────────────────────────────────
-  {
-    id: "c-noadvice",
-    title: "No-advice guardrail (first-class + logged)",
-    area: "compliance",
-    phase: 1,
-    complexity: "Low",
-    effort: "~2 days",
-    status: "done",
-    what: "DONE. An unconditional policy block in buildUniversalRules, so it reaches support mode, token mode, the widget, Telegram and the API alike. Refuses buy/sell/hold/sizing, price predictions, good-investment judgements, tax and legal, and the same questions asked as an opinion or hypothetically, then hands over the facts instead. Deliberately NOT configurable: a protocol cannot switch off the rule that protects it. Conversations that asked for advice are labelled advice-request so the volume is visible.",
-  },
-  {
-    id: "c-disclaimer",
-    title: "Widget disclaimers",
-    area: "compliance",
-    phase: 1,
-    complexity: "Low",
-    effort: "~1 day",
-    status: "done",
-    what: "DONE. branding.disclaimer defaults to \"Informational only, not financial advice.\" and renders under the chat composer in both modes. Unset means the DEFAULT, not silence: a protocol must deliberately clear it, and the dashboard warns when they have. It is appended in plainBody so all six escalation integrations carry it, which matters more than the widget line: a transcript read weeks later in Jira is where an answer gets mistaken for the protocol's formal position.",
-  },
-  {
-    id: "c-audit",
-    title: "Audit log of team actions",
-    area: "compliance",
-    phase: 1,
-    complexity: "Low",
-    effort: "~3 days",
-    status: "done",
-    what: "DONE. Append-only audit_logs enforced in Postgres, recordAudit() that never fails the write it accompanies and scrubs any credential-shaped metadata key, one hook on updateConfig covering every config change plus named hooks for integrations, redeliveries and go-live. Shown on Account as Change history. Building it surfaced a live bug: the same append-only shape on case_access_log was blocking `on delete set null`, so no project with an access-log row could be deleted at all.",
-    depends: "The seats dependency was wrong: Clerk already provides an actor id. Seats will add roles without changing the column.",
-  },
-  {
-    id: "k-autosync",
-    title: "Auto doc-sync (scheduled re-crawl)",
-    area: "knowledge",
-    phase: 1,
-    complexity: "Low",
-    effort: "~1 wk",
-    status: "done",
-    what: "DONE, and change detection came first: ETag, Last-Modified and a content hash per page, so a run only re-embeds what moved and deleted pages are pruned. Daily by default because the cost is now fetching rather than embedding. WAS: The crawler + source_url re-sync already exist and are manually triggered. Put crawlAndIngest on a schedule + track last-synced per source so the bot never goes stale. The obvious next use of the cron runner.",
-    depends: "Cron runner is built, so this is unblocked.",
-  },
 
   {
     id: "c-policy-code",
@@ -320,27 +243,6 @@ export const ROADMAP: RoadmapItem[] = [
 
   // ── Phase 2 - Flywheel ────────────────────────────────────────────────────
   {
-    id: "k-gaps",
-    title: "Gap detection (top unanswered questions)",
-    area: "knowledge",
-    phase: 2,
-    complexity: "Medium",
-    effort: "~1.5 wk",
-    status: "done",
-    what: "DONE. rankTopics ranks phrases from users' own words across conversations that went badly, bigrams first, no LLM call. WAS: The gaps view ships on Analytics with four buckets (never answered, marked unhelpful, escalated, left unhappy without escalating) and splits knowledge gaps from data gaps using failedLookups, because those have different owners. What is missing is the clustering: it lists conversations, not a ranked 'your users keep asking this' by question.",
-    depends: "Ranking by question needs retrieval scores (Phase 0 logging).",
-  },
-  {
-    id: "k-citations",
-    title: "Source citations in answers",
-    area: "knowledge",
-    phase: 2,
-    complexity: "Medium",
-    effort: "~1 wk",
-    status: "done",
-    what: "DONE. Each excerpt carries its URL and the prompt asks for one markdown link, and explicitly cites nothing when the answer came from chain data instead. WAS: Retrieval already returns source_url but it's dropped before the prompt. Thread it through so the bot cites which doc it used. Builds trust and doubles as a compliance signal.",
-  },
-  {
     id: "k-curation",
     title: "Curation queue (approve snippets)",
     area: "knowledge",
@@ -360,17 +262,6 @@ export const ROADMAP: RoadmapItem[] = [
     status: "later",
     what: "When a human resolves an escalation, one click to save that answer as a snippet the bot uses next time. Where the knowledge loop and the inbox join.",
     depends: "Needs the handoff inbox.",
-  },
-  {
-    id: "h-inbox",
-    title: "Inbox: assignment + priority + tags + SLA",
-    area: "handoff",
-    phase: 2,
-    complexity: "Low",
-    effort: "~1 wk",
-    status: "done",
-    what: "DONE. Assignment, priority, waiting/closed statuses, first-response and resolved timestamps, and an append-only ticket_events history of every status change, assignment, note and reply. Replies sent by email or CRM are recorded with a channel and a link, so the trail does not stop at 'escalated'.",
-    depends: "Assignment uses the real team list.",
   },
   {
     id: "h-realtime",
@@ -636,17 +527,6 @@ export const HOWARD_TODO: TodoItem[] = [
     expect: "Two dates appear once it has run: last checked, and last change found. Pages you delete stop being answered from.",
   },
   {
-    id: "t-roles",
-    title: "Set team roles",
-    urgency: "soon",
-    why: "Everyone defaults to Admin so nothing broke when roles arrived. That is the safe default, not the right end state: an Admin can rotate keys, change escalation routing and delete the project.",
-    steps: [
-      "Dashboard > Team, once the SQL has run.",
-      "Downgrade anyone who does not need Admin. Developer for build work, Support for the queue, Auditor for read-only.",
-    ],
-    expect: "Auditor is the one worth knowing about: it reads and exports the full record and cannot change a single setting, so it is safe to hand an external auditor.",
-  },
-  {
     id: "t-security-calls",
     title: "Decide on four security findings",
     urgency: "soon",
@@ -659,13 +539,6 @@ export const HOWARD_TODO: TodoItem[] = [
     ],
   },
   {
-    id: "t-subaccount-count",
-    title: "Ask Decibel whether a wallet can hold more than one subaccount",
-    urgency: "soon",
-    why: "We resolve primary_subaccount and the widget calls it \"your sub account\", singular. If a trader can hold several, that wording is a confident lie in front of their users, and it is far cheaper to change now than after a trader notices.",
-    steps: ["Ask their team directly.", "If several are possible, tell me: the resolver has to return a list before the widget can be trusted."],
-  },
-  {
     id: "t-docs-app",
     title: "Decide what happens to apps/docs",
     urgency: "soon",
@@ -674,18 +547,6 @@ export const HOWARD_TODO: TodoItem[] = [
       "Either: tell me to delete it (my recommendation, the live docs are at txid.support/docs and now linked from the dashboard footer).",
       "Or: point the domain at it, and it needs a content pass to catch up.",
     ],
-  },
-  {
-    id: "t-sql-audit",
-    title: "Run the updated SQL, it fixes a live bug",
-    urgency: "now",
-    why: "It now carries FIVE migrations, and one of them repairs a live bug. The bug: deleting a project fails outright for any project ever viewed or exported, because the append-only guard on case_access_log blocks the referential nulling Postgres performs, so GDPR project erasure and demo cleanup are currently broken. The rest add audit_logs (change history), org_members (team roles), doc_sources (documentation change detection) and the ticket inbox. Almost nothing shipped in the last stretch works until this runs.",
-    steps: [
-      "Open the Supabase SQL editor.",
-      "Paste the whole of supabase/RUN_IN_SQL_EDITOR.sql and run it.",
-      "It is safe to re-run: verified three times against a local reproduction.",
-    ],
-    expect: "\"Success. No rows returned\". Afterwards: deleting a demo from /admin/demos works, Account > Change history starts filling from your next settings change, Team shows a role dropdown per person, and Docs offers automatic re-checking.",
   },
   {
     id: "t-aptos-pdfs",
