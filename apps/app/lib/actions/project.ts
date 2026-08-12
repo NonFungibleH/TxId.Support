@@ -2,6 +2,7 @@
 
 import { waitUntil } from "@vercel/functions"
 import { requireCapability } from "@/lib/roles-server"
+import { isCurrentUserAdmin } from "@/lib/admin-auth"
 
 import { resolveOrg } from "@/lib/clerk-org"
 import { createServiceClient } from "@/lib/supabase/server"
@@ -61,8 +62,22 @@ export async function getProject() {
   return { org, project: project ?? null }
 }
 
+// Project creation is invite-only during the private beta. Sign-ups are open so
+// invited teammates can accept, but a fresh stranger's session has no org row so
+// currentActor() returns DEFAULT_ROLE = admin, and requireCapability("settings")
+// alone would let them create their own project via this action and slip past
+// the hand-onboarding gate (the /onboarding holding screen is UI-only).
+// Restrict creation to platform operators (ADMIN_EMAILS). Revisit when public
+// self-serve sign-up is turned back on.
+async function requireProjectCreator(): Promise<void> {
+  if (!(await isCurrentUserAdmin())) {
+    throw new Error("Project creation is invite-only right now. Contact team@txid.support to get set up.")
+  }
+}
+
 export async function createProject(name: string) {
   await requireCapability("settings")
+  await requireProjectCreator()
   const { orgId, userId } = await resolveOrg()
   if (!userId) throw new Error("Unauthenticated")
   const orgKey = orgId ?? userId
@@ -99,6 +114,7 @@ export async function createProject(name: string) {
 
 export async function createProjectWithMode(name: string, mode: "support" | "token") {
   await requireCapability("settings")
+  await requireProjectCreator()
   const { orgId, userId } = await resolveOrg()
   if (!userId) throw new Error("Unauthenticated")
   const orgKey = orgId ?? userId

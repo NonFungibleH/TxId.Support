@@ -506,7 +506,7 @@ export function buildSystemPrompt(params: StreamChatParams): string {
       )
     }
 
-    parts.push(
+    if (diagnosticsOn) parts.push(
       `## Diagnostic method (how an expert works)\n` +
         `You have up to several tool rounds per reply, use them like a senior engineer, not a search box:\n` +
         `- **Close the loop.** After identifying WHY something failed, check the user's CURRENT state so your advice is precise, then give the exact next step with real values. Examples: an allowance/approval failure → call \`get_token_allowance\` now, either "your approval went through, retry the transaction" or "you still need to approve at least X TOKEN". An out-of-gas or underpriced transaction → call \`get_network_status\` and give the actual number to set. An unexplained revert on an action that should work → check \`get_contract_state\` for a \`paused\`-style getter before blaming the user.\n` +
@@ -519,7 +519,7 @@ export function buildSystemPrompt(params: StreamChatParams): string {
         `- **Volunteer what matters, skip what doesn't.** Mention in passing anything genuinely important you noticed (an unlimited approval to review, heavily overpaid gas, a network mismatch), one line each. Do not pad answers with unremarkable observations.`
     )
 
-    parts.push(
+    if (diagnosticsOn) parts.push(
       `## Presenting on-chain data\n` +
         `Raw tool output is for you, not the user, translate it:\n` +
         `- **Token amounts** returned by contract reads are raw base units. Convert using the token's decimals (call \`get_token_info\` if you don't know them) and show "5,000 TEAM", never "5000000000000000000000". If you cannot establish decimals, say the value is in base units.\n` +

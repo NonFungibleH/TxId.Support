@@ -1,5 +1,7 @@
 import { getProject } from "@/lib/actions/project"
 import { toggleActive } from "@/lib/actions/project"
+import { currentActor } from "@/lib/roles-server"
+import { roleCan } from "@/lib/roles"
 import { redirect } from "next/navigation"
 import { EmbedCodeDisplay } from "@/components/settings/EmbedCodeDisplay"
 import { AllowedDomainsForm } from "@/components/settings/AllowedDomainsForm"
@@ -17,6 +19,13 @@ export default async function EmbedPage() {
 
   const typedProject = project as unknown as ProjectRow
   const isActive = typedProject.is_active
+
+  // The secret key drives the headless API and can raise/clear a status notice,
+  // so only a role with the `keys` capability (Admin/Developer) may see it.
+  // Without this the page shipped the plaintext sk_ to any member, including
+  // Support and Auditor.
+  const actor = await currentActor()
+  const canSeeKeys = actor ? roleCan(actor.role, "keys") : false
 
   async function toggle() {
     "use server"
@@ -97,20 +106,22 @@ export default async function EmbedPage() {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>API access</CardTitle>
-          <CardDescription>
-            The same diagnostic engine, headless. Diagnose a transaction from your own backend, support desk, or AI tooling.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ApiAccessDisplay
-            secretKey={typedProject.secret_key}
-            apiBaseUrl={process.env.NEXT_PUBLIC_WIDGET_URL ?? "https://app.txid.support"}
-          />
-        </CardContent>
-      </Card>
+      {canSeeKeys && (
+        <Card>
+          <CardHeader>
+            <CardTitle>API access</CardTitle>
+            <CardDescription>
+              The same diagnostic engine, headless. Diagnose a transaction from your own backend, support desk, or AI tooling.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ApiAccessDisplay
+              secretKey={typedProject.secret_key}
+              apiBaseUrl={process.env.NEXT_PUBLIC_WIDGET_URL ?? "https://app.txid.support"}
+            />
+          </CardContent>
+        </Card>
+      )}
     </div>
   )
 }

@@ -865,7 +865,10 @@ export async function POST(request: Request) {
           // ignore these anyway, so don't pay for the extra model call. Also
           // skipped when nobody is listening any more.
           const hasCuratedChips = (config.suggestedQuestions ?? []).some(q => q.trim().length > 0)
-          if (!streamCancelled && !wasEscalated && !hasCuratedChips && fullResponseText.length > 20) {
+          // Not for diagnostics-off projects: the generated chips advertise
+          // transaction diagnosis ("what caused this?", "how do I retry?"),
+          // steering the user straight into what the bot must refuse.
+          if (diagnosticsOn && !streamCancelled && !wasEscalated && !hasCuratedChips && fullResponseText.length > 20) {
             try {
               const items = await generateSuggestions(safeMessages, fullResponseText, ragContext)
               if (items.length > 0) {

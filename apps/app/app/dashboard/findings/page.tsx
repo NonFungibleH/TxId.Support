@@ -29,14 +29,26 @@ export default async function FindingsPage() {
   const typedProject = project as unknown as ProjectRow
   const supabase = createServiceClient()
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: findings } = await (supabase as any)
-    .from("tickets")
-    .select("id, ref, summary, created_at, conversation, reason, wallet_address, request")
-    .eq("project_id", typedProject.id)
-    .in("reason", ["feedback", "bug"])
-    .order("created_at", { ascending: false })
-    .limit(200)
+  // Resilient to the `request` (case record) column not being migrated in prod:
+  // PostgREST fails the WHOLE query on an unknown column, which would blank the
+  // Findings tab even though the rows exist. The insert already drops `request`
+  // on 42703; the read must match, or a protocol sees "nothing recorded" for
+  // real bugs. Try with the case record, fall back to without it.
+  const BASE_COLS = "id, ref, summary, created_at, conversation, reason, wallet_address"
+  const findingsQuery = (cols: string) =>
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (supabase as any)
+      .from("tickets")
+      .select(cols)
+      .eq("project_id", typedProject.id)
+      .in("reason", ["feedback", "bug"])
+      .order("created_at", { ascending: false })
+      .limit(200)
+
+  let { data: findings, error } = await findingsQuery(`${BASE_COLS}, request`)
+  if (error) {
+    ;({ data: findings } = await findingsQuery(BASE_COLS))
+  }
 
   const rows = (findings ?? []) as (Finding & { reason: string })[]
   const bugs = rows.filter(r => r.reason === "bug")
