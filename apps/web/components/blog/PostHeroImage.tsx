@@ -8,7 +8,229 @@ export function PostHeroImage({ variant, className }: { variant: string; classNa
       {variant === "docs-qa" && <DocsQaSVG />}
       {variant === "wallet-vs-generic" && <WalletVsGenericSVG />}
       {variant === "on-chain-data" && <OnChainDataSVG />}
+      {variant === "telegram-community-support" && <TelegramSupportSVG />}
+      {variant === "evaluate" && <EvaluateSVG />}
+      {variant === "agentic" && <AgenticSVG />}
+      {variant === "gas" && <GasSVG />}
+      {variant === "revert" && <RevertSVG />}
     </div>
+  )
+}
+
+function EvaluateSVG() {
+  const rows = ["Reads the connected wallet", "Cites the source of the answer", "Says when it cannot verify", "Resolves without a human"]
+  return (
+    <svg viewBox="0 0 700 280" xmlns="http://www.w3.org/2000/svg" className="w-full h-auto">
+      <defs>
+        <style>{`
+          @keyframes ev_in { from { opacity: 0; transform: translateX(-8px); } to { opacity: 1; transform: translateX(0); } }
+          .ev_r0 { animation: ev_in .4s ease forwards; animation-delay: .4s; opacity: 0; }
+          .ev_r1 { animation: ev_in .4s ease forwards; animation-delay: .6s; opacity: 0; }
+          .ev_r2 { animation: ev_in .4s ease forwards; animation-delay: .8s; opacity: 0; }
+          .ev_r3 { animation: ev_in .4s ease forwards; animation-delay: 1s; opacity: 0; }
+        `}</style>
+      </defs>
+      <rect width="700" height="280" fill="#07070d" />
+      <text x="24" y="36" fontFamily="monospace" fontSize="13" fill="white" fontWeight="bold">A buyer scorecard: guesser vs investigator</text>
+      <text x="470" y="70" fontFamily="monospace" fontSize="10" fill="#64748b" textAnchor="middle" fontWeight="bold">CHATBOT</text>
+      <text x="610" y="70" fontFamily="monospace" fontSize="10" fill="#10b981" textAnchor="middle" fontWeight="bold">AGENT</text>
+      <line x1="24" y1="80" x2="676" y2="80" stroke="#1e1e3a" strokeWidth="1" />
+      {rows.map((r, i) => {
+        const y = 108 + i * 42
+        return (
+          <g key={r} className={`ev_r${i}`}>
+            <text x="24" y={y} fontFamily="monospace" fontSize="11" fill="#94a3b8">{r}</text>
+            <text x="470" y={y} fontFamily="monospace" fontSize="14" fill="#ef4444" textAnchor="middle" fontWeight="bold">✕</text>
+            <text x="610" y={y} fontFamily="monospace" fontSize="14" fill="#10b981" textAnchor="middle" fontWeight="bold">✓</text>
+            <line x1="24" y1={y + 16} x2="676" y2={y + 16} stroke="#141428" strokeWidth="1" />
+          </g>
+        )
+      })}
+    </svg>
+  )
+}
+
+function AgenticSVG() {
+  const tools = ["get_transaction", "read_contract_state", "get_wallet_balance"]
+  return (
+    <svg viewBox="0 0 700 280" xmlns="http://www.w3.org/2000/svg" className="w-full h-auto">
+      <defs>
+        <style>{`
+          @keyframes ag_in { from { opacity: 0; } to { opacity: 1; } }
+          .ag_t0 { animation: ag_in .4s ease forwards; animation-delay: .5s; opacity: 0; }
+          .ag_t1 { animation: ag_in .4s ease forwards; animation-delay: .8s; opacity: 0; }
+          .ag_t2 { animation: ag_in .4s ease forwards; animation-delay: 1.1s; opacity: 0; }
+          .ag_ans { animation: ag_in .5s ease forwards; animation-delay: 1.5s; opacity: 0; }
+        `}</style>
+      </defs>
+      <rect width="700" height="280" fill="#07070d" />
+      <text x="24" y="36" fontFamily="monospace" fontSize="13" fill="white" fontWeight="bold">Chatbots answer. Agents investigate first.</text>
+
+      {/* question */}
+      <rect x="24" y="70" width="150" height="52" rx="8" fill="#0f0f1a" stroke="#6366f1" strokeWidth="1.2" />
+      <text x="36" y="90" fontFamily="monospace" fontSize="9" fill="#6366f1" fontWeight="bold">USER</text>
+      <text x="36" y="108" fontFamily="monospace" fontSize="9" fill="#94a3b8">why did my tx fail?</text>
+      <text x="188" y="100" fontFamily="monospace" fontSize="18" fill="#6366f1">→</text>
+
+      {/* investigate */}
+      <rect x="214" y="58" width="215" height="164" rx="10" fill="#0f0f1a" stroke="#8b5cf6" strokeWidth="1.5" />
+      <text x="228" y="80" fontFamily="monospace" fontSize="10" fill="#8b5cf6" fontWeight="bold">Agent reads the chain</text>
+      {tools.map((t, i) => (
+        <g key={t} className={`ag_t${i}`}>
+          <rect x="228" y={94 + i * 34} width="188" height="26" rx="6" fill="#141428" />
+          <text x="240" y={111 + i * 34} fontFamily="monospace" fontSize="9" fill="#94a3b8">{t}</text>
+          <text x="404" y={111 + i * 34} fontFamily="monospace" fontSize="10" fill="#10b981" textAnchor="middle">✓</text>
+        </g>
+      ))}
+      <text x="443" y="145" fontFamily="monospace" fontSize="18" fill="#10b981">→</text>
+
+      {/* answer */}
+      <g className="ag_ans">
+        <rect x="466" y="70" width="210" height="140" rx="10" fill="#0d1a0d" stroke="#10b981" strokeWidth="1.5" />
+        <text x="480" y="92" fontFamily="monospace" fontSize="9" fill="#10b981" fontWeight="bold">GROUNDED ANSWER</text>
+        <text x="480" y="116" fontFamily="monospace" fontSize="9" fill="#94a3b8">Out of gas. Raise the</text>
+        <text x="480" y="130" fontFamily="monospace" fontSize="9" fill="#94a3b8">limit and retry. Nothing</text>
+        <text x="480" y="144" fontFamily="monospace" fontSize="9" fill="#94a3b8">else left your wallet.</text>
+        <text x="480" y="188" fontFamily="monospace" fontSize="8" fill="#64748b">cited from 3 on-chain reads</text>
+      </g>
+    </svg>
+  )
+}
+
+function GasSVG() {
+  return (
+    <svg viewBox="0 0 700 280" xmlns="http://www.w3.org/2000/svg" className="w-full h-auto">
+      <defs>
+        <style>{`
+          @keyframes gs_fill { from { width: 0; } to { width: 470px; } }
+          @keyframes gs_in { from { opacity: 0; } to { opacity: 1; } }
+          .gs_used { animation: gs_fill 1.1s ease forwards; animation-delay: .4s; width: 0; }
+          .gs_flag { animation: gs_in .4s ease forwards; animation-delay: 1.4s; opacity: 0; }
+        `}</style>
+      </defs>
+      <rect width="700" height="280" fill="#07070d" />
+      <text x="24" y="36" fontFamily="monospace" fontSize="13" fill="white" fontWeight="bold">Out of gas is the limit you set, not your ETH</text>
+
+      {/* gauge track */}
+      <rect x="60" y="92" width="560" height="34" rx="17" fill="#0f0f1a" stroke="#1e1e3a" strokeWidth="1.5" />
+      <rect className="gs_used" x="60" y="92" height="34" rx="17" fill="#6366f1" />
+      <rect x="530" y="92" width="90" height="34" fill="#ef444422" />
+      <line x1="620" y1="84" x2="620" y2="134" stroke="#ef4444" strokeWidth="2" />
+      <g className="gs_flag">
+        <text x="616" y="78" fontFamily="monospace" fontSize="10" fill="#ef4444" textAnchor="end" fontWeight="bold">reverted here</text>
+      </g>
+      <text x="60" y="150" fontFamily="monospace" fontSize="10" fill="#64748b">gas used</text>
+      <text x="620" y="150" fontFamily="monospace" fontSize="10" fill="#64748b" textAnchor="end">gas limit</text>
+
+      {/* two chips */}
+      <rect x="60" y="184" width="255" height="56" rx="10" fill="#0d1a0d" stroke="#10b981" strokeWidth="1" />
+      <text x="78" y="208" fontFamily="monospace" fontSize="11" fill="white">ETH balance: 2.41</text>
+      <text x="78" y="226" fontFamily="monospace" fontSize="10" fill="#10b981">plenty, this is not the problem</text>
+      <rect x="335" y="184" width="285" height="56" rx="10" fill="#1c0f0f" stroke="#ef4444" strokeWidth="1" />
+      <text x="353" y="208" fontFamily="monospace" fontSize="11" fill="white">Gas limit: set too low</text>
+      <text x="353" y="226" fontFamily="monospace" fontSize="10" fill="#f87171">raise it in advanced settings and retry</text>
+    </svg>
+  )
+}
+
+function RevertSVG() {
+  const reasons = [
+    { t: "Out of gas", hit: true },
+    { t: "Revert reason string", hit: false },
+    { t: "Custom error / panic", hit: false },
+    { t: "Signature lookup", hit: false },
+  ]
+  return (
+    <svg viewBox="0 0 700 280" xmlns="http://www.w3.org/2000/svg" className="w-full h-auto">
+      <defs>
+        <style>{`
+          @keyframes rv_in { from { opacity: 0; } to { opacity: 1; } }
+          .rv_ans { animation: rv_in .5s ease forwards; animation-delay: 1.4s; opacity: 0; }
+        `}</style>
+      </defs>
+      <rect width="700" height="280" fill="#07070d" />
+      <text x="24" y="36" fontFamily="monospace" fontSize="13" fill="white" fontWeight="bold">Every revert, decoded to plain English</text>
+
+      {/* failed tx */}
+      <rect x="24" y="66" width="170" height="60" rx="10" fill="#1c0f0f" stroke="#ef4444" strokeWidth="1.5" />
+      <circle cx="44" cy="90" r="5" fill="#ef4444" />
+      <text x="58" y="88" fontFamily="monospace" fontSize="10" fill="white" fontWeight="bold">Failed tx</text>
+      <text x="38" y="112" fontFamily="monospace" fontSize="9" fill="#94a3b8">0x9f3c…a12b</text>
+      <text x="206" y="102" fontFamily="monospace" fontSize="16" fill="#6366f1">→</text>
+
+      {/* decode ladder */}
+      {reasons.map((r, i) => {
+        const y = 62 + i * 40
+        return (
+          <g key={r.t}>
+            <rect x="234" y={y} width="210" height="32" rx="7" fill={r.hit ? "#141433" : "#0f0f1a"} stroke={r.hit ? "#6366f1" : "#1e1e3a"} strokeWidth={r.hit ? "1.5" : "1"} />
+            <text x="248" y={y + 20} fontFamily="monospace" fontSize="9.5" fill={r.hit ? "white" : "#64748b"}>{r.t}</text>
+            {r.hit && <text x="428" y={y + 20} fontFamily="monospace" fontSize="10" fill="#6366f1" textAnchor="middle">●</text>}
+          </g>
+        )
+      })}
+      <text x="456" y="150" fontFamily="monospace" fontSize="16" fill="#10b981">→</text>
+
+      {/* plain english */}
+      <g className="rv_ans">
+        <rect x="480" y="96" width="196" height="88" rx="10" fill="#0d1a0d" stroke="#10b981" strokeWidth="1.5" />
+        <text x="494" y="118" fontFamily="monospace" fontSize="9" fill="#10b981" fontWeight="bold">PLAIN ENGLISH</text>
+        <text x="494" y="140" fontFamily="monospace" fontSize="9" fill="#94a3b8">Out of gas. Raise the</text>
+        <text x="494" y="154" fontFamily="monospace" fontSize="9" fill="#94a3b8">gas limit and retry.</text>
+        <text x="494" y="172" fontFamily="monospace" fontSize="8" fill="#64748b">$1.18 gas, funds safe</text>
+      </g>
+    </svg>
+  )
+}
+
+function TelegramSupportSVG() {
+  return (
+    <svg viewBox="0 0 700 280" xmlns="http://www.w3.org/2000/svg" className="w-full h-auto">
+      <defs>
+        <style>{`
+          @keyframes tg_in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+          .tg_q { animation: tg_in 0.4s ease forwards; animation-delay: 0.5s; opacity: 0; }
+          .tg_a { animation: tg_in 0.5s ease forwards; animation-delay: 1.3s; opacity: 0; }
+        `}</style>
+      </defs>
+
+      <rect width="700" height="280" fill="#07070d" />
+      <text x="20" y="34" fontFamily="monospace" fontSize="13" fill="white" fontWeight="bold">On-chain support, inside your Telegram group</text>
+
+      {/* Group panel */}
+      <rect x="20" y="52" width="660" height="208" rx="10" fill="#0f0f1a" stroke="#1e1e3a" strokeWidth="1.5" />
+      <rect x="20" y="52" width="660" height="34" rx="10" fill="#0c0c18" />
+      <rect x="20" y="72" width="660" height="14" fill="#0c0c18" />
+      <circle cx="44" cy="69" r="10" fill="#0088cc" />
+      <text x="44" y="73" fontFamily="monospace" fontSize="10" fill="white" fontWeight="bold" textAnchor="middle">P</text>
+      <text x="62" y="73" fontFamily="monospace" fontSize="11" fill="#94a3b8" fontWeight="bold">Protocol Community</text>
+      <text x="662" y="73" fontFamily="monospace" fontSize="10" fill="#64748b" textAnchor="end">4,210 members</text>
+
+      {/* User message */}
+      <g className="tg_q">
+        <circle cx="48" cy="120" r="12" fill="#6366f1" />
+        <text x="48" y="124" fontFamily="monospace" fontSize="10" fill="white" fontWeight="bold" textAnchor="middle">C</text>
+        <text x="70" y="112" fontFamily="monospace" fontSize="9" fill="#94a3b8" fontWeight="bold">CryptoUser_4291</text>
+        <rect x="70" y="118" width="300" height="26" rx="7" fill="#141428" />
+        <text x="82" y="135" fontFamily="monospace" fontSize="9.5" fill="#94a3b8"><tspan fill="#0088cc">@SupportBot</tspan> why did my swap fail?</text>
+      </g>
+
+      {/* Bot answer */}
+      <g className="tg_a">
+        <circle cx="48" cy="182" r="12" fill="#0088cc" />
+        <polyline points="42,182 46,187 55,177" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        <text x="70" y="170" fontFamily="monospace" fontSize="9" fill="#0088cc" fontWeight="bold">SupportBot</text>
+        <rect x="70" y="176" width="415" height="62" rx="7" fill="#0d1a0d" stroke="#10b981" strokeWidth="1" />
+        <text x="82" y="196" fontFamily="monospace" fontSize="9" fill="#94a3b8">Your swap ran out of gas at the limit you set.</text>
+        <text x="82" y="211" fontFamily="monospace" fontSize="9" fill="#10b981">Raise it and retry. Nothing else left your wallet.</text>
+        <text x="82" y="228" fontFamily="monospace" fontSize="8" fill="#64748b">✓ diagnosed from the last transaction, on-chain</text>
+      </g>
+
+      {/* Side note */}
+      <text x="662" y="120" fontFamily="monospace" fontSize="9" fill="#10b981" textAnchor="end">Answers in the open.</text>
+      <text x="662" y="136" fontFamily="monospace" fontSize="9" fill="#64748b" textAnchor="end">Never DMs first.</text>
+      <text x="662" y="152" fontFamily="monospace" fontSize="9" fill="#64748b" textAnchor="end">Closes the DM scam vector.</text>
+    </svg>
   )
 }
 

@@ -35,7 +35,7 @@ export const POSTS: Post[] = [
     readingMinutes: 10,
     tags: ["AI support agent", "Buyer's guide", "Web3 support"],
     author: "Non_Fungible_Howard",
-    heroVariant: "ticket-reduction",
+    heroVariant: "evaluate",
     content: [
       {
         type: "p",
@@ -153,7 +153,7 @@ export const POSTS: Post[] = [
     readingMinutes: 11,
     tags: ["Agentic support", "AI support agent", "Web3 support"],
     author: "Non_Fungible_Howard",
-    heroVariant: "on-chain-data",
+    heroVariant: "agentic",
     content: [
       {
         type: "p",
@@ -332,7 +332,7 @@ export const POSTS: Post[] = [
     readingMinutes: 6,
     tags: ["Transaction diagnostics", "Gas", "Web3 support"],
     author: "Non_Fungible_Howard",
-    heroVariant: "on-chain-data",
+    heroVariant: "gas",
     content: [
       {
         type: "p",
@@ -582,7 +582,7 @@ export const POSTS: Post[] = [
     readingMinutes: 9,
     tags: ["Transaction diagnostics", "DeFi", "Web3 support"],
     author: "Non_Fungible_Howard",
-    heroVariant: "on-chain-data",
+    heroVariant: "revert",
     content: [
       {
         type: "p",

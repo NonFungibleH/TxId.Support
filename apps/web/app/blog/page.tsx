@@ -6,6 +6,7 @@ import { Footer } from "@/components/layout/Footer"
 import { FadeIn } from "@/components/ui/FadeIn"
 import { POSTS } from "@/lib/posts"
 import { BlogFilterControls } from "@/components/blog/BlogFilterControls"
+import { PostHeroImage } from "@/components/blog/PostHeroImage"
 import { ArrowRight, Clock } from "lucide-react"
 
 export const metadata: Metadata = {
@@ -14,6 +15,7 @@ export const metadata: Metadata = {
   alternates: { canonical: "/blog" },
 }
 
+// Fallback background behind the hero SVG (shown only if a variant has no image).
 const heroGradients: Record<string, string> = {
   "discord-scam": "linear-gradient(135deg, #ef4444, #6366f1)",
   "ticket-reduction": "linear-gradient(135deg, #10b981, #6366f1)",
@@ -21,6 +23,10 @@ const heroGradients: Record<string, string> = {
   "wallet-vs-generic": "linear-gradient(135deg, #10b981, #06b6d4)",
   "on-chain-data": "linear-gradient(135deg, #6366f1, #06b6d4)",
   "telegram-community-support": "linear-gradient(135deg, #0088cc, #6366f1)",
+  "evaluate": "linear-gradient(135deg, #6366f1, #10b981)",
+  "agentic": "linear-gradient(135deg, #8b5cf6, #6366f1)",
+  "gas": "linear-gradient(135deg, #6366f1, #ef4444)",
+  "revert": "linear-gradient(135deg, #ef4444, #10b981)",
 }
 
 export default function BlogPage({
@@ -88,21 +94,21 @@ export default function BlogPage({
                     href={`/blog/${post.slug}`}
                     className="group block rounded-xl border border-[var(--border)] bg-[var(--bg-surface)] overflow-hidden hover:border-[var(--border-accent)] transition-colors"
                   >
-                    {/* Gradient accent strip */}
+                    {/* Real hero image (the same graphic shown on the article) */}
                     <div
-                      role="presentation"
                       aria-hidden="true"
-                      className="relative w-full"
+                      className="relative w-full overflow-hidden"
                       style={{
-                        height: "80px",
                         background: heroGradients[post.heroVariant] ?? "linear-gradient(135deg, #6366f1, #4f46e5)",
                       }}
                     >
+                      <PostHeroImage variant={post.heroVariant} className="[&>svg]:block [&>svg]:w-full" />
+                      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/70 to-transparent" />
                       <div className="absolute bottom-3 left-4 flex flex-wrap gap-2">
                         {post.tags.slice(0, 2).map((tag) => (
                           <span
                             key={tag}
-                            className="px-2 py-0.5 rounded text-[9px] font-mono font-semibold text-white/90 bg-black/30 backdrop-blur-sm uppercase tracking-wider"
+                            className="px-2 py-0.5 rounded text-[9px] font-mono font-semibold text-white/90 bg-black/40 backdrop-blur-sm uppercase tracking-wider"
                           >
                             {tag}
                           </span>
