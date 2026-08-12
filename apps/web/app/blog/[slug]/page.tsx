@@ -3,6 +3,7 @@ import { notFound } from "next/navigation"
 import { Navbar } from "@/components/layout/Navbar"
 import { Footer } from "@/components/layout/Footer"
 import { getPost, POSTS, type PostSection } from "@/lib/posts"
+import { Figure } from "@/components/blog/Figures"
 import Link from "next/link"
 import { ArrowLeft, Clock, Tag } from "lucide-react"
 import { PostHeroImage } from "@/components/blog/PostHeroImage"
@@ -116,6 +117,8 @@ function Section({ section }: { section: PostSection }) {
           </div>
         </div>
       )
+    case "figure":
+      return <Figure kind={section.kind} caption={section.caption} />
     default:
       return null
   }
