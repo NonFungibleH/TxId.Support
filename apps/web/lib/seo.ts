@@ -16,8 +16,9 @@ const DESCRIPTION =
 export const AUTHOR = {
   "@type": "Person",
   name: "Non_Fungible_Howard",
-  url: "https://t.me/Non_Fungible_Howard",
+  url: "https://www.linkedin.com/in/howard-p/",
   sameAs: [
+    "https://www.linkedin.com/in/howard-p/",
     "https://t.me/Non_Fungible_Howard",
     "https://github.com/NonFungibleH",
   ],
@@ -30,7 +31,11 @@ export const organizationSchema = {
   url: SITE_URL,
   logo: `${SITE_URL}/icon.png`,
   description: DESCRIPTION,
-  sameAs: ["https://t.me/Non_Fungible_Howard", "https://github.com/NonFungibleH"],
+  sameAs: [
+    "https://www.linkedin.com/in/howard-p/",
+    "https://t.me/Non_Fungible_Howard",
+    "https://github.com/NonFungibleH",
+  ],
   contactPoint: {
     "@type": "ContactPoint",
     email: "team@txid.support",
