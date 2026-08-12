@@ -157,25 +157,33 @@ export async function POST(request: Request) {
       ...coarseDevice(request.headers.get("user-agent")),
     }
 
+    // Built as a mutable payload so we can drop `request` if the column is not
+    // applied in prod yet: a bug report must NEVER fail over a compliance
+    // nicety. (Postgres 42703 = undefined_column.)
+    const payload: Record<string, unknown> = {
+      project_id: typedProject.id,
+      user_name: name || null,
+      user_email: email || null,
+      summary: safeSummary,
+      reason: reason || null,
+      conversation: safeConversation.length ? JSON.stringify(safeConversation) : null,
+      wallet_address: wallet,
+      request: requestEvidence,
+      status: "open",
+    }
+
     let insertError = null
-    for (let attempt = 0; attempt < 3; attempt++) {
+    for (let attempt = 0; attempt < 4; attempt++) {
       ref = makeRef()
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const result = await (supabase as any).from("tickets").insert({
-        project_id: typedProject.id,
-        ref,
-        user_name: name || null,
-        user_email: email || null,
-        summary: safeSummary,
-        reason: reason || null,
-        conversation: safeConversation.length ? JSON.stringify(safeConversation) : null,
-        wallet_address: wallet,
-        request: requestEvidence,
-        status: "open",
-      }).select("id").single()
+      const result = await (supabase as any).from("tickets").insert({ ...payload, ref }).select("id").single()
       insertError = result.error
       ticketDbId = result.data?.id ?? null
       if (!insertError) break
+      if (insertError.code === "42703" && "request" in payload) {
+        delete payload.request // column not migrated yet; file the report anyway
+        continue
+      }
       if (insertError.code !== "23505") break // only retry on unique violation
     }
 
