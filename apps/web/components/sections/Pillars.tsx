@@ -21,7 +21,7 @@ const PILLARS = [
     name: "Resolve",
     line: "Help users where they already are",
     paras: [
-      "TxID delivers support inside your product, Telegram, or through your API.",
+      "TxID delivers support inside your product, Telegram, or through your API. It can open the moment a user hits an error, so help arrives right when something breaks instead of waiting to be found.",
       "Most issues are resolved instantly. When human support is required, your team receives the full context instead of another unanswered ticket.",
     ],
     href: "/api",
