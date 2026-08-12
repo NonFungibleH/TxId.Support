@@ -4,6 +4,7 @@ import Link from "next/link"
 import { Navbar } from "@/components/layout/Navbar"
 import { Footer } from "@/components/layout/Footer"
 import { DOCS, getDoc, getDocsByCategory, type DocSection } from "@/lib/docs"
+import { techArticleSchema, breadcrumbSchema } from "@/lib/seo"
 import { ArrowLeft, ArrowRight } from "lucide-react"
 
 export async function generateStaticParams() {
@@ -20,6 +21,13 @@ export async function generateMetadata({
   return {
     title: `${doc.title} | TxID Docs`,
     description: doc.description,
+    alternates: { canonical: `/docs/${doc.slug}` },
+    openGraph: {
+      title: `${doc.title} | TxID Docs`,
+      description: doc.description,
+      type: "article",
+      url: `/docs/${doc.slug}`,
+    },
   }
 }
 
@@ -217,8 +225,19 @@ export default function DocPage({ params }: { params: { slug: string } }) {
   const prevDoc = currentIndex > 0 ? allDocs[currentIndex - 1] : null
   const nextDoc = currentIndex < allDocs.length - 1 ? allDocs[currentIndex + 1] : null
 
+  const catLabel = getDocsByCategory().find((c) => c.key === doc.category)?.label ?? "Docs"
+  const jsonLd = techArticleSchema(doc)
+  const breadcrumb = breadcrumbSchema([
+    { name: "Home", url: "/" },
+    { name: "Docs", url: "/docs" },
+    { name: catLabel, url: "/docs" },
+    { name: doc.title, url: `/docs/${doc.slug}` },
+  ])
+
   return (
     <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumb) }} />
       <Navbar />
       <main className="min-h-screen pt-20 pb-24">
         <div className="max-w-6xl mx-auto px-6">

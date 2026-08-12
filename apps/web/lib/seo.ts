@@ -10,6 +10,19 @@ export const SITE_NAME = "TxID"
 const DESCRIPTION =
   "White-label AI support agent for DeFi protocols and Web3 token projects. Auto-detects the user's connected wallet, diagnoses failed transactions, answers questions from your docs, and escalates to your team. Embed with one script tag."
 
+// The author byline across the blog. A real Person entity with reachable
+// profiles is the E-E-A-T signal answer engines use to attribute and trust
+// content. Only verified links belong in sameAs, never invented ones.
+export const AUTHOR = {
+  "@type": "Person",
+  name: "Non_Fungible_Howard",
+  url: "https://t.me/Non_Fungible_Howard",
+  sameAs: [
+    "https://t.me/Non_Fungible_Howard",
+    "https://github.com/NonFungibleH",
+  ],
+}
+
 export const organizationSchema = {
   "@context": "https://schema.org",
   "@type": "Organization",
@@ -17,6 +30,81 @@ export const organizationSchema = {
   url: SITE_URL,
   logo: `${SITE_URL}/icon.png`,
   description: DESCRIPTION,
+  sameAs: ["https://t.me/Non_Fungible_Howard", "https://github.com/NonFungibleH"],
+  contactPoint: {
+    "@type": "ContactPoint",
+    email: "team@txid.support",
+    contactType: "sales",
+    availableLanguage: "en",
+  },
+}
+
+/** BreadcrumbList for a page's position in the site hierarchy. */
+export function breadcrumbSchema(items: { name: string; url: string }[]) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: items.map((it, i) => ({
+      "@type": "ListItem",
+      position: i + 1,
+      name: it.name,
+      item: it.url.startsWith("http") ? it.url : `${SITE_URL}${it.url}`,
+    })),
+  }
+}
+
+/** Rich BlogPosting for a blog article. Image points at the per-post OG route. */
+export function blogPostingSchema(post: {
+  slug: string
+  title: string
+  description: string
+  publishedAt: string
+  readingMinutes: number
+  tags: string[]
+}) {
+  const url = `${SITE_URL}/blog/${post.slug}`
+  return {
+    "@context": "https://schema.org",
+    "@type": "BlogPosting",
+    headline: post.title,
+    description: post.description,
+    url,
+    mainEntityOfPage: { "@type": "WebPage", "@id": url },
+    image: `${url}/opengraph-image`,
+    datePublished: post.publishedAt,
+    dateModified: post.publishedAt,
+    author: AUTHOR,
+    publisher: {
+      "@type": "Organization",
+      name: SITE_NAME,
+      url: SITE_URL,
+      logo: { "@type": "ImageObject", url: `${SITE_URL}/icon.png` },
+    },
+    keywords: post.tags.join(", "),
+    timeRequired: `PT${post.readingMinutes}M`,
+    inLanguage: "en",
+  }
+}
+
+/** TechArticle for a documentation page. */
+export function techArticleSchema(doc: { slug: string; title: string; description: string }) {
+  const url = `${SITE_URL}/docs/${doc.slug}`
+  return {
+    "@context": "https://schema.org",
+    "@type": "TechArticle",
+    headline: doc.title,
+    description: doc.description,
+    url,
+    mainEntityOfPage: { "@type": "WebPage", "@id": url },
+    author: AUTHOR,
+    publisher: {
+      "@type": "Organization",
+      name: SITE_NAME,
+      url: SITE_URL,
+      logo: { "@type": "ImageObject", url: `${SITE_URL}/icon.png` },
+    },
+    inLanguage: "en",
+  }
 }
 
 export const websiteSchema = {

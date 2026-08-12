@@ -58,27 +58,32 @@ export default function BlogPage({
     <>
       <Navbar />
       <main className="min-h-screen pt-28 pb-24">
-        <div className="max-w-2xl mx-auto px-6">
+        <div className="max-w-5xl mx-auto px-6">
           <FadeIn>
             <p className="font-mono text-sm text-accent mb-3">{"Blog"}</p>
             <h1 className="font-display text-4xl font-bold text-white mb-4">
               Web3 support, explained
             </h1>
-            <p className="text-muted text-base">
+            <p className="text-muted text-base max-w-2xl">
               Guides and deep-dives on DeFi protocol support, on-chain diagnostics, and keeping your users safe.
             </p>
           </FadeIn>
 
-          <div className="mt-10">
-            <Suspense fallback={null}>
-              <BlogFilterControls
-                allTags={allTags}
-                activeTag={activeTag}
-                activeSort={activeSort}
-              />
-            </Suspense>
-          </div>
+          <div className="mt-10 lg:grid lg:grid-cols-[210px_minmax(0,1fr)] lg:gap-10">
+            {/* Filters: sidebar on desktop, stacked above the list on mobile */}
+            <aside className="mb-10 lg:mb-0">
+              <div className="lg:sticky lg:top-24">
+                <Suspense fallback={null}>
+                  <BlogFilterControls
+                    allTags={allTags}
+                    activeTag={activeTag}
+                    activeSort={activeSort}
+                  />
+                </Suspense>
+              </div>
+            </aside>
 
+            <div>
           {filtered.length === 0 ? (
             <div className="mt-8 rounded-xl border border-[var(--border)] bg-[var(--bg-surface)] p-12 text-center">
               <p className="font-mono text-sm text-muted">No posts found for this filter.</p>
@@ -149,6 +154,8 @@ export default function BlogPage({
               ))}
             </div>
           )}
+            </div>
+          </div>
         </div>
       </main>
       <Footer />

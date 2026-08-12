@@ -53,6 +53,33 @@ Add one script tag before the closing `</body>` tag. No SDK, no build step. Work
 - [Company](https://txid.support/company): who builds it
 - [Blog](https://txid.support/blog): articles
 
+## Articles
+
+- [Transaction error messages explained](https://txid.support/blog/transaction-error-messages-explained): a plain-English key to every failure message (intrinsic gas too low, execution reverted, nonce too low, insufficient allowance, custom errors, panics) and how to fix each.
+- [Recording AI support conversations: what compliance requires](https://txid.support/blog/recording-ai-support-conversations-compliance): what a defensible record of an AI chat needs, and how TxID keeps one.
+- [Why did my transaction fail? Every revert reason explained](https://txid.support/blog/why-did-my-transaction-fail): out of gas, reverts, custom errors, panics, slippage, allowance.
+- [What does "out of gas" mean in crypto?](https://txid.support/blog/what-does-out-of-gas-mean): why it happens and how to fix it.
+- [What is agentic support?](https://txid.support/blog/what-is-agentic-support): how AI agents that investigate differ from chatbots that answer.
+- [How to evaluate an AI support tool for your protocol](https://txid.support/blog/how-to-evaluate-ai-support-for-defi): a buyer's checklist.
+- [Wallet-aware support vs generic chatbots](https://txid.support/blog/wallet-aware-support-vs-generic-chatbots): what changes when the assistant can read the connected wallet.
+- [What on-chain data should your support bot read?](https://txid.support/blog/on-chain-data-support-bot): the four data sources that matter.
+- [How to set up docs Q&A for your DeFi protocol](https://txid.support/blog/docs-qa-defi-protocol): crawling, chunking and retrieval.
+- [How to reduce DeFi support tickets by 60%](https://txid.support/blog/reduce-defi-support-tickets): deflect at source, not at the queue.
+- [Why your Discord support is a scam vector](https://txid.support/blog/defi-discord-support-scam-vector): and how in-app support closes it.
+- [Why your Telegram community needs on-chain AI support](https://txid.support/blog/telegram-community-support): answering in the open, with wallet context.
+
+## Documentation pages
+
+- [Introduction](https://txid.support/docs/introduction) and [Quick start](https://txid.support/docs/quick-start): the concepts and the fastest path to live.
+- [Connecting the user's wallet](https://txid.support/docs/connect-wallet): pass the connected wallet from your app with window.txid.identify(), so users never connect twice.
+- [Transaction diagnosis: on or off](https://txid.support/docs/modes): run the full diagnostician, or a docs-only assistant that never touches a transaction.
+- [Bug reports & feedback](https://txid.support/docs/bug-reports): collect both from testers in the widget, with a case record on each.
+- [Team & access](https://txid.support/docs/roles): Admin, Developer, Support and Auditor roles.
+- [Records & compliance](https://txid.support/docs/records): what is stored behind every answer, and how it stays append-only.
+- [Smart contracts](https://txid.support/docs/smart-contracts), [Knowledge base](https://txid.support/docs/knowledge-base) and [Chains](https://txid.support/docs/chains): configuration.
+- [Embed & go live](https://txid.support/docs/embed) and [Analytics](https://txid.support/docs/analytics): shipping and measuring.
+- [Full feature list](https://txid.support/docs/features): every capability with its status.
+
 ## Contact
 
 Email team@txid.support, or message @Non_Fungible_Howard on Telegram (https://t.me/Non_Fungible_Howard), for demos, Enterprise pricing, or evaluation access.
