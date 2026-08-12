@@ -9,6 +9,7 @@ import type { Database } from "@/lib/supabase/types"
 import { rateLimit, clientIp } from "@/lib/rate-limit"
 import { TICKET_LIMITS } from "@/lib/limits"
 import { dispatchEscalation } from "@/lib/integrations/escalation"
+import { coarseDevice, requestGeo } from "@/lib/evidence"
 
 type ProjectRow = Database["public"]["Tables"]["projects"]["Row"]
 
@@ -145,6 +146,17 @@ export async function POST(request: Request) {
     // Retry up to 3 times on ref collision (unique constraint added in migration 20260627000002)
     let ref = ""
     let ticketDbId: string | null = null
+    // The case record for the finding: the request context it was filed under,
+    // the same compliance evidence Conversations shows per message. The page
+    // comes from the widget (pageUrl); country + device from edge headers and
+    // the user agent, coarsened. No raw IP is stored.
+    const requestEvidence = {
+      surface: "widget" as const,
+      ...(typeof body.pageUrl === "string" && body.pageUrl ? { pageUrl: body.pageUrl.slice(0, 2048) } : {}),
+      ...requestGeo(request.headers),
+      ...coarseDevice(request.headers.get("user-agent")),
+    }
+
     let insertError = null
     for (let attempt = 0; attempt < 3; attempt++) {
       ref = makeRef()
@@ -158,6 +170,7 @@ export async function POST(request: Request) {
         reason: reason || null,
         conversation: safeConversation.length ? JSON.stringify(safeConversation) : null,
         wallet_address: wallet,
+        request: requestEvidence,
         status: "open",
       }).select("id").single()
       insertError = result.error
