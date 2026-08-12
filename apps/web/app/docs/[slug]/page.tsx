@@ -225,7 +225,13 @@ export default function DocPage({ params }: { params: { slug: string } }) {
           <div className="flex gap-12 pt-8">
             {/* Sidebar - desktop only */}
             <aside className="hidden lg:block w-52 shrink-0">
-              <div className="sticky top-24">
+              {/* Own scroll region, pinned below the navbar. Without a bounded
+                  height the menu (now longer than the viewport) co-scrolled with
+                  the page and its lower links were unreachable; overscroll-contain
+                  keeps a scroll gesture that starts here from chaining into the
+                  page, so the left scrolls when you are on it and the content
+                  scrolls when you are over that. */}
+              <div className="sticky top-24 max-h-[calc(100vh-7rem)] overflow-y-auto overscroll-contain pr-2">
                 <Link
                   href="/docs"
                   className="inline-flex items-center gap-1.5 text-xs text-[var(--text-muted)] hover:text-white transition-colors mb-6"

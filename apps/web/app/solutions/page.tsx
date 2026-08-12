@@ -346,7 +346,7 @@ export default function SolutionsPage() {
                     </Button>
                   )}
                 </FadeIn>
-                <FadeIn delay={0.1} className="lg:[direction:ltr]">
+                <FadeIn delay={0.1} className="lg:[direction:ltr] flex flex-col items-center">
                   {a.visualLabel && (
                     <p className="font-mono text-[11px] uppercase tracking-widest text-muted/60 mb-4 text-center">
                       {a.visualLabel}
