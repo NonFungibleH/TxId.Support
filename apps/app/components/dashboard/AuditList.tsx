@@ -45,7 +45,7 @@ export function AuditList({ rows }: { rows: AuditRow[] }) {
         </div>
         <p className="text-xs text-muted-foreground">
           Every configuration change, with who made it and what it was before. Append-only:
-          these entries cannot be edited or deleted, including by us. Credential values are
+          entries cannot be edited or deleted through the dashboard. Credential values are
           never recorded, only the fact that one was set or cleared.
         </p>
       </CardHeader>

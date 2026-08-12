@@ -1,6 +1,7 @@
 import { conversationOutcome, type Outcome } from "@/lib/conversation-outcome"
 import { ticketSignals, type TicketBasis } from "@/lib/ticket-signals"
 import { rankTopics } from "@/lib/topics"
+import { BUG_OPENER, FEEDBACK_OPENER } from "@/lib/finding-openers"
 import type { AnswerEvidence } from "@/lib/evidence"
 
 /**
@@ -242,11 +243,17 @@ export function computeInsights(
   // Over the questions testers ASKED, across every conversation, not only the
   // ones that went badly. The gaps report already ranks failures; this answers
   // the different question of what the beta was about at all.
+  // The Bug / Feedback buttons inject a fixed opener as the first user message.
+  // It is not the tester's own words, and it appears in EVERY bug/feedback
+  // conversation, so without this it always tops the themes ("I want to report
+  // a bug"), drowning out what testers actually asked.
+  const CANNED_OPENERS = new Set([BUG_OPENER, FEEDBACK_OPENER])
   const questionsByConv = new Map<string, string[]>()
   for (const m of messages) {
     if (m.role !== "user" || typeof m.content !== "string") continue
     const text = m.content.trim()
     if (text.length <= 3) continue
+    if (CANNED_OPENERS.has(text)) continue
     const list = questionsByConv.get(m.conversation_id) ?? []
     list.push(text.slice(0, 300))
     questionsByConv.set(m.conversation_id, list)

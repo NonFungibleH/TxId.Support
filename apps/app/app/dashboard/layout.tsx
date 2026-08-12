@@ -6,6 +6,7 @@ import { DashboardFooter } from "@/components/dashboard/DashboardFooter"
 import { getProject } from "@/lib/actions/project"
 import { isCurrentUserAdmin } from "@/lib/admin-auth"
 import { ensureCurrentUserRole } from "@/lib/roles-server"
+import { publicHost } from "@/lib/public-host"
 import type { ProjectConfig } from "@/lib/types/config"
 
 // Never serve this layout from a cache: which company you are looking at
@@ -35,7 +36,7 @@ export default async function DashboardLayout({
   const beta = (typedProject.config as ProjectConfig | undefined)?.beta?.enabled === true
   const isAdmin = await isCurrentUserAdmin()
 
-  const webUrl = process.env.NEXT_PUBLIC_WEB_URL ?? "https://txid.support"
+  const webUrl = publicHost(process.env.NEXT_PUBLIC_WEB_URL, "https://txid.support")
 
   return (
     <div className="flex min-h-screen flex-col bg-background">

@@ -1,7 +1,8 @@
 import Link from "next/link"
 import { ArrowRight, LifeBuoy } from "lucide-react"
 
-const WEB_URL = process.env.NEXT_PUBLIC_WEB_URL ?? "https://txid.support"
+import { publicHost } from "@/lib/public-host"
+const WEB_URL = publicHost(process.env.NEXT_PUBLIC_WEB_URL, "https://txid.support")
 
 export default function NotFound() {
   return (
