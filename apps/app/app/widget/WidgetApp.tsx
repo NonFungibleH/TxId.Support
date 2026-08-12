@@ -2010,6 +2010,29 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
                       : m,
                   ),
                 )
+              } else if (controls.any) {
+                // BETA COLLECTS, IT DOES NOT TICKET. The point of a beta is to
+                // gather what testers hit, not to open a support ticket that
+                // implies someone will reply. So any escalation the model raises
+                // (e.g. it could not resolve a question) is recorded as a
+                // finding, with no name/email form. If they were mid bug report,
+                // flush that; otherwise log it as a bug.
+                if (awaitingFinding.current === "bug") {
+                  flushBugReport(
+                    messagesRef.current.map(m => ({ role: m.role, content: m.content })),
+                    esc.summary,
+                  )
+                } else if (!findingRecorded.current) {
+                  findingRecorded.current = true
+                  void recordFinding(esc.summary, awaitingFinding.current === "feedback" ? "feedback" : "bug")
+                }
+                setMessages(prev =>
+                  prev.map(m =>
+                    m.id === assistantId && !m.content.trim()
+                      ? { ...m, content: "Thanks, that's logged for the team with everything I could see." }
+                      : m,
+                  ),
+                )
               } else {
                 setEscalation(esc)
               }
