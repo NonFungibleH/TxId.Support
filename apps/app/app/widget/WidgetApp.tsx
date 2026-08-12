@@ -1740,7 +1740,7 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
     convo?: { role: string; content: string }[],
   ) => {
     try {
-      await fetch("/api/tickets", {
+      const res = await fetch("/api/tickets", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         // keepalive so a flush fired from pagehide/close still completes after
@@ -1762,6 +1762,7 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
           ...(isPreview ? { preview: true, previewToken } : {}),
         }),
       })
+      if (!res.ok) console.error("[txid] finding could not be recorded:", res.status)
     } catch { /* see above */ }
   }, [apiKey, isPreview, previewToken, walletAddress])
 

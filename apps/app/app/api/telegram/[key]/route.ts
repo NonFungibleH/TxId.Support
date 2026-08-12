@@ -100,19 +100,29 @@ function leadingCommand(message: TelegramMessage): string | null {
   return (message.text ?? "").slice(0, cmd.length).split("@")[0].toLowerCase()
 }
 
-function commandReply(command: string, projectName: string, isPrivate: boolean): string | null {
+function commandReply(command: string, projectName: string, isPrivate: boolean, diagnostics: boolean): string | null {
+  // Copy must match what the bot actually does: a diagnostics-off project does
+  // NOT debug transactions, so /start and /help (and the example) must not
+  // advertise it, or a user is taught to ask exactly what the bot will refuse.
+  const example = diagnostics ? "why did my transaction fail?" : "how does staking work?"
   const howToAsk = isPrivate
     ? "Just send me a message with your question."
-    : "Tag me or use /ask, for example:\n/ask why did my transaction fail?"
+    : `Tag me or use /ask, for example:\n/ask ${example}`
+  const canDo = diagnostics
+    ? "how it works, your transactions, contract errors, and more"
+    : "how it works and questions from the docs"
+  const helpCan = diagnostics
+    ? "I can explain how the protocol works, help diagnose failed or stuck transactions, and answer questions from the docs."
+    : "I can explain how the protocol works and answer questions from the docs."
   switch (command) {
     case "/start":
-      return `👋 Hi! I'm the AI support assistant for ${projectName}. Ask me anything about the protocol: how it works, your transactions, contract errors, and more.\n\n${howToAsk}`
+      return `👋 Hi! I'm the AI support assistant for ${projectName}. Ask me anything about the protocol: ${canDo}.\n\n${howToAsk}`
     case "/help":
-      return `I'm the ${projectName} support assistant. I can explain how the protocol works, help diagnose failed or stuck transactions, and answer questions from the docs.\n\n${howToAsk}`
+      return `I'm the ${projectName} support assistant. ${helpCan}\n\n${howToAsk}`
     case "/ask":
       return isPrivate
         ? "What would you like to know? Send me your question and I'll help."
-        : "Add your question after /ask, for example:\n/ask why did my transaction fail?"
+        : `Add your question after /ask, for example:\n/ask ${example}`
     default:
       return null
   }
@@ -269,7 +279,7 @@ export async function POST(
   // question falls through to the AI. No AI call here, so no quota or
   // conversation row is consumed.
   if (command === "/start" || command === "/help" || !userText) {
-    const reply = command ? commandReply(command, project.name, message.chat.type === "private") : null
+    const reply = command ? commandReply(command, project.name, message.chat.type === "private", config.diagnostics !== false) : null
     if (reply) {
       await sendTelegramMessage(botToken, message.chat.id, reply, message.message_id)
     }

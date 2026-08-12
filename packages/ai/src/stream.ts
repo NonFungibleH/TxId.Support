@@ -479,7 +479,9 @@ async function* streamChatWithToolsRaw(
       if (text) { emittedClosing = true; yield { type: "text", text } }
     }
     if (!emittedClosing) {
-      yield { type: "text", text: "I looked into that but couldn't complete the diagnosis in one go. Could you rephrase, or share the specific transaction hash so I can dig in directly?" }
+      yield { type: "text", text: diagnosticsEnabled
+        ? "I looked into that but couldn't complete the diagnosis in one go. Could you rephrase, or share the specific transaction hash so I can dig in directly?"
+        : "Sorry, I couldn't quite complete that in one go. Could you rephrase, or I can log it for the team as a bug?" }
     }
     yield groqUsageEvent()
     return
@@ -724,9 +726,11 @@ async function* streamChatWithToolsRaw(
     } catch { /* fall through to the guaranteed fallback below */ }
   }
 
-  // Absolute backstop: never end a turn with zero text.
+  // Absolute backstop: never end a turn with zero text. Kept neutral (no
+  // "share the hash / diagnosis" offer) so it is safe on a diagnostics-off
+  // project too; this path fires only when the model produced nothing.
   if (!anyTextThisTurn) {
-    yield { type: "text", text: "I looked into that but couldn't complete the diagnosis in one go. Could you rephrase, or share the specific transaction hash so I can dig in directly?" }
+    yield { type: "text", text: "Sorry, I couldn't quite complete that in one go. Could you rephrase your question?" }
   }
 
   yield { type: "usage", inputTokens: totalInputTokens, outputTokens: totalOutputTokens, cacheReadTokens: totalCacheReadTokens, cacheWriteTokens: totalCacheWriteTokens, model: MODEL }
