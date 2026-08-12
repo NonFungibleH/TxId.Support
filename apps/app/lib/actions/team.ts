@@ -130,7 +130,14 @@ export async function inviteTeamMember(formData: FormData): Promise<ActionResult
     emailAddress: email,
     role: clerkRole,
     publicMetadata: { txidRole: role },
-    redirectUrl: `${process.env.NEXT_PUBLIC_APP_URL ?? "https://app.txid.support"}/dashboard`,
+    // Point the invitation link at /sign-up, NOT /dashboard. Clerk appends the
+    // __clerk_ticket to this URL to build the email link; /dashboard is a
+    // protected route, so an unauthenticated invitee gets bounced to /sign-in
+    // and the ticket is dropped (they then have no account to sign in with, and
+    // a ticket-less /sign-up shows the beta holding page). /sign-up renders the
+    // sign-up form, consumes the ticket, creates the account and joins the org;
+    // afterSignUpUrl then lands them on /dashboard.
+    redirectUrl: `${process.env.NEXT_PUBLIC_APP_URL ?? "https://app.txid.support"}/sign-up`,
     inviterUserId: userId,
   })
 
