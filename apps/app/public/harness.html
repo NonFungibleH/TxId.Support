@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<!--
+  Widget integration harness. STAGING BRANCH ONLY - never merge to master.
+
+  Simulates a client site (the Yamata pattern): loads the widget for the key
+  in ?key=, exercises the window.txid host API, and gives one-click buttons
+  for every integration path so a change can be clicked through before it
+  ships. Open as /harness.html?key=pk_... on the staging deployment.
+-->
+<head><meta charset="utf-8"><title>TxID widget harness</title></head>
+<body style="font-family:sans-serif;max-width:640px;margin:40px auto;padding:0 20px">
+  <h1>Widget harness</h1>
+  <p id="s" style="color:#555">Loading widget…</p>
+  <div style="display:grid;gap:8px;max-width:320px">
+    <button onclick="window.txid.identify({wallet:'0x1111111111111111111111111111111111111111',chainId:'0x38'});log('identify(valid EVM)')">identify: valid wallet</button>
+    <button onclick="window.txid.identify({wallet:'0x12…ab'});log('identify(malformed) - widget must survive')">identify: malformed (must be ignored)</button>
+    <button onclick="window.txid.open();log('open()')">open()</button>
+    <button onclick="window.txid.open({mode:'bug'});log('open(bug)')">open({mode:"bug"})</button>
+    <button onclick="window.txid.open({mode:'feedback'});log('open(feedback)')">open({mode:"feedback"})</button>
+    <button onclick="window.txid.close();log('close()')">close()</button>
+  </div>
+  <h3>Log</h3><pre id="log" style="background:#f5f5f7;padding:12px;border-radius:8px;min-height:80px"></pre>
+  <script>
+    function log(m){ document.getElementById("log").textContent += m + "\n" }
+    var key = new URLSearchParams(location.search).get("key")
+    if (!key) { document.getElementById("s").textContent = "Add ?key=pk_… to the URL"; }
+    else {
+      var sc = document.createElement("script")
+      sc.src = "/widget.js"; sc.setAttribute("data-key", key)
+      document.body.appendChild(sc)
+      document.getElementById("s").textContent = "Widget loading for " + key.slice(0, 12) + "…"
+    }
+  </script>
+</body>
+</html>
