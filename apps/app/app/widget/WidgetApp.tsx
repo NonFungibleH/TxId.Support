@@ -1983,34 +1983,55 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
               // wrong instrument: they are not waiting for a reply, and the
               // point of the button is that leaving a note costs nothing.
               if (esc.reason === "feedback" || esc.reason === "bug") {
-                if (esc.reason === "bug" && awaitingFinding.current === "bug") {
-                  // The model has filed: the report is complete. This is the
-                  // NORMAL bug path. Record the WHOLE conversation (messagesRef
-                  // now holds both answers), with the tester's own answers as
-                  // the summary and the model's summary as the fallback.
-                  flushBugReport(
-                    messagesRef.current.map(m => ({ role: m.role, content: m.content })),
-                    esc.summary,
+                if (esc.reason === "bug" && awaitingFinding.current === "bug" && bugReplies.current.length === 0) {
+                  // PREMATURE FILE, IGNORED. The model sometimes calls
+                  // create_support_ticket in the same turn it asks its first
+                  // question, before the tester has answered ANYTHING. Filing
+                  // now would record a finding with no user words at all, the
+                  // exact "all we get is that something failed" report the
+                  // pilot flagged, and flushBugReport would flip the widget
+                  // back to Support mid-interview. Skip the call: the flow
+                  // stays armed, answers keep accumulating, and the reply cap
+                  // or the close/pagehide nets file the real report. If the
+                  // model produced no text alongside the call, ask question 1
+                  // ourselves rather than leaving an empty bubble.
+                  setMessages(prev =>
+                    prev.map(m =>
+                      m.id === assistantId && !m.content.trim()
+                        ? { ...m, content: "Before I log this: what were you trying to do, and where in the product?" }
+                        : m,
+                    ),
                   )
-                } else if (!findingRecorded.current) {
-                  // Fallback: feedback recording itself, or a report that
-                  // arrived without going through the button opener. The button
-                  // path has usually recorded it already; never double-records.
-                  findingRecorded.current = true
-                  void recordFinding(esc.summary, esc.reason as "feedback" | "bug")
+                } else {
+                  if (esc.reason === "bug" && awaitingFinding.current === "bug") {
+                    // The model has filed: the report is complete. This is the
+                    // NORMAL bug path. Record the WHOLE conversation (messagesRef
+                    // now holds both answers), with the tester's own answers as
+                    // the summary and the model's summary as the fallback.
+                    flushBugReport(
+                      messagesRef.current.map(m => ({ role: m.role, content: m.content })),
+                      esc.summary,
+                    )
+                  } else if (!findingRecorded.current) {
+                    // Fallback: feedback recording itself, or a report that
+                    // arrived without going through the button opener. The button
+                    // path has usually recorded it already; never double-records.
+                    findingRecorded.current = true
+                    void recordFinding(esc.summary, esc.reason as "feedback" | "bug")
+                  }
+                  // Belt and braces: if the model went straight to the tool with
+                  // no acknowledgement, say something rather than leaving the
+                  // tester looking at an empty bubble.
+                  setMessages(prev =>
+                    prev.map(m =>
+                      m.id === assistantId && !m.content.trim()
+                        ? { ...m, content: esc.reason === "bug"
+                              ? "Thanks, that's logged for the team with everything I could see. Anything else I can help with?"
+                              : "Thanks, that's recorded for the team. Anything else I can help with?" }
+                        : m,
+                    ),
+                  )
                 }
-                // Belt and braces: if the model went straight to the tool with
-                // no acknowledgement, say something rather than leaving the
-                // tester looking at an empty bubble.
-                setMessages(prev =>
-                  prev.map(m =>
-                    m.id === assistantId && !m.content.trim()
-                      ? { ...m, content: esc.reason === "bug"
-                            ? "Thanks, that's logged for the team with everything I could see. Anything else I can help with?"
-                            : "Thanks, that's recorded for the team. Anything else I can help with?" }
-                      : m,
-                  ),
-                )
               } else if (controls.any) {
                 // BETA COLLECTS, IT DOES NOT TICKET. The point of a beta is to
                 // gather what testers hit, not to open a support ticket that

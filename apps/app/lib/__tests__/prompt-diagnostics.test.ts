@@ -33,6 +33,20 @@ describe("buildSystemPrompt diagnostics switch", () => {
     expect(p).not.toContain("You do not diagnose transactions")
   })
 
+  it("bug capture requires the user's goal before filing, on every path", () => {
+    // Husien (Yamata): "they should be asked to explain the issue when raising
+    // a ticket... right now I don't see that constraint". The constraint: no
+    // report may record only THAT something failed, and the model must never
+    // file in the same turn it asks a question (that locks the report before
+    // the answer exists; seen live as the widget flipping back to Support
+    // mid-interview). Applies in both diagnostics modes.
+    for (const p of [prompt(undefined), prompt(false)]) {
+      expect(p).toContain("never file a report that only records THAT something failed")
+      expect(p).toContain("NEVER call create_support_ticket in the same turn you ask a question")
+      expect(p).toContain("What were you trying to do")
+    }
+  })
+
   it("diagnostics OFF refuses transactions and drops the diagnosis apparatus", () => {
     const p = prompt(false)
     expect(p).toContain("You do not diagnose transactions")
