@@ -38,17 +38,25 @@ type Client = {
 };
 
 const CLIENTS: Client[] = [
-  { name: "Aster Protocol", symbol: "ASTR", plan: "Growth", mrr: 898, chains: 2, resUsed: 1640, resIncl: 2000, status: "active", joined: "Feb 2026", invoice: "paid" },
   { name: "NovaDAO", symbol: "NOVA", plan: "Scale", mrr: 1999, chains: 4, resUsed: 4820, resIncl: 6000, status: "active", joined: "Jan 2026", invoice: "paid" },
-  { name: "Pulsr", symbol: "PLS", plan: "Growth", mrr: 799, chains: 1, resUsed: 1180, resIncl: 2000, status: "active", joined: "Mar 2026", invoice: "paid" },
-  { name: "Zenith Finance", symbol: "ZEN", plan: "Starter", mrr: 299, chains: 1, resUsed: 410, resIncl: 500, status: "active", joined: "Apr 2026", invoice: "paid" },
-  { name: "Kairos", symbol: "KAI", plan: "Growth", mrr: 997, chains: 3, resUsed: 1780, resIncl: 2000, status: "active", joined: "Feb 2026", invoice: "paid" },
   { name: "Orbital", symbol: "ORB", plan: "Scale", mrr: 1999, chains: 3, resUsed: 3550, resIncl: 6000, status: "active", joined: "Jan 2026", invoice: "paid" },
+  { name: "Aegis", symbol: "AEG", plan: "Scale", mrr: 1999, chains: 4, resUsed: 5210, resIncl: 6000, status: "active", joined: "Dec 2025", invoice: "paid" },
+  { name: "Helix", symbol: "HLX", plan: "Scale", mrr: 1999, chains: 3, resUsed: 4100, resIncl: 6000, status: "active", joined: "Feb 2026", invoice: "paid" },
+  { name: "Titan", symbol: "TTN", plan: "Scale", mrr: 1999, chains: 2, resUsed: 2980, resIncl: 6000, status: "active", joined: "Mar 2026", invoice: "paid" },
+  { name: "Warp", symbol: "WRP", plan: "Scale", mrr: 1999, chains: 3, resUsed: 3320, resIncl: 6000, status: "active", joined: "Feb 2026", invoice: "paid" },
+  { name: "Kairos", symbol: "KAI", plan: "Growth", mrr: 997, chains: 3, resUsed: 1780, resIncl: 2000, status: "active", joined: "Feb 2026", invoice: "paid" },
+  { name: "Drift", symbol: "DRFT", plan: "Growth", mrr: 997, chains: 3, resUsed: 1520, resIncl: 2000, status: "active", joined: "Mar 2026", invoice: "paid" },
+  { name: "Cobalt", symbol: "CBLT", plan: "Growth", mrr: 997, chains: 3, resUsed: 1210, resIncl: 2000, status: "active", joined: "Apr 2026", invoice: "paid" },
+  { name: "Aster Protocol", symbol: "ASTR", plan: "Growth", mrr: 898, chains: 2, resUsed: 1640, resIncl: 2000, status: "active", joined: "Feb 2026", invoice: "paid" },
+  { name: "Vertex", symbol: "VTX", plan: "Growth", mrr: 898, chains: 2, resUsed: 960, resIncl: 2000, status: "active", joined: "May 2026", invoice: "paid" },
+  { name: "Halcyon", symbol: "HLC", plan: "Growth", mrr: 898, chains: 2, resUsed: 640, resIncl: 2000, status: "active", joined: "Aug 2026", invoice: "paid" },
+  { name: "Pulsr", symbol: "PLS", plan: "Growth", mrr: 799, chains: 1, resUsed: 1180, resIncl: 2000, status: "active", joined: "Mar 2026", invoice: "paid" },
   { name: "Fathom", symbol: "FTHM", plan: "Growth", mrr: 799, chains: 1, resUsed: 1290, resIncl: 2000, status: "active", joined: "Mar 2026", invoice: "paid" },
+  { name: "Zenith Finance", symbol: "ZEN", plan: "Starter", mrr: 299, chains: 1, resUsed: 410, resIncl: 500, status: "active", joined: "Apr 2026", invoice: "paid" },
   { name: "Meridian", symbol: "MRD", plan: "Starter", mrr: 299, chains: 1, resUsed: 300, resIncl: 500, status: "active", joined: "Jul 2026", invoice: "paid" },
-  { name: "Vertex", symbol: "VTX", plan: "Growth", mrr: 799, chains: 2, resUsed: 960, resIncl: 2000, status: "active", joined: "May 2026", invoice: "paid" },
-  { name: "Halcyon", symbol: "HLC", plan: "Growth", mrr: 799, chains: 1, resUsed: 640, resIncl: 2000, status: "active", joined: "Aug 2026", invoice: "paid" },
   { name: "Solstice", symbol: "SOL", plan: "Starter", mrr: 299, chains: 1, resUsed: 260, resIncl: 500, status: "active", joined: "Dec 2025", invoice: "paid" },
+  { name: "Frost", symbol: "FRST", plan: "Starter", mrr: 299, chains: 1, resUsed: 180, resIncl: 500, status: "active", joined: "Jun 2026", invoice: "paid" },
+  { name: "Grove", symbol: "GRV", plan: "Starter", mrr: 299, chains: 1, resUsed: 340, resIncl: 500, status: "active", joined: "May 2026", invoice: "paid" },
   { name: "Lumen", symbol: "LMN", plan: "Starter", mrr: 0, chains: 1, resUsed: 120, resIncl: 500, status: "trialing", joined: "Aug 2026", invoice: "none" },
 ];
 
@@ -56,29 +64,29 @@ const billing = CLIENTS.filter((c) => c.status === "active");
 const combinedMRR = billing.reduce((s, c) => s + c.mrr, 0);
 const commission = Math.round(combinedMRR * RATE);
 const pendingPayout = commission; // every client invoice is paid and up to date
-const annualRunRate = commission * 12; // projected yearly commission at today's MRR
-const LIFETIME = 24980;
+const annualRunRate = commission * 12; // projected yearly revenue split at today's MRR
+const LIFETIME = 32000;
 
 const activeCount = billing.length;
 const trialingCount = CLIENTS.filter((c) => c.status === "trialing").length;
 const topClients = [...billing].sort((a, b) => b.mrr - a.mrr).slice(0, 4);
 
 const SERIES = [
-  { m: "Mar", v: 1120 },
-  { m: "Apr", v: 1290 },
-  { m: "May", v: 1460 },
-  { m: "Jun", v: 1650 },
-  { m: "Jul", v: 1810 },
+  { m: "Mar", v: 2900 },
+  { m: "Apr", v: 3250 },
+  { m: "May", v: 3560 },
+  { m: "Jun", v: 3780 },
+  { m: "Jul", v: 3970 },
   { m: "Aug", v: commission },
 ];
 const SERIES_MAX = Math.max(...SERIES.map((s) => s.v));
 
 const PAYOUTS = [
   { period: "Aug 2026", amount: pendingPayout, status: "Scheduled", date: "Sep 1, 2026" },
-  { period: "Jul 2026", amount: 1810, status: "Paid", date: "Aug 1, 2026" },
-  { period: "Jun 2026", amount: 1650, status: "Paid", date: "Jul 1, 2026" },
-  { period: "May 2026", amount: 1460, status: "Paid", date: "Jun 1, 2026" },
-  { period: "Apr 2026", amount: 1290, status: "Paid", date: "May 1, 2026" },
+  { period: "Jul 2026", amount: 3970, status: "Paid", date: "Aug 1, 2026" },
+  { period: "Jun 2026", amount: 3780, status: "Paid", date: "Jul 1, 2026" },
+  { period: "May 2026", amount: 3560, status: "Paid", date: "Jun 1, 2026" },
+  { period: "Apr 2026", amount: 3250, status: "Paid", date: "May 1, 2026" },
 ];
 
 const ACTIVITY: { date: string; text: string; tone: "good" | "warn" | "bad" | "flat" }[] = [
@@ -210,7 +218,7 @@ function Overview() {
 
       {/* KPI grid */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,200px),1fr))", gap: 14 }}>
-        <Kpi label="Referred clients" value={String(CLIENTS.length)} delta="+2" sub={`${activeCount} active, ${trialingCount} trialing`} subTone="flat" />
+        <Kpi label="Referred clients" value={String(CLIENTS.length)} delta="+3" sub={`${activeCount} active, ${trialingCount} trialing`} subTone="flat" />
         <Kpi label="Combined client MRR" value={usd(combinedMRR)} delta="▲ 8.1%" sub="across active projects" subTone="flat" />
         <Kpi label="Your revenue split / mo" value={usd(commission)} delta="▲ 10.4%" sub={`${Math.round(RATE * 100)}% of active MRR`} subTone="good" />
         <Kpi label="Projected annual" value={usd(annualRunRate)} sub="at current run rate" subTone="good" />
