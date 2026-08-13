@@ -44,6 +44,11 @@ describe("buildSystemPrompt diagnostics switch", () => {
       expect(p).toContain("never file a report that only records THAT something failed")
       expect(p).toContain("NEVER call create_support_ticket in the same turn you ask a question")
       expect(p).toContain("What were you trying to do")
+      // The full QA intake: expected vs actual, steps to reproduce, and one
+      // follow-up on a vague answer rather than a shrug.
+      expect(p).toContain("What did you EXPECT to happen")
+      expect(p).toContain("what were the EXACT steps")
+      expect(p).toContain("ONE gentle follow-up")
     }
   })
 
