@@ -379,7 +379,7 @@ export default function TeamFinancePage() {
       </section>
 
       {/* Supported chains */}
-      <section style={{ padding: "clamp(52px,6vw,84px) 24px", background: "#F7F8FC", borderTop: "1px solid #EDEFF6", borderBottom: "1px solid #EDEFF6" }}>
+      <section style={{ padding: "clamp(52px,6vw,84px) 24px" }}>
         <Reveal style={{ maxWidth: 1000, margin: "0 auto", textAlign: "center" }}>
           <div style={{ fontSize: 12.5, fontWeight: 600, letterSpacing: "0.04em", textTransform: "uppercase", color: BLUE, marginBottom: 10 }}>Chains</div>
           <h2 style={{ margin: 0, fontSize: "clamp(24px,2.8vw,32px)", lineHeight: 1.2, letterSpacing: "-0.02em", fontWeight: 600, textWrap: "balance" }}>
@@ -407,6 +407,9 @@ export default function TeamFinancePage() {
               </div>
             ))}
           </div>
+          <p style={{ margin: "24px auto 0", maxWidth: 520, fontSize: 14, lineHeight: 1.6, color: "#9AA0B4" }}>
+            Need a network that is not listed? We can integrate additional chains on request.
+          </p>
         </Reveal>
       </section>
 

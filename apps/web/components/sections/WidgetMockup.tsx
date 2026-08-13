@@ -69,7 +69,7 @@ export function WidgetMockup({
   const [lockedHeight, setLockedHeight] = useState<number | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  const phase = phases[at]!;
+  const phase = phases[at] ?? "idle";
   const kind = phase.split("-")[0]!;
   const idx = Number(phase.split("-")[1] ?? -1);
   // Has the run reached the given phase for exchange i?
@@ -118,17 +118,16 @@ export function WidgetMockup({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [at, reduced]);
 
+  // Typewriter: reveal the answer char by char. The updater stays pure (no
+  // setAt inside it) so StrictMode's double-invoke can't advance the phase
+  // twice and overshoot the phases array.
   useEffect(() => {
     if (reduced || kind !== "answering") return;
     const text = exchanges[idx]!.a;
     const iv = setInterval(() => {
       setChars((prev) => {
         const c = prev[idx] ?? 0;
-        if (c >= text.length) {
-          clearInterval(iv);
-          setAt((i) => i + 1);
-          return prev;
-        }
+        if (c >= text.length) return prev;
         const next = [...prev];
         next[idx] = Math.min(c + 2, text.length);
         return next;
@@ -137,6 +136,16 @@ export function WidgetMockup({
     return () => clearInterval(iv);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [at, reduced]);
+
+  // Once the answer has fully typed out, advance to the pause phase. Clamped to
+  // `last` so it can never index past the end of `phases`.
+  useEffect(() => {
+    if (reduced || kind !== "answering") return;
+    if ((chars[idx] ?? 0) >= (exchanges[idx]!.a.length ?? 0)) {
+      setAt((i) => Math.min(i + 1, last));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chars, at, reduced]);
 
   // Follow the conversation like a real chat window.
   useEffect(() => {
