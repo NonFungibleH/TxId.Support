@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { PricingPackages } from "@/components/teamfinance/PricingPackages";
 import {
   Lock, ShieldCheck, SearchCheck, MessageSquareText, Code2,
   ArrowRight, FileText, Mail, Check,
@@ -189,7 +190,25 @@ export default function TeamFinancePage() {
         </section>
 
         {/* Onboarding — blue gradient band, Team Finance's signature */}
-        <section className="px-6 pb-4">
+        {/* Pricing packages — Team Finance page only */}
+        <section id="pricing" className="px-6 py-20 bg-slate-50 border-y border-slate-200">
+          <div className="max-w-5xl mx-auto">
+            <div className="text-center mb-10">
+              <p className="font-mono text-xs uppercase tracking-widest text-blue-600 mb-3">Pricing</p>
+              <h2 className="font-display text-3xl font-bold text-slate-900 mb-3">
+                Pick a package, live the same day
+              </h2>
+              <p className="text-slate-600 max-w-xl mx-auto">
+                Set pricing for projects that come through Team Finance. Every plan is priced on
+                resolutions, not per-seat like a help desk, so it scales with your holders and not
+                your headcount.
+              </p>
+            </div>
+            <PricingPackages />
+          </div>
+        </section>
+
+        <section className="px-6 pb-4 pt-20">
           <div className="max-w-5xl mx-auto rounded-3xl bg-gradient-to-br from-blue-600 to-blue-800 p-10 sm:p-14 text-white">
             <h2 className="font-display text-3xl font-bold text-center mb-10">Onboarding, start to finish</h2>
             <div className="grid sm:grid-cols-3 gap-6">
