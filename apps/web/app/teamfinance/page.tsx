@@ -36,7 +36,7 @@ const BODY = "#4B5063";
 export const metadata: Metadata = {
   title: "TxID × Team Finance: on-chain support that investigates what happened",
   description:
-    "Add a custom-branded TxID support agent to your Team Finance project. It investigates failed transactions, reads your contracts and docs, and gives holders evidence-backed answers 24/7.",
+    "A custom-branded support agent for your Team Finance project. It investigates failed transactions, reads your contracts and docs, and answers holders 24/7.",
   robots: { index: false, follow: false },
   openGraph: {
     title: "TxID × Team Finance",
@@ -45,6 +45,12 @@ export const metadata: Metadata = {
     type: "website",
     url: "https://txid.support/teamfinance",
     siteName: "TxID",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "TxID × Team Finance",
+    description:
+      "You secured your token. Now give your holders answers they can trust. A custom-branded, evidence-backed support agent for Team Finance projects.",
   },
 };
 
