@@ -110,8 +110,10 @@ const { FEEDBACK_OPENER, BUG_OPENER } = OPENERS
 // Safety net for bug capture. A bug is normally filed when the model calls
 // create_support_ticket (the report is complete). If the model never files, we
 // record anyway once the tester has answered this many questions, so a bug is
-// never lost. The bug flow asks up to two (what + where, expected vs actual).
-const BUG_REPLY_CAP = 2
+// never lost. The interview asks up to three (goal + where, expected vs
+// actual, steps to reproduce); 4 leaves room for one clarifying follow-up
+// before the net closes. The close/pagehide nets still file earlier partials.
+const BUG_REPLY_CAP = 4
 /** Default is "large": the base 380x560 reads as small on a dense desktop app. */
 const DEFAULT_WIDGET_SIZE = "large"
 
