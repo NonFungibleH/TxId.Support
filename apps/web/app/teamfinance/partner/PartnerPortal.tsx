@@ -445,7 +445,9 @@ function Lockup() {
       <span style={{ fontSize: 16, fontWeight: 700, color: BLUE }}>Team Finance</span>
       <span style={{ width: 1, height: 16, background: "#D2D8E5" }} />
       <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-        <span style={{ width: 18, height: 18, borderRadius: 5, background: BLUE, display: "block" }} />
+        {/* The real TxID icon, same asset the marketing site uses. */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/brand/txid-icon-64.png" alt="" aria-hidden="true" width={20} height={20} style={{ display: "block", borderRadius: 5, flex: "none" }} />
         <span style={{ fontSize: 16, fontWeight: 700, color: INK }}>TxID</span>
       </div>
     </div>
