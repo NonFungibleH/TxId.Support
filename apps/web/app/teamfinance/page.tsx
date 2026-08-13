@@ -5,6 +5,7 @@ import { ApiCallMockup } from "@/components/sections/ApiCallMockup";
 import { TrustMockup } from "@/components/sections/TrustMockup";
 import { Reveal } from "./Reveal";
 import { Rail } from "./Rail";
+import { Pricing } from "./Pricing";
 
 /**
  * TxID × Team Finance partnership landing page.
@@ -258,6 +259,9 @@ export default function TeamFinancePage() {
               <a href="#how" className="tf-btn-outline" style={{ border: "1px solid #DCE0EC", color: INK, fontSize: 15, fontWeight: 600, padding: "14px 24px", borderRadius: 8 }}>See how it works</a>
             </div>
             <p style={{ margin: "16px 0 0", fontSize: 13, color: "#6C7085" }}>Special rates for Team Finance Pro customers.</p>
+            <p style={{ margin: "12px 0 0", fontSize: 12.5, color: "#8A8FA3", letterSpacing: "0.01em" }}>
+              Read-only <span style={{ color: "#CBD2E0" }}>·</span> No custody <span style={{ color: "#CBD2E0" }}>·</span> Audit-logged <span style={{ color: "#CBD2E0" }}>·</span> No financial advice
+            </p>
           </div>
           <ProductShot maxWidth={460}>
             <InvestigationMockup
@@ -374,6 +378,38 @@ export default function TeamFinancePage() {
         </div>
       </section>
 
+      {/* Supported chains */}
+      <section style={{ padding: "clamp(52px,6vw,84px) 24px", background: "#F7F8FC", borderTop: "1px solid #EDEFF6", borderBottom: "1px solid #EDEFF6" }}>
+        <Reveal style={{ maxWidth: 1000, margin: "0 auto", textAlign: "center" }}>
+          <div style={{ fontSize: 12.5, fontWeight: 600, letterSpacing: "0.04em", textTransform: "uppercase", color: BLUE, marginBottom: 10 }}>Chains</div>
+          <h2 style={{ margin: 0, fontSize: "clamp(24px,2.8vw,32px)", lineHeight: 1.2, letterSpacing: "-0.02em", fontWeight: 600, textWrap: "balance" }}>
+            Support on the chains your holders use
+          </h2>
+          <p style={{ margin: "16px auto 0", maxWidth: 560, fontSize: "clamp(15px,1.1vw,16.5px)", lineHeight: 1.65, color: BODY }}>
+            Nine chains live today, EVM and Move-native Aptos. Every plan covers one; add any of the others for a flat fee.
+          </p>
+          <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 12, marginTop: 30 }}>
+            {[
+              { name: "Ethereum", file: "Ethereum.png" },
+              { name: "Base", file: "Base.png" },
+              { name: "BNB Chain", file: "BNB.png" },
+              { name: "Polygon", file: "Polygon.png" },
+              { name: "Arbitrum", file: "Arbitrum.png" },
+              { name: "Optimism", file: "Optimism.png" },
+              { name: "Avalanche", file: "Avalanche.png" },
+              { name: "Etherlink", file: "Etherlink.png" },
+              { name: "Aptos", file: "Aptos.png" },
+            ].map((c) => (
+              <div key={c.name} style={{ display: "flex", alignItems: "center", gap: 9, background: "#fff", border: "1px solid #E6E9F2", borderRadius: 999, padding: "9px 16px 9px 12px", boxShadow: "0 1px 2px rgba(16,18,35,0.04)" }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={`/chains/${c.file}`} alt="" aria-hidden="true" width={22} height={22} style={{ display: "block", borderRadius: 5, objectFit: "contain" }} />
+                <span style={{ fontSize: 14, fontWeight: 600, color: INK }}>{c.name}</span>
+              </div>
+            ))}
+          </div>
+        </Reveal>
+      </section>
+
       {/* Pricing */}
       <section id="pricing" style={{ padding: "clamp(56px,7vw,96px) 24px" }}>
         <div style={{ maxWidth: 1160, margin: "0 auto" }}>
@@ -387,38 +423,7 @@ export default function TeamFinancePage() {
               resolves those automatically, so you pay for answers your holders actually got, not for headcount.
             </p>
           </Reveal>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,300px),1fr))", gap: 20, maxWidth: 860, margin: "0 auto", alignItems: "stretch" }}>
-            <div className="tf-card" style={{ height: "100%", background: "#fff", border: `2px solid ${BLUE}`, borderRadius: 16, padding: 30, position: "relative" }}>
-              <div style={{ position: "absolute", top: -12, left: 24, background: BLUE, color: "#fff", fontSize: 11.5, fontWeight: 600, letterSpacing: "0.03em", padding: "4px 12px", borderRadius: 999 }}>FOR TEAM FINANCE PROJECTS</div>
-              <div style={{ fontSize: 19, fontWeight: 700, color: INK, letterSpacing: "-0.01em", marginTop: 4 }}>Per resolution</div>
-              <p style={{ margin: "6px 0 18px", fontSize: 14, lineHeight: 1.6, color: BODY }}>Sized to your holder base, with special rates for Team Finance Pro projects.</p>
-              <div style={{ display: "grid", gap: 10 }}>
-                {["Custom branded to your platform", "Failed-transaction investigation, EVM and Aptos", "Answers from your contracts, locks and docs", "Escalations into Slack, Telegram, Linear and more", "The Case Record: a reviewable compliance trail", "Hands-on onboarding, live in minutes"].map((f) => (
-                  <div key={f} style={{ display: "flex", alignItems: "flex-start", gap: 10, fontSize: 14, lineHeight: 1.5, color: "#33374D" }}>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true" style={{ flex: "none", marginTop: 2 }}><path d="M5 12.5l4.5 4.5L19 7.5" stroke={BLUE} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" /></svg>
-                    {f}
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div className="tf-card" style={{ height: "100%", background: "#F7F8FC", border: "1px solid #EDEFF6", borderRadius: 16, padding: 30 }}>
-              <div style={{ fontSize: 19, fontWeight: 700, color: INK, letterSpacing: "-0.01em" }}>Why per resolution?</div>
-              <p style={{ margin: "6px 0 18px", fontSize: 14, lineHeight: 1.6, color: BODY }}>You are billed for conversations TxID actually resolves.</p>
-              <div style={{ display: "grid", gap: 10 }}>
-                {["No per-seat licences sitting idle", "No paying for tickets that never needed a human", "Scales down in quiet weeks, not just up", "A clear number your finance team can forecast"].map((f) => (
-                  <div key={f} style={{ display: "flex", alignItems: "flex-start", gap: 10, fontSize: 14, lineHeight: 1.5, color: "#33374D" }}>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true" style={{ flex: "none", marginTop: 2 }}><path d="M5 12.5l4.5 4.5L19 7.5" stroke={BLUE} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" /></svg>
-                    {f}
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-          <Reveal style={{ textAlign: "center", marginTop: 28 }}>
-            <a href={ONBOARD} className="tf-btn" style={{ display: "inline-flex", alignItems: "center", gap: 9, background: BLUE, color: "#fff", fontSize: 15, fontWeight: 600, padding: "14px 26px", borderRadius: 8 }}>
-              Talk to us about pricing <span aria-hidden="true">&rarr;</span>
-            </a>
-          </Reveal>
+          <Pricing />
         </div>
       </section>
 
@@ -496,12 +501,6 @@ export default function TeamFinancePage() {
             Get started <span aria-hidden="true">&rarr;</span>
           </a>
           <p style={{ margin: "18px 0 0", fontSize: 13, color: "rgba(255,255,255,0.85)" }}>Special rates for Team Finance Pro customers.</p>
-          <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 22, marginTop: 16, fontSize: 13, color: "rgba(255,255,255,0.85)" }}>
-            <span>Custom branded</span>
-            <span>Live in minutes</span>
-            <span>Read-only, non-custodial</span>
-            <span>Compliance-ready record of every answer</span>
-          </div>
         </Reveal>
       </section>
 
