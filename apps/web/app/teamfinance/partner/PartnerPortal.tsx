@@ -42,28 +42,26 @@ const CLIENTS: Client[] = [
   { name: "NovaDAO", symbol: "NOVA", plan: "Scale", mrr: 1999, chains: 4, resUsed: 4820, resIncl: 6000, status: "active", joined: "Jan 2026", invoice: "paid" },
   { name: "Pulsr", symbol: "PLS", plan: "Growth", mrr: 799, chains: 1, resUsed: 1180, resIncl: 2000, status: "active", joined: "Mar 2026", invoice: "paid" },
   { name: "Zenith Finance", symbol: "ZEN", plan: "Starter", mrr: 299, chains: 1, resUsed: 410, resIncl: 500, status: "active", joined: "Apr 2026", invoice: "paid" },
-  { name: "Kairos", symbol: "KAI", plan: "Growth", mrr: 997, chains: 3, resUsed: 2010, resIncl: 2000, status: "active", joined: "Feb 2026", invoice: "due" },
+  { name: "Kairos", symbol: "KAI", plan: "Growth", mrr: 997, chains: 3, resUsed: 1780, resIncl: 2000, status: "active", joined: "Feb 2026", invoice: "paid" },
   { name: "Orbital", symbol: "ORB", plan: "Scale", mrr: 1999, chains: 3, resUsed: 3550, resIncl: 6000, status: "active", joined: "Jan 2026", invoice: "paid" },
-  { name: "Fathom", symbol: "FTHM", plan: "Growth", mrr: 799, chains: 1, resUsed: 1720, resIncl: 2000, status: "active", joined: "Mar 2026", invoice: "overdue" },
+  { name: "Fathom", symbol: "FTHM", plan: "Growth", mrr: 799, chains: 1, resUsed: 1290, resIncl: 2000, status: "active", joined: "Mar 2026", invoice: "paid" },
   { name: "Meridian", symbol: "MRD", plan: "Starter", mrr: 299, chains: 1, resUsed: 300, resIncl: 500, status: "active", joined: "Jul 2026", invoice: "paid" },
   { name: "Vertex", symbol: "VTX", plan: "Growth", mrr: 799, chains: 2, resUsed: 960, resIncl: 2000, status: "active", joined: "May 2026", invoice: "paid" },
   { name: "Halcyon", symbol: "HLC", plan: "Growth", mrr: 799, chains: 1, resUsed: 640, resIncl: 2000, status: "active", joined: "Aug 2026", invoice: "paid" },
+  { name: "Solstice", symbol: "SOL", plan: "Starter", mrr: 299, chains: 1, resUsed: 260, resIncl: 500, status: "active", joined: "Dec 2025", invoice: "paid" },
   { name: "Lumen", symbol: "LMN", plan: "Starter", mrr: 0, chains: 1, resUsed: 120, resIncl: 500, status: "trialing", joined: "Aug 2026", invoice: "none" },
-  { name: "Solstice", symbol: "SOL", plan: "Starter", mrr: 0, chains: 1, resUsed: 0, resIncl: 500, status: "churned", joined: "Dec 2025", invoice: "none" },
 ];
 
 const billing = CLIENTS.filter((c) => c.status === "active");
 const combinedMRR = billing.reduce((s, c) => s + c.mrr, 0);
 const commission = Math.round(combinedMRR * RATE);
-const collectedMRR = billing.filter((c) => c.invoice === "paid").reduce((s, c) => s + c.mrr, 0);
-const pendingPayout = Math.round(collectedMRR * RATE);
-const onHold = commission - pendingPayout;
+const pendingPayout = commission; // every client invoice is paid and up to date
 const annualRunRate = commission * 12; // projected yearly commission at today's MRR
 const LIFETIME = 24980;
 
 const activeCount = billing.length;
 const trialingCount = CLIENTS.filter((c) => c.status === "trialing").length;
-const attention = CLIENTS.filter((c) => c.invoice === "due" || c.invoice === "overdue");
+const topClients = [...billing].sort((a, b) => b.mrr - a.mrr).slice(0, 4);
 
 const SERIES = [
   { m: "Mar", v: 1120 },
@@ -84,12 +82,12 @@ const PAYOUTS = [
 ];
 
 const ACTIVITY: { date: string; text: string; tone: "good" | "warn" | "bad" | "flat" }[] = [
-  { date: "Aug 8", text: "Fathom invoice is 6 days overdue. Commission held until it clears.", tone: "bad" },
-  { date: "Aug 6", text: "Orbital upgraded from Growth to Scale.", tone: "good" },
-  { date: "Aug 4", text: "Kairos passed its 2,000 resolution allowance, now billing overage.", tone: "warn" },
+  { date: "Aug 6", text: "Orbital upgraded from Growth to Scale, lifting your revenue split.", tone: "good" },
   { date: "Aug 2", text: "Halcyon completed onboarding and went live.", tone: "good" },
-  { date: "Jul 28", text: "Kairos added Arbitrum as a second chain.", tone: "flat" },
+  { date: "Jul 28", text: "Kairos added Arbitrum as a second chain.", tone: "good" },
   { date: "Jul 21", text: "Meridian signed up on the Starter plan.", tone: "good" },
+  { date: "Jul 14", text: "Vertex renewed for another 12 months.", tone: "good" },
+  { date: "Jul 6", text: "NovaDAO resolved over 4,800 holder questions this month.", tone: "good" },
 ];
 
 const usd = (n: number) => "$" + n.toLocaleString("en-US");
@@ -124,15 +122,20 @@ function invoicePill(i: Invoice) {
 }
 
 function Card({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) {
-  return <div style={{ background: "#fff", border: `1px solid ${LINE}`, borderRadius: 14, padding: 22, ...style }}>{children}</div>;
+  return <div style={{ background: "#fff", border: `1px solid ${LINE}`, borderRadius: 14, padding: 22, boxShadow: "0 1px 2px rgba(16,18,35,0.04)", ...style }}>{children}</div>;
 }
 
-function Kpi({ label, value, sub, subTone }: { label: string; value: string; sub?: string; subTone?: "good" | "warn" | "bad" | "flat" }) {
+function Kpi({ label, value, delta, sub, subTone }: { label: string; value: string; delta?: string; sub?: string; subTone?: "good" | "warn" | "bad" | "flat" }) {
   return (
     <Card style={{ padding: 18 }}>
-      <div style={{ fontSize: 12.5, fontWeight: 600, color: MUTE, letterSpacing: "0.02em" }}>{label}</div>
-      <div style={{ fontSize: 27, fontWeight: 700, color: INK, letterSpacing: "-0.02em", marginTop: 6, fontVariantNumeric: "tabular-nums" }}>{value}</div>
-      {sub && <div style={{ fontSize: 12.5, color: toneColor(subTone ?? "flat"), marginTop: 4, fontWeight: 500 }}>{sub}</div>}
+      <div style={{ fontSize: 12, fontWeight: 600, color: MUTE, letterSpacing: "0.04em", textTransform: "uppercase" }}>{label}</div>
+      <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
+        <span style={{ fontSize: 27, fontWeight: 700, color: INK, letterSpacing: "-0.02em", fontVariantNumeric: "tabular-nums" }}>{value}</span>
+        {delta && (
+          <span style={{ fontSize: 11.5, fontWeight: 700, color: GOOD, background: "#E7F6EF", borderRadius: 6, padding: "2px 7px", fontVariantNumeric: "tabular-nums" }}>{delta}</span>
+        )}
+      </div>
+      {sub && <div style={{ fontSize: 12.5, color: toneColor(subTone ?? "flat"), marginTop: 5, fontWeight: 500 }}>{sub}</div>}
     </Card>
   );
 }
@@ -144,16 +147,28 @@ export function PartnerPortal() {
   if (!authed) return <Login onSignIn={() => setAuthed(true)} />;
 
   return (
-    <div style={{ minHeight: "100vh", background: PANEL, fontFamily: "var(--font-inter), system-ui, sans-serif", color: INK, WebkitFontSmoothing: "antialiased" }}>
+    <div className="pp" style={{ minHeight: "100vh", background: PANEL, fontFamily: "var(--font-inter), system-ui, sans-serif", color: INK, WebkitFontSmoothing: "antialiased" }}>
+      <style>{`
+        .pp tbody tr { transition: background .12s ease; }
+        .pp tbody tr:hover { background: #FAFBFE; }
+        .pp .pp-signout:hover { background: #F4F6FB; border-color: #C9D0E0; }
+        .pp .pp-tab:hover { color: ${INK}; }
+      `}</style>
       {/* Top bar */}
       <header style={{ position: "sticky", top: 0, zIndex: 20, background: "#fff", borderBottom: `1px solid ${LINE}` }}>
-        <div style={{ maxWidth: 1160, margin: "0 auto", padding: "14px 24px", display: "flex", alignItems: "center", gap: 14 }}>
+        <div style={{ maxWidth: 1160, margin: "0 auto", padding: "13px 24px", display: "flex", alignItems: "center", gap: 14 }}>
           <Lockup />
-          <span style={{ marginLeft: 6, fontSize: 13.5, fontWeight: 600, color: BODY }}>Partner Portal</span>
-          <span style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 8 }}>
+          <span style={{ marginLeft: 6, paddingLeft: 14, borderLeft: `1px solid ${LINE}`, fontSize: 13.5, fontWeight: 600, color: BODY }}>Partner Portal</span>
+          <span style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 12 }}>
             <Pill tone="blue">Sample data</Pill>
-            <span style={{ fontSize: 13.5, color: BODY }}>partner@team.finance</span>
-            <button onClick={() => setAuthed(false)} style={{ fontSize: 13.5, fontWeight: 600, color: INK, background: "#fff", border: `1px solid #DCE0EC`, borderRadius: 8, padding: "7px 13px", cursor: "pointer" }}>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 9 }}>
+              <span style={{ width: 30, height: 30, borderRadius: "50%", background: BLUE, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, flex: "none" }}>TF</span>
+              <span style={{ display: "flex", flexDirection: "column", lineHeight: 1.25 }}>
+                <span style={{ fontSize: 13, fontWeight: 600, color: INK }}>Team Finance</span>
+                <span style={{ fontSize: 11.5, color: MUTE }}>partner@team.finance</span>
+              </span>
+            </span>
+            <button onClick={() => setAuthed(false)} className="pp-signout" style={{ fontSize: 13.5, fontWeight: 600, color: INK, background: "#fff", border: `1px solid #DCE0EC`, borderRadius: 8, padding: "7px 13px", cursor: "pointer", transition: "background .12s ease, border-color .12s ease" }}>
               Sign out
             </button>
           </span>
@@ -164,7 +179,8 @@ export function PartnerPortal() {
             <button
               key={k}
               onClick={() => setTab(k)}
-              style={{ position: "relative", background: "none", border: "none", cursor: "pointer", padding: "12px 12px 14px", fontSize: 14, fontWeight: 600, color: tab === k ? BLUE : BODY }}
+              className="pp-tab"
+              style={{ position: "relative", background: "none", border: "none", cursor: "pointer", padding: "12px 12px 14px", fontSize: 14, fontWeight: 600, color: tab === k ? BLUE : BODY, transition: "color .12s ease" }}
             >
               {label}
               {tab === k && <span style={{ position: "absolute", left: 12, right: 12, bottom: 0, height: 2, background: BLUE, borderRadius: 2 }} />}
@@ -188,25 +204,25 @@ function Overview() {
       <div>
         <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, letterSpacing: "-0.02em" }}>Welcome back, Team Finance</h1>
         <p style={{ margin: "4px 0 0", fontSize: 14, color: BODY }}>
-          Your referred projects and the commission they earn you. You are on a {Math.round(RATE * 100)}% revenue share.
+          Your referred projects and the revenue split they earn you. You are on a {Math.round(RATE * 100)}% revenue split.
         </p>
       </div>
 
       {/* KPI grid */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,200px),1fr))", gap: 14 }}>
-        <Kpi label="Referred clients" value={String(CLIENTS.length)} sub={`${activeCount} active, ${trialingCount} trialing`} subTone="flat" />
-        <Kpi label="Combined client MRR" value={usd(combinedMRR)} sub="across active projects" subTone="flat" />
-        <Kpi label="Your commission / mo" value={usd(commission)} sub={`${Math.round(RATE * 100)}% of active MRR`} subTone="good" />
+        <Kpi label="Referred clients" value={String(CLIENTS.length)} delta="+2" sub={`${activeCount} active, ${trialingCount} trialing`} subTone="flat" />
+        <Kpi label="Combined client MRR" value={usd(combinedMRR)} delta="▲ 8.1%" sub="across active projects" subTone="flat" />
+        <Kpi label="Your revenue split / mo" value={usd(commission)} delta="▲ 10.4%" sub={`${Math.round(RATE * 100)}% of active MRR`} subTone="good" />
         <Kpi label="Projected annual" value={usd(annualRunRate)} sub="at current run rate" subTone="good" />
-        <Kpi label="Pending payout" value={usd(pendingPayout)} sub={onHold > 0 ? `${usd(onHold)} on hold` : "all collected"} subTone={onHold > 0 ? "warn" : "good"} />
+        <Kpi label="Pending payout" value={usd(pendingPayout)} sub="all invoices up to date" subTone="good" />
         <Kpi label="Lifetime earned" value={usd(LIFETIME)} sub="since Dec 2025" subTone="flat" />
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "1.35fr 1fr", gap: 18, alignItems: "start" }} className="pp-two">
-        {/* Commission trend */}
+        {/* Revenue split trend */}
         <Card>
           <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between" }}>
-            <div style={{ fontSize: 15, fontWeight: 700 }}>Commission earned</div>
+            <div style={{ fontSize: 15, fontWeight: 700 }}>Revenue split earned</div>
             <div style={{ fontSize: 12.5, color: MUTE }}>Last 6 months</div>
           </div>
           <div style={{ display: "flex", alignItems: "flex-end", gap: 14, height: 200, marginTop: 20, paddingBottom: 4 }}>
@@ -230,19 +246,19 @@ function Overview() {
           </div>
         </Card>
 
-        {/* Needs attention */}
+        {/* Top clients */}
         <Card>
-          <div style={{ fontSize: 15, fontWeight: 700 }}>Needs attention</div>
-          <p style={{ margin: "3px 0 14px", fontSize: 12.5, color: BODY }}>Client invoices that affect your next payout.</p>
+          <div style={{ fontSize: 15, fontWeight: 700 }}>Top clients</div>
+          <p style={{ margin: "3px 0 14px", fontSize: 12.5, color: BODY }}>Your highest-earning referrals this month.</p>
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {attention.map((c) => (
+            {topClients.map((c) => (
               <div key={c.symbol} style={{ display: "flex", alignItems: "center", gap: 12, background: PANEL, border: `1px solid ${LINE}`, borderRadius: 10, padding: "11px 13px" }}>
                 <Avatar symbol={c.symbol} />
                 <div style={{ minWidth: 0 }}>
                   <div style={{ fontSize: 13.5, fontWeight: 600 }}>{c.name}</div>
-                  <div style={{ fontSize: 12, color: BODY }}>{usd(c.mrr)} / mo · your cut {usd(Math.round(c.mrr * RATE))}</div>
+                  <div style={{ fontSize: 12, color: BODY }}>{c.plan} · {usd(c.mrr)} / mo</div>
                 </div>
-                <span style={{ marginLeft: "auto" }}>{invoicePill(c.invoice)}</span>
+                <span style={{ marginLeft: "auto", fontSize: 13.5, fontWeight: 700, color: GOOD, fontVariantNumeric: "tabular-nums" }}>+{usd(Math.round(c.mrr * RATE))}</span>
               </div>
             ))}
           </div>
@@ -342,7 +358,7 @@ function Payouts() {
     <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
       <div>
         <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, letterSpacing: "-0.02em" }}>Payouts</h1>
-        <p style={{ margin: "4px 0 0", fontSize: 14, color: BODY }}>Your commission is paid monthly on collected revenue, net of any unpaid client invoices.</p>
+        <p style={{ margin: "4px 0 0", fontSize: 14, color: BODY }}>Your revenue split is paid monthly, straight to your wallet on the 1st.</p>
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 18 }} className="pp-two">
@@ -351,7 +367,7 @@ function Payouts() {
           <div style={{ fontSize: 34, fontWeight: 700, letterSpacing: "-0.02em", marginTop: 6, fontVariantNumeric: "tabular-nums" }}>{usd(pendingPayout)}</div>
           <div style={{ fontSize: 13.5, color: "#DCE8FB", marginTop: 4 }}>Scheduled for Sep 1, 2026 · about {usd(annualRunRate)} a year at this run rate</div>
           <div style={{ marginTop: 16, paddingTop: 16, borderTop: "1px solid rgba(255,255,255,0.18)", fontSize: 13, color: "#DCE8FB" }}>
-            {usd(onHold)} is on hold pending {attention.length} unpaid client {attention.length === 1 ? "invoice" : "invoices"}. It is released when they clear.
+            All {activeCount} client invoices are paid and up to date, so your full revenue split is on its way.
           </div>
         </Card>
 
@@ -361,7 +377,7 @@ function Payouts() {
             <Row label="Method" value="USDC on Base" />
             <Row label="Wallet" value="0x8F2c…4Ae1" mono />
             <Row label="Schedule" value="Monthly, 1st" />
-            <Row label="Revenue share" value={`${Math.round(RATE * 100)}%`} />
+            <Row label="Revenue split" value={`${Math.round(RATE * 100)}%`} />
             <Row label="Tax form" value="W-8BEN-E on file" />
           </div>
         </Card>
