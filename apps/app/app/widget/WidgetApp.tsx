@@ -2347,6 +2347,35 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
     el.style.height = `${Math.min(el.scrollHeight, 96)}px`
   }, [input])
 
+  // Composer keyboard rules, matched to chat muscle memory:
+  //   Desktop: Enter or Cmd+Enter sends. Shift+Enter (web convention),
+  //   Option+Enter (Mac chat habit) and Ctrl+Enter (WhatsApp Web habit) start
+  //   a new line. Getting a newline wrong sends a half-written message to the
+  //   AI, getting a send wrong costs one extra keypress, so ambiguous combos
+  //   side with the newline.
+  //   Touch devices: the on-screen return key just makes a new line, exactly
+  //   like every messaging app; the send button does the sending.
+  // The browser only inserts a newline natively for Shift+Enter, so the other
+  // combos insert one by hand at the caret.
+  const isTouchDevice =
+    typeof window !== "undefined" && !!window.matchMedia?.("(pointer: coarse)").matches
+  const composerKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key !== "Enter") return
+    if (isTouchDevice && !e.metaKey) return // native newline; button sends
+    if (e.altKey || e.ctrlKey) {
+      e.preventDefault()
+      const el = e.currentTarget
+      // Manual insertion bypasses the maxLength attribute, so honour it here.
+      if (el.value.length >= CHAT_LIMITS.maxMessageChars) return
+      const start = el.selectionStart ?? el.value.length
+      const end = el.selectionEnd ?? el.value.length
+      setInput(el.value.slice(0, start) + "\n" + el.value.slice(end))
+      requestAnimationFrame(() => { el.selectionStart = el.selectionEnd = start + 1 })
+      return
+    }
+    if (!e.shiftKey) { e.preventDefault(); sendMessage() }
+  }
+
   // ── Error state ──────────────────────────────────────────────────────────
   if (configError) {
     return (
@@ -2897,9 +2926,7 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
                 rows={1}
                 value={input}
                 onChange={(e) => { setInput(e.target.value); if (suggestions.length) setSuggestions([]) }}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage() }
-                }}
+                onKeyDown={composerKeyDown}
                 // The placeholder follows the mode the tester picked, so the
                 // box reflects what they are doing rather than always inviting a
                 // question while they are mid bug report.
@@ -3281,9 +3308,7 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
                   rows={1}
                   value={input}
                   onChange={(e) => { setInput(e.target.value); if (suggestions.length) setSuggestions([]) }}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage() }
-                  }}
+                  onKeyDown={composerKeyDown}
                   placeholder={mode === "bug" ? "Describe the bug…" : mode === "feedback" ? "Tell the team what you think…" : "Ask anything…"}
                   maxLength={CHAT_LIMITS.maxMessageChars}
                   disabled={isStreaming}
