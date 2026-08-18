@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react"
 import { useSearchParams } from "next/navigation"
 import { nanoid } from "nanoid"
 import * as OPENERS from "@/lib/finding-openers"
-import { betaControls } from "@/lib/types/config"
+import { betaControls, resolveThemeMode, themedBranding } from "@/lib/types/config"
 import { CHAT_LIMITS } from "@/lib/limits"
 import DOMPurify from "dompurify"
 import { ActionCard } from "./ActionCard"
@@ -95,6 +95,8 @@ interface BrandingConfig {
   fontScale?: "sm" | "md" | "lg" | "xl"
   hideWallet?: boolean
   widgetSize?: string
+  darkTheme?: import("@/lib/types/config").ThemePalette | null
+  themeMode?: import("@/lib/types/config").ThemeMode
 }
 
 const FONT_SCALE_VALUE: Record<string, number> = { sm: 0.9, md: 1.0, lg: 1.12, xl: 1.25 }
@@ -804,10 +806,42 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
   // could read this URL) against a co-resident script posting identify()/open().
   // Empty when an older loader embeds us: we then fall back to the source check.
   const embedNonce = params?.get("n") ?? ""
+  // Initial theme the loader read off its data-theme attribute, so the first
+  // paint already matches the host site instead of flashing the other palette.
+  const urlTheme = params?.get("t")
 
   const [config, setConfig] = useState<WidgetConfig | null>(null)
   const [configError, setConfigError] = useState<string | null>(null)
   const [tab, setTab] = useState<string>("chat")
+
+  // ── Theme (light/dark) ─────────────────────────────────────────────────────
+  // Only matters when the project has designed a darkTheme. The HOST decides
+  // first (its own light/dark toggle via window.txid.setTheme), the visitor's
+  // OS preference decides otherwise. Pinned modes ignore both.
+  const [hostTheme, setHostTheme] = useState<"light" | "dark" | null>(
+    urlTheme === "dark" ? "dark" : urlTheme === "light" ? "light" : null,
+  )
+  const [systemDark, setSystemDark] = useState(false)
+  useEffect(() => {
+    const mq = window.matchMedia?.("(prefers-color-scheme: dark)")
+    if (!mq) return
+    setSystemDark(mq.matches)
+    const onChange = (e: MediaQueryListEvent) => setSystemDark(e.matches)
+    mq.addEventListener?.("change", onChange)
+    return () => mq.removeEventListener?.("change", onChange)
+  }, [])
+  // The launcher button lives on the host page and was told the brand colour
+  // once at config load, from the base palette. Re-tell it whenever the active
+  // theme changes so a dark-theme primary reaches it too. Idempotent.
+  useEffect(() => {
+    if (!config) return
+    const mode = resolveThemeMode(config.branding)
+    const active = mode === "auto" ? (hostTheme ?? (systemDark ? "dark" : "light")) : mode
+    const brand = themedBranding(config.branding, active).primaryColor
+    if (typeof window !== "undefined" && window.parent !== window && brand) {
+      try { window.parent.postMessage({ type: "txid-brand", primaryColor: brand }, "*") } catch { /* host gone */ }
+    }
+  }, [config, hostTheme, systemDark])
 
   // Chat state
   const [messages, setMessages] = useState<Message[]>([])
@@ -834,7 +868,7 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
   }
   const messagesContainerRef = useRef<HTMLDivElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
-  const inputRef = useRef<HTMLInputElement>(null)
+  const inputRef = useRef<HTMLTextAreaElement>(null)
 
   // Wallet state
   const [walletAddress, setWalletAddress] = useState<string | null>(null)
@@ -2147,12 +2181,20 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
   useEffect(() => {
     const onHost = (e: MessageEvent) => {
       if (e.source !== window.parent) return
-      const d = e.data as { type?: string; wallet?: string; chainId?: string; mode?: string; nonce?: string } | null
+      const d = e.data as { type?: string; wallet?: string; chainId?: string; mode?: string; theme?: string; nonce?: string } | null
       if (!d || typeof d.type !== "string") return
       // window.parent is shared by every script on the host page, so authenticate
       // the loader by the per-load nonce before honouring anything that sets a
       // wallet or pops a report. Empty nonce = older loader, fall back to source.
       if (embedNonce && d.nonce !== embedNonce) return
+
+      // The host site's own light/dark toggle flipped. Only applies when the
+      // project's themeMode is "auto"; "auto" here clears the host's choice so
+      // the visitor's OS preference takes back over.
+      if (d.type === "txid-theme") {
+        setHostTheme(d.theme === "dark" ? "dark" : d.theme === "light" ? "light" : null)
+        return
+      }
 
       if (d.type === "txid-identify") {
         const w = typeof d.wallet === "string" ? d.wallet.trim().slice(0, 128) : ""
@@ -2295,6 +2337,16 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
     if (!isStreaming) inputRef.current?.focus()
   }, [isStreaming])
 
+  // Auto-grow the composer with its content, capped at roughly five lines so a
+  // long bug report scrolls instead of swallowing the conversation. Runs on
+  // every input change, and snaps back to one line when a send clears it.
+  useEffect(() => {
+    const el = inputRef.current
+    if (!el) return
+    el.style.height = "auto"
+    el.style.height = `${Math.min(el.scrollHeight, 96)}px`
+  }, [input])
+
   // ── Error state ──────────────────────────────────────────────────────────
   if (configError) {
     return (
@@ -2315,7 +2367,13 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
     )
   }
 
-  const b = config.branding
+  // Resolve which palette this render uses. A pinned mode wins; "auto" follows
+  // the host site's toggle, then the visitor's OS. Everything below reads from
+  // `b`, so the whole widget re-themes from this one line.
+  const themeMode = resolveThemeMode(config.branding)
+  const activeTheme: "light" | "dark" =
+    themeMode === "auto" ? (hostTheme ?? (systemDark ? "dark" : "light")) : themeMode
+  const b = themedBranding(config.branding, activeTheme)
   const isTokenMode = config.mode === "token"
   // Move-chain wording (module, .apt) for Aptos-only projects.
   const aptosWording = isAptosProject && !hasEvmChain
@@ -2792,7 +2850,10 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
                     {m.content ? (
                       m.role === "assistant" ? (
                         <MessageContent text={m.content} primaryColor={b.primaryColor} />
-                      ) : m.content
+                      ) : (
+                        // pre-wrap so the line breaks a user typed survive.
+                        <span className="whitespace-pre-wrap">{m.content}</span>
+                      )
                     ) : (m.streaming && (
                       <span className="inline-flex items-center gap-1 opacity-60">
                         <span className="size-1 rounded-full animate-bounce bg-current" style={{ animationDelay: "0ms" }} />
@@ -2825,14 +2886,20 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
               </div>
             )}
             <div
-              className="shrink-0 flex items-center gap-2 border-t px-3 py-2"
+              className="shrink-0 flex items-end gap-2 border-t px-3 py-2"
               style={{ borderColor: `var(--w-border)` }}
             >
-              <input
+              {/* Textarea, not input: Enter sends, Shift+Enter starts a new
+                  line, so a bug report can be structured instead of one run-on
+                  sentence. Auto-grows via the effect on `input`. */}
+              <textarea
                 ref={inputRef}
+                rows={1}
                 value={input}
                 onChange={(e) => { setInput(e.target.value); if (suggestions.length) setSuggestions([]) }}
-                onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && sendMessage()}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage() }
+                }}
                 // The placeholder follows the mode the tester picked, so the
                 // box reflects what they are doing rather than always inviting a
                 // question while they are mid bug report.
@@ -2841,7 +2908,7 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
                 // stopped here, not silently truncated later by /api/chat.
                 maxLength={CHAT_LIMITS.maxMessageChars}
                 disabled={isStreaming}
-                className="flex-1 bg-transparent text-xs outline-none placeholder:opacity-40"
+                className="flex-1 resize-none bg-transparent text-xs outline-none placeholder:opacity-40"
                 style={{ color: b.inputTextColor ?? adaptiveText }}
               />
               <button
@@ -2903,7 +2970,9 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
                       {m.content ? (
                         m.role === "assistant" ? (
                           <MessageContent text={m.content} primaryColor={b.primaryColor} />
-                        ) : m.content
+                        ) : (
+                          <span className="whitespace-pre-wrap">{m.content}</span>
+                        )
                       ) : (m.streaming && (
                         m.toolCall ? (
                           <span className="inline-flex items-center gap-1.5 opacity-70">
@@ -3200,21 +3269,25 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
                 style={controls.any ? undefined : { borderColor: `var(--w-border)` }}
               >
               <div
-                className="flex items-center gap-2 rounded-2xl border px-3 py-1.5 transition-colors"
+                className="flex items-end gap-2 rounded-2xl border px-3 py-1.5 transition-colors"
                 style={{
                   borderColor: `${b.primaryColor}66`,
                   backgroundColor: `${onPrimary === "#111111" ? "#00000010" : "#ffffff0f"}`,
                 }}
               >
-                <input
+                {/* Enter sends, Shift+Enter adds a line. Auto-grows with input. */}
+                <textarea
                   ref={inputRef}
+                  rows={1}
                   value={input}
                   onChange={(e) => { setInput(e.target.value); if (suggestions.length) setSuggestions([]) }}
-                  onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && sendMessage()}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage() }
+                  }}
                   placeholder={mode === "bug" ? "Describe the bug…" : mode === "feedback" ? "Tell the team what you think…" : "Ask anything…"}
                   maxLength={CHAT_LIMITS.maxMessageChars}
                   disabled={isStreaming}
-                  className="flex-1 bg-transparent text-xs outline-none placeholder:opacity-40"
+                  className="flex-1 resize-none bg-transparent text-xs outline-none placeholder:opacity-40"
                   style={{ color: b.inputTextColor ?? adaptiveText }}
                 />
                 <button

@@ -10,8 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ColorPicker } from "./ColorPicker"
 import { updateConfig } from "@/lib/actions/project"
 import { fetchBrandColors } from "@/lib/actions/brand"
-import type { BrandingConfig } from "@/lib/types/config"
-import { SUPPORTED_FONTS, PERSONAS, PERSONA_LABELS, FONT_SCALES, FONT_SCALE_LABEL, WIDGET_SIZES, WIDGET_SIZE_LABEL, DEFAULT_WIDGET_SIZE, autoInputTextColor, DEFAULT_DISCLAIMER } from "@/lib/types/config"
+import type { BrandingConfig, ThemePalette, ThemeMode } from "@/lib/types/config"
+import { SUPPORTED_FONTS, PERSONAS, PERSONA_LABELS, FONT_SCALES, FONT_SCALE_LABEL, WIDGET_SIZES, WIDGET_SIZE_LABEL, DEFAULT_WIDGET_SIZE, autoInputTextColor, DEFAULT_DISCLAIMER, resolveThemeMode } from "@/lib/types/config"
 
 type ColorPreset = Pick<BrandingConfig, "primaryColor" | "secondaryColor" | "backgroundColor" | "textColor">
 const PRESETS: Array<{ name: string } & ColorPreset> = [
@@ -48,6 +48,29 @@ export function BrandingForm({ projectId, initial, section, onBrandingChange }: 
 
   function update<K extends keyof BrandingConfig>(key: K, val: BrandingConfig[K]) {
     setBranding(prev => ({ ...prev, [key]: val }))
+  }
+
+  function updateDark<K extends keyof ThemePalette>(key: K, val: ThemePalette[K]) {
+    setBranding(prev => ({ ...prev, darkTheme: { ...(prev.darkTheme ?? {}), [key]: val } }))
+  }
+
+  function enableDarkTheme() {
+    // Start from the current palette with the surfaces flipped dark: the
+    // accents usually carry across, the client tweaks from something sensible.
+    setBranding(prev => ({
+      ...prev,
+      darkTheme: prev.darkTheme ?? {
+        primaryColor: prev.primaryColor,
+        secondaryColor: prev.secondaryColor,
+        backgroundColor: "#0f0f14",
+        textColor: "#f4f4f5",
+      },
+      themeMode: prev.themeMode ?? "auto",
+    }))
+  }
+
+  function removeDarkTheme() {
+    setBranding(prev => ({ ...prev, darkTheme: null, themeMode: "light" }))
   }
 
   // Notify parent of live changes for preview + debounced auto-save
@@ -157,7 +180,7 @@ export function BrandingForm({ projectId, initial, section, onBrandingChange }: 
 
         {/* Colours */}
         <div className="space-y-2">
-          <h3 className="text-sm font-medium">Colours</h3>
+          <h3 className="text-sm font-medium">{branding.darkTheme ? "Colours (light theme)" : "Colours"}</h3>
           <ColorPicker value={branding.primaryColor} onChange={v => update("primaryColor", v)} label="Primary" />
           <ColorPicker value={branding.secondaryColor} onChange={v => update("secondaryColor", v)} label="Secondary" />
           <ColorPicker value={branding.backgroundColor} onChange={v => update("backgroundColor", v)} label="Background" />
@@ -192,6 +215,67 @@ export function BrandingForm({ projectId, initial, section, onBrandingChange }: 
               </button>
             ))}
           </div>
+        </div>
+
+        {/* Dark theme: a second palette, plus which one visitors see. */}
+        <div className="space-y-3 rounded-lg border border-border p-4">
+          <div>
+            <h3 className="text-sm font-medium">Dark theme</h3>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              Design a second palette for dark mode. The colours above become your light theme, and the
+              widget can follow your site&apos;s own light/dark toggle or the visitor&apos;s system setting.
+            </p>
+          </div>
+
+          {!branding.darkTheme ? (
+            <Button type="button" variant="outline" size="sm" onClick={enableDarkTheme}>
+              Add a dark theme
+            </Button>
+          ) : (
+            <>
+              <div className="space-y-2">
+                <ColorPicker value={branding.darkTheme.primaryColor ?? branding.primaryColor} onChange={v => updateDark("primaryColor", v)} label="Primary" />
+                <ColorPicker value={branding.darkTheme.secondaryColor ?? branding.secondaryColor} onChange={v => updateDark("secondaryColor", v)} label="Secondary" />
+                <ColorPicker value={branding.darkTheme.backgroundColor ?? "#0f0f14"} onChange={v => updateDark("backgroundColor", v)} label="Background" />
+                <ColorPicker value={branding.darkTheme.textColor ?? "#f4f4f5"} onChange={v => updateDark("textColor", v)} label="Text" />
+              </div>
+
+              <div className="space-y-2">
+                <h4 className="text-xs font-medium">Dark-mode logo <span className="font-normal text-muted-foreground">(optional)</span></h4>
+                <Input
+                  type="url"
+                  placeholder="Leave blank to reuse your main logo"
+                  value={branding.darkTheme.logoUrl ?? ""}
+                  onChange={e => updateDark("logoUrl", e.target.value || null)}
+                  className="font-mono text-sm"
+                />
+                <p className="text-xs text-muted-foreground">A logo drawn for a light page can vanish on a dark one.</p>
+              </div>
+
+              <div className="space-y-2">
+                <h4 className="text-xs font-medium">Which theme do visitors see?</h4>
+                <Select value={resolveThemeMode(branding)} onValueChange={v => update("themeMode", v as ThemeMode)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="auto">Match the visitor (recommended)</SelectItem>
+                    <SelectItem value="light">Always light</SelectItem>
+                    <SelectItem value="dark">Always dark</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Match the visitor follows your site&apos;s own toggle when you call{" "}
+                  <code className="rounded bg-muted px-1 py-0.5 font-mono text-[10px]">window.txid.setTheme(&quot;dark&quot;)</code>, and the
+                  visitor&apos;s system setting otherwise. Details on the Embed page.
+                </p>
+              </div>
+
+              <Button type="button" variant="ghost" size="sm" className="text-destructive" onClick={removeDarkTheme}>
+                Remove dark theme
+              </Button>
+            </>
+          )}
         </div>
 
         {/* Logo */}
