@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation"
 import { nanoid } from "nanoid"
 import * as OPENERS from "@/lib/finding-openers"
 import { betaControls } from "@/lib/types/config"
+import { CHAT_LIMITS } from "@/lib/limits"
 import DOMPurify from "dompurify"
 import { ActionCard } from "./ActionCard"
 import type { WalletActionPayload } from "./ActionCard"
@@ -2836,6 +2837,9 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
                 // box reflects what they are doing rather than always inviting a
                 // question while they are mid bug report.
                 placeholder={mode === "bug" ? "Describe what happened…" : mode === "feedback" ? "Share your thoughts…" : "Ask anything…"}
+                // Cap at the server's per-message limit so a long bug report is
+                // stopped here, not silently truncated later by /api/chat.
+                maxLength={CHAT_LIMITS.maxMessageChars}
                 disabled={isStreaming}
                 className="flex-1 bg-transparent text-xs outline-none placeholder:opacity-40"
                 style={{ color: b.inputTextColor ?? adaptiveText }}
@@ -3058,6 +3062,7 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
                     <textarea
                       value={ticketNote}
                       onChange={e => setTicketNote(e.target.value)}
+                      maxLength={CHAT_LIMITS.maxMessageChars}
                       rows={2}
                       placeholder="Anything else that would help the team? (optional)"
                       className="w-full resize-none bg-transparent text-xs outline-none border-b pb-1.5 placeholder:opacity-30"
@@ -3207,6 +3212,7 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
                   onChange={(e) => { setInput(e.target.value); if (suggestions.length) setSuggestions([]) }}
                   onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && sendMessage()}
                   placeholder={mode === "bug" ? "Describe the bug…" : mode === "feedback" ? "Tell the team what you think…" : "Ask anything…"}
+                  maxLength={CHAT_LIMITS.maxMessageChars}
                   disabled={isStreaming}
                   className="flex-1 bg-transparent text-xs outline-none placeholder:opacity-40"
                   style={{ color: b.inputTextColor ?? adaptiveText }}
