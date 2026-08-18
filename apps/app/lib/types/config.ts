@@ -231,6 +231,26 @@ export function activeBeta(config: { beta?: BetaConfig } | null | undefined): Be
   return beta
 }
 
+/**
+ * An alternate colour set for the widget. Every field is optional: anything
+ * unset falls back to the base BrandingConfig value, so a client can override
+ * just the background and keep their accent. Includes the two image URLs
+ * because a logo designed for a light page often vanishes on a dark one.
+ */
+export interface ThemePalette {
+  primaryColor?: string
+  secondaryColor?: string
+  backgroundColor?: string
+  textColor?: string
+  inputTextColor?: string | null
+  borderColor?: string | null
+  logoUrl?: string | null
+  agentIconUrl?: string | null
+}
+
+export type ThemeMode = "light" | "dark" | "auto"
+export const THEME_MODES: ThemeMode[] = ["light", "dark", "auto"]
+
 export interface BrandingConfig {
   primaryColor: string
   secondaryColor: string
@@ -270,6 +290,39 @@ export interface BrandingConfig {
    * teams whose own legal wording already sits on the page.
    */
   disclaimer?: string | null
+  /**
+   * Alternate palette for dark mode. When set, the base colours above act as
+   * the LIGHT theme and this as the DARK one. Absent = single palette, exactly
+   * the behaviour every existing project already has.
+   */
+  darkTheme?: ThemePalette | null
+  /**
+   * Which palette shows. "light"/"dark" pin one; "auto" follows the visitor:
+   * the host page's own toggle via window.txid.setTheme(), falling back to the
+   * visitor's prefers-color-scheme. Undefined = light until a darkTheme
+   * exists, then auto, so just designing a dark theme makes it work.
+   */
+  themeMode?: ThemeMode
+}
+
+/** The mode that actually applies, resolving the backward-compatible default.
+ *  Structural on purpose: the widget bundle keeps its own slim BrandingConfig. */
+export function resolveThemeMode(b: { themeMode?: ThemeMode; darkTheme?: ThemePalette | null }): ThemeMode {
+  if (b.themeMode) return b.themeMode
+  return b.darkTheme ? "auto" : "light"
+}
+
+/**
+ * The branding to render for the active theme. Dark overlays only the fields
+ * the client actually set (null/empty mean "not overridden", because in the
+ * BASE config null carries meaning: auto-contrast input text, auto border).
+ */
+export function themedBranding<T extends { darkTheme?: ThemePalette | null }>(b: T, active: "light" | "dark"): T {
+  if (active !== "dark" || !b.darkTheme) return b
+  const overrides = Object.fromEntries(
+    Object.entries(b.darkTheme).filter(([, v]) => v !== undefined && v !== null && v !== ""),
+  ) as Partial<ThemePalette>
+  return { ...b, ...overrides }
 }
 
 /** Shown when a project has not set its own. Deliberately short: a long

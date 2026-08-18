@@ -147,8 +147,14 @@
       return s;
     } catch (e) { return String(new Date().getTime()) + Math.random().toString(16).slice(2); }
   })();
+  // Initial theme from the script tag (data-theme="light"|"dark"), threaded
+  // into the iframe URL so the first paint already matches the host site.
+  // Dynamic switching afterwards goes through window.txid.setTheme below.
+  var initialTheme = script.getAttribute("data-theme");
+  if (initialTheme !== "light" && initialTheme !== "dark") initialTheme = null;
   iframe.src = BASE + "/widget?key=" + encodeURIComponent(key) +
     "&n=" + encodeURIComponent(NONCE) +
+    (initialTheme ? "&t=" + initialTheme : "") +
     (script.getAttribute("data-preview") === "1" ? "&preview=1" : "") +
     // Forwarded so the iframe knows this is a deliberate owner launch: the
     // widget suppresses auto-open in preview mode, and without this flag the
@@ -187,9 +193,11 @@
   var iframeReady = false;
   var queuedIdentity = null;
   var queuedOpen = null;
+  var queuedTheme = null;
   function sendToFrame(msg) { try { if (msg && typeof msg === "object") msg.nonce = NONCE; iframe.contentWindow.postMessage(msg, BASE); } catch (err) { /* frame gone */ } }
   function flushHostQueue() {
     if (queuedIdentity) { sendToFrame(queuedIdentity); }
+    if (queuedTheme) { sendToFrame(queuedTheme); }
     if (queuedOpen) { setOpen(true); sendToFrame(queuedOpen); queuedOpen = null; }
   }
   window.txid = window.txid || {};
@@ -206,6 +214,17 @@
     else queuedOpen = msg;
   };
   window.txid.close = function () { setOpen(false); };
+  // Drive the widget's palette from the host site's own light/dark toggle.
+  //   window.txid.setTheme("dark" | "light" | "auto")
+  // Only has an effect when the project designed a dark theme in the dashboard
+  // and its theme mode is "auto"; "auto" hands control back to the visitor's
+  // OS preference. Kept (like identity) so a frame reload re-applies it.
+  window.txid.setTheme = function (theme) {
+    var t = theme === "dark" ? "dark" : theme === "light" ? "light" : "auto";
+    var msg = { type: "txid-theme", theme: t };
+    queuedTheme = msg;
+    if (iframeReady) sendToFrame(msg);
+  };
 
   // ── Toggle ───────────────────────────────────────────────────────────────
 
