@@ -431,5 +431,9 @@ export function accentVars(color: string): Record<string, string> {
     ["--accent-hover"]: color,
     ["--accent-muted"]: hexToRgba(color, 0.12),
     ["--border-accent"]: hexToRgba(color, 0.3),
+    // Text drawn ON the accent (chat bubbles, send button). Bright accents
+    // like Etherlink's green make white text unreadable, so this resolves to
+    // near-black for light colours, white otherwise.
+    ["--on-accent"]: readableText(color),
   }
 }

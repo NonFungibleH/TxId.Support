@@ -5,6 +5,11 @@ import { clsx } from "clsx";
 import { Wifi } from "lucide-react";
 import type { DemoMessage } from "@/lib/chains";
 
+// Anything drawn ON the accent uses --on-accent (set by accentVars): bright
+// accents like Etherlink's green make white text unreadable. Fallback keeps
+// the old white for any context that does not set the var.
+const ON_ACCENT = "var(--on-accent, #ffffff)";
+
 function ChatBubble({ role, text }: { role: "ai" | "user"; text: string }) {
   return (
     <div className={clsx("flex animate-in fade-in slide-in-from-bottom-2 duration-500", role === "user" ? "justify-end" : "justify-start")}>
@@ -12,9 +17,10 @@ function ChatBubble({ role, text }: { role: "ai" | "user"; text: string }) {
         className={clsx(
           "max-w-[85%] rounded-2xl px-3.5 py-2.5 text-xs leading-relaxed whitespace-pre-line",
           role === "user"
-            ? "bg-accent text-white rounded-br-sm"
+            ? "bg-accent rounded-br-sm"
             : "bg-[var(--bg-elevated)] text-white/90 rounded-bl-sm border border-[var(--border)]"
         )}
+        style={role === "user" ? { color: ON_ACCENT } : undefined}
       >
         {text}
       </div>
@@ -32,9 +38,13 @@ function TypingIndicator({ role }: { role: "ai" | "user" }) {
         )}
       >
         <div className="flex gap-1 items-center h-3">
-          <span className="w-1.5 h-1.5 rounded-full bg-white/60 animate-bounce" style={{ animationDelay: "0ms" }} />
-          <span className="w-1.5 h-1.5 rounded-full bg-white/60 animate-bounce" style={{ animationDelay: "150ms" }} />
-          <span className="w-1.5 h-1.5 rounded-full bg-white/60 animate-bounce" style={{ animationDelay: "300ms" }} />
+          {["0ms", "150ms", "300ms"].map((delay) => (
+            <span
+              key={delay}
+              className="w-1.5 h-1.5 rounded-full animate-bounce opacity-60"
+              style={{ animationDelay: delay, background: role === "user" ? ON_ACCENT : "#ffffff" }}
+            />
+          ))}
         </div>
       </div>
     </div>
@@ -141,7 +151,7 @@ export function ChainDemo({
         <div className="flex items-center gap-2 bg-[var(--bg-elevated)] rounded-xl px-3 py-2 border border-[var(--border)]">
           <span className="text-xs text-muted flex-1">Ask anything…</span>
           <div className="w-5 h-5 rounded-lg bg-accent flex items-center justify-center flex-shrink-0">
-            <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-2.5 h-2.5" style={{ color: ON_ACCENT }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 12h14M12 5l7 7-7 7" />
             </svg>
           </div>
