@@ -184,8 +184,8 @@ export function FindingList({ findings, emptyHint }: { findings: Finding[]; empt
                         <div
                           className={
                             t.role === "user"
-                              ? "max-w-[80%] rounded-lg bg-primary/10 px-2.5 py-1.5 text-xs"
-                              : "max-w-[80%] rounded-lg border border-border bg-muted/30 px-2.5 py-1.5 text-xs"
+                              ? "max-w-[80%] whitespace-pre-wrap rounded-lg bg-primary/10 px-2.5 py-1.5 text-xs"
+                              : "max-w-[80%] whitespace-pre-wrap rounded-lg border border-border bg-muted/30 px-2.5 py-1.5 text-xs"
                           }
                         >
                           {t.content}

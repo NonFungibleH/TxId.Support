@@ -197,7 +197,7 @@ function TicketRow({ ticket, teammates }: { ticket: Ticket; teammates: { userId:
               <div className="space-y-1.5 max-h-72 overflow-y-auto">
                 {conversation.map((msg, i) => (
                   <div key={i} className={`flex gap-2 ${msg.role === "user" ? "justify-end" : ""}`}>
-                    <span className={`text-[11px] px-2.5 py-1.5 rounded-xl leading-relaxed max-w-[80%] ${
+                    <span className={`text-[11px] whitespace-pre-wrap px-2.5 py-1.5 rounded-xl leading-relaxed max-w-[80%] ${
                       msg.role === "user"
                         ? "bg-primary text-primary-foreground"
                         : "bg-muted text-muted-foreground"
