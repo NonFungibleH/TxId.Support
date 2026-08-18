@@ -43,7 +43,7 @@ export default function ChainPage({ params }: { params: { slug: string } }) {
   const Article = article === "an" ? "An" : "A";
   const ctaText = readableText(chain.color);
   const primaryHref = isLive ? `${APP_URL}/sign-up` : "/contact";
-  const primaryLabel = isLive ? `Add TxID to ${name}` : "Get early access";
+  const primaryLabel = isLive ? "Request access" : "Get early access";
   const secondaryHref = isLive ? (chain.family === "evm" ? "/check" : "/demo") : "/api";
   const secondaryLabel = isLive ? "See it live" : "See how it works";
 
