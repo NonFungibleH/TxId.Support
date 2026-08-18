@@ -40,14 +40,13 @@ function ChainCard({ chain }: { chain: ChainInfo }) {
 
 export default function ChainsPage() {
   // Live chains only. The coming-soon entries keep their detail pages (deep
-  // links and SEO), but a three-card "roadmap" section under nine live chains
-  // read as filler, so the index doesn't advertise them.
+  // links and SEO), but a "roadmap" section under nine live chains read as
+  // filler, so the index doesn't advertise them. Grouped by family: the two
+  // execution models are genuinely different products under the hood, and the
+  // split gives Move-native Aptos its own stage.
   const liveChains = VISIBLE_CHAINS.filter((c) => c.status === "live");
-  // Aptos leads: it's the partnership chain and the deepest integration.
-  const live = [
-    ...liveChains.filter((c) => c.slug === "aptos"),
-    ...liveChains.filter((c) => c.slug !== "aptos"),
-  ];
+  const evm = liveChains.filter((c) => c.family === "evm");
+  const nonEvm = liveChains.filter((c) => c.family === "non-evm");
 
   return (
     <>
@@ -80,16 +79,43 @@ export default function ChainsPage() {
         </section>
 
         {/* EVM */}
+        <section className="py-10">
+          <div className="max-w-6xl mx-auto px-6">
+            <FadeIn>
+              <div className="flex items-baseline justify-between mb-2">
+                <h2 className="font-display text-2xl font-bold text-white">EVM</h2>
+                <p className="text-sm text-muted">{evm.length} chains live</p>
+              </div>
+              <p className="text-sm text-muted mb-6 max-w-2xl">
+                One engine across every EVM network: real revert decoding, gas and approval checks,
+                and wrong-network fixes, tuned to each chain&apos;s own quirks.
+              </p>
+            </FadeIn>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {evm.map((c, i) => (
+                <FadeIn key={c.slug} delay={(i % 3) * 0.05}>
+                  <ChainCard chain={c} />
+                </FadeIn>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* Non-EVM */}
         <section className="py-10 pb-24">
           <div className="max-w-6xl mx-auto px-6">
             <FadeIn>
-              <div className="flex items-baseline justify-between mb-6">
-                <h2 className="font-display text-2xl font-bold text-white">Live now</h2>
-                <p className="text-sm text-muted">{live.length} chains</p>
+              <div className="flex items-baseline justify-between mb-2">
+                <h2 className="font-display text-2xl font-bold text-white">Non-EVM</h2>
+                <p className="text-sm text-muted">{nonEvm.length === 1 ? "1 chain live" : `${nonEvm.length} chains live`}</p>
               </div>
+              <p className="text-sm text-muted mb-6 max-w-2xl">
+                Non-EVM ecosystems get their own native engine, not an EVM adapter. On Aptos that
+                means Move aborts, subaccounts and sponsored transactions, handled first-class.
+              </p>
             </FadeIn>
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {live.map((c, i) => (
+              {nonEvm.map((c, i) => (
                 <FadeIn key={c.slug} delay={(i % 3) * 0.05}>
                   <ChainCard chain={c} />
                 </FadeIn>
