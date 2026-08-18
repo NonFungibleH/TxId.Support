@@ -668,8 +668,11 @@ export function ConversationList({
                       {msg.role === "assistant" && (
                         <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[9px] font-bold text-primary mt-0.5">AI</div>
                       )}
+                      {/* pre-wrap: the widget composer allows multi-line
+                          messages, and the reviewer must see the same line
+                          breaks the user typed. */}
                       <div
-                        className={`max-w-[80%] rounded-xl px-3 py-2 text-xs leading-relaxed ${
+                        className={`max-w-[80%] whitespace-pre-wrap rounded-xl px-3 py-2 text-xs leading-relaxed ${
                           msg.role === "user"
                             ? "bg-primary text-primary-foreground"
                             : "bg-background border border-border"
