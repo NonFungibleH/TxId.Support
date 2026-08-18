@@ -99,6 +99,15 @@ export default function ChainPage({ params }: { params: { slug: string } }) {
     operatingSystem: "Web",
     description: `AI-powered transaction support and diagnosis for ${name} protocols.`,
   };
+  const breadcrumbLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Home", item: "https://txid.support/" },
+      { "@type": "ListItem", position: 2, name: "Chains", item: "https://txid.support/chains" },
+      { "@type": "ListItem", position: 3, name: name, item: `https://txid.support/chains/${chain.slug}` },
+    ],
+  };
 
   return (
     <>
@@ -107,6 +116,7 @@ export default function ChainPage({ params }: { params: { slug: string } }) {
       <main className="pt-24" style={accentVars(chain.color) as React.CSSProperties}>
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(appLd) }} />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqLd) }} />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }} />
 
         {/* Hero */}
         <section className="relative overflow-hidden">
