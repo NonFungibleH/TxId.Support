@@ -198,9 +198,9 @@ export const CHAINS: ChainInfo[] = [
     explorerName: "Etherlink Explorer",
     tagline: "Supports Etherlink, the Tezos EVM Layer 2, with native transaction diagnosis.",
     intro:
-      "TxID reads Etherlink activity straight from its explorer and RPC, so users get their real transaction history, why a transfer failed, and the decoded revert on any contract, without leaving your app.",
+      "Give your Etherlink users instant answers: why a transfer failed, what actually happened in their transaction, and the exact next step, without leaving your app.",
     builtFor:
-      "TxID reads Etherlink natively as the Tezos EVM Layer 2, so users get their real history and the decoded reason a transfer failed.",
+      "TxID is built for Etherlink, the Tezos EVM Layer 2, so users get their real history and the exact reason a transfer failed.",
     failures: [
       { title: "Failed transfers and swaps", detail: "Reads the transaction from Etherlink's node, decodes the revert, and gives the exact fix." },
       { title: "XTZ gas issues", detail: "Explains out-of-gas and underpriced transactions with the right value to set." },
