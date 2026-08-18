@@ -77,9 +77,9 @@ export default function ChainPage({ params }: { params: { slug: string } }) {
   ];
 
   const SURFACES = [
-    { icon: Code2, title: "In your product", body: "One script tag, your branding. Live in minutes, no infrastructure changes." },
-    { icon: Send, title: "On Telegram", body: "The same assistant answers your community in your channels." },
-    { icon: Terminal, title: "Through the API", body: "Wire on-chain answers into your own flows and tools." },
+    { icon: Code2, mock: "widget" as const, title: "In your product", body: "One script tag, your branding. Live in minutes, no infrastructure changes." },
+    { icon: Send, mock: "telegram" as const, title: "On Telegram", body: "The same assistant answers your community in your channels." },
+    { icon: Terminal, mock: "api" as const, title: "Through the API", body: "Wire on-chain answers into your own flows and tools." },
   ];
 
   const faqLd = {
@@ -285,31 +285,47 @@ export default function ChainPage({ params }: { params: { slug: string } }) {
           </div>
         </section>
 
-        {/* Built for this chain */}
+        {/* Built for this chain: split layout, header left, capability rail
+            right, so it stops reading as the same 3-card stamp again. */}
         <section className="py-16 border-t border-[var(--border)]">
-          <div className="max-w-6xl mx-auto px-6">
+          <div className="max-w-6xl mx-auto px-6 grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
             <FadeIn>
-              <div className="text-center mb-12">
+              <div>
                 <p className="font-mono text-sm mb-3" style={{ color: chain.color }}>Built for {name}</p>
                 <h2 className="font-display text-4xl font-bold text-white mb-4">Not a generic bot with {article} {name} logo</h2>
-                <p className="text-muted max-w-2xl mx-auto">
+                <p className="text-muted leading-relaxed max-w-md">
                   TxID is built to read {name} and understand how it actually behaves, so your users get real answers
                   instead of a canned FAQ.
                 </p>
+                <div className="mt-7 h-1 w-24 rounded-full" style={{ background: `linear-gradient(90deg, ${chain.color}, transparent)` }} />
               </div>
             </FadeIn>
-            <div className="grid sm:grid-cols-3 gap-4">
-              {BUILT.map((v, i) => (
-                <FadeIn key={v.title} delay={i * 0.06}>
-                  <div className="bg-[var(--bg-surface)] border border-[var(--border)] rounded-xl p-6 h-full">
-                    <div className="w-10 h-10 rounded-lg flex items-center justify-center mb-4" style={{ background: hexToRgba(chain.color, 0.12) }}>
-                      <v.icon className="w-5 h-5" style={{ color: chain.color }} />
+            {/* Rail of capabilities: the items hang off a glowing accent line,
+                echoing the investigation-flow motif instead of a third card grid. */}
+            <div className="relative">
+              <div
+                aria-hidden="true"
+                className="absolute left-[23px] top-3 bottom-3 w-px"
+                style={{ background: `linear-gradient(to bottom, ${hexToRgba(chain.color, 0.6)}, ${hexToRgba(chain.color, 0.05)})` }}
+              />
+              <div className="space-y-9">
+                {BUILT.map((v, i) => (
+                  <FadeIn key={v.title} delay={i * 0.1}>
+                    <div className="relative flex gap-5">
+                      <div
+                        className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 border bg-[var(--bg)]"
+                        style={{ borderColor: hexToRgba(chain.color, 0.45), boxShadow: `0 0 22px ${hexToRgba(chain.color, 0.22)}` }}
+                      >
+                        <v.icon className="w-5 h-5" style={{ color: chain.color }} />
+                      </div>
+                      <div className="pt-0.5">
+                        <h3 className="font-display text-lg font-semibold text-white mb-1.5">{v.title}</h3>
+                        <p className="text-sm text-muted leading-relaxed max-w-md">{v.body}</p>
+                      </div>
                     </div>
-                    <h3 className="font-display font-semibold text-white mb-2">{v.title}</h3>
-                    <p className="text-sm text-muted leading-relaxed">{v.body}</p>
-                  </div>
-                </FadeIn>
-              ))}
+                  </FadeIn>
+                ))}
+              </div>
             </div>
           </div>
         </section>
@@ -326,19 +342,36 @@ export default function ChainPage({ params }: { params: { slug: string } }) {
                 </p>
               </div>
             </FadeIn>
-            <div className="grid sm:grid-cols-3 gap-4">
-              {RECORD.map((r, i) => (
-                <FadeIn key={r.title} delay={i * 0.06}>
-                  <div className="bg-[var(--bg-surface)] border border-[var(--border)] rounded-xl p-6 h-full">
-                    <div className="w-10 h-10 rounded-lg flex items-center justify-center mb-4" style={{ background: hexToRgba(chain.color, 0.12) }}>
-                      <r.icon className="w-5 h-5" style={{ color: chain.color }} />
+            {/* The section about auditability LOOKS like the audit artifact: one
+                ledger panel, mono header strip, numbered rows, hairline rules. */}
+            <FadeIn delay={0.08}>
+              <div className="max-w-3xl mx-auto rounded-2xl border border-[var(--border)] bg-[var(--bg-surface)] overflow-hidden">
+                <div className="flex items-center justify-between px-6 py-3.5 border-b border-[var(--border)] bg-white/[0.02]">
+                  <span className="font-mono text-xs tracking-[0.2em] text-muted uppercase">Case record</span>
+                  <span className="inline-flex items-center gap-1.5 font-mono text-[11px]" style={{ color: chain.color }}>
+                    <Check className="w-3.5 h-3.5" />
+                    Compliance-ready
+                  </span>
+                </div>
+                {RECORD.map((r, i) => (
+                  <div
+                    key={r.title}
+                    className={`flex items-start gap-5 px-6 py-6${i > 0 ? " border-t border-[var(--border)]" : ""}`}
+                  >
+                    <span aria-hidden="true" className="font-mono text-xs pt-0.5 w-8 shrink-0" style={{ color: hexToRgba(chain.color, 0.7) }}>
+                      {String(i + 1).padStart(2, "0")}
+                    </span>
+                    <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0" style={{ background: hexToRgba(chain.color, 0.12) }}>
+                      <r.icon className="w-[1.125rem] h-[1.125rem]" style={{ color: chain.color }} />
                     </div>
-                    <h3 className="font-display font-semibold text-white mb-2">{r.title}</h3>
-                    <p className="text-sm text-muted leading-relaxed">{r.body}</p>
+                    <div>
+                      <h3 className="font-display font-semibold text-white mb-1">{r.title}</h3>
+                      <p className="text-sm text-muted leading-relaxed">{r.body}</p>
+                    </div>
                   </div>
-                </FadeIn>
-              ))}
-            </div>
+                ))}
+              </div>
+            </FadeIn>
             <FadeIn>
               <div className="text-center mt-10">
                 <Link href="/security" className="inline-flex items-center gap-1.5 text-sm hover:gap-2.5 transition-all" style={{ color: chain.color }}>
@@ -362,15 +395,65 @@ export default function ChainPage({ params }: { params: { slug: string } }) {
                 </p>
               </div>
             </FadeIn>
+            {/* Each surface gets a tiny illustrative header (a browser frame, a
+                chat exchange, an API call) so the three read as three different
+                places the assistant lives, not three copies of one card. */}
             <div className="grid sm:grid-cols-3 gap-4">
               {SURFACES.map((s, i) => (
-                <FadeIn key={s.title} delay={i * 0.06}>
-                  <div className="bg-[var(--bg-surface)] border border-[var(--border)] rounded-xl p-6 h-full">
-                    <div className="w-10 h-10 rounded-lg flex items-center justify-center mb-4" style={{ background: hexToRgba(chain.color, 0.12) }}>
-                      <s.icon className="w-5 h-5" style={{ color: chain.color }} />
+                <FadeIn key={s.title} delay={i * 0.08}>
+                  <div className="bg-[var(--bg-surface)] border border-[var(--border)] rounded-xl overflow-hidden h-full flex flex-col hover:border-[var(--border-accent)] transition-colors">
+                    <div
+                      aria-hidden="true"
+                      className="h-28 relative border-b border-[var(--border)] px-5 pt-4"
+                      style={{ background: `linear-gradient(160deg, ${hexToRgba(chain.color, 0.08)}, transparent 65%)` }}
+                    >
+                      {s.mock === "widget" && (
+                        <div className="h-full rounded-t-lg border border-b-0 border-[var(--border)] bg-[var(--bg)] relative overflow-hidden">
+                          <div className="flex items-center gap-1.5 px-3 py-2 border-b border-[var(--border)]">
+                            <span className="w-1.5 h-1.5 rounded-full bg-white/15" />
+                            <span className="w-1.5 h-1.5 rounded-full bg-white/15" />
+                            <span className="w-1.5 h-1.5 rounded-full bg-white/15" />
+                            <span className="ml-2 h-2 w-24 rounded-full bg-white/10" />
+                          </div>
+                          <div className="px-3 pt-2 space-y-1.5">
+                            <span className="block h-1.5 w-3/4 rounded-full bg-white/10" />
+                            <span className="block h-1.5 w-1/2 rounded-full bg-white/10" />
+                          </div>
+                          <span
+                            className="absolute bottom-2.5 right-2.5 w-7 h-7 rounded-full flex items-center justify-center"
+                            style={{ background: chain.color, boxShadow: `0 0 16px ${hexToRgba(chain.color, 0.5)}` }}
+                          >
+                            <MessagesSquare className="w-3.5 h-3.5" style={{ color: ctaText }} />
+                          </span>
+                        </div>
+                      )}
+                      {s.mock === "telegram" && (
+                        <div className="h-full flex flex-col justify-center gap-2">
+                          <span className="self-start max-w-[75%] rounded-xl rounded-bl-sm border border-[var(--border)] bg-[var(--bg)] px-3 py-1.5 text-[10px] text-white/70">
+                            Why did my swap fail?
+                          </span>
+                          <span
+                            className="self-end max-w-[80%] rounded-xl rounded-br-sm px-3 py-1.5 text-[10px]"
+                            style={{ background: hexToRgba(chain.color, 0.16), border: `1px solid ${hexToRgba(chain.color, 0.35)}`, color: "#fff" }}
+                          >
+                            Slippage was too low. Set 2% and retry.
+                          </span>
+                        </div>
+                      )}
+                      {s.mock === "api" && (
+                        <div className="h-full rounded-t-lg border border-b-0 border-[var(--border)] bg-[var(--bg)] px-3.5 py-3 font-mono text-[10px] leading-relaxed">
+                          <p><span style={{ color: chain.color }}>POST</span> <span className="text-white/70">/v1/chat</span></p>
+                          <p className="text-white/40">{`{ "message": "why did tx 0x4f… fail?" }`}</p>
+                          <p className="text-white/40">
+                            <span style={{ color: chain.color }}>200</span> answer + evidence
+                          </p>
+                        </div>
+                      )}
                     </div>
-                    <h3 className="font-display font-semibold text-white mb-2">{s.title}</h3>
-                    <p className="text-sm text-muted leading-relaxed">{s.body}</p>
+                    <div className="p-6 pt-5 flex-1">
+                      <h3 className="font-display font-semibold text-white mb-2">{s.title}</h3>
+                      <p className="text-sm text-muted leading-relaxed">{s.body}</p>
+                    </div>
                   </div>
                 </FadeIn>
               ))}
