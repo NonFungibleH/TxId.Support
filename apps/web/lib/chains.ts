@@ -27,6 +27,9 @@ export interface ChainInfo {
   tagline: string
   /** 1 to 2 sentence intro paragraph. */
   intro: string
+  /** One benefit-led sentence on what makes TxID native to this chain. Powers
+   *  the "Speaks [chain]" card. No infra/plumbing names, benefit framing. */
+  builtFor?: string
   /** The chain-specific things the bot diagnoses, the SEO and sales meat. */
   failures: ChainFailure[]
   explorerName?: string
@@ -46,6 +49,8 @@ export const CHAINS: ChainInfo[] = [
     tagline: "Native Ethereum diagnosis with direct access to execution data, contract state, and transaction outcomes.",
     intro:
       "Give your Ethereum users an assistant that looks up their actual transaction, decodes why it failed, and tells them the fix in plain English, right inside your product.",
+    builtFor:
+      "TxID understands the failures Ethereum users actually hit, from custom Solidity reverts to gas-limit confusion and stuck nonces.",
     failures: [
       { title: "Reverted swaps and custom errors", detail: "Decodes SlippageTooHigh, Expired and any custom Solidity error into plain English, with the exact fix." },
       { title: "Out-of-gas failures", detail: "Tells the user it is the gas limit, not their ETH balance, and what to raise it to." },
@@ -66,6 +71,8 @@ export const CHAINS: ChainInfo[] = [
     tagline: "Built for Base transactions, understanding contract failures, fees, and common user issues.",
     intro:
       "Base users move fast and get stuck fast. TxID diagnoses the real cause of a failed Base transaction, and when someone is on the wrong network it offers a one-tap switch.",
+    builtFor:
+      "TxID knows the Base playbook, from wrong-network mix-ups to bridged tokens with no ETH for gas, and can switch the user to Base in one tap.",
     failures: [
       { title: "Wrong network", detail: "Catches users still on Ethereum mainnet and offers a one-tap switch straight to Base." },
       { title: "No ETH for gas", detail: "Catches users who bridged tokens to Base but hold no ETH to cover gas, so nothing will send until they top up." },
@@ -85,6 +92,8 @@ export const CHAINS: ChainInfo[] = [
     tagline: "Designed around BNB Chain behaviour, including gas conditions, token mechanics, and failed transactions.",
     intro:
       "Fee-on-transfer tokens, honeypots and slippage reverts make BNB support noisy. TxID screens the token and decodes the transaction so your team does not have to.",
+    builtFor:
+      "TxID is tuned for BNB Chain's noisy token landscape, screening fee-on-transfer tokens and honeypots and decoding PancakeSwap reverts.",
     failures: [
       { title: "Token tax and fee-on-transfer", detail: "Flags fee-on-transfer tokens that quietly fail swaps at low slippage." },
       { title: "Honeypot and unsafe-token checks", detail: "When a user asks if a token is safe, it screens the contract for honeypot patterns and unsafe tax and reports what it finds." },
@@ -105,6 +114,8 @@ export const CHAINS: ChainInfo[] = [
     tagline: "Understands Polygon execution, gas behaviour, and the transaction failures users encounter.",
     intro:
       "Polygon's minimum-fee floor and RPC lag trip users up constantly. TxID gives them the current safe fee and confirms whether the problem is the network or their own wallet RPC.",
+    builtFor:
+      "TxID knows Polygon's fee floor and RPC quirks, so users get the exact fee to set and a clear answer on whether it is the chain or their wallet.",
     failures: [
       { title: "Underpriced transactions", detail: "Polygon's priority-fee floor trips users up. The bot gives the current safe max fee to set." },
       { title: "RPC lag and 'tx not found'", detail: "Confirms the network is healthy so users know it is their wallet RPC, not the chain." },
@@ -124,6 +135,8 @@ export const CHAINS: ChainInfo[] = [
     tagline: "Tuned for Arbitrum's L2 environment, including fees, execution, and transaction behaviour.",
     intro:
       "Arbitrum's gas model and sequencer confuse users when things go wrong. TxID explains what actually happened and exactly what to do next.",
+    builtFor:
+      "TxID understands Arbitrum's L2 gas model and sequencer, so 'pending forever' and 'no ETH for gas' get a straight answer.",
     failures: [
       { title: "No ETH for gas", detail: "Catches users who bridged tokens to Arbitrum but have no ETH to pay gas." },
       { title: "Sequencer and 'pending forever'", detail: "Tells users when it is the sequencer versus their own transaction." },
@@ -143,6 +156,8 @@ export const CHAINS: ChainInfo[] = [
     tagline: "Fluent in the OP Stack, with native understanding of Optimism transactions and execution.",
     intro:
       "From wrong-network mix-ups to a wallet with no ETH for gas, TxID gives Optimism users a straight answer instead of a support ticket.",
+    builtFor:
+      "TxID is fluent in the OP Stack, from wrong-network fixes to the seven-day withdrawal wait back to Ethereum, all in plain English.",
     failures: [
       { title: "Wrong network", detail: "Catches users on Ethereum mainnet and offers a one-tap switch to Optimism." },
       { title: "No ETH for gas", detail: "Catches users who bridged tokens to Optimism but hold no ETH to cover gas." },
@@ -162,6 +177,8 @@ export const CHAINS: ChainInfo[] = [
     tagline: "Native diagnosis for Avalanche C-Chain transactions, contracts, and execution failures.",
     intro:
       "TxID keeps Avalanche users on the C-Chain, gives them the right gas for a failed transaction, and decodes the real revert reason from any contract.",
+    builtFor:
+      "TxID keeps Avalanche users on the C-Chain and decodes the real revert from any contract, even unverified ones.",
     failures: [
       { title: "Wrong chain or subnet", detail: "Makes sure users are on the C-Chain, not an L1 subnet, and diagnoses accordingly." },
       { title: "AVAX gas failures", detail: "Gives the right gas for a failed C-Chain transaction." },
@@ -182,6 +199,8 @@ export const CHAINS: ChainInfo[] = [
     tagline: "Supports Etherlink, the Tezos EVM Layer 2, with native transaction diagnosis.",
     intro:
       "TxID reads Etherlink activity straight from its explorer and RPC, so users get their real transaction history, why a transfer failed, and the decoded revert on any contract, without leaving your app.",
+    builtFor:
+      "TxID reads Etherlink natively as the Tezos EVM Layer 2, so users get their real history and the decoded reason a transfer failed.",
     failures: [
       { title: "Failed transfers and swaps", detail: "Reads the transaction from Etherlink's node, decodes the revert, and gives the exact fix." },
       { title: "XTZ gas issues", detail: "Explains out-of-gas and underpriced transactions with the right value to set." },
@@ -264,6 +283,8 @@ export const CHAINS: ChainInfo[] = [
     tagline: "Move-native diagnosis built for Aptos infrastructure, including modules, resources, and transaction failures.",
     intro:
       "Aptos runs on Move, so TxID runs a second engine built native to it: module ABIs read live from the fullnode, history from the Aptos Indexer, and a layered Move abort decoder that turns codes like 0x10010 into plain English. It also handles what only Aptos has, from sponsored transactions and auth key rotation to protocols that keep user funds in subaccount objects with delegated session keys.",
+    builtFor:
+      "TxID runs a Move-native engine for Aptos, so it understands Move aborts, subaccounts, sponsored transactions and auth-key rotation.",
     failures: [
       { title: "Move aborts", detail: "Decodes a Move abort in layers: the standard error category, the framework's own error tables, then per-protocol error maps, into plain English with the fix." },
       { title: "Delegated trading and subaccounts", detail: "On venues where orders are placed by a session key against a subaccount object, merges wallet and subaccount activity so a trader sees their real balances and history." },
@@ -363,6 +384,13 @@ export const CHAIN_DEMOS: Record<string, DemoMessage[]> = {
     { role: "ai", text: "It hit exit code 65535: the contract had no handler for the operation you sent, so the message bounced back. Usually the wrong action or an outdated app version.", delay: 5000 },
     { role: "user", text: "So my funds are safe?", delay: 9000 },
     { role: "ai", text: "Yes, a bounced message returns your TON minus a tiny fee. Refresh the app and try the correct action.", delay: 11000 },
+  ],
+  etherlink: [
+    { role: "ai", text: "Hi 👋 Your last Etherlink transaction failed. Want me to check why?", delay: 0 },
+    { role: "user", text: "Yes, it just reverted.", delay: 2500 },
+    { role: "ai", text: "Your swap reverted at the router: the price moved past your slippage while it was pending, so it was rejected. Nothing left your wallet.\n\nFix: raise slippage to 2% and retry.", delay: 5000 },
+    { role: "user", text: "Did it cost me XTZ?", delay: 8500 },
+    { role: "ai", text: "A small amount of XTZ for gas, yes, since it ran before reverting. Retry with more slippage and it should go through.", delay: 11000 },
   ],
   aptos: [
     { role: "ai", text: "Hi 👋 Your Aptos transaction failed. Let me decode the status.", delay: 0 },
