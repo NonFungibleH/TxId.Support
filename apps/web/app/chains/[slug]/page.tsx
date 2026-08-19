@@ -22,7 +22,9 @@ export function generateMetadata({ params }: { params: { slug: string } }): Meta
   const chain = getChain(params.slug);
   if (!chain || chain.hidden) return {};
   const title = `AI Transaction Support for ${chain.name} | TxID`;
-  const description = `${chain.intro} Diagnoses failed ${chain.name} transactions and gives users the fix, embedded in your product.`;
+  // Hand-written metaDescription wins (kept near 155 chars, where Google
+  // truncates); the intro-based fallback runs long but stays keyword-rich.
+  const description = chain.metaDescription ?? `${chain.intro} Diagnoses failed ${chain.name} transactions and gives users the fix, embedded in your product.`;
   return {
     title,
     description,
@@ -167,7 +169,7 @@ export default function ChainPage({ params }: { params: { slug: string } }) {
 
               {/* Credibility strip */}
               <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-2 mt-8 text-sm text-muted">
-                {["Reads the real transaction", "Answers in your product", "Every answer, a record"].map((t, i) => (
+                {["Reads the real transaction", "Answers inside your product", "Every answer, a record"].map((t, i) => (
                   <span key={t} className="inline-flex items-center gap-3">
                     {i > 0 && <span className="w-1 h-1 rounded-full bg-white/20" />}
                     <span className="inline-flex items-center gap-1.5">

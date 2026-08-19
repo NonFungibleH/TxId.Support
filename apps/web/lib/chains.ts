@@ -27,6 +27,9 @@ export interface ChainInfo {
   tagline: string
   /** 1 to 2 sentence intro paragraph. */
   intro: string
+  /** Hand-written meta description (~155 chars, Google truncates beyond).
+   *  Unset falls back to the intro + generic suffix, which runs long. */
+  metaDescription?: string
   /** One benefit-led sentence on what makes TxID native to this chain. Powers
    *  the "Speaks [chain]" card. No infra/plumbing names, benefit framing. */
   builtFor?: string
@@ -174,9 +177,11 @@ export const CHAINS: ChainInfo[] = [
     color: "#E84142",
     logo: "/chains/Avalanche.png",
     explorerName: "Snowtrace",
-    tagline: "Native diagnosis for Avalanche C-Chain transactions, contracts, and execution failures.",
+    tagline: "Diagnose failed C-Chain transactions without leaving your app.",
     intro:
-      "TxID keeps Avalanche users on the C-Chain, gives them the right gas for a failed transaction, and decodes the real revert reason from any contract.",
+      "TxID reads the real transaction, contract, and execution data to explain what went wrong and what the user should do next.",
+    metaDescription:
+      "Diagnose failed Avalanche C-Chain transactions without leaving your app. TxID reads the real transaction, contract, and execution data and gives users the fix.",
     builtFor:
       "TxID keeps Avalanche users on the C-Chain and decodes the real revert from any contract, even unverified ones.",
     failures: [
