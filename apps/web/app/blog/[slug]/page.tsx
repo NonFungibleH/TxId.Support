@@ -139,6 +139,25 @@ function Section({ section }: { section: PostSection }) {
           ))}
         </div>
       )
+    case "links":
+      return (
+        <div className="my-8 rounded-xl border border-[var(--border)] bg-[var(--bg-surface)] p-5">
+          {section.label && (
+            <p className="font-mono text-xs text-muted uppercase tracking-wider mb-4">{section.label}</p>
+          )}
+          <div className="flex flex-wrap gap-2">
+            {section.items.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className="rounded-full border border-[var(--border)] bg-[var(--bg)] px-3 py-1.5 font-mono text-xs text-muted hover:text-accent hover:border-[var(--border-accent)] transition-colors"
+              >
+                {item.label}
+              </Link>
+            ))}
+          </div>
+        </div>
+      )
     default:
       return null
   }

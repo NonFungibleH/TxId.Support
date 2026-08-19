@@ -1,3 +1,5 @@
+import { TX_ERRORS } from "./errors"
+
 export interface Post {
   slug: string
   title: string
@@ -21,6 +23,7 @@ export type PostSection =
   | { type: "comparison"; left: { title: string; items: string[] }; right: { title: string; items: string[] } }
   | { type: "figure"; kind: string; caption?: string }
   | { type: "grid"; items: Array<{ title: string; description: string }> }
+  | { type: "links"; label?: string; items: Array<{ label: string; href: string }> }
 
 export const POSTS: Post[] = [
   {
@@ -92,6 +95,14 @@ export const POSTS: Post[] = [
 
       { type: "h2", text: "The faster way to read any of these" },
       { type: "p", text: "This key covers the common messages, but the real answer to \"why did this fail\" is always in the transaction itself: the decoded revert, the gas used against the limit, the approval that was missing, the price the swap needed. TxID reads that for a user automatically, on the chain, and answers in plain English with the specific fix, so nobody has to match their error against a list by hand." },
+      // Built from the error reference itself, so a new error page is linked
+      // here automatically. This is the cornerstone article's crawl path into
+      // the whole programmatic cluster.
+      {
+        type: "links",
+        label: "Every error message, explained in depth",
+        items: TX_ERRORS.map((e) => ({ label: e.message, href: `/errors/${e.slug}` })),
+      },
     ],
   },
   {
