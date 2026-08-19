@@ -12,6 +12,10 @@ const NAV = [
 ];
 
 const LEGAL = [
+  // Reference tools first: site-wide links also carry crawl weight to the
+  // programmatic error/selector pages.
+  { label: "Error reference", href: "/errors" },
+  { label: "Selector lookup", href: "/selector" },
   { label: "Contact", href: "/contact" },
   { label: "Company", href: "/company" },
   { label: "Security", href: "/security" },
