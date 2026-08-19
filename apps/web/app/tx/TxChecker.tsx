@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Search, Loader2, CheckCircle2, XCircle, Clock, HelpCircle,
   Copy, Check, ChevronDown, ArrowRight, ShieldCheck,
@@ -88,8 +88,21 @@ export function TxChecker() {
 
   const valid = TX_RE.test(hash.trim());
 
-  async function run() {
-    const h = hash.trim();
+  // Arrivals from the homepage hero (and shared links) carry ?hash=. Prefill
+  // and run immediately: the visitor already did their part by pasting.
+  // window.location instead of useSearchParams keeps the page statically
+  // rendered without a Suspense boundary.
+  useEffect(() => {
+    const fromUrl = new URLSearchParams(window.location.search).get("hash")?.trim();
+    if (fromUrl && TX_RE.test(fromUrl)) {
+      setHash(fromUrl);
+      void run(fromUrl);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function run(hashOverride?: string) {
+    const h = (hashOverride ?? hash).trim();
     if (!TX_RE.test(h)) {
       setError("That doesn't look like a transaction hash. It should start with 0x and be 66 characters long.");
       return;
@@ -164,7 +177,8 @@ export function TxChecker() {
               </option>
             ))}
           </select>
-          <Button onClick={run} size="lg" className={loading || !valid ? "opacity-60 pointer-events-none" : ""}>
+          {/* Explicit arrow: run(overrideHash?) would otherwise receive the click event. */}
+          <Button onClick={() => run()} size="lg" className={loading || !valid ? "opacity-60 pointer-events-none" : ""}>
             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Check"}
           </Button>
         </div>

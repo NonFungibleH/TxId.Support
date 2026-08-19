@@ -2,6 +2,7 @@ import { ArrowRight, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { FadeIn } from "@/components/ui/FadeIn";
 import { InvestigationMockup } from "./InvestigationMockup";
+import { HeroTxCheck } from "./HeroTxCheck";
 
 export function Hero() {
   return (
@@ -50,6 +51,10 @@ export function Hero() {
                   <ArrowRight className="w-4 h-4" />
                 </Button>
               </div>
+            </FadeIn>
+
+            <FadeIn delay={0.28}>
+              <HeroTxCheck />
             </FadeIn>
 
             <FadeIn delay={0.32}>
