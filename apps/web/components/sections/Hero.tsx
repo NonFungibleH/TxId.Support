@@ -53,10 +53,6 @@ export function Hero() {
               </div>
             </FadeIn>
 
-            <FadeIn delay={0.28}>
-              <HeroTxCheck />
-            </FadeIn>
-
             <FadeIn delay={0.32}>
               <p className="text-xs text-muted mt-4 mb-2">
                 Early access: we onboard teams personally · Evaluation tier opening soon
@@ -97,6 +93,10 @@ export function Hero() {
                   </div>
                 ))}
               </div>
+            </FadeIn>
+
+            <FadeIn delay={0.36}>
+              <HeroTxCheck />
             </FadeIn>
           </div>
 
