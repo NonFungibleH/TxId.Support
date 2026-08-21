@@ -238,6 +238,12 @@ export function BrandingForm({ projectId, initial, section, onBrandingChange }: 
                 <ColorPicker value={branding.darkTheme.secondaryColor ?? branding.secondaryColor} onChange={v => updateDark("secondaryColor", v)} label="Secondary" />
                 <ColorPicker value={branding.darkTheme.backgroundColor ?? "#0f0f14"} onChange={v => updateDark("backgroundColor", v)} label="Background" />
                 <ColorPicker value={branding.darkTheme.textColor ?? "#f4f4f5"} onChange={v => updateDark("textColor", v)} label="Text" />
+                <ColorPicker
+                  value={branding.darkTheme.inputTextColor ?? autoInputTextColor(branding.darkTheme.backgroundColor ?? "#0f0f14")}
+                  onChange={v => updateDark("inputTextColor", v)}
+                  label="Input text"
+                />
+                <p className="text-xs text-muted-foreground">Colour of what visitors type in dark mode. Defaults to auto-contrast with the dark background.</p>
               </div>
 
               <div className="space-y-2">
