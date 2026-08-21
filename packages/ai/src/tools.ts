@@ -101,6 +101,11 @@ const APTOS_NOT_FOUND_CAUSES = [
   "The sender's sequence number had already been used by another transaction, so this one could never be committed. Aptos sequence numbers are strictly ordered per account, like an EVM nonce.",
   "The transaction was submitted to a different network (testnet vs mainnet) than the one being searched.",
   "It was committed very recently and the indexer has not caught up yet. Retrying in a few seconds distinguishes this from the cases above.",
+  // Discovered live 2026-08-19: the runbook's July demo hash 404'd from the
+  // fullnode while the explorer still showed it. oldest_ledger_version proved
+  // pruning; without this cause the model told the user their real, weeks-old
+  // transaction did not exist.
+  "The transaction is real but older than the node's retention window. Public Aptos fullnodes prune history after a few weeks, so an old transaction returns not-found here while block explorers still show it from archival storage. If the user says an explorer link works for this hash, the transaction exists and is simply old: ask them what the explorer shows (status and any error message) and reason from that, never insist the transaction does not exist.",
 ]
 
 export interface WalletConfig {

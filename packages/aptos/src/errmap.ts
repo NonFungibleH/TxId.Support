@@ -255,6 +255,15 @@ const DECIBEL_ERRMAPS: AbortErrmap = {
         "The take-profit/stop-loss order id in this request does not match any live TP/SL order on the position. The order was most likely already triggered or cancelled, or it belongs to a different position. Refresh the position in the app and check its active TP/SL orders; if the order is gone from the list, there is nothing left to cancel.",
     },
   },
+  [`${DECIBEL}::single_order_book`]: {
+    // 0x2 observed on mainnet 2026-08-21 (cancel_order_to_subaccount):
+    // fullnode names the constant EORDER_NOT_FOUND in vm_status.
+    2: {
+      name: "EORDER_NOT_FOUND",
+      reason:
+        "The order id in this cancel request does not match any live order in this market's book. The order was most likely already filled or cancelled by the time the request landed, which is common in fast markets. Refresh your open orders in the app; if the order is gone from the list, there is nothing left to cancel and no position was affected.",
+    },
+  },
   [`${DECIBEL}::dex_accounts`]: {
     3: {
       name: "ENOT_SUBACCOUNT_OWNER_OR_LACKS_PERP_TRADING_PERMISSIONS",
