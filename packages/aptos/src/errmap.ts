@@ -255,6 +255,16 @@ const DECIBEL_ERRMAPS: AbortErrmap = {
         "The take-profit/stop-loss order id in this request does not match any live TP/SL order on the position. The order was most likely already triggered or cancelled, or it belongs to a different position. Refresh the position in the app and check its active TP/SL orders; if the order is gone from the list, there is nothing left to cancel.",
     },
   },
+  [`${DECIBEL}::spot_order_public_api`]: {
+    // 0x1 observed on mainnet 2026-08-24 (place_spot_bulk_order_to_subaccount):
+    // the on-chain message is developer-voiced (PFS, module paths); this is
+    // the same fact in trader language.
+    1: {
+      name: "EINSUFFICIENT_PFS_FUNDS",
+      reason:
+        "This spot order was rejected because the wallet's available balance is short on one side of the pair: either not enough of the asset being sold, or not enough of the quote asset to buy with. The check runs before anything is placed, so nothing was traded and only gas was spent. Top up the wallet, or reduce the order size, and retry.",
+    },
+  },
   [`${DECIBEL}::single_order_book`]: {
     // 0x2 observed on mainnet 2026-08-21 (cancel_order_to_subaccount):
     // fullnode names the constant EORDER_NOT_FOUND in vm_status.
