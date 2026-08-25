@@ -112,7 +112,7 @@ export function ApiCallMockup({ className }: { className?: string }) {
           shifts the hero text beside it on every loop. Sized to the tallest
           example so the layout never moves. */}
       <div className="p-4 space-y-3 h-[420px] overflow-hidden">
-        <pre className="text-[#a5b4fc] whitespace-pre-wrap">{ex.request}</pre>
+        <pre className="text-[#9aa0d8] whitespace-pre-wrap">{ex.request}</pre>
 
         <div className={clsx("space-y-1 transition-opacity duration-300", showWork ? "opacity-100" : "opacity-0")}>
           {ex.work.map((w, i) => (

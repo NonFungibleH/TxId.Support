@@ -178,7 +178,7 @@ export default function PlatformPage() {
             className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] rounded-full pointer-events-none"
             style={{
               background:
-                "radial-gradient(ellipse at center, rgba(99, 102, 241, 0.15) 0%, transparent 70%)",
+                "radial-gradient(ellipse at center, rgba(75, 71, 233, 0.15) 0%, transparent 70%)",
             }}
           />
           <div className="max-w-6xl mx-auto px-6 pt-10 pb-16 relative">

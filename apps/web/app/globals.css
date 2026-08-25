@@ -3,20 +3,40 @@
 @tailwind utilities;
 
 :root {
-  --bg-base: #0b0c14;
-  --bg-surface: #0f1020;
-  --bg-elevated: #151728;
-  --accent: #6366f1;
-  --accent-hover: #4f46e5;
-  --accent-muted: rgba(99, 102, 241, 0.12);
-  --text-primary: #f0f0ff;
-  --text-muted: #6b7280;
-  --text-subtle: #374151;
-  --border: rgba(255, 255, 255, 0.07);
-  --border-accent: rgba(99, 102, 241, 0.28);
-  --green: #22c55e;
-  --red: #ef4444;
-  --yellow: #f59e0b;
+  /* ── TxID palette v2 ──────────────────────────────────────────────────
+     Deliberately reads as blockchain infrastructure rather than web3: deeper,
+     cooler grounds, one confident indigo doing the accent work, and a teal
+     reserved exclusively for verified/success so it never competes with the
+     brand. Every surface in the app derives from these, so the whole site
+     repalettes from this block alone. */
+
+  /* Grounds */
+  --bg-base: #020612;
+  --bg-deep: #070b1d;
+  --bg-surface: #0b1122;
+  --bg-elevated: #10162e;
+
+  /* Brand */
+  --accent: #4b47e9;
+  --accent-hover: #3734d2;
+  --accent-muted: rgba(75, 71, 233, 0.14);
+  --accent-soft: #6f74b7;
+  --accent-cool: #2a78b0;
+
+  /* Text */
+  --text-primary: #f7f7fa;
+  --text-muted: #8d93ad;
+  --text-subtle: #4b5170;
+
+  /* Lines */
+  --border: rgba(143, 150, 190, 0.12);
+  --border-accent: rgba(75, 71, 233, 0.32);
+
+  /* Semantic. Teal means verified and nothing else. */
+  --green: #16c7ae;
+  --teal: #16c7ae;
+  --red: #ef4d63;
+  --yellow: #e0a33a;
 }
 
 *, *::before, *::after { box-sizing: border-box; }
@@ -54,7 +74,7 @@ body::before {
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 
 ::selection {
-  background: rgba(99, 102, 241, 0.3);
+  background: rgba(75, 71, 233, 0.3);
   color: var(--text-primary);
 }
 

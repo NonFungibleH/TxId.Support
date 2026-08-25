@@ -21,7 +21,7 @@ export function PlatformTeaser() {
               className="absolute -top-24 -right-24 w-[360px] h-[360px] rounded-full pointer-events-none"
               style={{
                 background:
-                  "radial-gradient(ellipse at center, rgba(99, 102, 241, 0.12) 0%, transparent 70%)",
+                  "radial-gradient(ellipse at center, rgba(75, 71, 233, 0.12) 0%, transparent 70%)",
               }}
             />
             <div className="relative flex flex-col lg:flex-row lg:items-center gap-8">

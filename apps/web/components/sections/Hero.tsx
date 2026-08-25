@@ -1,7 +1,7 @@
 import { ArrowRight, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { FadeIn } from "@/components/ui/FadeIn";
-import { InvestigationMockup } from "./InvestigationMockup";
+import { LayerStack } from "./LayerStack";
 import { HeroTxCheck } from "./HeroTxCheck";
 
 export function Hero() {
@@ -11,7 +11,7 @@ export function Hero() {
         className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[500px] rounded-full pointer-events-none"
         style={{
           background:
-            "radial-gradient(ellipse at center, rgba(99, 102, 241, 0.18) 0%, transparent 70%)",
+            "radial-gradient(ellipse at center, rgba(75, 71, 233, 0.20) 0%, transparent 70%)",
         }}
       />
 
@@ -19,21 +19,21 @@ export function Hero() {
         {/* Text column runs wider than the visual: the mockup is capped at
             max-w-md anyway, and the headline needs the room to sit on two
             lines instead of three. */}
-        <div className="grid lg:grid-cols-[1.3fr_1fr] gap-12 items-center">
+        <div className="grid lg:grid-cols-[1.05fr_1fr] gap-10 items-center">
           <div>
             <FadeIn delay={0.08}>
               <h1 className="font-display text-4xl sm:text-5xl xl:text-[52px] font-bold text-white leading-[1.1] tracking-tight mb-6">
-                The support layer
+                The resolution layer
                 {/* Forced two-line break on desktop only; small screens wrap
                     naturally rather than stacking four short lines. */}
                 <br className="hidden lg:block" />{" "}
-                for <span className="text-accent">on-chain finance</span>
+                for <span className="text-accent">on-chain products</span>
               </h1>
             </FadeIn>
 
             <FadeIn delay={0.16}>
               <p className="text-lg text-muted leading-relaxed mb-8 max-w-lg">
-                Users get guided support backed by live on-chain data. Your support team handles fewer tickets, while your compliance team has a complete audit trail of every interaction.
+                Every chain, wallet and contract describes failure differently. TxID turns that into one answer: what happened, whether funds moved, who acts next, and the evidence behind it. Delivered to your product, your support team, or your code.
               </p>
             </FadeIn>
 
@@ -59,7 +59,7 @@ export function Hero() {
               </p>
               <p className="text-xs text-muted/70 mb-6 inline-flex items-center gap-1.5">
                 <ShieldCheck className="w-3.5 h-3.5 text-accent/70 shrink-0" />
-                Read-only · No custody · Audit-logged · No financial advice
+                Read-only · No custody · Evidence on every answer · No financial advice
               </p>
               <div className="flex flex-wrap items-center gap-x-2.5 gap-y-2">
                 <span className="text-xs text-muted/50 font-mono shrink-0">Available on</span>
@@ -103,10 +103,10 @@ export function Hero() {
           <FadeIn delay={0.2} direction="left" className="flex justify-center lg:justify-end">
             <div className="relative">
               <div
-                className="absolute inset-0 rounded-2xl blur-3xl scale-95"
-                style={{ background: "rgba(99, 102, 241, 0.15)" }}
+                className="absolute inset-0 rounded-full blur-3xl scale-90"
+                style={{ background: "rgba(75, 71, 233, 0.18)" }}
               />
-              <InvestigationMockup className="relative" />
+              <LayerStack className="relative w-full max-w-[460px] lg:max-w-[580px]" />
             </div>
           </FadeIn>
         </div>

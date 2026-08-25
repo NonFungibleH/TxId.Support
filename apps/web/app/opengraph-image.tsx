@@ -40,7 +40,7 @@ export default function Image() {
             width: 700,
             height: 520,
             borderRadius: "50%",
-            background: "radial-gradient(ellipse at center, rgba(99,102,241,0.18) 0%, transparent 70%)",
+            background: "radial-gradient(ellipse at center, rgba(75, 71, 233,0.18) 0%, transparent 70%)",
             transform: "translate(-50%, -50%)",
             display: "flex",
           }}
@@ -58,8 +58,8 @@ export default function Image() {
         >
           {/* Brand */}
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 36 }}>
-            <div style={{ width: 9, height: 9, borderRadius: 5, background: "#6366f1", display: "flex" }} />
-            <span style={{ color: "#6366f1", fontSize: 15, fontWeight: 700, letterSpacing: 3 }}>
+            <div style={{ width: 9, height: 9, borderRadius: 5, background: "#4b47e9", display: "flex" }} />
+            <span style={{ color: "#4b47e9", fontSize: 15, fontWeight: 700, letterSpacing: 3 }}>
               TXID.SUPPORT
             </span>
           </div>
@@ -69,7 +69,7 @@ export default function Image() {
             <span style={{ fontSize: 50, fontWeight: 800, color: "#ffffff", lineHeight: 1.1, letterSpacing: "-0.5px" }}>
               Expert support for every user.
             </span>
-            <span style={{ fontSize: 50, fontWeight: 800, color: "#6366f1", lineHeight: 1.1, letterSpacing: "-0.5px" }}>
+            <span style={{ fontSize: 50, fontWeight: 800, color: "#4b47e9", lineHeight: 1.1, letterSpacing: "-0.5px" }}>
               No support team needed.
             </span>
           </div>
@@ -130,9 +130,9 @@ export default function Image() {
               height: 430,
               background: "#13141f",
               borderRadius: 22,
-              border: "1px solid rgba(99,102,241,0.22)",
+              border: "1px solid rgba(75, 71, 233,0.22)",
               overflow: "hidden",
-              boxShadow: "0 0 80px rgba(99,102,241,0.18), 0 32px 64px rgba(0,0,0,0.5)",
+              boxShadow: "0 0 80px rgba(75, 71, 233,0.18), 0 32px 64px rgba(0,0,0,0.5)",
             }}
           >
             {/* Header */}
@@ -141,7 +141,7 @@ export default function Image() {
                 display: "flex",
                 alignItems: "center",
                 padding: "14px 18px",
-                background: "#6366f1",
+                background: "#4b47e9",
                 gap: 10,
               }}
             >
@@ -183,7 +183,7 @@ export default function Image() {
                   display: "flex",
                   background: "#1a1b2e",
                   borderRadius: "4px 12px 12px 12px",
-                  border: "1px solid rgba(99,102,241,0.14)",
+                  border: "1px solid rgba(75, 71, 233,0.14)",
                   padding: "9px 12px",
                   fontSize: 10.5,
                   color: "#c9d1e0",
@@ -199,7 +199,7 @@ export default function Image() {
                 style={{
                   display: "flex",
                   alignSelf: "flex-end",
-                  background: "#6366f1",
+                  background: "#4b47e9",
                   borderRadius: "12px 4px 12px 12px",
                   padding: "9px 12px",
                   fontSize: 10.5,
@@ -217,7 +217,7 @@ export default function Image() {
                   display: "flex",
                   background: "#1a1b2e",
                   borderRadius: "4px 12px 12px 12px",
-                  border: "1px solid rgba(99,102,241,0.14)",
+                  border: "1px solid rgba(75, 71, 233,0.14)",
                   padding: "9px 12px",
                   fontSize: 10.5,
                   color: "#c9d1e0",
@@ -230,9 +230,9 @@ export default function Image() {
 
               {/* Typing dots */}
               <div style={{ display: "flex", alignItems: "center", gap: 5, padding: "6px 12px" }}>
-                <div style={{ display: "flex", width: 6, height: 6, borderRadius: 3, background: "rgba(99,102,241,0.3)" }} />
-                <div style={{ display: "flex", width: 6, height: 6, borderRadius: 3, background: "rgba(99,102,241,0.55)" }} />
-                <div style={{ display: "flex", width: 6, height: 6, borderRadius: 3, background: "rgba(99,102,241,0.8)" }} />
+                <div style={{ display: "flex", width: 6, height: 6, borderRadius: 3, background: "rgba(75, 71, 233,0.3)" }} />
+                <div style={{ display: "flex", width: 6, height: 6, borderRadius: 3, background: "rgba(75, 71, 233,0.55)" }} />
+                <div style={{ display: "flex", width: 6, height: 6, borderRadius: 3, background: "rgba(75, 71, 233,0.8)" }} />
               </div>
             </div>
 
@@ -267,7 +267,7 @@ export default function Image() {
                   justifyContent: "center",
                   width: 30,
                   height: 30,
-                  background: "#6366f1",
+                  background: "#4b47e9",
                   borderRadius: 8,
                   color: "white",
                   fontSize: 16,
