@@ -13,6 +13,11 @@ const config: Config = {
         display: ["var(--font-display)", "var(--font-inter)", "sans-serif"],
         mono: ["var(--font-mono-accent)", "monospace"],
       },
+      // Text utilities only: bg-accent and border-accent keep the true brand
+      // indigo, which is a fill colour. See --accent-text in globals.css.
+      textColor: {
+        accent: "rgb(var(--accent-text) / <alpha-value>)",
+      },
       colors: {
         accent: "var(--accent)",
         "accent-hover": "var(--accent-hover)",

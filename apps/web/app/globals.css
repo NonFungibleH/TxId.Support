@@ -20,6 +20,10 @@
   --accent: #4b47e9;
   --accent-hover: #3734d2;
   --accent-muted: rgba(75, 71, 233, 0.14);
+  /* Accent TEXT only. The brand indigo is a fill colour: white on it is
+     6.2:1, but the indigo itself on our grounds is ~3:1, which fails for
+     body text. Same hue and saturation, lifted until it clears 4.5:1. */
+  --accent-text: 120 117 238;   /* channels, so text-accent/70 composes */
   --accent-soft: #6f74b7;
   --accent-cool: #2a78b0;
 
