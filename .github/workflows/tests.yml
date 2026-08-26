@@ -25,6 +25,14 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: Unit tests
         run: pnpm --filter @txid/app exec vitest run
+      # The packages were never covered. abort.test.ts guarded the Move abort
+      # decoder and had not run once in CI; decoder.test.ts guards the revert
+      # replay. Both are core and both are pure, so there is no reason they
+      # were not here.
+      - name: Package unit tests
+        run: |
+          pnpm --filter @txid/blockchain exec vitest run
+          pnpm --filter @txid/aptos exec vitest run
       - name: Install Chromium
         run: pnpm --filter @txid/app exec playwright install --with-deps chromium
       - name: Embed smoke (spotlight choreography)
