@@ -52,6 +52,27 @@ export interface AptosTransaction {
     storageRefundOctas: string | null
   } | null
   events: { type: string; data: unknown }[]
+  /**
+   * The entry function's arguments, as the node returned them. Previously
+   * dropped, which is why a failed order could not be described beyond its
+   * error: the market, price and size a trader was acting on all live here.
+   * Left raw and untyped because the layout differs per entry function;
+   * anything that reads positionally must know the signature it is reading.
+   */
+  functionArguments: unknown[]
+  /**
+   * Which accounts this transaction actually wrote, summarised. A Move abort
+   * cannot commit user state, so a failed transaction writes only the gas
+   * payment. Carrying the addresses makes that checkable rather than asserted:
+   * if the trader's account is not in this list, nothing of theirs moved.
+   */
+  stateWrites: { count: number; addresses: string[] }
+  /**
+   * Set when a watched protocol adapter recognises an object argument as one
+   * of its markets. Lets an answer say "your ETH/USD order" instead of "your
+   * order". Absent when nothing resolved, never guessed.
+   */
+  markets?: { object: string; name: string }[]
   decodedAbort?: DecodedAbort
 }
 

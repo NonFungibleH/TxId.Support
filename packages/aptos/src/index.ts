@@ -3,7 +3,7 @@ export { decodeAbort } from "./abort"
 export type { AbortErrmap } from "./abort"
 export { isAptosAddress, normalizeAptosAddress } from "./address"
 export { PROTOCOL_ERRMAPS, errmapFor } from "./errmap"
-export { PROTOCOL_ADAPTERS, adapterFor, getProtocolAccount, getProtocolMarkets, resolveProtocolAccountAddress } from "./protocols"
+export { PROTOCOL_ADAPTERS, adapterFor, getProtocolAccount, getProtocolMarkets, marketsInArguments, resolveProtocolAccountAddress } from "./protocols"
 export type { ProtocolAdapter, ProtocolAccount } from "./protocols"
 export {
   getLedgerInfo,

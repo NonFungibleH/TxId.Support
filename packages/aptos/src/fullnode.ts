@@ -135,8 +135,9 @@ interface RawUserTransaction {
   sender: string
   gas_used: string
   gas_unit_price: string
-  payload?: { type: string; function?: string; type_arguments?: string[] }
+  payload?: { type: string; function?: string; type_arguments?: string[]; arguments?: unknown[] }
   events?: { type: string; data: unknown }[]
+  changes?: { type?: string; address?: string }[]
   signature?: {
     type?: string
     fee_payer_address?: string
@@ -246,6 +247,20 @@ export async function getAptosTransactionByHash(
       const feeStatements = all.filter(e => e.type.endsWith("::FeeStatement"))
       const rest = all.filter(e => !e.type.endsWith("::FeeStatement"))
       return [...rest.slice(0, 20), ...feeStatements]
+    })(),
+    functionArguments: (isEntryFunction ? payload?.arguments : undefined) ?? [],
+    // Deduped: the same account is written several times in one transaction
+    // (a store, its ObjectCore, its metadata) and a raw count reads as far more
+    // activity than actually happened.
+    stateWrites: (() => {
+      const addresses = [
+        ...new Set(
+          (raw.changes ?? [])
+            .map(c => c.address)
+            .filter((a): a is string => typeof a === "string" && a.length > 0)
+        ),
+      ]
+      return { count: (raw.changes ?? []).length, addresses }
     })(),
     ...(raw.success === false ? { decodedAbort: decodeAbort(raw.vm_status, errmap) } : {}),
   }
