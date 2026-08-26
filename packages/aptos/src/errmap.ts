@@ -271,7 +271,7 @@ const DECIBEL_ERRMAPS: AbortErrmap = {
     2: {
       name: "EORDER_NOT_FOUND",
       reason:
-        "The order id in this cancel request does not match any live order in this market's book. The order was most likely already filled or cancelled by the time the request landed, which is common in fast markets. Refresh your open orders in the app; if the order is gone from the list, there is nothing left to cancel and no position was affected.",
+        "The order id in this request was not on this market's book when the request reached the chain, so there was nothing to act on. This is normal in fast markets, and applies whether the user was cancelling the order or changing its price or size. State that plainly and stop there: the order had already left the book, the transaction aborted so no position or balance was affected, and it cost gas only. Do NOT tell the user to refresh the app to find out. Do NOT say the order was filled, and do NOT say it was cancelled either: this abort proves only that the order was ABSENT, never why, and asserting either one is a claim about the user's position that nothing here establishes. Do not offer a next step you cannot ground. If the user asks what to do now, explain that it turns on whether the original filled or was cancelled, since re-placing an order that already filled would trade a second time, and that this has to be checked before acting.",
     },
   },
   [`${DECIBEL}::dex_accounts`]: {

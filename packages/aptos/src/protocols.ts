@@ -638,3 +638,48 @@ export async function getProtocolMarkets(
   marketCache.set(adapter.name, { at: Date.now(), markets })
   return markets
 }
+
+/**
+ * Name any of a protocol's markets that appear in a transaction's arguments.
+ *
+ * WHY: a failed order previously produced an answer that named the error but
+ * not the instrument ("your order was not found" rather than "your ETH/USD
+ * order"). The market is right there in the payload, as a bare object address
+ * that means nothing to a reader, and nothing was resolving it.
+ *
+ * Matches against the CACHED market list rather than calling market_name per
+ * argument, so in the normal case this costs no view calls at all. It reads
+ * every argument rather than a fixed position, because the entry functions
+ * differ (place, update and cancel do not share a signature) and guessing at
+ * an index is how you end up naming the wrong thing.
+ *
+ * Returns only what genuinely resolved. An unrecognised object is left alone,
+ * never described.
+ */
+export async function marketsInArguments(
+  adapter: ProtocolAdapter,
+  args: readonly unknown[],
+): Promise<{ object: string; name: string }[]> {
+  if (!adapter.marketNameFn || args.length === 0) return []
+
+  const candidates = [
+    ...new Set(
+      args
+        .map(unwrapObject)
+        .filter((a): a is string => typeof a === "string" && /^0x[0-9a-fA-F]{1,64}$/.test(a))
+        .map(normalizeAptosAddress),
+    ),
+  ]
+  if (candidates.length === 0) return []
+
+  const markets = await getProtocolMarkets(adapter)
+  if (!markets || markets.length === 0) return []
+
+  const byObject = new Map(markets.map(m => [normalizeAptosAddress(m.object), m.name]))
+  const out: { object: string; name: string }[] = []
+  for (const c of candidates) {
+    const name = byObject.get(c)
+    if (name) out.push({ object: c, name })
+  }
+  return out
+}

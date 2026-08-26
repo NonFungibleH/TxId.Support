@@ -62,6 +62,7 @@ import {
   getAptosModuleEvents,
   getAptosTokenSafety,
   adapterFor,
+  marketsInArguments,
   getProtocolAccount,
   getProtocolMarkets,
   resolveProtocolAccountAddress,
@@ -84,6 +85,35 @@ import {
 import type { WatchedContractSnapshot } from "./types"
 
 const isNonEvm = (chainId: string): boolean => isSolanaChain(chainId) || isAptosChain(chainId)
+
+/**
+ * Name the markets an Aptos transaction's arguments refer to, when a watched
+ * protocol recognises them.
+ *
+ * The market reaches us as a bare object address, which tells a user nothing.
+ * Resolving it is the difference between "your order was not found" and "your
+ * ETH/USD order was not found", and the second is the answer they came for.
+ *
+ * Never allowed to fail the lookup it decorates: an unreachable node here
+ * costs the name, not the diagnosis.
+ */
+async function withMarketNames<T extends { functionArguments?: unknown[] }>(
+  tx: T,
+  watchedContracts: readonly { address: string; chain: string }[],
+): Promise<T> {
+  const adapter = adapterFor(watchedContracts)
+  if (!adapter) return tx
+  const markets = await marketsInArguments(adapter, tx.functionArguments ?? []).catch(() => [])
+  if (markets.length === 0) return tx
+  // Making the name AVAILABLE is not enough: without being told, the model
+  // keeps saying "your order", which is the vaguer answer this work existed to
+  // remove. The note is what turns a resolved market into a named one.
+  return {
+    ...tx,
+    markets,
+    marketsNote: `This transaction refers to ${markets.map(m => m.name).join(", ")}. Name the market when you describe what the user was doing, for example "your ${markets[0]?.name} order" rather than "your order". These names are resolved from the transaction's own arguments, so they are facts about this transaction, not a guess.`,
+  }
+}
 
 // The Aptos clients return null when the fetch itself failed — that is NOT an
 // empty wallet / empty history, and the model must never present it as one.
@@ -626,7 +656,7 @@ export async function executeTool(
         // Aptos contracts (decodeAbort adds the framework table by itself).
         const versionTx = await getAptosTransactionByHash(hash, errmapFor(watchedContracts))
         return versionTx
-          ? { chainId: "aptos", ...versionTx }
+          ? { chainId: "aptos", ...(await withMarketNames(versionTx, watchedContracts)) }
           : {
               hash,
               chainId: "aptos",
@@ -675,7 +705,7 @@ export async function executeTool(
         if (wallet && isAptosChain(wallet.chainId)) {
           return {
             chainId: "aptos",
-            ...aptosTx,
+            ...(await withMarketNames(aptosTx, watchedContracts)),
             chainNote: `A transaction with this hash also exists on EVM chain ${hit.chainId}; the Aptos one is shown because the connected wallet is on Aptos.`,
           }
         }
@@ -708,7 +738,7 @@ export async function executeTool(
             }
           }
         }
-        return { chainId: "aptos", ...aptosTx }
+        return { chainId: "aptos", ...(await withMarketNames(aptosTx, watchedContracts)) }
       }
       if (hit?.tx) {
         const tx = hit.tx
