@@ -271,7 +271,7 @@ const DECIBEL_ERRMAPS: AbortErrmap = {
     2: {
       name: "EORDER_NOT_FOUND",
       reason:
-        "The order id in this cancel request does not match any live order in this market's book. The order was most likely already filled or cancelled by the time the request landed, which is common in fast markets. Refresh your open orders in the app; if the order is gone from the list, there is nothing left to cancel and no position was affected.",
+        "The order id in this request does not match any live order in this market's book. The order was most likely already filled or cancelled by the time the request landed, which is common in fast markets. This abort covers both cancelling and amending an order, so the same cause applies whether you were pulling the order or changing its price or size. Refresh your open orders in the app; if the order is gone from the list, there is nothing left to act on and no position was affected.",
     },
   },
   [`${DECIBEL}::dex_accounts`]: {
