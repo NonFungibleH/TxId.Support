@@ -21,6 +21,25 @@ const PANIC_MESSAGES: Record<number, string> = {
  * Replay a transaction via eth_call at the block it was mined.
  * The revert reason shows up in the error.data field of the JSON-RPC response.
  */
+/**
+ * The replay either RAN or it did not, and the two must never be confused.
+ *
+ * A node that refuses the call (no archive state, rate limit, auth required,
+ * timeout) returns an error with a message and NO data, which is byte for byte
+ * what a genuine reason-less revert looks like here. Collapsing them made the
+ * decoder report "the contract reverted but did not return an error message",
+ * i.e. a claim about the CONTRACT, when the truth was that we never got to
+ * look. That produced a fluent, confident and wrong diagnosis on a transaction
+ * whose reason was in fact readable.
+ */
+type RevertProbe =
+  | { ran: true; hex: string | null }
+  | { ran: false; note: string }
+
+/** Node messages that mean "I cannot serve this", not "the call reverted". */
+const CANNOT_SERVE =
+  /missing trie node|archive|not available|unauthorized|personal token|api key|rate ?limit|too many requests|exceed|unsupported|method not found|header not found|state.*unavailable/i
+
 async function fetchRevertHex(
   from: string,
   to: string,
@@ -28,7 +47,7 @@ async function fetchRevertHex(
   input: string,
   blockNumber: string,
   rpcUrl: string,
-): Promise<string | null> {
+): Promise<RevertProbe> {
   try {
     const blockHex = "0x" + parseInt(blockNumber, 10).toString(16)
     const valueHex = "0x" + BigInt(value || "0").toString(16)
@@ -43,12 +62,19 @@ async function fetchRevertHex(
       }),
       signal: AbortSignal.timeout(6000),
     })
+    if (!res.ok) return { ran: false, note: `RPC returned HTTP ${res.status}` }
     const json = (await res.json()) as {
+      result?: unknown
       error?: { data?: string; message?: string }
     }
-    return json.error?.data ?? null
-  } catch {
-    return null
+    if (json.error?.data) return { ran: true, hex: json.error.data }
+    const message = json.error?.message ?? ""
+    if (message && CANNOT_SERVE.test(message)) return { ran: false, note: message.slice(0, 160) }
+    // Either a clean result (no revert at this block) or a revert carrying no
+    // data. Both mean the replay genuinely ran and found no reason to report.
+    return { ran: true, hex: null }
+  } catch (e) {
+    return { ran: false, note: e instanceof Error ? e.message.slice(0, 160) : "replay failed" }
   }
 }
 
@@ -169,8 +195,19 @@ export async function decodeTxRevert(params: {
   }
 
   // Replay via eth_call to get the encoded revert reason
-  const revertHex = await fetchRevertHex(from, to, value, input, blockNumber, chain.rpcUrl)
+  const probe = await fetchRevertHex(from, to, value, input, blockNumber, chain.rpcUrl)
 
+  if (!probe.ran) {
+    return {
+      cause: "unknown_revert",
+      replayUnavailable: true,
+      reason:
+        "The revert reason could not be READ: this node could not replay the transaction at its block, so the contract's own error was never retrieved. This is a limit of our lookup, NOT a statement that the contract failed silently.",
+      gasInfo,
+    }
+  }
+
+  const revertHex = probe.hex
   if (!revertHex || revertHex === "0x" || revertHex.length < 10) {
     return { cause: "unknown_revert", reason: "The smart contract reverted but did not return a specific error message.", gasInfo }
   }

@@ -21,6 +21,12 @@ export interface DecodedRevert {
   errorName?: string       // e.g. "SlippageTooHigh", used to match error glossary entries
   errorSignature?: string  // e.g. "SlippageTooHigh(uint256,uint256)"
   rawHex?: string
+  /**
+   * True when the reason is unknown because the REPLAY could not run (no
+   * archive state, rate limit, timeout), not because the contract was silent.
+   * The two are opposite facts and an answer must not confuse them.
+   */
+  replayUnavailable?: boolean
   gasInfo: { used: number; limit: number; percentUsed: number }
 }
 
