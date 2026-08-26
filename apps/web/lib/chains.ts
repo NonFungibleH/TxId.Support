@@ -287,7 +287,7 @@ export const CHAINS: ChainInfo[] = [
     explorerName: "Aptos Explorer",
     tagline: "Turn Aptos error codes into answers your users can act on.",
     intro:
-      "Give your Aptos users instant answers: why a transaction failed, where their funds actually are, and the exact next step, without leaving your app. A Move failure reaches them as a code like 0x10010. TxID reads the real on-chain activity behind it and replies in plain language.",
+      "Give your Aptos users instant answers: why a transaction failed, where their funds actually are, and the exact next step, without leaving your app. Most never see a reason at all, just a transaction that did not work, while the explanation sits on chain as a Move abort nobody has translated. TxID translates it and answers in plain language.",
     metaDescription:
       "Diagnose failed Aptos transactions without leaving your app. TxID turns Move abort codes into plain answers and shows users where their funds actually are.",
     builtFor:
