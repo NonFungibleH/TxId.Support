@@ -104,7 +104,15 @@ async function withMarketNames<T extends { functionArguments?: unknown[] }>(
   const adapter = adapterFor(watchedContracts)
   if (!adapter) return tx
   const markets = await marketsInArguments(adapter, tx.functionArguments ?? []).catch(() => [])
-  return markets.length > 0 ? { ...tx, markets } : tx
+  if (markets.length === 0) return tx
+  // Making the name AVAILABLE is not enough: without being told, the model
+  // keeps saying "your order", which is the vaguer answer this work existed to
+  // remove. The note is what turns a resolved market into a named one.
+  return {
+    ...tx,
+    markets,
+    marketsNote: `This transaction refers to ${markets.map(m => m.name).join(", ")}. Name the market when you describe what the user was doing, for example "your ${markets[0]?.name} order" rather than "your order". These names are resolved from the transaction's own arguments, so they are facts about this transaction, not a guess.`,
+  }
 }
 
 // The Aptos clients return null when the fetch itself failed — that is NOT an
