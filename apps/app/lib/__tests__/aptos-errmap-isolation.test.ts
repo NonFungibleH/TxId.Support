@@ -49,10 +49,22 @@ describe("EORDER_NOT_FOUND states only what the abort proves", () => {
     expect(reasonsFor(DECIBEL).length).toBeGreaterThan(0)
   })
 
-  it("never claims the order was filled", () => {
+  // Targets the ASSERTION, not the word. An earlier version of this test banned
+  // "already filled" outright and then failed on "re-placing an order that
+  // already filled would trade a second time", which is the opposite of the
+  // mistake being guarded against. A test that cannot tell a warning from a
+  // claim gets weakened or deleted the first time it cries wolf.
+  it("never asserts that the order filled", () => {
     for (const reason of reasonsFor(DECIBEL)) {
-      expect(reason).not.toMatch(/already\s+(been\s+)?filled/i)
-      expect(reason).not.toMatch(/likely\s+.{0,20}filled/i)
+      expect(reason).not.toMatch(/(?:it|order)\s+was\s+(?:most\s+)?likely\s+(?:already\s+)?filled/i)
+      expect(reason).not.toMatch(/(?:it|order)\s+was\s+already\s+filled/i)
+      expect(reason).not.toMatch(/(?:has|had)\s+already\s+been\s+filled/i)
+    }
+  })
+
+  it("explicitly forbids the model from claiming a fill", () => {
+    for (const reason of reasonsFor(DECIBEL)) {
+      expect(reason).toMatch(/do\s+not\s+say\s+the\s+order\s+was\s+filled/i)
     }
   })
 
