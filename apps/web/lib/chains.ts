@@ -285,17 +285,19 @@ export const CHAINS: ChainInfo[] = [
     logo: "/chains/Aptos.png",
     logoWhiteBg: true,
     explorerName: "Aptos Explorer",
-    tagline: "Move-native diagnosis built for Aptos infrastructure, including modules, resources, and transaction failures.",
+    tagline: "Turn Aptos error codes into answers your users can act on.",
     intro:
-      "Aptos runs on Move, so TxID runs a second engine built native to it: module ABIs read live from the fullnode, history from the Aptos Indexer, and a layered Move abort decoder that turns codes like 0x10010 into plain English. It also handles what only Aptos has, from sponsored transactions and auth key rotation to protocols that keep user funds in subaccount objects with delegated session keys.",
+      "Give your Aptos users instant answers: why a transaction failed, where their funds actually are, and the exact next step, without leaving your app. A Move failure reaches them as a code like 0x10010. TxID reads the real on-chain activity behind it and replies in plain language.",
+    metaDescription:
+      "Diagnose failed Aptos transactions without leaving your app. TxID turns Move abort codes into plain answers and shows users where their funds actually are.",
     builtFor:
-      "TxID runs a Move-native engine for Aptos, so it understands Move aborts, subaccounts, sponsored transactions and auth-key rotation.",
+      "TxID is built for Aptos rather than adapted to it, so it answers the questions only Move raises: what an abort code actually means, and why a balance looks empty when the funds are sitting in a subaccount.",
     failures: [
-      { title: "Move aborts", detail: "Decodes a Move abort in layers: the standard error category, the framework's own error tables, then per-protocol error maps, into plain English with the fix." },
-      { title: "Delegated trading and subaccounts", detail: "On venues where orders are placed by a session key against a subaccount object, merges wallet and subaccount activity so a trader sees their real balances and history." },
-      { title: "Expired and sponsored transactions", detail: "Explains transactions that expired without an on-chain record, and fee-payer transactions where someone else covered the gas." },
-      { title: "Auth key rotation", detail: "Spots a rotated authentication key and points the user at the sibling addresses their wallet may be hiding." },
-      { title: "Out of gas", detail: "Explains an out-of-gas failure and the max-gas and gas-price to set." },
+      { title: "Move error codes", detail: "A code like 0x10010 becomes a plain explanation of what went wrong, whether any funds moved, and what to do next." },
+      { title: "Funds that look missing", detail: "On venues that hold balances in a subaccount rather than the wallet, shows the user their real position and history instead of an empty account." },
+      { title: "Transactions that never landed", detail: "Explains a transaction that expired before it reached the chain, so a user staring at no record knows their funds were never sent." },
+      { title: "Gas paid by someone else", detail: "Explains a sponsored transaction, so a fee the user did not pay does not read as something going wrong." },
+      { title: "A wallet showing the wrong address", detail: "Spots a rotated authentication key and points the user at the address actually holding their funds." },
     ],
   },
 ]
