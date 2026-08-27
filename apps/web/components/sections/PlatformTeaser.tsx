@@ -14,7 +14,7 @@ export function PlatformTeaser() {
       <div className="max-w-6xl mx-auto px-6">
         <FadeIn>
           <Link
-            href="/api"
+            href="/resolve"
             className="block bg-[var(--bg-surface)] border border-[var(--border)] rounded-2xl p-8 lg:p-10 hover:border-[var(--border-accent)] transition-colors group relative overflow-hidden"
           >
             <div

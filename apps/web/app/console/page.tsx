@@ -120,7 +120,7 @@ export default function ConsolePage() {
                   Talk to us about the Console
                   <ArrowRight className="w-4 h-4" />
                 </Button>
-                <Button href="/api" variant="outline" size="lg">
+                <Button href="/resolve" variant="outline" size="lg">
                   See what is available today
                 </Button>
               </div>

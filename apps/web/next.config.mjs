@@ -7,7 +7,11 @@ const nextConfig = {
       // /how-it-works became /sdk when the three products were named. It is a
       // cornerstone page with existing search traffic, so it redirects rather
       // than 404s.
-      { source: "/how-it-works", destination: "/sdk", permanent: true },
+      { source: "/how-it-works", destination: "/support", permanent: true },
+      // The three products were named: the SDK page became TxID Support and the
+      // API page became TxID Resolve. Both carry search traffic.
+      { source: "/sdk", destination: "/support", permanent: true },
+      { source: "/api", destination: "/resolve", permanent: true },
       // /capabilities was renamed to /features shortly after launch.
       { source: "/capabilities", destination: "/features", permanent: true },
       // The three Solutions sub-pages were folded into one page with anchors.

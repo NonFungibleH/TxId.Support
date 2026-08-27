@@ -9,10 +9,13 @@ import { APP_URL } from "@/lib/config";
 
 // Solutions groups the three products rather than being a page of its own:
 // the offering IS three ways into one engine, and a flat nav could not say so.
+// Each product is aimed at a different buyer, so the blurb names the AUDIENCE
+// rather than the feature: a visitor should be able to pick their door without
+// reading three product pages to find out which one is theirs.
 const SOLUTIONS: NavLink[] = [
-  { label: "SDK", href: "/sdk", blurb: "Answer the user inside your product" },
-  { label: "API", href: "/api", blurb: "Put the answer in your own interface" },
-  { label: "Console", href: "/console", blurb: "Give your support team the chain" },
+  { label: "TxID Support", href: "/support", blurb: "For product teams: answers inside your app" },
+  { label: "TxID Resolve", href: "/resolve", blurb: "For developers: the API behind your own flows" },
+  { label: "TxID Console", href: "/console", blurb: "For support teams: failed transactions, managed" },
 ];
 
 const NAV_LINKS: NavLink[] = [

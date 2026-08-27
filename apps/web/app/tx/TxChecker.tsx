@@ -300,7 +300,7 @@ export function TxChecker() {
             </p>
           </a>
           <a
-            href="/api"
+            href="/resolve"
             className="group rounded-xl border border-[var(--border)] bg-[var(--bg-surface)] p-4 transition-colors hover:border-[var(--border-accent)]"
           >
             <p className="text-sm font-semibold text-white flex items-center justify-between">

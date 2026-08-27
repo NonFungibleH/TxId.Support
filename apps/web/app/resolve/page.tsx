@@ -24,7 +24,7 @@ export const metadata: Metadata = {
   title: "API & MCP | TxID",
   description:
     "Access the same investigation engine that powers TxID through API and MCP. Give your products, support teams, and AI agents the ability to understand transactions, explain failures, and deliver evidence-backed answers from live blockchain data.",
-  alternates: { canonical: "/api" },
+  alternates: { canonical: "/resolve" },
 };
 
 const EXAMPLE_REQUEST = `POST /api/v1/diagnose

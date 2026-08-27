@@ -15,31 +15,31 @@ import { Code2, MessageSquare, LayoutDashboard, ArrowRight } from "lucide-react"
  */
 const PRODUCTS = [
   {
-    name: "API",
-    href: "/api",
+    name: "TxID Resolve",
+    href: "/resolve",
     icon: Code2,
     status: "available" as const,
     line: "Put the answer in your own interface.",
-    body: "One call returns what happened, whether funds moved, who acts next, and the evidence behind it. Render it in your error screens, your emails, your status pages.",
-    forWho: "For teams who already have somewhere to put it",
+    body: "One call returns what happened, whether funds moved, who acts next, and the evidence behind it. Wire it into your user journeys, your error screens, or a support bot you already run.",
+    forWho: "For developers",
   },
   {
-    name: "Support agent",
-    href: "/how-it-works",
+    name: "TxID Support",
+    href: "/support",
     icon: MessageSquare,
     status: "available" as const,
     line: "Answer the user where they already are.",
     body: "An assistant embedded in your product that reads your documentation, your contracts and the live chain, and records the conditions behind every answer it gives.",
-    forWho: "For teams whose users ask before they escalate",
+    forWho: "For product teams",
   },
   {
-    name: "Console",
-    href: "/contact",
+    name: "TxID Console",
+    href: "/console",
     icon: LayoutDashboard,
     status: "development" as const,
     line: "Give your support team the chain.",
-    body: "Your agents see the user's transaction, the diagnosis and the evidence in one place, alongside the ticket they are already working. Nothing to integrate.",
-    forWho: "For teams whose support desk is the front line",
+    body: "A console for managing failed transactions, connected to the CRM your team already works in, so an on-chain question stops being the one nobody can answer.",
+    forWho: "For support teams",
   },
 ]
 

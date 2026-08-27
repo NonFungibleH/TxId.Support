@@ -117,7 +117,7 @@ export default function RecordPage() {
                     Talk to us
                     <ArrowRight className="w-4 h-4" />
                   </Button>
-                  <Button href="/sdk" variant="outline" size="lg">
+                  <Button href="/support" variant="outline" size="lg">
                     See the full flow
                   </Button>
                 </div>

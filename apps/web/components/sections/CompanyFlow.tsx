@@ -177,7 +177,7 @@ export function CompanyFlow() {
         <FadeIn delay={0.2}>
           <div className="text-center mt-10">
             <Link
-              href="/sdk"
+              href="/support"
               className="inline-flex items-center gap-2 text-sm font-medium text-accent hover:underline"
             >
               See the full journey, stage by stage

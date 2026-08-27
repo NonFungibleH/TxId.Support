@@ -13,10 +13,10 @@ export const metadata: Metadata = {
   title: "How It Works: From Question to Compliance Record | TxID",
   description:
     "Follow one case end to end: a user asks in your product, TxID investigates live on-chain, the user gets a clear answer, your team sees only what needs attention, and compliance keeps the record.",
-  alternates: { canonical: "/sdk" },
+  alternates: { canonical: "/support" },
 };
 
-export default function SdkPage() {
+export default function SupportPage() {
   return (
     <>
       <Navbar />
