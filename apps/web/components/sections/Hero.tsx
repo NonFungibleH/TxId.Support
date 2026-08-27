@@ -1,7 +1,7 @@
 import { ArrowRight, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { FadeIn } from "@/components/ui/FadeIn";
-import { LayerStack } from "./LayerStack";
+import { ResolutionFlow } from "./ResolutionFlow";
 import { HeroTxCheck } from "./HeroTxCheck";
 
 export function Hero() {
@@ -106,7 +106,7 @@ export function Hero() {
                 className="absolute inset-0 rounded-full blur-3xl scale-90"
                 style={{ background: "rgba(75, 71, 233, 0.18)" }}
               />
-              <LayerStack className="relative w-full max-w-[460px] lg:max-w-[580px]" />
+              <ResolutionFlow className="relative w-full max-w-[520px] lg:max-w-[620px]" />
             </div>
           </FadeIn>
         </div>
