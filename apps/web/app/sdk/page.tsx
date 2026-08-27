@@ -6,73 +6,17 @@ import { Button } from "@/components/ui/Button";
 import { WidgetMockup } from "@/components/sections/WidgetMockup";
 import { InvestigationMockup } from "@/components/sections/InvestigationMockup";
 import { FlowRail } from "@/components/sections/FlowRail";
+import { ProductStage as Stage } from "@/components/sections/ProductStage";
 import { ArrowRight, CheckCircle2, Hash, Archive } from "lucide-react";
 
 export const metadata: Metadata = {
   title: "How It Works: From Question to Compliance Record | TxID",
   description:
     "Follow one case end to end: a user asks in your product, TxID investigates live on-chain, the user gets a clear answer, your team sees only what needs attention, and compliance keeps the record.",
-  alternates: { canonical: "/how-it-works" },
+  alternates: { canonical: "/sdk" },
 };
 
-function Stage({
-  n,
-  who,
-  title,
-  paras,
-  emphasis,
-  visualLabel,
-  children,
-  flip,
-}: {
-  n: string;
-  who: string;
-  title: string;
-  paras: string[];
-  emphasis?: string;
-  visualLabel?: string;
-  children: React.ReactNode;
-  flip?: boolean;
-}) {
-  return (
-    // Uniform stage height; the rail (FlowRail) signals progression, so no
-    // dividers. Content sits right of the rail.
-    <section className="relative py-10 lg:py-8 lg:min-h-[440px] lg:flex lg:items-center">
-      <div className="w-full max-w-6xl mx-auto pl-14 pr-6 lg:px-6">
-        <div className={`grid lg:grid-cols-2 gap-10 items-center ${flip ? "lg:[direction:rtl]" : ""}`}>
-          <FadeIn className="lg:[direction:ltr]">
-            <p className="font-mono text-sm text-accent mb-2">
-              {n} · {who}
-            </p>
-            <h2 className="font-display text-3xl font-bold text-white mb-4">{title}</h2>
-            <div className="space-y-3 max-w-lg">
-              {paras.map((p) => (
-                <p key={p} className="text-muted leading-relaxed">
-                  {p}
-                </p>
-              ))}
-            </div>
-            {emphasis && (
-              <p className="mt-4 max-w-lg text-sm text-[#c8c8d8] border-l-2 border-accent/50 pl-4">
-                {emphasis}
-              </p>
-            )}
-          </FadeIn>
-          <FadeIn delay={0.1} className="lg:[direction:ltr]">
-            {visualLabel && (
-              <p className="font-mono text-[11px] uppercase tracking-widest text-muted/60 mb-3 lg:text-left">
-                {visualLabel}
-              </p>
-            )}
-            {children}
-          </FadeIn>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-export default function HowItWorksPage() {
+export default function SdkPage() {
   return (
     <>
       <Navbar />

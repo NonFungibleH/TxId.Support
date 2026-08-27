@@ -3,20 +3,32 @@
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/Button";
-import { Menu, X } from "lucide-react";
+import { Menu, X, ChevronDown } from "lucide-react";
 import { clsx } from "clsx";
 import { APP_URL } from "@/lib/config";
 
-const NAV_LINKS = [
-  { label: "How it works", href: "/how-it-works" },
-  { label: "Solutions", href: "/solutions" },
+// Solutions groups the three products rather than being a page of its own:
+// the offering IS three ways into one engine, and a flat nav could not say so.
+const SOLUTIONS: NavLink[] = [
+  { label: "SDK", href: "/sdk", blurb: "Answer the user inside your product" },
+  { label: "API", href: "/api", blurb: "Put the answer in your own interface" },
+  { label: "Console", href: "/console", blurb: "Give your support team the chain" },
+];
+
+const NAV_LINKS: NavLink[] = [
+  { label: "Solutions", href: "/sdk", children: SOLUTIONS },
   { label: "Chains", href: "/chains" },
-  { label: "API", href: "/api" },
   { label: "Trust", href: "/security" },
   { label: "Try it live", href: "/check", highlight: true },
 ];
 
-type NavLink = { label: string; href: string; highlight?: boolean };
+type NavLink = {
+  label: string;
+  href: string;
+  highlight?: boolean;
+  blurb?: string;
+  children?: NavLink[];
+};
 
 export function Navbar() {
   const [scrolled, setScrolled] = useState(false);
@@ -47,8 +59,36 @@ export function Navbar() {
         </Link>
 
         <div className="hidden md:flex items-center gap-1">
-          {(NAV_LINKS as NavLink[]).map((link) => (
-            link.highlight ? (
+          {NAV_LINKS.map((link) =>
+            link.children ? (
+              // Hover AND focus-within, so the group is reachable by keyboard.
+              <div key={link.label} className="relative group">
+                <button
+                  type="button"
+                  className="px-3 py-2 text-sm text-muted hover:text-white transition-colors inline-flex items-center gap-1"
+                  aria-haspopup="true"
+                >
+                  {link.label}
+                  <ChevronDown className="h-3.5 w-3.5 opacity-60" />
+                </button>
+                <div className="invisible opacity-0 group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100 transition-all absolute left-0 top-full pt-2 w-72">
+                  <div className="rounded-xl border border-[var(--border)] bg-elevated p-2 shadow-xl">
+                    {link.children.map((child) => (
+                      <Link
+                        key={child.href}
+                        href={child.href}
+                        className="block rounded-lg px-3 py-2.5 hover:bg-surface transition-colors"
+                      >
+                        <span className="block text-sm font-semibold text-white">{child.label}</span>
+                        {child.blurb && (
+                          <span className="block text-xs text-muted mt-0.5">{child.blurb}</span>
+                        )}
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            ) : link.highlight ? (
               <Link
                 key={link.href}
                 href={link.href}
@@ -65,7 +105,7 @@ export function Navbar() {
                 {link.label}
               </Link>
             )
-          ))}
+          )}
         </div>
 
         <div className="hidden md:flex items-center gap-2">
@@ -87,19 +127,39 @@ export function Navbar() {
 
       {open && (
         <div className="md:hidden bg-[#0f1020] border-b border-[var(--border)] px-6 py-4 flex flex-col gap-3">
-          {(NAV_LINKS as NavLink[]).map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              className={clsx(
-                "text-sm transition-colors py-1",
-                link.highlight ? "text-accent font-semibold" : "text-muted hover:text-white"
-              )}
-              onClick={() => setOpen(false)}
-            >
-              {link.label}
-            </Link>
-          ))}
+          {NAV_LINKS.map((link) =>
+            link.children ? (
+              // No disclosure toggle on mobile: the group is three items, and
+              // hiding them behind a tap is friction with nothing gained.
+              <div key={link.label} className="flex flex-col gap-2">
+                <span className="text-[11px] font-mono uppercase tracking-widest text-subtle">
+                  {link.label}
+                </span>
+                {link.children.map((child) => (
+                  <Link
+                    key={child.href}
+                    href={child.href}
+                    className="text-sm text-muted hover:text-white transition-colors py-1 pl-3"
+                    onClick={() => setOpen(false)}
+                  >
+                    {child.label}
+                  </Link>
+                ))}
+              </div>
+            ) : (
+              <Link
+                key={link.href}
+                href={link.href}
+                className={clsx(
+                  "text-sm transition-colors py-1",
+                  link.highlight ? "text-accent font-semibold" : "text-muted hover:text-white"
+                )}
+                onClick={() => setOpen(false)}
+              >
+                {link.label}
+              </Link>
+            )
+          )}
           <div className="pt-2 flex flex-col gap-2">
             <Button href={`${APP_URL}/sign-in`} variant="outline" size="sm" className="w-full justify-center">
               Sign In
