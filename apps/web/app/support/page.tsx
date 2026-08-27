@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { WidgetMockup } from "@/components/sections/WidgetMockup";
 import { InvestigationMockup } from "@/components/sections/InvestigationMockup";
 import { FlowRail } from "@/components/sections/FlowRail";
-import { ProductStage as Stage } from "@/components/sections/ProductStage";
+import { ProductStage as Stage, ProductHero } from "@/components/sections/ProductStage";
 import { ArrowRight, CheckCircle2, Hash, Archive } from "lucide-react";
 
 export const metadata: Metadata = {
@@ -21,20 +21,25 @@ export default function SupportPage() {
     <>
       <Navbar />
       <main className="pt-28">
-        {/* Intro */}
-        <section className="pb-10">
-          <div className="max-w-3xl mx-auto px-6 text-center">
-            <FadeIn>
-              <p className="font-mono text-sm text-accent mb-3">How it works</p>
-              <h1 className="font-display text-5xl font-bold text-white leading-[1.1] tracking-tight mb-5">
-                One case, end to end
-              </h1>
-              <p className="text-lg text-muted leading-relaxed">
-                Follow a user issue from the first question to the final record.
-              </p>
-            </FadeIn>
-          </div>
-        </section>
+        <ProductHero
+          eyebrow="TxID Support"
+          status={{ label: "Available now", live: true }}
+          title={<>Answers inside <span className="text-accent">your own product</span></>}
+          blurb="An assistant embedded where your users already are. It reads your documentation, your contracts and the live chain, answers the question, and records the conditions behind every answer it gives."
+          actions={
+            <div className="flex flex-wrap gap-3">
+              <Button href="/check" variant="primary" size="lg">
+                Try it live
+              </Button>
+              <Button href="mailto:team@txid.support?subject=TxID Support" variant="outline" size="lg">
+                Request access
+                <ArrowRight className="w-4 h-4" />
+              </Button>
+            </div>
+          }
+        >
+          <WidgetMockup />
+        </ProductHero>
 
         <FlowRail>
         {/* 1 - the user asks */}

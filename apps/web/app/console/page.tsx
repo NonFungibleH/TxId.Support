@@ -4,7 +4,7 @@ import { Footer } from "@/components/layout/Footer";
 import { FadeIn } from "@/components/ui/FadeIn";
 import { Button } from "@/components/ui/Button";
 import { FlowRail } from "@/components/sections/FlowRail";
-import { ProductStage as Stage, ProductIntro } from "@/components/sections/ProductStage";
+import { ProductStage as Stage, ProductHero } from "@/components/sections/ProductStage";
 import { ConsoleMockup } from "@/components/sections/ConsoleMockup";
 import { ArrowRight, Inbox, Search, ShieldCheck } from "lucide-react";
 
@@ -38,24 +38,29 @@ export default function ConsolePage() {
     <>
       <Navbar />
       <main className="pt-28">
-        <ProductIntro
-          eyebrow="Console"
-          title="Your support team, with the chain in front of them"
-          blurb="The agent handling the ticket sees the user's transaction, what actually happened, and the evidence behind it, without leaving the queue or asking an engineer."
-        />
-
-        <div className="max-w-4xl mx-auto px-6 mb-10">
-          <FadeIn delay={0.05}>
-            <ConsoleMockup />
-          </FadeIn>
-        </div>
+        <ProductHero
+          eyebrow="TxID Console"
+          status={{ label: "In development" }}
+          title={<>Your support team, <span className="text-accent">with the chain in front of them</span></>}
+          blurb="A console for managing failed transactions, connected to the CRM your team already works in. The agent sees the user's transaction, what actually happened, and the evidence behind it, without leaving the queue."
+          actions={
+            <div className="flex flex-wrap gap-3">
+              <Button href="mailto:team@txid.support?subject=TxID Console" variant="primary" size="lg">
+                Talk to us about the Console
+                <ArrowRight className="w-4 h-4" />
+              </Button>
+              <Button href="/resolve" variant="outline" size="lg">
+                Available today
+              </Button>
+            </div>
+          }
+        >
+          <ConsoleMockup />
+        </ProductHero>
 
         <div className="max-w-3xl mx-auto px-6 mb-14">
           <FadeIn>
             <div className="rounded-xl border border-[var(--border-accent)] bg-elevated p-5 text-center">
-              <p className="font-mono text-[11px] uppercase tracking-widest text-accent mb-2">
-                In development
-              </p>
               <p className="text-sm text-muted leading-relaxed">
                 The Console is being built now, shaped by the teams in our beta programme. It is not available to sign up for yet. If your support desk is where your on-chain questions land, we would like it shaped by you too.
               </p>
