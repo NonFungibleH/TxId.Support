@@ -5,7 +5,7 @@ import { FadeIn } from "@/components/ui/FadeIn";
 import { Button } from "@/components/ui/Button";
 import { FlowRail } from "@/components/sections/FlowRail";
 import { ProductStage as Stage, ProductIntro } from "@/components/sections/ProductStage";
-import { InvestigationMockup } from "@/components/sections/InvestigationMockup";
+import { ConsoleMockup } from "@/components/sections/ConsoleMockup";
 import { ArrowRight, Inbox, Search, ShieldCheck } from "lucide-react";
 
 export const metadata: Metadata = {
@@ -44,7 +44,13 @@ export default function ConsolePage() {
           blurb="The agent handling the ticket sees the user's transaction, what actually happened, and the evidence behind it, without leaving the queue or asking an engineer."
         />
 
-        <div className="max-w-3xl mx-auto px-6 -mt-4 mb-14">
+        <div className="max-w-4xl mx-auto px-6 mb-10">
+          <FadeIn delay={0.05}>
+            <ConsoleMockup />
+          </FadeIn>
+        </div>
+
+        <div className="max-w-3xl mx-auto px-6 mb-14">
           <FadeIn>
             <div className="rounded-xl border border-[var(--border-accent)] bg-elevated p-5 text-center">
               <p className="font-mono text-[11px] uppercase tracking-widest text-accent mb-2">
@@ -87,7 +93,7 @@ export default function ConsolePage() {
             emphasis="Same engine as the API and the SDK, so support and product never tell a user two different stories."
             visualLabel="What the agent sees"
           >
-            <InvestigationMockup />
+            <ConsoleMockup />
           </Stage>
 
           <Stage
