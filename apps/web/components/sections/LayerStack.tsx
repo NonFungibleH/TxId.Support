@@ -17,11 +17,16 @@ export function LayerStack({ className }: { className?: string }) {
   const HW = 212          // half width
   const HH = 106          // half height, 2:1 against HW, which is what makes it isometric
   const D = 26            // slab thickness
-  const GAP = 132         // < 2*HH on purpose: the slabs interlock
+  const GAP = 104         // well under 2*HH: the slabs nest rather than stack
 
-  const TOP = 150
+  const TOP = 158
   const MID = TOP + GAP
   const BOT = MID + GAP
+  // Two unlabelled plates between the named ones. The reference reads as dense
+  // because the stack has more strata than it has labels: depth comes from the
+  // repetition, not from three captions.
+  const FILL_A = TOP + GAP / 2
+  const FILL_B = MID + GAP / 2
 
   const face = (cy: number) => `${CX},${cy - HH} ${CX + HW},${cy} ${CX},${cy + HH} ${CX - HW},${cy}`
   const left = (cy: number) => `${CX - HW},${cy} ${CX},${cy + HH} ${CX},${cy + HH + D} ${CX - HW},${cy + D}`
@@ -56,8 +61,8 @@ export function LayerStack({ className }: { className?: string }) {
   )
 
   return (
-    <svg viewBox="0 0 640 620" className={className} role="img"
-      aria-label="The TxID resolution layer sitting above on-chain data and the blockchains beneath it">
+    <svg viewBox="0 0 700 600" className={className} role="img"
+      aria-label="The TxID support layer sitting above on-chain data and the blockchains beneath it">
       <defs>
         {/* Tone 1 = the TxID layer, brightest. 2 and 3 recede. */}
         <linearGradient id="ls-top-1" x1="0" y1="0" x2="1" y2="1">
@@ -127,17 +132,30 @@ export function LayerStack({ className }: { className?: string }) {
 
       <g>
         <Slab cy={BOT} tone={3} />
-        <line x1={CX + 128} y1={BOT} x2={CX + 186} y2={BOT} stroke="#8f96be" strokeOpacity="0.35" strokeWidth="1" />
-        <text x={CX + 196} y={BOT + 5} fill="#8d93ad" fontSize="16" fontWeight="600">Blockchains</text>
+        <line x1={CX + 132} y1={BOT} x2={CX + 186} y2={BOT} stroke="#8f96be" strokeOpacity="0.35" strokeWidth="1" />
+        <g transform={`translate(${CX + 194}, ${BOT - 9})`}>
+          <ellipse cx="8" cy="4" rx="8" ry="3.4" fill="none" stroke="#8f96be" strokeOpacity="0.8" strokeWidth="1.3" />
+          <path d="M0 4 v7 a8 3.4 0 0 0 16 0 V4" fill="none" stroke="#8f96be" strokeOpacity="0.8" strokeWidth="1.3" />
+        </g>
+        <text x={CX + 220} y={BOT + 5} fill="#8d93ad" fontSize="16" fontWeight="600">Blockchains</text>
       </g>
+
+      <g opacity="0.8"><Slab cy={FILL_B} tone={3} /></g>
 
       <Motes from={MID + HH} />
 
       <g>
         <Slab cy={MID} tone={2} />
-        <line x1={CX + 128} y1={MID} x2={CX + 186} y2={MID} stroke="#8f96be" strokeOpacity="0.45" strokeWidth="1" />
-        <text x={CX + 196} y={MID + 5} fill="#b6bad2" fontSize="16" fontWeight="600">On-chain data</text>
+        <line x1={CX + 132} y1={MID} x2={CX + 186} y2={MID} stroke="#8f96be" strokeOpacity="0.45" strokeWidth="1" />
+        <g transform={`translate(${CX + 194}, ${MID - 9})`}>
+          <path d="M8 0 L16 4.4 L8 8.8 L0 4.4 Z" fill="none" stroke="#8f96be" strokeOpacity="0.9" strokeWidth="1.3" />
+          <path d="M0 4.4 v6 L8 15 v-6.2" fill="none" stroke="#8f96be" strokeOpacity="0.9" strokeWidth="1.3" />
+          <path d="M16 4.4 v6 L8 15" fill="none" stroke="#8f96be" strokeOpacity="0.9" strokeWidth="1.3" />
+        </g>
+        <text x={CX + 220} y={MID + 5} fill="#b6bad2" fontSize="16" fontWeight="600">On-chain data</text>
       </g>
+
+      <g opacity="0.9"><Slab cy={FILL_A} tone={2} /></g>
 
       <Motes from={TOP + HH} />
 
@@ -150,7 +168,7 @@ export function LayerStack({ className }: { className?: string }) {
           <rect x="18" y="17" width="26" height="26" rx="8" fill="#4b47e9" />
           <path d="M23.5 30 h3.6 l2.4 -6 l3 12 l2.4 -6 h2.4" fill="none" stroke="#fff" strokeWidth="1.9"
             strokeLinecap="round" strokeLinejoin="round" />
-          <text x="52" y="35" fill="#f7f7fa" fontSize="14.5" fontWeight="700">TxID Resolution Layer</text>
+          <text x="52" y="35" fill="#f7f7fa" fontSize="14.5" fontWeight="700">TxID Support Layer</text>
           {["Standard diagnosis", "Funds and next action", "Evidence for every answer", "Auditable case record"]
             .map((t, i) => (
               <g key={t} transform={`translate(20, ${62 + i * 21})`}>

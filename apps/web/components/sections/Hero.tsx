@@ -57,18 +57,19 @@ export function Hero() {
             </FadeIn>
 
             <FadeIn delay={0.08}>
+              {/* The live wording, verbatim. It is on every deck, one-pager and
+                  email already sent, so the site must not be the one surface
+                  saying something different. */}
               <h1 className="font-display text-4xl sm:text-5xl xl:text-[52px] font-bold text-white leading-[1.08] tracking-tight mb-5">
-                The resolution layer
+                The support layer
                 <br className="hidden lg:block" />{" "}
-                for <span className="text-accent">on-chain products</span>
+                for <span className="text-accent">on-chain finance</span>
               </h1>
             </FadeIn>
 
             <FadeIn delay={0.16}>
-              {/* Two short sentences. The previous four-clause paragraph was the
-                  right argument at the wrong length for a hero. */}
               <p className="text-lg text-muted leading-relaxed mb-8 max-w-lg">
-                Every chain describes failure differently. TxID turns that into one answer: what happened, whether funds moved, and who acts next, with the evidence behind it.
+                Users get guided support backed by live on-chain data. Your support team handles fewer tickets, while your compliance team has a complete audit trail of every interaction.
               </p>
             </FadeIn>
 
