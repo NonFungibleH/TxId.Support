@@ -88,21 +88,53 @@ export default function ConsolePage() {
 
           <Stage
             n="02"
-            who="The Console"
-            title="The answer, beside the ticket"
+            who="TxID Console"
+            title="The transaction, read while the ticket sits open"
             flip
             paras={[
-              "The Console reads the transaction and shows the same resolution our API returns and our SDK renders: what happened, where the funds are, who acts next, and the evidence behind each of those.",
-              "The agent does not learn a new tool or a new vocabulary. They read an answer and reply.",
+              "The agent pastes the hash, or it arrives with the ticket from your CRM. The Console reads the chain and returns the same resolution our API returns and our SDK renders.",
+              "They see what happened, whether any funds moved, and whether anyone needs to act. No engineer, no explorer, no second tool.",
             ]}
-            emphasis="Same engine as the API and the SDK, so support and product never tell a user two different stories."
-            visualLabel="What the agent sees"
+            emphasis="Same engine as Resolve and Support, so your product and your support desk never tell a user two different stories."
+            visualLabel="What the agent reads"
           >
-            <ConsoleMockup />
+            <div className="rounded-xl border border-[var(--border-accent)] bg-elevated p-5">
+              <div className="flex items-center justify-between mb-3">
+                <span className="font-mono text-[10px] tracking-widest text-muted">TX-4102 · RESOLUTION</span>
+                <span className="font-mono text-[10px] text-accent bg-accent-muted px-1.5 py-0.5 rounded">7201</span>
+              </div>
+              <p className="text-sm text-white leading-relaxed mb-3">
+                That ETH/USD order had already left the book, so the update had nothing to change.
+              </p>
+              <div className="space-y-2 pt-3 border-t border-[var(--border)]">
+                {[["custody", "funds with user"], ["next action", "no action needed"], ["basis", "verified"]].map(([k, v]) => (
+                  <div key={k} className="flex items-baseline justify-between gap-3">
+                    <span className="font-mono text-[11px] text-subtle">{k}</span>
+                    <span className={`text-xs font-medium ${k === "basis" ? "text-teal" : "text-white"}`}>{v}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
           </Stage>
 
           <Stage
             n="03"
+            who="Your CRM"
+            title="The answer goes back where the work already lives"
+            paras={[
+              "The resolution is written to the ticket in the system your team already uses, so nobody maintains a second queue and nothing has to be copied between tools.",
+              "The reply the agent sends is the answer they were shown, not a paraphrase of it.",
+            ]}
+            visualLabel="Back to the ticket"
+          >
+            <div className="grid gap-3">
+              <Panel icon={Inbox} title="Written to the ticket" body="The diagnosis and its evidence land on the case your agent already had open." />
+              <Panel icon={Search} title="Countable, not anecdotal" body="Failures group by cause, so the same problem stops arriving twenty times." />
+            </div>
+          </Stage>
+
+          <Stage
+            n="04"
             who="Your compliance team"
             title="The record was kept while you worked"
             paras={[
@@ -115,6 +147,7 @@ export default function ConsolePage() {
               <Panel icon={ShieldCheck} title="Evidence, not recollection" body="The state the answer was true as of, kept with the answer rather than assembled from memory months afterwards." />
             </div>
           </Stage>
+
         </FlowRail>
 
         <section className="py-20 border-t border-[var(--border)]">
