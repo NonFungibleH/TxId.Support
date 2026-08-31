@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation"
 import type { Metadata } from "next"
-import { ConsoleWorkspace } from "@/components/console/ConsoleWorkspace"
+import ConsoleOverviewPage from "@/app/console/page"
 
 export const metadata: Metadata = { title: "Console demo | TxID", robots: { index: false, follow: false } }
 export const dynamic = "force-dynamic"
@@ -26,5 +26,5 @@ export const dynamic = "force-dynamic"
  */
 export default function ConsoleDemoPage() {
   if (process.env.VERCEL_ENV === "production") notFound()
-  return <ConsoleWorkspace />
+  return <ConsoleOverviewPage />
 }

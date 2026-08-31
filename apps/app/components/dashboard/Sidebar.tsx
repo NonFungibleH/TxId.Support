@@ -115,14 +115,22 @@ const TOKEN_GROUPS: NavGroup[] = [
 ]
 
 
-const CONSOLE_GROUPS: NavGroup[] = [
-  {
-    label: "",
-    items: [{ href: "/console", label: "Find a customer", icon: Search }],
-  },
+// Mirrors the support product's grouping (Overview at the top, then Monitor,
+// then Account) so a customer with both moves between them without relearning
+// where anything is. Only the destinations differ.
+// Mirrors the support product's grouping (Overview, then Monitor, then
+// Account) so a customer with both moves between them without relearning where
+// anything is. Derived from a base path so the unauthenticated review copy at
+// /console-demo cannot drift from the real one.
+const consoleGroups = (base: string): NavGroup[] => [
+  { items: [{ href: base, label: "Overview", icon: LayoutDashboard }] },
   {
     label: "Monitor",
-    items: [{ href: "/console/queue", label: "What is failing", icon: BarChart3 }],
+    items: [
+      { href: `${base}/cases`, label: "Find a customer", icon: Search },
+      { href: `${base}/queue`, label: "What is failing", icon: Ticket },
+      { href: `${base}/analytics`, label: "Analytics", icon: BarChart3 },
+    ],
   },
   {
     label: "Account",
@@ -137,7 +145,7 @@ interface SidebarProps {
    * with both should feel they are in one product with two sections, not two
    * products that happen to share a login.
    */
-  product?: "support" | "console"
+  product?: "support" | "console" | "console-demo"
   mode?: string
   /** A beta programme is configured. Reveals its tab; hidden otherwise. */
   beta?: boolean
@@ -155,7 +163,13 @@ export function Sidebar({ product = "support", mode = "support", beta = false, c
   // it on: that would be a switch you can only reach after flipping it. The
   // choice lives on Overview, which every project sees.
   const base =
-    product === "console" ? CONSOLE_GROUPS : mode === "token" ? TOKEN_GROUPS : SUPPORT_GROUPS
+    product === "console"
+      ? consoleGroups("/console")
+      : product === "console-demo"
+        ? consoleGroups("/console-demo")
+        : mode === "token"
+          ? TOKEN_GROUPS
+          : SUPPORT_GROUPS
   const betaFiltered = beta
     ? base
     : base.map(g => ({ ...g, items: g.items.filter(i => i.href !== "/dashboard/beta") }))

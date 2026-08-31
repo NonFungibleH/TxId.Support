@@ -8,7 +8,7 @@ import type { Capability } from "@/lib/roles"
 interface MobileShellProps {
   orgName: string
   /** Which product's nav to show. Shell, header, footer and theme are shared. */
-  product?: "support" | "console"
+  product?: "support" | "console" | "console-demo"
   mode: string
   beta?: boolean
   caps?: Capability[]

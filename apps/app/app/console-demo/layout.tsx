@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic"
 export default function ConsoleDemoLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-screen flex-col bg-background">
-      <MobileShell orgName="Demo workspace" product="console" mode="support" />
+      <MobileShell orgName="Demo workspace" product="console-demo" mode="support" />
       <main className="mt-14 flex-1 p-4 pb-20 md:ml-60 md:p-6 md:pb-20">
         <div className="mx-auto max-w-5xl">{children}</div>
       </main>
