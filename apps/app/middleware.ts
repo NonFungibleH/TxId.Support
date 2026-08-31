@@ -14,6 +14,11 @@ const isPublicRoute = createRouteMatcher([
   "/sign-up(.*)",
   "/widget(.*)",
   "/preview(.*)",
+  // Fixtures-only Console review page. Public ONLY because the Preview
+  // environment runs production Clerk keys, which are locked to txid.support,
+  // so authenticated pages render blank on a *.vercel.app host. The page itself
+  // 404s in production and reads fixtures, never the database.
+  "/console/demo(.*)",
   "/api/chat(.*)",
   "/api/check(.*)",
   "/api/widget-config(.*)",
