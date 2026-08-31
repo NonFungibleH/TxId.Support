@@ -2,6 +2,7 @@ import { createServiceClient } from "@/lib/supabase/server"
 import { rateLimit } from "@/lib/rate-limit"
 import { log } from "@/lib/logger"
 import { resolveByHash } from "@/lib/resolution/gather"
+import { recordResolution } from "@/lib/resolution/record"
 import type { Intent } from "@/lib/resolution/types"
 
 /**
@@ -111,6 +112,15 @@ export async function POST(request: Request) {
       ...(intentMet === undefined ? {} : { intentMet }),
       ...(offchain ? { offchainState: offchain } : {}),
       ...(watched ? { watchedContracts: watched } : {}),
+    })
+
+    // Deliberately not awaited: the caller gets their answer at the same speed
+    // whether or not the stats write lands, and recordResolution never throws.
+    void recordResolution(resolution, {
+      projectId: project.id,
+      source: "api",
+      ...(chain ? { chain } : {}),
+      txHash: tx,
     })
 
     log.info("API resolve", {

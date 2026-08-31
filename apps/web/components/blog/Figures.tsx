@@ -3,15 +3,15 @@
 // container. Add one by giving it a `kind` and a case in FIGURES. Text is kept
 // apostrophe-free and short so it never overflows its box or trips lint.
 
-const ACCENT = "#6366f1"
+const ACCENT = "#4b47e9"
 const DANGER = "#ef4444"
 const SUCCESS = "#34d399"
 const SURFACE = "var(--bg-surface)"
 const BORDER = "var(--border)"
 const MUTED = "var(--text-muted)"
 const WHITE = "#ffffff"
-const ACCENT_SOFT = "rgba(99,102,241,0.08)"
-const ACCENT_CHIP = "rgba(99,102,241,0.14)"
+const ACCENT_SOFT = "rgba(75, 71, 233,0.08)"
+const ACCENT_CHIP = "rgba(75, 71, 233,0.14)"
 
 /** Small down arrow whose tip is at (x, y). */
 function ADown({ x, y }: { x: number; y: number }) {
@@ -347,7 +347,7 @@ function CaseRecord() {
         </g>
       ))}
 
-      <rect x="40" y="316" width="560" height="34" rx="9" fill="rgba(99,102,241,0.06)" stroke={ACCENT} strokeOpacity="0.35" />
+      <rect x="40" y="316" width="560" height="34" rx="9" fill="rgba(75, 71, 233,0.06)" stroke={ACCENT} strokeOpacity="0.35" />
       <text x="56" y="337" fill={MUTED} fontSize="11.5">Append-only in the database. Deletion is refused unless erasure is requested, and it leaves a tombstone.</text>
     </Svg>
   )

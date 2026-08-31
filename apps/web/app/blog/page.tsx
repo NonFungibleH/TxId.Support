@@ -17,15 +17,15 @@ export const metadata: Metadata = {
 
 // Fallback background behind the hero SVG (shown only if a variant has no image).
 const heroGradients: Record<string, string> = {
-  "discord-scam": "linear-gradient(135deg, #ef4444, #6366f1)",
-  "ticket-reduction": "linear-gradient(135deg, #10b981, #6366f1)",
-  "docs-qa": "linear-gradient(135deg, #6366f1, #8b5cf6)",
+  "discord-scam": "linear-gradient(135deg, #ef4444, #4b47e9)",
+  "ticket-reduction": "linear-gradient(135deg, #10b981, #4b47e9)",
+  "docs-qa": "linear-gradient(135deg, #4b47e9, #2a78b0)",
   "wallet-vs-generic": "linear-gradient(135deg, #10b981, #06b6d4)",
-  "on-chain-data": "linear-gradient(135deg, #6366f1, #06b6d4)",
-  "telegram-community-support": "linear-gradient(135deg, #0088cc, #6366f1)",
-  "evaluate": "linear-gradient(135deg, #6366f1, #10b981)",
-  "agentic": "linear-gradient(135deg, #8b5cf6, #6366f1)",
-  "gas": "linear-gradient(135deg, #6366f1, #ef4444)",
+  "on-chain-data": "linear-gradient(135deg, #4b47e9, #06b6d4)",
+  "telegram-community-support": "linear-gradient(135deg, #0088cc, #4b47e9)",
+  "evaluate": "linear-gradient(135deg, #4b47e9, #10b981)",
+  "agentic": "linear-gradient(135deg, #2a78b0, #4b47e9)",
+  "gas": "linear-gradient(135deg, #4b47e9, #ef4444)",
   "revert": "linear-gradient(135deg, #ef4444, #10b981)",
 }
 
@@ -104,7 +104,7 @@ export default function BlogPage({
                       aria-hidden="true"
                       className="relative w-full overflow-hidden"
                       style={{
-                        background: heroGradients[post.heroVariant] ?? "linear-gradient(135deg, #6366f1, #4f46e5)",
+                        background: heroGradients[post.heroVariant] ?? "linear-gradient(135deg, #4b47e9, #3734d2)",
                       }}
                     >
                       <PostHeroImage variant={post.heroVariant} className="[&>svg]:block [&>svg]:w-full" />

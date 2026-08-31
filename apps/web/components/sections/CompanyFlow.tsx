@@ -96,7 +96,7 @@ export function CompanyFlow() {
                 className="absolute -top-[9px] -ml-[9px] transition-all ease-in-out"
                 style={{ left: `${beamPct}%`, transitionDuration: `${STEP_MS * 0.6}ms` }}
               >
-                <span className="flex w-[18px] h-[18px] items-center justify-center rounded-full bg-accent shadow-[0_0_18px_5px_rgba(99,102,241,0.55)]">
+                <span className="flex w-[18px] h-[18px] items-center justify-center rounded-full bg-accent shadow-[0_0_18px_5px_rgba(75, 71, 233,0.55)]">
                   <FileText className="w-2.5 h-2.5 text-white" />
                 </span>
               </div>
@@ -112,7 +112,7 @@ export function CompanyFlow() {
                 className="absolute -left-[9px] -mt-[9px] transition-all ease-in-out"
                 style={{ top: `${beamPct}%`, transitionDuration: `${STEP_MS * 0.6}ms` }}
               >
-                <span className="flex w-[18px] h-[18px] items-center justify-center rounded-full bg-accent shadow-[0_0_18px_5px_rgba(99,102,241,0.55)]">
+                <span className="flex w-[18px] h-[18px] items-center justify-center rounded-full bg-accent shadow-[0_0_18px_5px_rgba(75, 71, 233,0.55)]">
                   <FileText className="w-2.5 h-2.5 text-white" />
                 </span>
               </div>
@@ -131,7 +131,7 @@ export function CompanyFlow() {
                     className={clsx(
                       "relative text-left rounded-xl border p-4 pl-14 md:pl-4 md:pt-12 transition-all duration-500 cursor-pointer",
                       isActive
-                        ? "border-accent/60 bg-accent/[0.07] shadow-[0_0_32px_-8px_rgba(99,102,241,0.45)] md:-translate-y-1"
+                        ? "border-accent/60 bg-accent/[0.07] shadow-[0_0_32px_-8px_rgba(75, 71, 233,0.45)] md:-translate-y-1"
                         : isPast
                           ? "border-[var(--border)] bg-[var(--bg-surface)] opacity-90"
                           : "border-[var(--border)] bg-[var(--bg-surface)] opacity-60",
@@ -177,7 +177,7 @@ export function CompanyFlow() {
         <FadeIn delay={0.2}>
           <div className="text-center mt-10">
             <Link
-              href="/how-it-works"
+              href="/support"
               className="inline-flex items-center gap-2 text-sm font-medium text-accent hover:underline"
             >
               See the full journey, stage by stage

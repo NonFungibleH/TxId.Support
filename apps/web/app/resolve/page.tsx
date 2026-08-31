@@ -4,6 +4,8 @@ import { Footer } from "@/components/layout/Footer";
 import { FadeIn } from "@/components/ui/FadeIn";
 import { Button } from "@/components/ui/Button";
 import { ApiCallMockup } from "@/components/sections/ApiCallMockup";
+import { FlowRail } from "@/components/sections/FlowRail";
+import { ProductStage as Stage } from "@/components/sections/ProductStage";
 import {
   ArrowRight,
   Braces,
@@ -24,7 +26,7 @@ export const metadata: Metadata = {
   title: "API & MCP | TxID",
   description:
     "Access the same investigation engine that powers TxID through API and MCP. Give your products, support teams, and AI agents the ability to understand transactions, explain failures, and deliver evidence-backed answers from live blockchain data.",
-  alternates: { canonical: "/api" },
+  alternates: { canonical: "/resolve" },
 };
 
 const EXAMPLE_REQUEST = `POST /api/v1/diagnose
@@ -178,7 +180,7 @@ export default function PlatformPage() {
             className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] rounded-full pointer-events-none"
             style={{
               background:
-                "radial-gradient(ellipse at center, rgba(99, 102, 241, 0.15) 0%, transparent 70%)",
+                "radial-gradient(ellipse at center, rgba(75, 71, 233, 0.15) 0%, transparent 70%)",
             }}
           />
           <div className="max-w-6xl mx-auto px-6 pt-10 pb-16 relative">
@@ -227,6 +229,100 @@ export default function PlatformPage() {
             same diagnosis reaches four places, so the four places should be
             visible, not described in a sentence set in the middle of an empty
             box. */}
+        {/* The transaction's story, told as the reader scrolls, mirroring
+            /support and /console so the three products read as one family. */}
+        <FlowRail>
+          <Stage
+            n="01"
+            who="Your product"
+            title="A transaction fails in front of your user"
+            paras={[
+              "They see a rejection, a spinner that never resolves, or a hash and nothing else. Your app knows the transaction failed. It does not know why, and neither does the person looking at it.",
+              "You have the hash. That is all Resolve needs.",
+            ]}
+            visualLabel="What your app has"
+          >
+            <div className="rounded-xl border border-[var(--border)] bg-surface p-5 font-mono text-xs">
+              <p className="text-[var(--red)] mb-2">Transaction failed</p>
+              <p className="text-subtle break-all">0x62505e6a1540197000c94ee12e816e1f2192893ea0dae80475d56b84213c110f</p>
+              <p className="text-subtle mt-3">status: 0 · gas used: 176</p>
+            </div>
+          </Stage>
+
+          <Stage
+            n="02"
+            who="TxID Resolve"
+            title="One call, and the chain is read for you"
+            flip
+            paras={[
+              "Resolve fetches the transaction, replays it at its own block, decodes whatever the contract or module actually returned, and establishes where the funds ended up.",
+              "Move aborts, Solidity reverts, panics, expired transactions and sponsored fees are all handled by the same call. You do not branch per chain.",
+            ]}
+            emphasis="When a reason cannot be read, it says so. It never presents a guess as a finding."
+            visualLabel="The call"
+          >
+            <ApiCallMockup />
+          </Stage>
+
+          <Stage
+            n="03"
+            who="The response"
+            title="The same object, every time"
+            paras={[
+              "One resolution: what happened, whether funds moved, who has to act next, and the evidence each of those rests on. Codes are chain-agnostic and name the condition, never the fix.",
+              "Because it is the same shape for every chain, your interface is written once.",
+            ]}
+            visualLabel="What comes back"
+          >
+            <div className="rounded-xl border border-[var(--border-accent)] bg-elevated p-5">
+              <div className="flex items-center justify-between mb-3">
+                <span className="font-mono text-[10px] tracking-widest text-muted">RESOLUTION</span>
+                <span className="font-mono text-[10px] text-accent bg-accent-muted px-1.5 py-0.5 rounded">7201</span>
+              </div>
+              <div className="space-y-2">
+                {[
+                  ["category", "SETTLEMENT"],
+                  ["status", "failed"],
+                  ["custody", "funds_with_user"],
+                  ["next_action_owner", "none"],
+                  ["basis", "verified"],
+                ].map(([k, v]) => (
+                  <div key={k} className="flex items-baseline justify-between gap-3">
+                    <span className="font-mono text-[11px] text-subtle">{k}</span>
+                    <span className={`text-xs font-medium ${k === "basis" ? "text-teal" : "text-white"}`}>{v}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </Stage>
+
+          <Stage
+            n="04"
+            who="You"
+            title="You decide where the answer appears"
+            flip
+            paras={[
+              "In the error screen itself, in a toast, in the email your system already sends, or inside a support bot you already run. Resolve returns the answer; it does not insist on owning the interface.",
+              "Every call is recorded with the chain state it was read at, so the answer stays checkable long after the moment has passed.",
+            ]}
+            visualLabel="Where it goes"
+          >
+            <div className="grid grid-cols-2 gap-3">
+              {[
+                ["Your error screen", "The user never leaves the flow"],
+                ["Your support bot", "It gains chain data it never had"],
+                ["Your emails", "The follow-up explains itself"],
+                ["Your dashboards", "Failures become countable"],
+              ].map(([t, d]) => (
+                <div key={t} className="rounded-lg border border-[var(--border)] bg-surface p-4">
+                  <p className="text-xs font-semibold text-white mb-1">{t}</p>
+                  <p className="text-[11px] text-muted leading-relaxed">{d}</p>
+                </div>
+              ))}
+            </div>
+          </Stage>
+        </FlowRail>
+
         <section className="pb-4">
           <div className="max-w-6xl mx-auto px-6">
             <FadeIn>
