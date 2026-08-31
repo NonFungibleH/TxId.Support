@@ -20,6 +20,14 @@ export interface Interaction {
   /** Present only on failures. */
   resolution?: {
     code: string
+    /** When TxID read the chain and produced this answer. Distinct from `at`,
+     *  which is when the transaction itself happened: "what did we know and
+     *  when" is a different question from "when did it occur". */
+    diagnosedAt: string
+    /** Access events on this case, oldest first. In production these come from
+     *  the append-only case_access_log; fixtures carry plausible ones so the
+     *  trail the buyer is paying for is visible in the demo. */
+    trail: { at: string; actor: string; event: string }[]
     category: string
     custody: string
     nextActionOwner: string
@@ -60,6 +68,12 @@ export const CUSTOMERS: Customer[] = [
         hash: "0x62505e6a1540197000c94ee12e816e1f2192893ea0dae80475d56b84213c110f",
         resolution: {
           code: "7201",
+          diagnosedAt: "2026-08-26T14:13:04Z",
+          trail: [
+            { at: "2026-08-27T09:14:02Z", actor: "D. Whitmore (support)", event: "Case opened" },
+            { at: "2026-08-27T09:15:41Z", actor: "D. Whitmore (support)", event: "Reply copied, SHA-256 recorded" },
+            { at: "2026-08-27T09:15:44Z", actor: "System", event: "Resolution written to Intercom ticket #4102" },
+          ],
           category: "SETTLEMENT",
           custody: "Funds with user",
           nextActionOwner: "No one",
@@ -100,6 +114,11 @@ export const CUSTOMERS: Customer[] = [
         hash: "0x4e430d180f42644ca2d61063ef58020db361da2d405cc805a9d7cdde274b1cdd",
         resolution: {
           code: "2103",
+          diagnosedAt: "2026-08-26T20:23:19Z",
+          trail: [
+            { at: "2026-08-27T08:02:10Z", actor: "R. Osei (support)", event: "Case opened" },
+            { at: "2026-08-27T08:03:55Z", actor: "R. Osei (support)", event: "Reply copied, SHA-256 recorded" },
+          ],
           category: "BALANCE",
           custody: "Funds with user",
           nextActionOwner: "User",
@@ -138,6 +157,11 @@ export const CUSTOMERS: Customer[] = [
         hash: "0x5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f",
         resolution: {
           code: "3102",
+          diagnosedAt: "2026-08-25T08:55:30Z",
+          trail: [
+            { at: "2026-08-25T09:10:12Z", actor: "D. Whitmore (support)", event: "Case opened" },
+            { at: "2026-08-25T09:11:03Z", actor: "System", event: "Resolution written to Intercom ticket #4098" },
+          ],
           category: "MEMPOOL",
           custody: "Funds with user",
           nextActionOwner: "User",

@@ -21,7 +21,9 @@ const short = (s: string) => `${s.slice(0, 10)}…${s.slice(-6)}`
  * Leads with the triage question, who acts next, and states BASIS rather than
  * a confidence percentage: a number invites an argument it cannot win.
  */
-export function ResolutionPanel({ interaction }: { interaction: Interaction }) {
+export function ResolutionPanel({
+  interaction, caseId, audit = false,
+}: { interaction: Interaction; caseId?: string; audit?: boolean }) {
   const [copied, setCopied] = useState(false)
   const r = interaction.resolution
   if (!r) return null
@@ -31,6 +33,15 @@ export function ResolutionPanel({ interaction }: { interaction: Interaction }) {
       await navigator.clipboard.writeText(text)
       setCopied(true)
       setTimeout(() => setCopied(false), 1800)
+      // The moment our words become the company's words to their customer.
+      // Best-effort: the copy already succeeded, and the demo copy never logs.
+      if (audit && caseId) {
+        fetch("/api/console/audit", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ action: "reply", entity: `case:${caseId}`, characters: text.length }),
+        }).catch(() => {})
+      }
     } catch { /* clipboard blocked; the text is on screen and selectable */ }
   }
 

@@ -1,7 +1,7 @@
 import { createServiceClient } from "@/lib/supabase/server"
 
 /**
- * Record that someone read a case record.
+ * Record that someone read a case record, exported it, or copied the reply.
  *
  * "Who has seen this client's data?" is one of the first questions an
  * institutional reviewer asks, and an answer that depends on server logs
@@ -15,7 +15,7 @@ import { createServiceClient } from "@/lib/supabase/server"
 export async function recordCaseAccess(params: {
   projectId: string
   actor: string
-  action: "view" | "export"
+  action: "view" | "export" | "reply"
   conversationId?: string
   detail?: Record<string, unknown>
 }): Promise<void> {

@@ -1,5 +1,8 @@
 import Link from "next/link"
+import { createHash } from "crypto"
 import { ResolutionPanel } from "./ResolutionPanel"
+import { CaseAuditTrail } from "./CaseAuditTrail"
+import { ExportCaseButton } from "./ExportCaseButton"
 import type { Customer, Interaction } from "@/lib/console/fixtures"
 import { ArrowLeft } from "lucide-react"
 
@@ -11,6 +14,25 @@ import { ArrowLeft } from "lucide-react"
 export function CaseDetail({
   base, customer, interaction,
 }: { base: string; customer: Customer; interaction: Interaction }) {
+  const audit = base === "/console"
+  const r = interaction.resolution
+  const replySha = r ? createHash("sha256").update(r.reply).digest("hex") : ""
+  const exportPayload = r
+    ? {
+        case: interaction.id,
+        customer: { id: customer.id, label: customer.label, email: customer.email, wallet: customer.wallet },
+        transaction: { hash: interaction.hash, chain: interaction.chain, occurred_at_utc: new Date(interaction.at).toISOString() },
+        resolution: {
+          code: r.code, category: r.category, custody: r.custody, next_action_owner: r.nextActionOwner,
+          retryable: r.retryable, basis: r.basis, summary: r.summary, detail: r.detail,
+        },
+        reply: { text: r.reply, sha256: replySha },
+        evidence: r.evidence,
+        observed_at_utc: new Date(r.diagnosedAt).toISOString(),
+        access_trail: r.trail.map(t => ({ at_utc: new Date(t.at).toISOString(), actor: t.actor, event: t.event })),
+        record: "Append-only. Chain references are independently verifiable.",
+      }
+    : null
   return (
     <div className="space-y-6">
       <div>
@@ -24,9 +46,17 @@ export function CaseDetail({
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
-        <ResolutionPanel interaction={interaction} />
+        <ResolutionPanel interaction={interaction} caseId={interaction.id} audit={audit} />
 
         <aside className="space-y-4 lg:sticky lg:top-20 lg:self-start">
+          {exportPayload && (
+            <ExportCaseButton
+              filename={`txid-case-${interaction.id}.json`}
+              payload={exportPayload}
+              caseId={interaction.id}
+              audit={audit}
+            />
+          )}
           <div className="rounded-xl border bg-card p-4">
             <p className="text-[11px] uppercase tracking-wider text-muted-foreground mb-2">Customer</p>
             <Link href={`${base}/customers/${customer.id}`} className="text-sm font-medium text-foreground hover:text-primary transition-colors">
@@ -39,6 +69,7 @@ export function CaseDetail({
               Full history
             </Link>
           </div>
+          <CaseAuditTrail interaction={interaction} replySha={replySha} />
         </aside>
       </div>
     </div>
