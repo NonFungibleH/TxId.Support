@@ -51,7 +51,7 @@ export function ConsoleOverview({ base = "/console" }: { base?: string }) {
             {o.topCauses.map(c => (
               <Link
                 key={c.code}
-                href={`${base}/queue`}
+                href={`${base}/inbox?cause=${c.code}`}
                 className="flex items-start justify-between gap-3 rounded-lg border p-3 hover:border-primary/40 transition-colors"
               >
                 <div className="min-w-0">
@@ -64,8 +64,8 @@ export function ConsoleOverview({ base = "/console" }: { base?: string }) {
                 <span className="text-sm font-semibold tabular-nums shrink-0">{c.affected}</span>
               </Link>
             ))}
-            <Link href={`${base}/queue`} className="inline-flex items-center gap-1 text-sm text-primary hover:underline pt-1">
-              See everything failing <ArrowRight className="size-3.5" />
+            <Link href={`${base}/inbox`} className="inline-flex items-center gap-1 text-sm text-primary hover:underline pt-1">
+              Open the inbox <ArrowRight className="size-3.5" />
             </Link>
           </CardContent>
         </Card>
@@ -78,7 +78,7 @@ export function ConsoleOverview({ base = "/console" }: { base?: string }) {
             {o.recent.map(r => (
               <Link
                 key={r.id}
-                href={`${base}/cases`}
+                href={`${base}/inbox/${r.id}`}
                 className="flex items-center justify-between gap-3 rounded-lg border p-3 hover:border-primary/40 transition-colors"
               >
                 <div className="min-w-0">
@@ -90,8 +90,8 @@ export function ConsoleOverview({ base = "/console" }: { base?: string }) {
                 <span className={`text-xs capitalize shrink-0 ${OUTCOME_CLS[r.outcome]}`}>{r.outcome}</span>
               </Link>
             ))}
-            <Link href={`${base}/cases`} className="inline-flex items-center gap-1 text-sm text-primary hover:underline pt-1">
-              <Search className="size-3.5" /> Find a customer
+            <Link href={`${base}/customers`} className="inline-flex items-center gap-1 text-sm text-primary hover:underline pt-1">
+              <Search className="size-3.5" /> All customers
             </Link>
           </CardContent>
         </Card>

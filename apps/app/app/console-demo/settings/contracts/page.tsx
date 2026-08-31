@@ -5,13 +5,9 @@ import { FileCode2 } from "lucide-react"
 export const dynamic = "force-dynamic"
 
 /**
- * The real /console/contracts re-exports the support product's Smart Contracts
- * page, deliberately, so a customer with both products declares their contracts
- * once. That page loads the project from the session, so it cannot render
- * unauthenticated and the review copy stands in for it here.
- *
- * Saying so is better than a blank page: the point of the shared page is the
- * thing worth communicating.
+ * The real page re-exports the support product's Smart Contracts page, which
+ * reads the project from the session and so cannot render unauthenticated.
+ * Saying that is better than a blank page: the shared page IS the point.
  */
 export default function DemoContractsPage() {
   if (process.env.VERCEL_ENV === "production") notFound()

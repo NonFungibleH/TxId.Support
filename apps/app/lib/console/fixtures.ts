@@ -195,3 +195,81 @@ export function findCustomer(query: string): Customer | null {
     ) ?? null
   )
 }
+
+/**
+ * The entity model the CRM structure rests on.
+ *
+ * A CASE is one failure or stuck transaction needing attention: the atomic
+ * unit a support tool works in, with its own URL. Derived from the fixtures
+ * rather than stored separately so the two cannot disagree; when the
+ * resolutions table replaces fixtures, each stored resolution IS a case row
+ * and this file becomes a query.
+ */
+export interface CaseRow {
+  id: string
+  customerId: string
+  customerLabel: string
+  customerEmail: string
+  intent: string
+  at: string
+  outcome: Outcome
+  chain: string
+  code: string
+  category: string
+  basis: Basis
+  fundsAtRisk: boolean
+}
+
+const FUNDS_AT_RISK = new Set(CAUSES.filter(c => c.fundsAtRisk).map(c => c.code))
+
+export function allCases(): CaseRow[] {
+  return CUSTOMERS.flatMap(c =>
+    c.interactions
+      .filter(i => i.resolution)
+      .map(i => ({
+        id: i.id,
+        customerId: c.id,
+        customerLabel: c.label,
+        customerEmail: c.email,
+        intent: i.intent,
+        at: i.at,
+        outcome: i.outcome,
+        chain: i.chain,
+        code: i.resolution!.code,
+        category: i.resolution!.category,
+        basis: i.resolution!.basis,
+        fundsAtRisk: FUNDS_AT_RISK.has(i.resolution!.code),
+      })),
+  ).sort((a, b) => +new Date(b.at) - +new Date(a.at))
+}
+
+export function caseById(id: string): { customer: Customer; interaction: Interaction } | null {
+  for (const customer of CUSTOMERS) {
+    const interaction = customer.interactions.find(i => i.id === id && i.resolution)
+    if (interaction) return { customer, interaction }
+  }
+  return null
+}
+
+export function customerById(id: string): Customer | null {
+  return CUSTOMERS.find(c => c.id === id) ?? null
+}
+
+/**
+ * Where an exact search term should LAND, as a base-relative path.
+ * An email, wallet, id or hash that identifies one thing goes straight to that
+ * thing; anything else falls back to the filtered customer list.
+ */
+export function resolveSearchTarget(q: string): string | null {
+  const query = q.trim().toLowerCase()
+  if (!query) return null
+  const exact = CUSTOMERS.find(
+    c => c.email.toLowerCase() === query || c.wallet.toLowerCase() === query || c.id.toLowerCase() === query,
+  )
+  if (exact) return `/customers/${exact.id}`
+  for (const c of CUSTOMERS) {
+    const hit = c.interactions.find(i => i.hash.toLowerCase() === query)
+    if (hit) return hit.resolution ? `/inbox/${hit.id}` : `/customers/${c.id}`
+  }
+  return null
+}

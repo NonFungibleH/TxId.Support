@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation"
 import {
   LayoutDashboard, Paintbrush, FileCode2, BookOpen,
   LayoutList, Code2, BarChart3, Globe, MessageSquare, MessageCircle, Eye, Ticket, MessagesSquare,
-  Send, Wallet, Users, FlaskConical, Search, Plug,
+  Send, Wallet, Users, FlaskConical, Inbox as InboxIcon, Settings as SettingsIcon,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { Capability } from "@/lib/roles"
@@ -125,30 +125,22 @@ const TOKEN_GROUPS: NavGroup[] = [
 const consoleGroups = (base: string): NavGroup[] => [
   { items: [{ href: base, label: "Overview", icon: LayoutDashboard }] },
   {
-    label: "Setup",
+    label: "Work",
     items: [
-      // Points at the SAME watched-contract config the support product edits.
-      // A customer with both must not declare their contracts twice.
-      { href: `${base}/contracts`, label: "Smart Contracts", icon: FileCode2 },
-      { href: `${base}/identity`, label: "Customer identity", icon: Users },
-      { href: `${base}/crm`, label: "CRM", icon: Plug },
+      { href: `${base}/inbox`, label: "Inbox", icon: InboxIcon },
+      { href: `${base}/customers`, label: "Customers", icon: Users },
     ],
-  },
-  {
-    label: "Verify",
-    items: [{ href: `${base}/verify`, label: "Check it works", icon: Eye }],
   },
   {
     label: "Monitor",
-    items: [
-      { href: `${base}/cases`, label: "Find a customer", icon: Search },
-      { href: `${base}/queue`, label: "What is failing", icon: Ticket },
-      { href: `${base}/analytics`, label: "Analytics", icon: BarChart3 },
-    ],
+    items: [{ href: `${base}/analytics`, label: "Analytics", icon: BarChart3 }],
   },
   {
     label: "Account",
-    items: [{ href: "/dashboard/team", label: "Team & access", icon: Users }],
+    items: [
+      { href: `${base}/settings`, label: "Settings", icon: SettingsIcon },
+      { href: "/dashboard/team", label: "Team & access", icon: Users },
+    ],
   },
 ]
 

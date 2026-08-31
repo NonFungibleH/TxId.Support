@@ -3,6 +3,7 @@ import { resolveOrg } from "@/lib/clerk-org"
 import { OrgSyncGuard } from "@/components/dashboard/OrgSyncGuard"
 import { MobileShell } from "@/components/dashboard/MobileShell"
 import { DashboardFooter } from "@/components/dashboard/DashboardFooter"
+import { ConsoleSearch } from "@/components/console/ConsoleSearch"
 import { getProject } from "@/lib/actions/project"
 import { isCurrentUserAdmin } from "@/lib/admin-auth"
 import { ensureCurrentUserRole, currentActor } from "@/lib/roles-server"
@@ -42,7 +43,10 @@ export default async function ConsoleLayout({ children }: { children: React.Reac
       <OrgSyncGuard serverOrgId={orgId ?? null} />
       <MobileShell orgName={org.name} product="console" mode="support" caps={caps} />
       <main className="mt-14 flex-1 p-4 pb-20 md:ml-60 md:p-6 md:pb-20">
-        <div className="mx-auto max-w-5xl">{children}</div>
+        <div className="mx-auto max-w-5xl">
+          <ConsoleSearch base="/console" />
+          {children}
+        </div>
       </main>
       <DashboardFooter plan={plan} isAdmin={isAdmin} orgName={org.name} webUrl={webUrl} />
     </div>

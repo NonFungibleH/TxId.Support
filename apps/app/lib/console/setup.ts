@@ -65,21 +65,21 @@ export function setupState(s: ConsoleSetup, base = "/console"): SetupState {
     {
       id: "contracts",
       label: "Add your contracts",
-      href: `${base}/contracts`,
+      href: `${base}/settings/contracts`,
       why: "So the Console shows a customer's activity with you, and nothing else they do on-chain.",
       done: s.contracts > 0,
     },
     {
       id: "identity",
       label: "Connect customers to wallets",
-      href: `${base}/identity`,
+      href: `${base}/settings/identity`,
       why: "Your agents have an email address, never a transaction hash. This is what lets them search for a person.",
       done: s.identitySource !== "none",
     },
     {
       id: "crm",
       label: "Connect your CRM",
-      href: `${base}/crm`,
+      href: `${base}/settings/crm`,
       why: "Answers are written back onto the ticket your team already has open, so nobody keeps a second queue.",
       done: s.crm !== "none",
       optional: true,
@@ -87,7 +87,7 @@ export function setupState(s: ConsoleSetup, base = "/console"): SetupState {
     {
       id: "verify",
       label: "Check it works",
-      href: `${base}/verify`,
+      href: `${base}/settings/verify`,
       why: "Look up one real customer and confirm the answer is right before your team depends on it.",
       done: Boolean(s.verifiedLookupAt),
     },
