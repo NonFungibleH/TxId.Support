@@ -4,7 +4,16 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useTheme } from "next-themes"
 import { Moon, Sun, ShieldCheck, Zap } from "lucide-react"
-import { OrganizationSwitcher } from "@clerk/nextjs"
+import dynamic from "next/dynamic"
+
+// Loaded only when it is actually rendered, which is admins only. A top-level
+// import pulls Clerk's client bundle into every footer, and if Clerk cannot
+// initialise (wrong domain for the key, for instance) that import takes the
+// whole page down for people who were never going to see the control.
+const OrganizationSwitcher = dynamic(
+  () => import("@clerk/nextjs").then(m => m.OrganizationSwitcher),
+  { ssr: false },
+)
 import { cn } from "@/lib/utils"
 
 const PLAN_BADGE: Record<string, { label: string; cls: string }> = {

@@ -14,6 +14,10 @@ export const dynamic = "force-dynamic"
  * development Clerk keys scoped to Preview; until that lands, no apps/app branch
  * preview is reviewable at all.
  *
+ * It sits BESIDE /console rather than under it: a child route inherits its
+ * parent layout, so /console/demo ran the authenticated console layout and
+ * threw "Unauthenticated" from getProject before its own layout was reached.
+ *
  * Two properties keep this safe as the Console grows real data:
  *   1. It 404s in production, checked below, not merely hidden by navigation.
  *   2. It renders ConsoleWorkspace, which reads FIXTURES. It has no data access

@@ -18,7 +18,7 @@ const isPublicRoute = createRouteMatcher([
   // environment runs production Clerk keys, which are locked to txid.support,
   // so authenticated pages render blank on a *.vercel.app host. The page itself
   // 404s in production and reads fixtures, never the database.
-  "/console/demo(.*)",
+  "/console-demo(.*)",
   "/api/chat(.*)",
   "/api/check(.*)",
   "/api/widget-config(.*)",
