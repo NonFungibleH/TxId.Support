@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react"
 import { CUSTOMERS, findCustomer, type Customer, type Interaction } from "@/lib/console/fixtures"
-import { Search, Copy, Check, ChevronRight, ExternalLink } from "lucide-react"
+import { Search, Copy, Check, ExternalLink } from "lucide-react"
 
 /**
  * The Console workspace: one screen, search to sendable answer.
@@ -13,9 +13,9 @@ import { Search, Copy, Check, ChevronRight, ExternalLink } from "lucide-react"
  */
 
 const OUTCOME = {
-  succeeded: { label: "Succeeded", cls: "text-emerald-300 bg-emerald-500/10 border-emerald-500/20" },
-  failed: { label: "Failed", cls: "text-rose-300 bg-rose-500/10 border-rose-500/20" },
-  pending: { label: "Pending", cls: "text-amber-300 bg-amber-500/10 border-amber-500/20" },
+  succeeded: { label: "Succeeded", cls: "text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border-emerald-500/25" },
+  failed: { label: "Failed", cls: "text-rose-600 dark:text-rose-400 bg-rose-500/10 border-rose-500/25" },
+  pending: { label: "Pending", cls: "text-amber-600 dark:text-amber-400 bg-amber-500/10 border-amber-500/25" },
 } as const
 
 const BASIS_NOTE: Record<string, string> = {
@@ -59,29 +59,25 @@ export function ConsoleWorkspace() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0b0d16] text-slate-100">
-      <header className="border-b border-white/10 px-6 py-4">
-        <div className="mx-auto max-w-6xl flex items-center gap-4">
-          <span className="font-semibold tracking-tight">TxID Console</span>
-          <span className="text-xs text-slate-500 font-mono">demo data</span>
-          <a href="/console/queue" className="ml-auto text-sm text-slate-400 hover:text-white transition-colors inline-flex items-center gap-1">
-            What is failing <ChevronRight className="h-3.5 w-3.5" />
-          </a>
-        </div>
-      </header>
+    <div>
+      <div className="mb-6">
+        <h1 className="text-xl font-semibold tracking-tight">Find a customer</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Start with whatever they gave you: an email, a wallet, or a transaction hash.
+        </p>
+      </div>
 
-      <main className="mx-auto max-w-6xl px-6 py-8">
         <form
           onSubmit={e => { e.preventDefault(); run(query) }}
           className="relative"
         >
-          <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+          <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <input
             value={query}
             onChange={e => setQuery(e.target.value)}
             placeholder="Search an email, wallet address, or transaction hash"
             aria-label="Find a customer"
-            className="w-full rounded-xl border border-white/10 bg-white/[0.03] py-3.5 pl-11 pr-4 text-sm outline-none placeholder:text-slate-500 focus:border-indigo-400/50 focus:ring-2 focus:ring-indigo-400/20"
+            className="w-full rounded-xl border border-border bg-card py-3.5 pl-11 pr-4 text-sm outline-none placeholder:text-muted-foreground focus:border-primary/50 focus:ring-2 focus:ring-primary/20"
           />
         </form>
 
@@ -89,21 +85,21 @@ export function ConsoleWorkspace() {
         {!customer && (
           <div className="mt-10">
             {submitted ? (
-              <p className="text-sm text-slate-400">
-                Nothing found for <span className="font-mono text-slate-300">{submitted}</span>. Try an email address, a wallet, or a transaction hash.
+              <p className="text-sm text-muted-foreground">
+                Nothing found for <span className="font-mono text-foreground">{submitted}</span>. Try an email address, a wallet, or a transaction hash.
               </p>
             ) : (
-              <p className="text-sm text-slate-400">Start with whatever the customer gave you.</p>
+              <p className="text-sm text-muted-foreground">Start with whatever the customer gave you.</p>
             )}
             <div className="mt-4 flex flex-wrap gap-2">
               {CUSTOMERS.map(c => (
                 <button
                   key={c.id}
                   onClick={() => run(c.email)}
-                  className="rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-left text-xs hover:border-indigo-400/40 transition-colors"
+                  className="rounded-lg border border-border bg-card px-3 py-2 text-left text-xs hover:border-primary/40 transition-colors"
                 >
-                  <span className="block text-slate-200">{c.email}</span>
-                  <span className="block text-slate-500">{c.label} · {c.chain}</span>
+                  <span className="block text-foreground">{c.email}</span>
+                  <span className="block text-muted-foreground">{c.label} · {c.chain}</span>
                 </button>
               ))}
             </div>
@@ -117,11 +113,11 @@ export function ConsoleWorkspace() {
             <section>
               <div className="mb-4">
                 <h1 className="text-lg font-semibold">{customer.label}</h1>
-                <p className="text-xs text-slate-400">{customer.email}</p>
-                <p className="mt-1 font-mono text-[11px] text-slate-500 break-all">{customer.wallet}</p>
+                <p className="text-xs text-muted-foreground">{customer.email}</p>
+                <p className="mt-1 font-mono text-[11px] text-muted-foreground break-all">{customer.wallet}</p>
               </div>
 
-              <p className="mb-2 text-[11px] uppercase tracking-wider text-slate-500">
+              <p className="mb-2 text-[11px] uppercase tracking-wider text-muted-foreground">
                 Activity with your contracts
               </p>
               <ul className="space-y-1.5">
@@ -135,14 +131,14 @@ export function ConsoleWorkspace() {
                         aria-current={active}
                         className={[
                           "w-full rounded-lg border px-3.5 py-3 text-left transition-colors",
-                          active ? "border-indigo-400/50 bg-indigo-500/10" : "border-white/10 bg-white/[0.02] hover:border-white/20",
+                          active ? "border-primary/50 bg-primary/10" : "border-border bg-card hover:border-border",
                         ].join(" ")}
                       >
                         <div className="flex items-center justify-between gap-3">
-                          <span className="text-sm text-slate-100">{i.intent}</span>
+                          <span className="text-sm text-foreground">{i.intent}</span>
                           <span className={`shrink-0 rounded border px-1.5 py-0.5 text-[10px] font-medium ${o.cls}`}>{o.label}</span>
                         </div>
-                        <div className="mt-1 flex items-center gap-2 text-[11px] text-slate-500">
+                        <div className="mt-1 flex items-center gap-2 text-[11px] text-muted-foreground">
                           <span>{when(i.at)}</span>
                           <span>·</span>
                           <span>{i.chain}</span>
@@ -159,9 +155,9 @@ export function ConsoleWorkspace() {
               {selected?.resolution ? (
                 <Resolution interaction={selected} copied={copied} onCopy={copyReply} />
               ) : (
-                <div className="rounded-xl border border-white/10 bg-white/[0.02] p-6">
-                  <p className="text-sm text-slate-300">This one worked.</p>
-                  <p className="mt-2 text-xs text-slate-500">
+                <div className="rounded-xl border border-border bg-card p-6">
+                  <p className="text-sm text-foreground">This one worked.</p>
+                  <p className="mt-2 text-xs text-muted-foreground">
                     {selected ? `${selected.intent} completed on ${when(selected.at)}.` : "Pick an interaction."} A customer who cannot see a successful transaction is usually looking at a different wallet, which this page settles in one glance.
                   </p>
                 </div>
@@ -169,7 +165,6 @@ export function ConsoleWorkspace() {
             </section>
           </div>
         )}
-      </main>
     </div>
   )
 }
@@ -179,18 +174,18 @@ function Resolution({
 }: { interaction: Interaction; copied: boolean; onCopy: (t: string) => void }) {
   const r = interaction.resolution!
   return (
-    <div className="rounded-xl border border-indigo-400/25 bg-white/[0.03]">
-      <div className="flex items-center justify-between border-b border-white/10 px-5 py-3">
-        <span className="text-[11px] uppercase tracking-wider text-slate-400">Resolution</span>
-        <span className="rounded bg-indigo-500/15 px-1.5 py-0.5 font-mono text-[11px] text-indigo-300">{r.code}</span>
+    <div className="rounded-xl border border-primary/25 bg-card">
+      <div className="flex items-center justify-between border-b border-border px-5 py-3">
+        <span className="text-[11px] uppercase tracking-wider text-muted-foreground">Resolution</span>
+        <span className="rounded bg-primary/15 px-1.5 py-0.5 font-mono text-[11px] text-primary">{r.code}</span>
       </div>
 
       <div className="px-5 py-4">
-        <p className="text-sm leading-relaxed text-slate-100">{r.summary}</p>
-        <p className="mt-2 text-xs leading-relaxed text-slate-400">{r.detail}</p>
+        <p className="text-sm leading-relaxed text-foreground">{r.summary}</p>
+        <p className="mt-2 text-xs leading-relaxed text-muted-foreground">{r.detail}</p>
 
         {/* The triage question an agent asks first is "is this us or them". */}
-        <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-2.5 border-t border-white/10 pt-4">
+        <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-2.5 border-t border-border pt-4">
           {[
             ["Funds", r.custody],
             ["Who acts next", r.nextActionOwner],
@@ -198,52 +193,52 @@ function Resolution({
             ["Category", r.category],
           ].map(([k, v]) => (
             <div key={k}>
-              <dt className="text-[10px] uppercase tracking-wider text-slate-500">{k}</dt>
-              <dd className="text-xs text-slate-200">{v}</dd>
+              <dt className="text-[10px] uppercase tracking-wider text-muted-foreground">{k}</dt>
+              <dd className="text-xs text-foreground">{v}</dd>
             </div>
           ))}
         </dl>
 
         {/* Basis, never a confidence percentage. A number invites an argument it
             cannot win; naming what we could actually check does not. */}
-        <div className="mt-4 flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.02] px-3 py-2">
-          <span className={`h-1.5 w-1.5 rounded-full ${r.basis === "verified" ? "bg-teal-400" : "bg-amber-400"}`} />
-          <span className="text-[11px] text-slate-300 capitalize">{r.basis}</span>
-          <span className="text-[11px] text-slate-500">· {BASIS_NOTE[r.basis]}</span>
+        <div className="mt-4 flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2">
+          <span className={`h-1.5 w-1.5 rounded-full ${r.basis === "verified" ? "bg-emerald-500" : "bg-amber-500"}`} />
+          <span className="text-[11px] text-foreground capitalize">{r.basis}</span>
+          <span className="text-[11px] text-muted-foreground">· {BASIS_NOTE[r.basis]}</span>
         </div>
       </div>
 
       {/* The highest-value control on the page: the agent's job is replying. */}
-      <div className="border-t border-white/10 px-5 py-4">
+      <div className="border-t border-border px-5 py-4">
         <div className="mb-2 flex items-center justify-between">
-          <span className="text-[11px] uppercase tracking-wider text-slate-400">Reply to the customer</span>
+          <span className="text-[11px] uppercase tracking-wider text-muted-foreground">Reply to the customer</span>
           <button
             onClick={() => onCopy(r.reply)}
-            className="inline-flex items-center gap-1.5 rounded-md border border-white/15 px-2.5 py-1 text-[11px] text-slate-200 hover:border-indigo-400/50 transition-colors"
+            className="inline-flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1 text-[11px] text-foreground hover:border-primary/50 transition-colors"
           >
-            {copied ? <><Check className="h-3 w-3 text-teal-400" /> Copied</> : <><Copy className="h-3 w-3" /> Copy</>}
+            {copied ? <><Check className="h-3 w-3 text-emerald-500" /> Copied</> : <><Copy className="h-3 w-3" /> Copy</>}
           </button>
         </div>
-        <p className="rounded-lg border border-white/10 bg-[#0f1220] px-3.5 py-3 text-xs leading-relaxed text-slate-200">
+        <p className="rounded-lg border border-border bg-muted px-3.5 py-3 text-xs leading-relaxed text-foreground">
           {r.reply}
         </p>
       </div>
 
-      <details className="border-t border-white/10 px-5 py-3">
-        <summary className="cursor-pointer text-[11px] uppercase tracking-wider text-slate-400 hover:text-slate-200">
+      <details className="border-t border-border px-5 py-3">
+        <summary className="cursor-pointer text-[11px] uppercase tracking-wider text-muted-foreground hover:text-foreground">
           Evidence
         </summary>
         <dl className="mt-3 space-y-2">
           {r.evidence.map(e => (
             <div key={e.label} className="flex items-baseline justify-between gap-3">
-              <dt className="text-[11px] text-slate-500">{e.label}</dt>
-              <dd className="font-mono text-[11px] text-slate-300 text-right break-all">{e.value}</dd>
+              <dt className="text-[11px] text-muted-foreground">{e.label}</dt>
+              <dd className="font-mono text-[11px] text-foreground text-right break-all">{e.value}</dd>
             </div>
           ))}
           <div className="flex items-baseline justify-between gap-3 pt-1">
-            <dt className="text-[11px] text-slate-500">Transaction</dt>
-            <dd className="font-mono text-[11px] text-slate-300 inline-flex items-center gap-1">
-              {short(interaction.hash)} <ExternalLink className="h-3 w-3 text-slate-500" />
+            <dt className="text-[11px] text-muted-foreground">Transaction</dt>
+            <dd className="font-mono text-[11px] text-foreground inline-flex items-center gap-1">
+              {short(interaction.hash)} <ExternalLink className="h-3 w-3 text-muted-foreground" />
             </dd>
           </div>
         </dl>

@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation"
 import {
   LayoutDashboard, Paintbrush, FileCode2, BookOpen,
   LayoutList, Code2, BarChart3, Globe, MessageSquare, MessageCircle, Eye, Ticket, MessagesSquare,
-  Send, Wallet, Users, FlaskConical,
+  Send, Wallet, Users, FlaskConical, Search,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { Capability } from "@/lib/roles"
@@ -115,7 +115,29 @@ const TOKEN_GROUPS: NavGroup[] = [
 ]
 
 
+const CONSOLE_GROUPS: NavGroup[] = [
+  {
+    label: "",
+    items: [{ href: "/console", label: "Find a customer", icon: Search }],
+  },
+  {
+    label: "Monitor",
+    items: [{ href: "/console/queue", label: "What is failing", icon: BarChart3 }],
+  },
+  {
+    label: "Account",
+    items: [{ href: "/dashboard/team", label: "Team & access", icon: Users }],
+  },
+]
+
 interface SidebarProps {
+  /**
+   * Which product's navigation to render. The shell, header, footer, theme and
+   * every primitive are shared: only the nav groups differ, because a customer
+   * with both should feel they are in one product with two sections, not two
+   * products that happen to share a login.
+   */
+  product?: "support" | "console"
   mode?: string
   /** A beta programme is configured. Reveals its tab; hidden otherwise. */
   beta?: boolean
@@ -126,13 +148,14 @@ interface SidebarProps {
   onClose?: () => void
 }
 
-export function Sidebar({ mode = "support", beta = false, caps, isOpen = false, onClose }: SidebarProps) {
+export function Sidebar({ product = "support", mode = "support", beta = false, caps, isOpen = false, onClose }: SidebarProps) {
   const pathname = usePathname()
   // The Beta programme tab appears only once one is set up, so the menu is not
   // carrying a feature most protocols will never use. It is NOT how you turn
   // it on: that would be a switch you can only reach after flipping it. The
   // choice lives on Overview, which every project sees.
-  const base = mode === "token" ? TOKEN_GROUPS : SUPPORT_GROUPS
+  const base =
+    product === "console" ? CONSOLE_GROUPS : mode === "token" ? TOKEN_GROUPS : SUPPORT_GROUPS
   const betaFiltered = beta
     ? base
     : base.map(g => ({ ...g, items: g.items.filter(i => i.href !== "/dashboard/beta") }))
