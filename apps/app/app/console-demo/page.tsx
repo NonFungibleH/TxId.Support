@@ -1,30 +1,23 @@
 import { notFound } from "next/navigation"
 import type { Metadata } from "next"
-import ConsoleOverviewPage from "@/app/console/page"
+import { ConsoleOverview } from "@/components/console/ConsoleOverview"
 
 export const metadata: Metadata = { title: "Console demo | TxID", robots: { index: false, follow: false } }
 export const dynamic = "force-dynamic"
 
 /**
- * Fixtures-only view of the Console, so it can be reviewed on a branch preview.
- *
- * It exists because the Preview environment runs PRODUCTION Clerk keys, which
- * are domain-locked to txid.support, so Clerk refuses to initialise on a
- * *.vercel.app host and every authenticated page renders blank. The real fix is
- * development Clerk keys scoped to Preview; until that lands, no apps/app branch
- * preview is reviewable at all.
+ * Fixtures-only Console, so the design can be reviewed on a branch preview
+ * where Clerk cannot initialise with production keys on a *.vercel.app host.
  *
  * It sits BESIDE /console rather than under it: a child route inherits its
- * parent layout, so /console/demo ran the authenticated console layout and
- * threw "Unauthenticated" from getProject before its own layout was reached.
+ * parent layout, and the authenticated console layout throws before its own
+ * layout is reached.
  *
- * Two properties keep this safe as the Console grows real data:
- *   1. It 404s in production, checked below, not merely hidden by navigation.
- *   2. It renders ConsoleWorkspace, which reads FIXTURES. It has no data access
- *      of its own, so wiring the real Console to the database cannot leak
- *      through here without someone deliberately changing this file.
+ * Safe as the Console grows real data because it 404s in production, checked
+ * here rather than hidden by navigation, and renders components that read
+ * fixtures and have no data access of their own.
  */
 export default function ConsoleDemoPage() {
   if (process.env.VERCEL_ENV === "production") notFound()
-  return <ConsoleOverviewPage />
+  return <ConsoleOverview base="/console-demo" />
 }

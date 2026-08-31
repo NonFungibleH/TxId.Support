@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation"
 import {
   LayoutDashboard, Paintbrush, FileCode2, BookOpen,
   LayoutList, Code2, BarChart3, Globe, MessageSquare, MessageCircle, Eye, Ticket, MessagesSquare,
-  Send, Wallet, Users, FlaskConical, Search,
+  Send, Wallet, Users, FlaskConical, Search, Plug,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { Capability } from "@/lib/roles"
@@ -124,6 +124,20 @@ const TOKEN_GROUPS: NavGroup[] = [
 // /console-demo cannot drift from the real one.
 const consoleGroups = (base: string): NavGroup[] => [
   { items: [{ href: base, label: "Overview", icon: LayoutDashboard }] },
+  {
+    label: "Setup",
+    items: [
+      // Points at the SAME watched-contract config the support product edits.
+      // A customer with both must not declare their contracts twice.
+      { href: `${base}/contracts`, label: "Smart Contracts", icon: FileCode2 },
+      { href: `${base}/identity`, label: "Customer identity", icon: Users },
+      { href: `${base}/crm`, label: "CRM", icon: Plug },
+    ],
+  },
+  {
+    label: "Verify",
+    items: [{ href: `${base}/verify`, label: "Check it works", icon: Eye }],
+  },
   {
     label: "Monitor",
     items: [
