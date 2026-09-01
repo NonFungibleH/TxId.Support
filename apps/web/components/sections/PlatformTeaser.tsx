@@ -14,14 +14,14 @@ export function PlatformTeaser() {
       <div className="max-w-6xl mx-auto px-6">
         <FadeIn>
           <Link
-            href="/resolve"
+            href="/api"
             className="block bg-[var(--bg-surface)] border border-[var(--border)] rounded-2xl p-8 lg:p-10 hover:border-[var(--border-accent)] transition-colors group relative overflow-hidden"
           >
             <div
               className="absolute -top-24 -right-24 w-[360px] h-[360px] rounded-full pointer-events-none"
               style={{
                 background:
-                  "radial-gradient(ellipse at center, rgba(75, 71, 233, 0.12) 0%, transparent 70%)",
+                  "radial-gradient(ellipse at center, rgba(99, 102, 241, 0.12) 0%, transparent 70%)",
               }}
             />
             <div className="relative flex flex-col lg:flex-row lg:items-center gap-8">

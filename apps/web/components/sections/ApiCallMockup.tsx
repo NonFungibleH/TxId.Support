@@ -3,48 +3,37 @@
 import { useEffect, useState } from "react";
 import { clsx } from "clsx";
 
-// The /resolve hero visual: one resolve call, looping, ALTERNATING between an
+// The /api hero visual: one diagnose call, looping, ALTERNATING between an
 // EVM case and a Move-native Aptos case so both audiences see themselves.
-//
-// Shows the RESOLUTION OBJECT, which is what the endpoint actually returns and
-// what every product renders. The old shape here (cause/error/fix) predated it,
-// so this page was advertising a response we no longer give.
 const EXAMPLES = [
   {
-    request: `POST /api/v1/resolve
+    request: `POST /api/v1/diagnose
 { "tx": "0x8f2a4c…d41c" }`,
-    work: ["fetch transaction", "replay at block 21044210", "decode revert", "establish custody"],
+    work: ["fetch transaction", "replay at block 21044210", "decode revert", "check wallet impact"],
     response: `{
-  "code": 5401,
-  "category": "PROTOCOL_CONDITION",
   "status": "failed",
-  "custody": "funds_with_user",
-  "next_action_owner": "user",
-  "retryable": "yes_after_change",
-  "basis": "verified",
-  "summary": "Price moved past the 0.3%
-    tolerance while the swap was pending.",
-  "evidence": [{ "kind": "revert",
-    "value": "SlippageTooHigh" }]
+  "chain": "base",
+  "cause": "custom_error",
+  "error": "SlippageTooHigh",
+  "explanation": "Price moved past the
+    0.3% tolerance while pending.",
+  "fix": "Retry with slippage ≥ 0.5%.",
+  "case": { "id": "4821", "recorded": true }
 }`,
   },
   {
-    request: `POST /api/v1/resolve
-{ "tx": "0x62505e…c110f" }`,
-    work: ["fetch from Aptos fullnode", "read module ABI", "decode Move abort", "name the market"],
+    request: `POST /api/v1/diagnose
+{ "tx": "0x91b3e7…a2f0" }`,
+    work: ["fetch from Aptos fullnode", "read module ABI", "decode Move abort 0x10010", "check subaccount impact"],
     response: `{
-  "code": 7201,
-  "category": "SETTLEMENT",
   "status": "failed",
-  "custody": "funds_with_user",
-  "next_action_owner": "none",
-  "retryable": "no",
-  "basis": "verified",
-  "summary": "That ETH/USD order had already
-    left the book, so there was nothing
-    to amend.",
-  "evidence": [{ "kind": "abort",
-    "value": "EORDER_NOT_FOUND" }]
+  "chain": "aptos",
+  "cause": "move_abort",
+  "module": "position_tp_sl",
+  "explanation": "That TP order was already
+    triggered, nothing left to cancel.",
+  "fix": "Refresh the position's orders.",
+  "case": { "id": "4822", "recorded": true }
 }`,
   },
 ];
@@ -123,7 +112,7 @@ export function ApiCallMockup({ className }: { className?: string }) {
           shifts the hero text beside it on every loop. Sized to the tallest
           example so the layout never moves. */}
       <div className="p-4 space-y-3 h-[420px] overflow-hidden">
-        <pre className="text-[#9aa0d8] whitespace-pre-wrap">{ex.request}</pre>
+        <pre className="text-[#a5b4fc] whitespace-pre-wrap">{ex.request}</pre>
 
         <div className={clsx("space-y-1 transition-opacity duration-300", showWork ? "opacity-100" : "opacity-0")}>
           {ex.work.map((w, i) => (

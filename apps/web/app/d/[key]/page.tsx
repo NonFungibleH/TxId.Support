@@ -25,7 +25,7 @@ export default async function DemoSharePage({ params }: { params: { key: string 
   const key = params.key
   const config = key.startsWith("pk_") ? await getConfig(key) : null
   const name = config?.projectName ?? "this protocol"
-  const accent = config?.branding?.primaryColor ?? "#4b47e9"
+  const accent = config?.branding?.primaryColor ?? "#6366f1"
 
   return (
     <>

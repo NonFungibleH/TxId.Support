@@ -26,14 +26,14 @@ export function FlowRail({ children }: { children: React.ReactNode }) {
       {/* Filled portion - quiet accent */}
       <motion.div
         style={{ height: fill }}
-        className="pointer-events-none absolute left-5 lg:left-1/2 top-2 w-[2px] -translate-x-[0.5px] bg-gradient-to-b from-accent/30 via-accent to-accent shadow-[0_0_12px_rgba(75, 71, 233,0.35)]"
+        className="pointer-events-none absolute left-5 lg:left-1/2 top-2 w-[2px] -translate-x-[0.5px] bg-gradient-to-b from-accent/30 via-accent to-accent shadow-[0_0_12px_rgba(99,102,241,0.35)]"
       />
       {/* The pulse riding the fill line */}
       <motion.div
         style={{ top: fill }}
         className="pointer-events-none absolute left-5 lg:left-1/2 -translate-x-1/2 -translate-y-1/2 z-10"
       >
-        <span className="block w-3 h-3 rounded-full bg-accent shadow-[0_0_20px_6px_rgba(75, 71, 233,0.5)]" />
+        <span className="block w-3 h-3 rounded-full bg-accent shadow-[0_0_20px_6px_rgba(99,102,241,0.5)]" />
       </motion.div>
       {children}
     </div>

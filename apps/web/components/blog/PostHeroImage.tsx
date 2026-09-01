@@ -54,20 +54,20 @@ function ComplianceRecordsSVG() {
 
       {/* Shield / append-only lock */}
       <g className="cr_lock">
-        <path d="M250 190 L272 197 L272 214 Q272 230 250 238 Q228 230 228 214 L228 197 Z" fill="#4b47e920" stroke="#4b47e9" strokeWidth="1.5" />
-        <rect x="243" y="208" width="14" height="11" rx="2" fill="none" stroke="#4b47e9" strokeWidth="1.5" />
-        <path d="M246 208 v-3 a4 4 0 0 1 8 0 v3" fill="none" stroke="#4b47e9" strokeWidth="1.5" />
+        <path d="M250 190 L272 197 L272 214 Q272 230 250 238 Q228 230 228 214 L228 197 Z" fill="#6366f120" stroke="#6366f1" strokeWidth="1.5" />
+        <rect x="243" y="208" width="14" height="11" rx="2" fill="none" stroke="#6366f1" strokeWidth="1.5" />
+        <path d="M246 208 v-3 a4 4 0 0 1 8 0 v3" fill="none" stroke="#6366f1" strokeWidth="1.5" />
       </g>
       <text x="24" y="212" fontFamily="monospace" fontSize="9" fill="#64748b">Append-only.</text>
       <text x="24" y="226" fontFamily="monospace" fontSize="9" fill="#64748b">Views and</text>
       <text x="24" y="240" fontFamily="monospace" fontSize="9" fill="#64748b">exports logged.</text>
 
       {/* The record panel */}
-      <text x="360" y="60" fontFamily="monospace" fontSize="10" fill="#4b47e9" fontWeight="bold">THE RECORD</text>
+      <text x="360" y="60" fontFamily="monospace" fontSize="10" fill="#6366f1" fontWeight="bold">THE RECORD</text>
       <rect x="360" y="70" width="316" height="168" rx="10" fill="#0f0f1a" stroke="#1e1e3a" strokeWidth="1.5" />
       {record.map((r, i) => (
         <g key={r} className={`cr_${i}`}>
-          <circle cx="378" cy={95 + i * 30} r="3" fill="#4b47e9" />
+          <circle cx="378" cy={95 + i * 30} r="3" fill="#6366f1" />
           <text x="392" y={99 + i * 30} fontFamily="monospace" fontSize="9.5" fill="#94a3b8">{r}</text>
         </g>
       ))}
@@ -125,14 +125,14 @@ function AgenticSVG() {
       <text x="24" y="36" fontFamily="monospace" fontSize="13" fill="white" fontWeight="bold">Chatbots answer. Agents investigate first.</text>
 
       {/* question */}
-      <rect x="24" y="70" width="150" height="52" rx="8" fill="#0f0f1a" stroke="#4b47e9" strokeWidth="1.2" />
-      <text x="36" y="90" fontFamily="monospace" fontSize="9" fill="#4b47e9" fontWeight="bold">USER</text>
+      <rect x="24" y="70" width="150" height="52" rx="8" fill="#0f0f1a" stroke="#6366f1" strokeWidth="1.2" />
+      <text x="36" y="90" fontFamily="monospace" fontSize="9" fill="#6366f1" fontWeight="bold">USER</text>
       <text x="36" y="108" fontFamily="monospace" fontSize="9" fill="#94a3b8">why did my tx fail?</text>
-      <text x="188" y="100" fontFamily="monospace" fontSize="18" fill="#4b47e9">→</text>
+      <text x="188" y="100" fontFamily="monospace" fontSize="18" fill="#6366f1">→</text>
 
       {/* investigate */}
-      <rect x="214" y="58" width="215" height="164" rx="10" fill="#0f0f1a" stroke="#2a78b0" strokeWidth="1.5" />
-      <text x="228" y="80" fontFamily="monospace" fontSize="10" fill="#2a78b0" fontWeight="bold">Agent reads the chain</text>
+      <rect x="214" y="58" width="215" height="164" rx="10" fill="#0f0f1a" stroke="#8b5cf6" strokeWidth="1.5" />
+      <text x="228" y="80" fontFamily="monospace" fontSize="10" fill="#8b5cf6" fontWeight="bold">Agent reads the chain</text>
       {tools.map((t, i) => (
         <g key={t} className={`ag_t${i}`}>
           <rect x="228" y={94 + i * 34} width="188" height="26" rx="6" fill="#141428" />
@@ -171,7 +171,7 @@ function GasSVG() {
 
       {/* gauge track */}
       <rect x="60" y="92" width="560" height="34" rx="17" fill="#0f0f1a" stroke="#1e1e3a" strokeWidth="1.5" />
-      <rect className="gs_used" x="60" y="92" height="34" rx="17" fill="#4b47e9" />
+      <rect className="gs_used" x="60" y="92" height="34" rx="17" fill="#6366f1" />
       <rect x="530" y="92" width="90" height="34" fill="#ef444422" />
       <line x1="620" y1="84" x2="620" y2="134" stroke="#ef4444" strokeWidth="2" />
       <g className="gs_flag">
@@ -214,16 +214,16 @@ function RevertSVG() {
       <circle cx="44" cy="90" r="5" fill="#ef4444" />
       <text x="58" y="88" fontFamily="monospace" fontSize="10" fill="white" fontWeight="bold">Failed tx</text>
       <text x="38" y="112" fontFamily="monospace" fontSize="9" fill="#94a3b8">0x9f3c…a12b</text>
-      <text x="206" y="102" fontFamily="monospace" fontSize="16" fill="#4b47e9">→</text>
+      <text x="206" y="102" fontFamily="monospace" fontSize="16" fill="#6366f1">→</text>
 
       {/* decode ladder */}
       {reasons.map((r, i) => {
         const y = 62 + i * 40
         return (
           <g key={r.t}>
-            <rect x="234" y={y} width="210" height="32" rx="7" fill={r.hit ? "#141433" : "#0f0f1a"} stroke={r.hit ? "#4b47e9" : "#1e1e3a"} strokeWidth={r.hit ? "1.5" : "1"} />
+            <rect x="234" y={y} width="210" height="32" rx="7" fill={r.hit ? "#141433" : "#0f0f1a"} stroke={r.hit ? "#6366f1" : "#1e1e3a"} strokeWidth={r.hit ? "1.5" : "1"} />
             <text x="248" y={y + 20} fontFamily="monospace" fontSize="9.5" fill={r.hit ? "white" : "#64748b"}>{r.t}</text>
-            {r.hit && <text x="428" y={y + 20} fontFamily="monospace" fontSize="10" fill="#4b47e9" textAnchor="middle">●</text>}
+            {r.hit && <text x="428" y={y + 20} fontFamily="monospace" fontSize="10" fill="#6366f1" textAnchor="middle">●</text>}
           </g>
         )
       })}
@@ -266,7 +266,7 @@ function TelegramSupportSVG() {
 
       {/* User message */}
       <g className="tg_q">
-        <circle cx="48" cy="120" r="12" fill="#4b47e9" />
+        <circle cx="48" cy="120" r="12" fill="#6366f1" />
         <text x="48" y="124" fontFamily="monospace" fontSize="10" fill="white" fontWeight="bold" textAnchor="middle">C</text>
         <text x="70" y="112" fontFamily="monospace" fontSize="9" fill="#94a3b8" fontWeight="bold">CryptoUser_4291</text>
         <rect x="70" y="118" width="300" height="26" rx="7" fill="#141428" />
@@ -328,7 +328,7 @@ function DiscordScamSVG() {
 
       {/* User message bubble */}
       <g className="ds_msg">
-        <circle cx="52" cy="80" r="13" fill="#4b47e9" />
+        <circle cx="52" cy="80" r="13" fill="#6366f1" />
         <text x="46" y="84" fontFamily="monospace" fontSize="10" fill="white" fontWeight="bold">C</text>
         <text x="72" y="76" fontFamily="monospace" fontSize="9" fill="#94a3b8" fontWeight="bold">CryptoUser_4291</text>
         <rect x="72" y="82" width="220" height="28" rx="6" fill="#141428" />
@@ -397,8 +397,8 @@ function TicketReductionSVG() {
           .tr_label { animation: tr_fadeIn 0.4s ease forwards; animation-delay: 1.4s; opacity: 0; }
         `}</style>
         <linearGradient id="tr_barGrad" x1="0" y1="1" x2="0" y2="0">
-          <stop offset="0%" stopColor="#3734d2" />
-          <stop offset="100%" stopColor="#4b47e9" />
+          <stop offset="0%" stopColor="#4f46e5" />
+          <stop offset="100%" stopColor="#6366f1" />
         </linearGradient>
       </defs>
 
@@ -468,7 +468,7 @@ function DocsQaSVG() {
 
       {/* LEFT - Your docs */}
       <g className="dq_left">
-        <text x="30" y="38" fontFamily="monospace" fontSize="11" fill="#4b47e9" fontWeight="bold">Your docs</text>
+        <text x="30" y="38" fontFamily="monospace" fontSize="11" fill="#6366f1" fontWeight="bold">Your docs</text>
         {/* URL bar */}
         <rect x="20" y="48" width="190" height="22" rx="5" fill="#141428" />
         <text x="32" y="63" fontFamily="monospace" fontSize="9" fill="#64748b">docs.protocol.xyz</text>
@@ -476,7 +476,7 @@ function DocsQaSVG() {
         <rect x="20" y="80" width="170" height="7" rx="2" fill="#1e1e3a" />
         <rect x="20" y="94" width="145" height="7" rx="2" fill="#1e1e3a" />
         {/* Highlighted chunk */}
-        <rect x="20" y="108" width="160" height="7" rx="2" fill="#4b47e9" fillOpacity="0.5" stroke="#4b47e9" strokeWidth="0.5" strokeDasharray="3 2" />
+        <rect x="20" y="108" width="160" height="7" rx="2" fill="#6366f1" fillOpacity="0.5" stroke="#6366f1" strokeWidth="0.5" strokeDasharray="3 2" />
         <rect x="20" y="122" width="130" height="7" rx="2" fill="#1e1e3a" />
         <rect x="20" y="136" width="155" height="7" rx="2" fill="#1e1e3a" />
       </g>
@@ -485,17 +485,17 @@ function DocsQaSVG() {
       <text x="258" y="38" fontFamily="monospace" fontSize="11" fill="#64748b">AI retrieval</text>
 
       {/* Vector nodes */}
-      <line x1="330" y1="100" x2="310" y2="140" stroke="#4b47e9" strokeWidth="1" strokeOpacity="0.4" />
-      <line x1="330" y1="100" x2="355" y2="140" stroke="#4b47e9" strokeWidth="1" strokeOpacity="0.4" />
-      <line x1="310" y1="140" x2="355" y2="140" stroke="#4b47e9" strokeWidth="1" strokeOpacity="0.4" />
-      <circle className="dq_node1" cx="330" cy="100" r="8" fill="#4b47e9" />
-      <circle className="dq_node2" cx="310" cy="140" r="8" fill="#4b47e9" />
-      <circle className="dq_node3" cx="355" cy="140" r="8" fill="#4b47e9" />
+      <line x1="330" y1="100" x2="310" y2="140" stroke="#6366f1" strokeWidth="1" strokeOpacity="0.4" />
+      <line x1="330" y1="100" x2="355" y2="140" stroke="#6366f1" strokeWidth="1" strokeOpacity="0.4" />
+      <line x1="310" y1="140" x2="355" y2="140" stroke="#6366f1" strokeWidth="1" strokeOpacity="0.4" />
+      <circle className="dq_node1" cx="330" cy="100" r="8" fill="#6366f1" />
+      <circle className="dq_node2" cx="310" cy="140" r="8" fill="#6366f1" />
+      <circle className="dq_node3" cx="355" cy="140" r="8" fill="#6366f1" />
 
       <text x="333" y="175" fontFamily="monospace" fontSize="9" fill="#64748b" textAnchor="middle">RAG pipeline</text>
 
       {/* Arrow */}
-      <text x="400" y="125" fontFamily="monospace" fontSize="20" fill="#4b47e9" textAnchor="middle">→</text>
+      <text x="400" y="125" fontFamily="monospace" fontSize="20" fill="#6366f1" textAnchor="middle">→</text>
 
       {/* RIGHT - Answer */}
       <g className="dq_right">
@@ -573,9 +573,9 @@ function WalletVsGenericSVG() {
       <line x1="350" y1="44" x2="700" y2="44" stroke="#1e1e3a" strokeWidth="1" />
 
       {/* Wallet info bar */}
-      <rect x="360" y="52" width="330" height="26" rx="6" fill="#141428" stroke="#4b47e9" strokeWidth="1" />
-      <circle cx="376" cy="65" r="6" fill="#4b47e9" />
-      <text x="388" y="70" fontFamily="monospace" fontSize="9" fill="#4b47e9">0x742...d3f1 · Ethereum</text>
+      <rect x="360" y="52" width="330" height="26" rx="6" fill="#141428" stroke="#6366f1" strokeWidth="1" />
+      <circle cx="376" cy="65" r="6" fill="#6366f1" />
+      <text x="388" y="70" fontFamily="monospace" fontSize="9" fill="#6366f1">0x742...d3f1 · Ethereum</text>
 
       {/* User bubble */}
       <rect x="520" y="90" width="130" height="24" rx="8" fill="#1e293b" />
@@ -624,13 +624,13 @@ function OnChainDataSVG() {
       <text x="20" y="36" fontFamily="monospace" fontSize="13" fill="white" fontWeight="bold">What your support bot reads</text>
 
       {/* Card 1 - Tx History */}
-      <rect x="20" y="56" width="155" height="95" rx="8" fill="#0f0f1a" stroke="#4b47e9" strokeWidth="1.5" />
+      <rect x="20" y="56" width="155" height="95" rx="8" fill="#0f0f1a" stroke="#6366f1" strokeWidth="1.5" />
       <text x="32" y="80" fontFamily="monospace" fontSize="11" fill="white" fontWeight="bold">Tx History</text>
       <text x="32" y="96" fontFamily="monospace" fontSize="9" fill="#64748b">Reverts, hashes,</text>
       <text x="32" y="110" fontFamily="monospace" fontSize="9" fill="#64748b">status</text>
 
       {/* Card 2 - Token Balances */}
-      <rect x="185" y="56" width="155" height="95" rx="8" fill="#0f0f1a" stroke="#2a78b0" strokeWidth="1.5" />
+      <rect x="185" y="56" width="155" height="95" rx="8" fill="#0f0f1a" stroke="#8b5cf6" strokeWidth="1.5" />
       <text x="197" y="80" fontFamily="monospace" fontSize="11" fill="white" fontWeight="bold">Token Balances</text>
       <text x="197" y="96" fontFamily="monospace" fontSize="9" fill="#64748b">ERC-20,</text>
       <text x="197" y="110" fontFamily="monospace" fontSize="9" fill="#64748b">approvals</text>
@@ -648,25 +648,25 @@ function OnChainDataSVG() {
       <text x="197" y="217" fontFamily="monospace" fontSize="9" fill="#64748b">rewards</text>
 
       {/* Connecting lines from cards to center point */}
-      <line className="oc_line" x1="175" y1="103" x2="390" y2="148" stroke="#4b47e9" strokeWidth="1" strokeOpacity="0.5" />
-      <line className="oc_line" x1="340" y1="103" x2="390" y2="148" stroke="#2a78b0" strokeWidth="1" strokeOpacity="0.5" />
+      <line className="oc_line" x1="175" y1="103" x2="390" y2="148" stroke="#6366f1" strokeWidth="1" strokeOpacity="0.5" />
+      <line className="oc_line" x1="340" y1="103" x2="390" y2="148" stroke="#8b5cf6" strokeWidth="1" strokeOpacity="0.5" />
       <line className="oc_line" x1="175" y1="210" x2="390" y2="148" stroke="#06b6d4" strokeWidth="1" strokeOpacity="0.5" />
       <line className="oc_line" x1="340" y1="210" x2="390" y2="148" stroke="#f59e0b" strokeWidth="1" strokeOpacity="0.5" />
 
       {/* Arrow */}
       <g className="oc_arrow">
-        <text x="370" y="154" fontFamily="monospace" fontSize="22" fill="#4b47e9" textAnchor="middle">→</text>
+        <text x="370" y="154" fontFamily="monospace" fontSize="22" fill="#6366f1" textAnchor="middle">→</text>
       </g>
 
       {/* AI Agent box */}
-      <rect x="405" y="78" width="275" height="140" rx="10" fill="#141428" stroke="#4b47e9" strokeWidth="2" />
-      <text x="542" y="110" fontFamily="monospace" fontSize="14" fill="#4b47e9" textAnchor="middle" fontWeight="bold">AI Agent</text>
+      <rect x="405" y="78" width="275" height="140" rx="10" fill="#141428" stroke="#6366f1" strokeWidth="2" />
+      <text x="542" y="110" fontFamily="monospace" fontSize="14" fill="#6366f1" textAnchor="middle" fontWeight="bold">AI Agent</text>
       <text x="542" y="132" fontFamily="monospace" fontSize="10" fill="#94a3b8" textAnchor="middle">Knows exactly what happened</text>
 
       {/* Pulsing rings */}
-      <circle className="oc_ring2" cx="555" cy="170" r="22" fill="none" stroke="#4b47e9" strokeWidth="1" strokeOpacity="0.3" />
-      <circle className="oc_ring1" cx="555" cy="170" r="14" fill="none" stroke="#4b47e9" strokeWidth="1.5" strokeOpacity="0.5" />
-      <circle cx="555" cy="170" r="6" fill="#4b47e9" />
+      <circle className="oc_ring2" cx="555" cy="170" r="22" fill="none" stroke="#6366f1" strokeWidth="1" strokeOpacity="0.3" />
+      <circle className="oc_ring1" cx="555" cy="170" r="14" fill="none" stroke="#6366f1" strokeWidth="1.5" strokeOpacity="0.5" />
+      <circle cx="555" cy="170" r="6" fill="#6366f1" />
     </svg>
   )
 }

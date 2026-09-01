@@ -38,7 +38,7 @@ export default function Image({ params }: { params: { slug: string } }) {
             width: 450,
             height: 450,
             borderRadius: "50%",
-            background: "radial-gradient(circle, rgba(75, 71, 233,0.2) 0%, transparent 70%)",
+            background: "radial-gradient(circle, rgba(99,102,241,0.2) 0%, transparent 70%)",
           }}
         />
 
@@ -53,11 +53,11 @@ export default function Image({ params }: { params: { slug: string } }) {
         >
           <span
             style={{
-              background: "rgba(75, 71, 233,0.15)",
-              border: "1px solid rgba(75, 71, 233,0.3)",
+              background: "rgba(99,102,241,0.15)",
+              border: "1px solid rgba(99,102,241,0.3)",
               borderRadius: 6,
               padding: "4px 12px",
-              color: "#9aa0d8",
+              color: "#a5b4fc",
               fontSize: 14,
               fontWeight: 600,
               letterSpacing: 1.5,
@@ -84,7 +84,7 @@ export default function Image({ params }: { params: { slug: string } }) {
 
         {/* Attribution */}
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <div style={{ width: 6, height: 6, borderRadius: 3, background: "#4b47e9" }} />
+          <div style={{ width: 6, height: 6, borderRadius: 3, background: "#6366f1" }} />
           <span style={{ color: "#6b7280", fontSize: 16, fontWeight: 500 }}>
             TxID · txid.support/blog
           </span>
