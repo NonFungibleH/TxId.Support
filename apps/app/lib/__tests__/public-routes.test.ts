@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest"
 import { readFileSync } from "fs"
-import { join } from "path"
+import { dirname, join } from "path"
+import { fileURLToPath } from "url"
 
 /**
  * Every self-authenticating API endpoint must bypass Clerk, or it is
@@ -14,7 +15,11 @@ import { join } from "path"
  * The inverse matters just as much: a dashboard-only route listed here would
  * be public to the internet. Both directions are asserted.
  */
-const middleware = readFileSync(join(process.cwd(), "middleware.ts"), "utf8")
+// Resolved from THIS FILE, not process.cwd(): cwd depends on how vitest was
+// invoked, so a cwd-relative path made the guard pass from apps/app and fail
+// from the repo root. A test that depends on its invocation is not a guard.
+const here = dirname(fileURLToPath(import.meta.url))
+const middleware = readFileSync(join(here, "..", "..", "middleware.ts"), "utf8")
 const block = middleware.slice(
   middleware.indexOf("createRouteMatcher(["),
   middleware.indexOf("]);", middleware.indexOf("createRouteMatcher([")),
