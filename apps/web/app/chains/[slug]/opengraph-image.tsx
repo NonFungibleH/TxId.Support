@@ -16,7 +16,7 @@ export async function generateStaticParams() {
 export default function Image({ params }: { params: { slug: string } }) {
   const chain = getChain(params.slug)
   const name = chain?.name ?? "Web3"
-  const color = chain?.color ?? "#4b47e9"
+  const color = chain?.color ?? "#6366f1"
   const isLive = chain?.status === "live"
 
   return new ImageResponse(

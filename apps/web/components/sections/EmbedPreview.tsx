@@ -48,14 +48,14 @@ function tokenize(code: string, language: string): React.ReactNode {
   if (language === "html") {
     return code.split(/(<[^>]+>|"[^"]*"|<!--[^>]*-->)/g).map((part, i) => {
       if (part.startsWith("<!--")) return <span key={i} className="text-[#71717a]">{part}</span>;
-      if (part.startsWith("<") && part.endsWith(">")) return <span key={i} className="text-[#4b47e9]">{part}</span>;
+      if (part.startsWith("<") && part.endsWith(">")) return <span key={i} className="text-[#6366f1]">{part}</span>;
       if (part.startsWith('"')) return <span key={i} className="text-[#22c55e]">{part}</span>;
       return <span key={i} className="text-[#e4e4e7]">{part}</span>;
     });
   }
   return code.split(/(import|from|export|default|return|const|function|'[^']*'|"[^"]*"|\/\/[^\n]*)/g).map((part, i) => {
     if (["import", "from", "export", "default", "return", "const", "function"].includes(part))
-      return <span key={i} className="text-[#4b47e9]">{part}</span>;
+      return <span key={i} className="text-[#6366f1]">{part}</span>;
     if (part.startsWith("//")) return <span key={i} className="text-[#71717a]">{part}</span>;
     if (part.startsWith("'") || part.startsWith('"'))
       return <span key={i} className="text-[#22c55e]">{part}</span>;

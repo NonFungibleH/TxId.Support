@@ -360,7 +360,7 @@ export default function DemoPage() {
             {/* Centre: widget */}
             <div className="flex justify-center flex-1">
               <div className="relative">
-                <div className="absolute inset-0 rounded-2xl blur-3xl scale-90" style={{ background: "rgba(75, 71, 233,0.18)" }} />
+                <div className="absolute inset-0 rounded-2xl blur-3xl scale-90" style={{ background: "rgba(99,102,241,0.18)" }} />
                 {liveMode && DEMO_KEY ? (
                   <LiveWidget />
                 ) : (
