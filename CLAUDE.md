@@ -792,6 +792,32 @@ The differentiator for institutional buyers, and the part they think they are bu
 
 ---
 
+## Scope guard (since 2026-09-01, after a website went live by accident)
+
+**Branch from `origin/master` explicitly, every time:** `git checkout -b x origin/master`.
+Never `git checkout -b x` from wherever you happen to be standing.
+
+PR #64 was titled "resolutions: persist every resolution as a queryable row" and
+was meant to touch four files. It also carried **thirty `apps/web` files**,
+because its branch had been cut from `site/v2` rather than master, and it was
+merged on the strength of its title. That put an unfinished website redesign
+onto production, where it sat until it was noticed and reverted (#65).
+
+**Tests could not have caught it.** The code was correct and everything passed;
+it was simply in the wrong pull request. Only reading the file list catches a
+scope error, so `.github/workflows/scope.yml` now makes reading it unavoidable:
+a PR touching a sensitive area fails unless it carries the matching label.
+
+| Area | Label | Why it is guarded |
+|---|---|---|
+| `apps/web/**` | `web` | The marketing site is public the moment it merges |
+| `supabase/migrations/**` | `migration` | Migrations need running by hand, and have sat unapplied for weeks before |
+| `apps/app/public/widget.js`, `apps/app/app/widget/**` | `widget` | Live customers load this; a bad merge reaches them immediately |
+
+The label is the point: it cannot be added without seeing what the PR actually
+touches. Before merging anything, run `gh pr view <n> --json files` and compare
+the answer with what you believe you changed.
+
 ## Shipping workflow (since 2026-08-12)
 
 **`master` is protected**: required status check `test` (the Tests workflow: vitest + embed smoke + build), `enforce_admins` on, no force pushes. Direct pushes are rejected; land changes via PR (`gh pr create`, merge when green) or fast-forward a commit already carrying a green check (the staging promotion path). A persistent **`staging` branch** is the pre-prod surface; it carries `apps/app/public/harness.html` (widget host-API click-through, `/harness.html?key=pk_…`) which must NEVER be merged to master. Migrations run on the staging Supabase first (project pending), production second. Pure content (blog posts) may PR straight to master. The embed smoke (`pnpm --filter @txid/app run smoke:embed`) is part of the local gate for ANY widget.js change: it caught nothing locally on 2026-08-11 only because it was not run.
