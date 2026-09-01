@@ -1,0 +1,77 @@
+# Scope guard: a pull request may not quietly change an area it did not set
+# out to change.
+#
+# WHY THIS EXISTS: PR #64 was titled "resolutions: persist every resolution as
+# a queryable row" and was meant to touch four files. It also carried thirty
+# apps/web files, because its branch had been cut from the website branch
+# rather than from master, and it was merged on the strength of its title. That
+# put an unfinished website redesign straight onto production.
+#
+# Tests could not have caught it: the code was correct, it was simply in the
+# wrong pull request. Only reading the file list catches that, so this makes
+# reading it unavoidable rather than a habit anyone has to remember.
+#
+# The label is the point. It is a deliberate act that cannot be performed
+# without seeing what the pull request actually touches.
+
+name: Scope
+
+on:
+  pull_request:
+    # labeled/unlabeled matter: adding the label must clear the check without
+    # needing a pointless empty commit.
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  scope:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Changed areas must match the pull request's labels
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+
+          files=$(gh pr view "$PR" --repo "$REPO" --json files --jq '.files[].path')
+          labels=$(gh pr view "$PR" --repo "$REPO" --json labels --jq '.labels[].name' | tr '\n' ' ')
+
+          echo "Labels: ${labels:-(none)}"
+          echo "Changed files: $(echo "$files" | grep -c . || true)"
+          echo
+
+          fail=0
+
+          # $1 label, $2 grep pattern, $3 human description
+          require() {
+            matched=$(echo "$files" | grep -E "$2" || true)
+            [ -z "$matched" ] && return 0
+            count=$(echo "$matched" | grep -c .)
+            if echo " $labels " | grep -q " $1 "; then
+              echo "OK: touches $3 ($count files) and carries the '$1' label."
+              return 0
+            fi
+            echo "BLOCKED: this pull request changes $3 ($count files) but is not labelled '$1'."
+            echo "  If that is intended, add the '$1' label. If it is not, your branch"
+            echo "  probably carries commits from another branch: check what it was cut from."
+            echo "$matched" | sed 's/^/    /' | head -20
+            [ "$count" -gt 20 ] && echo "    ... and $((count - 20)) more"
+            echo
+            fail=1
+          }
+
+          require web       '^apps/web/'                      'the marketing website'
+          require migration '^supabase/migrations/'           'database migrations (these need running by hand)'
+          require widget    '^apps/app/(public/widget\.js|app/widget/)' 'the embedded widget, which live customers load'
+
+          if [ "$fail" -ne 0 ]; then
+            echo "Scope check failed. Nothing here is wrong with the code; the question is"
+            echo "whether this pull request is supposed to be changing these areas."
+            exit 1
+          fi
+          echo "Scope check passed."
