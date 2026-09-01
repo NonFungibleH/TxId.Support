@@ -3,6 +3,7 @@ import { rateLimit } from "@/lib/rate-limit"
 import { log } from "@/lib/logger"
 import { resolveByHash } from "@/lib/resolution/gather"
 import { recordResolution } from "@/lib/resolution/record"
+import { customerForWallet } from "@/lib/identity/store"
 import type { Intent } from "@/lib/resolution/types"
 
 /**
@@ -56,6 +57,35 @@ function readKey(request: Request): string | null {
   const auth = request.headers.get("authorization")
   if (auth?.toLowerCase().startsWith("bearer ")) return auth.slice(7).trim()
   return request.headers.get("x-api-key")?.trim() ?? null
+}
+
+
+/**
+ * The account an evidence item names, when one does.
+ *
+ * Reads the REAL EvidenceItem union: a `position` carries `account`. A first
+ * version invented kinds ("wallet", "sender") and a `value` field that do not
+ * exist on it, so it silently matched nothing and every row would have stored
+ * a null wallet while looking correct.
+ */
+function walletOf(resolution: { evidence?: unknown[] }): string | null {
+  for (const item of resolution.evidence ?? []) {
+    const e = item as { kind?: string; account?: unknown }
+    if (e.kind === "position" && typeof e.account === "string") return e.account
+  }
+  return null
+}
+
+/** The contract an answer rested on: "which of my contracts fails most". */
+function protocolOf(resolution: { evidence?: unknown[] }): string | null {
+  for (const item of resolution.evidence ?? []) {
+    const e = item as { kind?: string; address?: unknown }
+    if (e.kind === "contract" && typeof e.address === "string") {
+      const sep = e.address.indexOf("::")
+      return sep === -1 ? e.address : e.address.slice(0, sep)
+    }
+  }
+  return null
 }
 
 export async function POST(request: Request) {
@@ -116,12 +146,24 @@ export async function POST(request: Request) {
 
     // Deliberately not awaited: the caller gets their answer at the same speed
     // whether or not the stats write lands, and recordResolution never throws.
-    void recordResolution(resolution, {
-      projectId: project.id,
-      source: "api",
-      ...(chain ? { chain } : {}),
-      txHash: tx,
-    })
+    //
+    // The wallet is resolved to a customer where we hold the mapping, which is
+    // what lets the Console show a case under the person it happened to rather
+    // than an address nobody recognises. Best-effort by design: an unmapped
+    // wallet is a perfectly ordinary state, not a failure.
+    void (async () => {
+      const wallet = walletOf(resolution)
+      const identity = wallet ? await customerForWallet(project.id, wallet) : null
+      await recordResolution(resolution, {
+        projectId: project.id,
+        source: "api",
+        ...(chain ? { chain } : {}),
+        txHash: tx,
+        ...(protocolOf(resolution) ? { protocolAddress: protocolOf(resolution) } : {}),
+        ...(wallet ? { wallet } : {}),
+        ...(identity ? { customerRef: identity.customerRef } : {}),
+      })
+    })()
 
     log.info("API resolve", {
       event: "api.resolve",

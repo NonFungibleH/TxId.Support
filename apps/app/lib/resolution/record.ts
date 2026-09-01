@@ -25,6 +25,9 @@ export async function recordResolution(
     protocolAddress?: string | null
     entryFunction?: string | null
     rawStatus?: string | null
+    /** The customer as the protocol knows them, when the wallet resolves. */
+    customerRef?: string | null
+    wallet?: string | null
   },
 ): Promise<void> {
   try {
@@ -52,6 +55,11 @@ export async function recordResolution(
       basis: resolution.basis,
       source: ctx.source,
       raw_status: resolution.raw ?? ctx.rawStatus ?? null,
+      // Stored as a column, not left in jsonb: the case list renders it for
+      // every row and cannot afford to unpack a document per row.
+      summary: resolution.summary ?? null,
+      customer_ref: ctx.customerRef ?? null,
+      wallet: ctx.wallet ?? null,
       evidence: resolution.evidence ?? [],
     })
     if (error) {
