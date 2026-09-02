@@ -126,9 +126,16 @@ export async function POST(request: Request) {
     const height = state?.blockNumber ?? state?.ledgerVersion
     const stamped = height ? { ...resolution, chain_state_at: height } : resolution
 
+    // The resolutions table has no column for the height, so the stored row
+    // carries it as an evidence item. The API response keeps the spec's shape;
+    // only the persisted copy gains the parameter.
+    const recorded = height
+      ? { ...stamped, evidence: [...stamped.evidence, { kind: "parameter" as const, name: "chain_state_at", value: height, via: "chainStateAt" }] }
+      : stamped
+
     // Deliberately not awaited: the caller gets their answer at the same speed
     // whether or not the stats write lands, and recordResolution never throws.
-    void recordResolution(stamped, {
+    void recordResolution(recorded, {
       projectId: project.id,
       source: "api",
       ...(chain ? { chain } : {}),

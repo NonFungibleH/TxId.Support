@@ -225,7 +225,7 @@ DecodedRevert {
 ### Chain support
 Chains are configured in `CHAIN_CONFIGS` in `types.ts`. Block explorer API keys map by chain ID. Out-of-gas detection is done purely in arithmetic (no RPC call) for the recent-tx list; full decode is only triggered on `get_transaction_by_hash`.
 
-**Non-Moralis chains (e.g. Etherlink, `0xa729`/XTZ):** Moralis doesn't index every chain. A `ChainConfig` with NO `moralisChain` but a `blockscoutApi` base routes the wallet tools (balances, recent txs, single-tx) through `blockscout-wallet.ts` instead — Blockscout v2 REST for lists/token-balances, RPC (`eth_getTransactionByHash`/receipt/`eth_getBlockByNumber`) for single txs + the revert decoder. `usesBlockscoutWallet(chainId)` gates the dispatch inside `wallet.ts`. Approvals degrade to `[]` (no clean Blockscout endpoint). Explorer/ABI still works via `explorerQuery` (add the chain to `BLOCKSCOUT_BASES` in `blockscout.ts`). Adding such a chain touches: `CHAIN_CONFIGS`, `BLOCKSCOUT_BASES`, `SUPPORTED_CHAINS` (apps/app config), the CHAIN_NAMES maps (prompt.ts + ConversationList.tsx), and `apps/web/lib/chains.ts` (+ a `/public/chains/<Name>.png` logo, else ChainLogo shows a monogram).
+**Non-Moralis chains (e.g. Etherlink, `0xa729`/XTZ):** Moralis doesn't index every chain. A `ChainConfig` with NO `moralisChain` but a `blockscoutApi` base routes the wallet tools (balances, recent txs, single-tx) through `blockscout-wallet.ts` instead — Blockscout v2 REST for lists/token-balances, RPC (`eth_getTransactionByHash`/receipt/`eth_getBlockByNumber`) for single txs + the revert decoder. `usesBlockscoutWallet(chainId)` gates the dispatch inside `wallet.ts`. Approvals degrade to `[]` (no clean Blockscout endpoint). Explorer/ABI still works via `explorerQuery` (add the chain to `BLOCKSCOUT_BASES` in `blockscout.ts`). Adding such a chain touches: `CHAIN_CONFIGS`, `BLOCKSCOUT_BASES`, `SUPPORTED_CHAINS` (apps/app config), the CHAIN_NAMES maps (prompt.ts + ConversationList.tsx), and `apps/web/lib/chains.ts` (+ a `/public/chains/<Name>.png` logo, else ChainLogo shows a monogram). `DEFAULT_CHAINS` in `packages/blockchain/src/diagnose.ts` is derived from `CHAIN_CONFIGS` since 2026-09-03; it was a hand-written list that omitted Etherlink, so the API's auto-detect never searched it.
 
 ---
 
@@ -624,7 +624,7 @@ The claim is never "it does not hallucinate". It is that the class of error whic
 
 **Substring matching, not equality, and that is deliberate.** The model is SUPPOSED to format and round, so "$63,695.70" quoted from a raw `63695700000` shares a digit prefix rather than matching. Requiring equality would flag every correctly formatted number, the signal would be noise, and it would get switched off. Verified against realistic answers including that exact case.
 
-**WE STREAM, so nothing here can suppress an answer.** The check finishes after the last token. What it does instead is append a caveat in the same turn, so the user sees it before acting and the one answer with nothing behind it never looks identical to the verified ones. Same for `grounding === "ungrounded"`.
+**WE STREAM, so nothing here can suppress an answer.** The check finishes after the last token. **No caveat is appended to the answer** (removed 2026-08-07: it misfired on correct answers twice in one afternoon, and a warning under correct answers teaches people to ignore warnings). `grounding` and `unverifiedNumbers` are still computed and written to `messages.evidence`, still drive the `untraceable_figures` and `ungrounded` ticket signals, the basis badge and the gaps view. The team sees every one; the end user no longer does. Earning the user-facing warning back needs claim-level provenance (roadmap `a-audit-*`).
 
 Roadmapped, not built: policy checks as code (`c-policy-code`), intent classification used to RAISE the evidence bar rather than shortcut it (`k-intent-gate`).
 
@@ -751,7 +751,7 @@ The differentiator for institutional buyers, and the part they think they are bu
 **`messages.evidence` (jsonb)** — the conditions each assistant answer was produced under:
 - `chain.ledgerVersion` — the ledger version the answer was true as of, so an auditor can REPLAY the exact chain state. Read AFTER the response has streamed, so it costs the user no latency (`apps/app/lib/evidence.ts` `chainStateAt`)
 - `pricesAtRead` — the prices a figure rested on. "You were down $312" is unverifiable later without them
-- `investigation.toolsUsed` / `.failedLookups` — what ran, and what did not
+- `investigation.toolsUsed` / `.failedLookups` — what ran, and what did not. **Tools set `lookupFailed: true` beside their `note` whenever a read did not complete**, and `mergeToolEvidence` reads that marker (the "lookup failed / could not reach / not read" phrase regex is only a legacy fallback). The rule behind it, learned four times in one week: **a lookup that did not complete must never be represented as a finding.** Empty, zero, false and null are all findings; none may be produced by a failure. Use the `ok / unavailable / unsupported` shape, never `.catch(() => [])` or a `?? "eth"`-style default, on any read path.
 - `request` — country + region (Vercel edge headers), coarse device, surface, language
 - `model`, `latencyMs`, `answer.sha256`
 

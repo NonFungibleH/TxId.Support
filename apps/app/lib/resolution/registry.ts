@@ -49,10 +49,13 @@ export const REGISTRY: Record<string, RegistryEntry> = Object.fromEntries(
     }),
     E({
       code: "TXID-1003", cause: "RPC_UNAVAILABLE", category: "SUBMISSION",
-      custody: "unchanged", next_action_owner: "infrastructure", retryable: "yes", recommended_action: "REFRESH_AND_RECHECK",
-      summary: "The node the wallet is using did not respond correctly.",
-      detail: "This is a connection problem between the wallet and its node provider, not a problem with the transaction itself.",
-      next_step: "Wait a moment and try again, or switch RPC endpoint in your wallet.",
+      // A timeout does not prove the transaction was never sent: a broadcast
+      // can succeed and the response can time out. So custody is unknown and
+      // the action is to check, never to resubmit blind.
+      custody: "unknown", next_action_owner: "infrastructure", retryable: "unknown", recommended_action: "REFRESH_AND_RECHECK",
+      summary: "The node the wallet is using did not respond, so it is not known whether the transaction was sent.",
+      detail: "A connection problem between the wallet and its node provider. The request may or may not have reached the network before it failed, so do not assume nothing happened.",
+      next_step: "Wait a moment, refresh, and check the wallet's activity before trying again. If it keeps happening, switch RPC endpoint in the wallet.",
     }),
     E({
       code: "TXID-1004", cause: "SIMULATION_PREDICTS_FAILURE", category: "SUBMISSION",
@@ -116,9 +119,12 @@ export const REGISTRY: Record<string, RegistryEntry> = Object.fromEntries(
     // ── 3xxx MEMPOOL: the network would not include it ────────────────────
     E({
       code: "TXID-3001", cause: "NONCE_TOO_LOW", category: "MEMPOOL",
-      custody: "unchanged", next_action_owner: "user", retryable: "yes", recommended_action: "REFRESH_AND_RECHECK",
+      // The earlier transaction with this nonce already mined. If it was the
+      // same intent, a wallet retry or a double-click, the funds moved. Same
+      // situation as DUPLICATE_SUBMISSION, so the same custody answer.
+      custody: "unknown", next_action_owner: "user", retryable: "yes", recommended_action: "REFRESH_AND_RECHECK",
       summary: "This transaction reused a number that an earlier transaction already used.",
-      detail: "Transactions from one account are strictly ordered. A number already spent can never be used again.",
+      detail: "Transactions from one account are strictly ordered. A number already spent can never be used again, and the earlier transaction that used it may have executed, so check before resubmitting.",
       next_step: "Refresh the wallet so it reads the current count, then try again.",
     }),
     E({
@@ -218,7 +224,9 @@ export const REGISTRY: Record<string, RegistryEntry> = Object.fromEntries(
     }),
     E({
       code: "TXID-5004", cause: "DEADLINE_PASSED", category: "PROTOCOL_CONDITION",
-      custody: "unchanged", next_action_owner: "user", retryable: "yes", recommended_action: "RETRY_AS_IS",
+      // The deadline is a parameter inside the transaction. Resubmitting it
+      // unchanged resubmits an expired deadline.
+      custody: "unchanged", next_action_owner: "user", retryable: "after_change", recommended_action: "RETRY_WITH_HIGHER_FEE",
       summary: "The transaction confirmed after its own deadline had passed.",
       detail: "A deadline protects against being executed at a stale price much later. It sat pending too long and was rejected on arrival.",
       next_step: "Retry, and consider a higher fee so it confirms sooner.",
@@ -243,6 +251,13 @@ export const REGISTRY: Record<string, RegistryEntry> = Object.fromEntries(
       summary: "The order breaks one of this market's rules.",
       detail: "Markets enforce constraints such as a tick size, a minimum size, a maximum notional, or bids that must sit below asks. The order was rejected before anything was placed.",
       next_step: "Adjust the order to the market's limits and resubmit.",
+    }),
+    E({
+      code: "TXID-5009", cause: "STATE_CHANGED_IN_BLOCK", category: "PROTOCOL_CONDITION",
+      custody: "unchanged", next_action_owner: "user", retryable: "yes", recommended_action: "RETRY_AS_IS",
+      summary: "The transaction failed because of a condition that had already changed by the time it ran.",
+      detail: "Replaying it against the block's prior state succeeds, which means another transaction changed a price, a balance or a position in the same block. On an exchange this is typically the price moving past the slippage limit or the liquidity being taken first. It reverted, so nothing moved.",
+      next_step: "Retry. If it keeps happening, allow a little more slippage or submit with a higher fee so it lands sooner.",
     }),
     E({
       code: "TXID-5008", cause: "PROTOCOL_RULE_REJECTED", category: "PROTOCOL_CONDITION",

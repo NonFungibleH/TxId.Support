@@ -138,7 +138,7 @@ type Category =
   | "INDETERMINATE"       // not enough evidence to classify
 
 type Status =
-  | "not_submitted"          // never reached the network
+  | "not_submitted"          // never reached the network | "indeterminate"
   | "pending"                // submitted, not yet resolved
   | "failed"                 // executed and failed
   | "succeeded"              // executed and succeeded

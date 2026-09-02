@@ -228,6 +228,62 @@ export async function deliverOne(
   }
 }
 
+/**
+ * Which destinations a dispatch would fan out to. Keep in step with the job
+ * list inside dispatchEscalation; a test pins all six.
+ */
+export function enabledTargets(integrations: Integrations | undefined): IntegrationTarget[] {
+  if (!integrations) return []
+  const i = decryptIntegrations(integrations)
+  const out: IntegrationTarget[] = []
+  if (i.slack?.enabled && i.slack.webhookUrl) out.push("slack")
+  if (i.discord?.enabled && i.discord.webhookUrl) out.push("discord")
+  if (i.telegram?.enabled && i.telegram.chatId) out.push("telegram")
+  if (i.linear?.enabled && i.linear.apiKey && i.linear.teamId) out.push("linear")
+  if (i.github?.enabled && i.github.token && i.github.repo) out.push("github")
+  if (i.jira?.enabled && i.jira.apiToken && i.jira.domain && i.jira.projectKey) out.push("jira")
+  return out
+}
+
+/**
+ * Park an escalation for delivery later, without paging anyone now.
+ *
+ * While a service update is up, /api/tickets records the ticket and skips the
+ * fan-out, because one incident otherwise produces thousands of identical
+ * pages. That was the right call and it had a hole: nothing ever delivered
+ * those escalations afterwards. The row existed in `tickets`; Slack, Linear
+ * and the retry worker never heard of it. When the update cleared, the
+ * operator had to remember to go and look.
+ *
+ * This writes one `pending` row per enabled destination into
+ * escalation_deliveries with `next_attempt_at` set to when the notice is due
+ * to clear, so the existing retry worker delivers them on its next pass.
+ * Nothing new runs; the worker that already exists does the work.
+ */
+export async function holdEscalation(
+  supabase: ReturnType<typeof createServiceClient>,
+  projectId: string,
+  ticket: EscalationTicket,
+  integrations: Integrations | undefined,
+  deliverAt: string,
+): Promise<number> {
+  const targets = enabledTargets(integrations)
+  if (targets.length === 0) return 0
+  const rows = targets.map(target => ({
+    project_id: projectId,
+    target,
+    ticket_ref: ticket.ref,
+    payload: ticket,
+    status: "pending",
+    attempts: 0,
+    last_error: "held: a service update was active when this was raised",
+    next_attempt_at: deliverAt,
+  }))
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error } = await (supabase as any).from("escalation_deliveries").insert(rows)
+  return error ? 0 : rows.length
+}
+
 export async function dispatchEscalation(
   supabase: ReturnType<typeof createServiceClient>,
   projectId: string,
