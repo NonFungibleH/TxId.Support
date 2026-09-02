@@ -1,4 +1,7 @@
-import { CHAIN_CONFIGS } from "./types"
+import { CHAIN_CONFIGS, nativeSymbol } from "./types"
+import { sanitizeChainText } from "./text"
+import { LookupUnavailableError } from "./errors"
+export { LookupUnavailableError }
 import type { TokenBalance, NativeBalance, Transaction, DecodedRevert } from "./types"
 import { decodeTxRevert } from "./decoder"
 import { functionSelector } from "./keccak"
@@ -148,7 +151,7 @@ export async function getNativeBalance(
   const formatted = (Number(raw) / 1e18).toLocaleString("en-US", {
     maximumFractionDigits: 6,
   })
-  const symbol = CHAIN_CONFIGS[chainId]?.nativeCurrency ?? "ETH"
+  const symbol = nativeSymbol(chainId)
   return { balance: data.balance, balanceFormatted: formatted, symbol }
 }
 
@@ -185,8 +188,10 @@ export async function getTokenBalances(
         : `${whole.toLocaleString("en-US")}.${frac.toString().padStart(t.decimals, "0").slice(0, 4).replace(/0+$/, "")}`
     return {
       tokenAddress: t.token_address,
-      symbol: t.symbol,
-      name: t.name,
+      // Written by whoever deployed the token. A link in a token name is the
+      // oldest wallet scam there is, and it used to reach the model verbatim.
+      symbol: sanitizeChainText(t.symbol, 24),
+      name: sanitizeChainText(t.name, 64),
       decimals: t.decimals,
       balance: t.balance,
       balanceFormatted: formatted,
@@ -222,7 +227,9 @@ async function rpcTransactionByHash(hash: string, chainId: string): Promise<Mora
   const rpcUrl = CHAIN_CONFIGS[chainId]?.rpcUrl
   if (!rpcUrl) return null
 
-  const call = async (method: string, params: unknown[]): Promise<Record<string, string> | null> => {
+  // `answered` is the whole point. A node replying null is a fact: it has never
+  // seen this hash. A node that timed out is not. They used to be the same null.
+  const probe = async (method: string, params: unknown[]): Promise<{ answered: true; result: Record<string, string> | null } | { answered: false }> => {
     try {
       const res = await fetch(rpcUrl, {
         method: "POST",
@@ -230,15 +237,25 @@ async function rpcTransactionByHash(hash: string, chainId: string): Promise<Mora
         body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }),
         signal: AbortSignal.timeout(8000),
       })
-      if (!res.ok) return null
-      const json = (await res.json()) as { result?: Record<string, string> | null }
-      return json.result ?? null
+      if (!res.ok) return { answered: false }
+      const json = (await res.json()) as { result?: Record<string, string> | null; error?: unknown }
+      if (json.error && json.result === undefined) return { answered: false }
+      return { answered: true, result: json.result ?? null }
     } catch {
-      return null
+      return { answered: false }
     }
   }
+  const call = async (method: string, params: unknown[]) => {
+    const r = await probe(method, params)
+    return r.answered ? r.result : null
+  }
 
-  const tx = await call("eth_getTransactionByHash", [hash])
+  const first = await probe("eth_getTransactionByHash", [hash])
+  // The one read whose failure must not be mistaken for an answer. The indexer
+  // has already failed to answer by the time we are here, so an unreachable
+  // node means nobody was asked, and that must surface as such.
+  if (!first.answered) throw new LookupUnavailableError(chainId)
+  const tx = first.result
   // A null result here IS the chain saying it has never seen this hash, which
   // is the one case where "not found" is a fact rather than a failure.
   if (!tx || !tx.blockNumber) return null
@@ -325,7 +342,7 @@ export async function getTransactionByHash(
   const valueEth = (Number(BigInt(tx.value ?? "0")) / 1e18).toLocaleString("en-US", {
     maximumFractionDigits: 6,
   })
-  const symbol = CHAIN_CONFIGS[chainId]?.nativeCurrency ?? "ETH"
+  const symbol = nativeSymbol(chainId)
   const isFailed = tx.receipt_status !== "1"
   const statusStr = isFailed ? "failed" : "success"
   const gasUsed = tx.receipt_gas_used ?? "0"
@@ -410,7 +427,7 @@ export async function getContractTransactions(
 
   return incoming.map(tx => {
     const valueEth = (Number(BigInt(tx.value ?? "0")) / 1e18).toLocaleString("en-US", { maximumFractionDigits: 6 })
-    const symbol = CHAIN_CONFIGS[chainId]?.nativeCurrency ?? "ETH"
+    const symbol = nativeSymbol(chainId)
     const isFailed = tx.receipt_status !== "1"
 
     // Detect out-of-gas locally (no RPC call)
@@ -475,7 +492,7 @@ export async function getRecentTransactions(
     const valueEth = (Number(BigInt(tx.value)) / 1e18).toLocaleString("en-US", {
       maximumFractionDigits: 6,
     })
-    const symbol = CHAIN_CONFIGS[chainId]?.nativeCurrency ?? "ETH"
+    const symbol = nativeSymbol(chainId)
     const isOut = tx.from_address.toLowerCase() === address.toLowerCase()
     const isFailed = tx.receipt_status !== "1"
     const summary = `${isOut ? "Sent" : "Received"} ${valueEth} ${symbol} ${isOut ? "to" : "from"} ${isOut ? (tx.to_address ?? "contract") : tx.from_address}`

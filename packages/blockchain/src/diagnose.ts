@@ -1,11 +1,16 @@
 import { CHAIN_CONFIGS } from "./types"
-import { getTransactionByHash } from "./wallet"
+import type { Transaction } from "./types"
+import { getTransactionByHash, LookupUnavailableError } from "./wallet"
 import { enrichTransaction } from "./enrich"
 import { diagnosePendingTx } from "./pending"
 import type { DecodedRevert } from "./types"
 
 // Every EVM chain we support, tried in parallel when the caller doesn't name one.
-const DEFAULT_CHAINS = ["0x1", "0x2105", "0x38", "0x89", "0xa4b1", "0xa", "0xa86a"]
+// Derived, not hand-written. The literal list this replaced omitted Etherlink,
+// so the API's auto-detect never searched it; the widget was unaffected because
+// it derives candidates from the wallet and the watched contracts. CHAIN_CONFIGS
+// carries both spellings of each id, hence the dedupe on cfg.id.
+const DEFAULT_CHAINS = Array.from(new Set(Object.values(CHAIN_CONFIGS).map((c) => c.id)))
 
 export interface TxDiagnosis {
   /** Overall outcome. */
@@ -25,6 +30,8 @@ export interface TxDiagnosis {
   gas: { verdict: string | null; effectiveGwei?: string }
   /** Decoded function name that was called, when known. */
   method: string | null
+  /** Chains that could not be asked at all. "Checked" would be a lie for these. */
+  unreachableChains?: string[]
 }
 
 function chainName(id: string): string {
@@ -50,6 +57,8 @@ function fixForRevert(rev: DecodedRevert | undefined): string | null {
     }
     case "revert_reason":
       return "Resolve the condition in the revert reason above, then retry."
+    case "state_dependent":
+      return "Retry. The failure depended on state that changed in the same block; allow a little more slippage or a higher fee if it keeps happening."
     default:
       return "Reverted by the contract. Review the action's requirements and retry."
   }
@@ -83,10 +92,33 @@ export async function diagnoseTransaction(hash: string, chainOverride?: string):
   const candidates = chainOverride && CHAIN_CONFIGS[chainOverride] ? [chainOverride] : DEFAULT_CHAINS
 
   // Find the chain the tx is mined on (highest-priority hit).
+  // Three outcomes per chain, not two: found, absent, or could not be asked.
+  // Collapsing the last into the second is how an outage becomes "not found".
   const results = await Promise.all(
-    candidates.map(async (id) => ({ id, tx: await getTransactionByHash(hash, id).catch(() => null) })),
+    candidates.map(async (id) => ({
+      id,
+      tx: await getTransactionByHash(hash, id).catch((e: unknown) =>
+        e instanceof LookupUnavailableError ? ("unreachable" as const) : null,
+      ),
+    })),
   )
-  const hit = results.find((r) => r.tx)
+  const unreachableChains = results.filter((r) => r.tx === "unreachable").map((r) => r.id)
+  if (unreachableChains.length === candidates.length) {
+    return {
+      status: "not_found",
+      chain: null,
+      chainId: null,
+      cause: "lookup_failed",
+      error: null,
+      explanation: "None of the candidate chains could be reached, so this hash was not checked. This says nothing about the transaction.",
+      fix: fixForPending("lookup_failed"),
+      tokenTransfers: [],
+      gas: { verdict: null },
+      method: null,
+      unreachableChains,
+    }
+  }
+  const hit = results.find((r) => r.tx && r.tx !== "unreachable") as { id: string; tx: Transaction } | undefined
   if (hit?.tx) {
     const tx = hit.tx
     const enrichment = await enrichTransaction(hash, hit.id, []).catch(() => null)
@@ -135,6 +167,7 @@ export async function diagnoseTransaction(hash: string, chainOverride?: string):
     const d = best.diag
     const isPending = d.cause.startsWith("pending_")
     return {
+      ...(unreachableChains.length ? { unreachableChains } : {}),
       status: isPending ? "pending" : "not_found",
       chain: chainName(best.id),
       chainId: best.id,
@@ -149,6 +182,7 @@ export async function diagnoseTransaction(hash: string, chainOverride?: string):
   }
 
   return {
+    ...(unreachableChains.length ? { unreachableChains } : {}),
     status: "not_found",
     chain: null,
     chainId: null,
