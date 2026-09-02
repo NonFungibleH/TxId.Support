@@ -254,12 +254,33 @@ function rpcOverrides(): Record<string, string> {
   }
 }
 
+/**
+ * Every chain, reachable by BOTH spellings of its id.
+ *
+ * WHY BOTH. A chain id arrives in two forms: wallets and our own integration
+ * snippet use hex ("0x38"), while wagmi and viem hand the host page a NUMBER
+ * (56) that `window.txid.identify` stringifies to "56". Every lookup in this
+ * package is a raw `CHAIN_CONFIGS[chainId]`, so the decimal form missed and
+ * fell through to whatever default the call site named. For Moralis that
+ * default was "eth": we asked for a BNB Chain transaction on Ethereum, got a
+ * truthful "no such transaction", and told the user their swap never happened
+ * while their money had already moved. Registering both spellings fixes all
+ * thirty-eight lookups at once, with no call-site changes.
+ *
+ * `cfg.id` stays hex, so anything reading the config back still sees one
+ * canonical spelling. DEFAULT_CHAIN_CONFIGS is deliberately left hex-only:
+ * resolveChainKey enumerates it and must not see every chain twice.
+ */
 export const CHAIN_CONFIGS: Record<string, ChainConfig> = (() => {
   const overrides = rpcOverrides()
-  if (Object.keys(overrides).length === 0) return DEFAULT_CHAIN_CONFIGS
   const merged: Record<string, ChainConfig> = {}
   for (const [id, cfg] of Object.entries(DEFAULT_CHAIN_CONFIGS)) {
     merged[id] = overrides[id] ? { ...cfg, rpcUrl: overrides[id]! } : cfg
+  }
+  for (const [id, cfg] of Object.entries({ ...merged })) {
+    if (!id.startsWith("0x")) continue
+    const decimal = String(Number.parseInt(id, 16))
+    if (!merged[decimal]) merged[decimal] = cfg
   }
   return merged
 })()
