@@ -1558,7 +1558,7 @@ async function tokensOrNote(
   } catch {
     return {
       tokensUnavailable: true,
-      note: "The token balance lookup did not complete, so the token list is UNKNOWN, not empty. Do not say the wallet holds no tokens. The native balance below was read successfully and can be quoted.",
+      note: "The token balance lookup failed, so the token list is UNKNOWN, not empty. Do not say the wallet holds no tokens. The native balance below was read successfully and can be quoted.",
     }
   }
 }
