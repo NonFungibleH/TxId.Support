@@ -19,4 +19,19 @@ describe.skipIf(!process.env.LIVE)("the three misreported transactions", () => {
     expect(tx!.status).toBe("success")
     console.log(`  FOUND block ${tx!.blockNumber} status ${tx!.status} to ${tx!.to}`)
   }, 30_000)
+
+  // A wagmi or viem host sends 56, not 0x38. Against mocks this looked fine;
+  // against real providers the decimal id resolved to Ethereum and the same
+  // three transactions vanished again. Only a live call shows it.
+  it("finds the same transaction whichever way the chain id is spelled", async () => {
+    const hash = "0x484cf93b31ffe7c01bfa04a241dd0e0f62309768e538c6dbbd17f5368a863538"
+    const [hex, decimal] = await Promise.all([
+      getTransactionByHash(hash, "0x38"),
+      getTransactionByHash(hash, "56"),
+    ])
+    expect(decimal, "a decimal chain id must not lose the transaction").not.toBeNull()
+    expect(decimal!.hash).toBe(hex!.hash)
+    expect(decimal!.status).toBe(hex!.status)
+    console.log(`  0x38 and 56 agree: block ${decimal!.blockNumber} ${decimal!.status}`)
+  }, 30_000)
 })
