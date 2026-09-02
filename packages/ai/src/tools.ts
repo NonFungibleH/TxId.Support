@@ -789,9 +789,22 @@ export async function executeTool(
           diag: await diagnosePendingTx(hash, chainId, wallet?.address).catch(() => null),
         })),
       )
-      const best =
-        pendingResults.find(r => r.diag && r.diag.cause !== "dropped") ??
-        pendingResults.find(r => r.diag)
+      // A node that answered outranks one that did not, whatever it said. An
+      // unreachable chain must never be summarised as "dropped".
+      const rank = (c: string) => (c === "lookup_failed" ? 2 : c === "dropped" ? 1 : 0)
+      const best = [...pendingResults]
+        .filter(r => r.diag)
+        .sort((a, b) => rank(a.diag!.cause) - rank(b.diag!.cause))[0]
+      if (best?.diag && best.diag.cause === "lookup_failed") {
+        // Every candidate was unreachable. Say so; "checked" would be a lie.
+        return {
+          hash,
+          status: "lookup_failed",
+          unreachableChains: candidates,
+          pendingDiagnosis: best.diag,
+          note: "None of the candidate chains could be reached, so this hash was NOT checked. Do not say it was not found, dropped, or never broadcast. Say the chain could not be read just now, that this says nothing about their transaction or their funds, and offer to try again.",
+        }
+      }
       if (best?.diag) {
         return { hash, chainId: best.chainId, status: "not_mined", pendingDiagnosis: best.diag, checkedChains }
       }

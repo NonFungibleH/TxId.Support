@@ -65,6 +65,8 @@ function fixForPending(cause: string): string {
       return "Wait for the network to clear, or speed it up with a higher fee."
     case "insufficient_gas_balance":
       return "Add the network's native token to cover gas, then retry."
+    case "lookup_failed":
+      return "The chain could not be reached just now. Check again shortly; do not resubmit on the strength of this result."
     default:
       return "Resubmit the transaction with a higher fee if it's urgent."
   }
@@ -121,7 +123,14 @@ export async function diagnoseTransaction(hash: string, chainOverride?: string):
   const pending = await Promise.all(
     candidates.map(async (id) => ({ id, diag: await diagnosePendingTx(hash, id).catch(() => null) })),
   )
-  const best = pending.find((p) => p.diag && p.diag.cause !== "dropped") ?? pending.find((p) => p.diag)
+  // Rank what the nodes SAID above what they did not: a chain that reports the
+  // tx in its mempool beats one that has never seen it, which beats one that
+  // could not be reached. An unreachable node must never outrank a real answer,
+  // and must never be summarised as "dropped".
+  const rank = (c: string) => (c === "lookup_failed" ? 2 : c === "dropped" ? 1 : 0)
+  const best = [...pending]
+    .filter((p) => p.diag)
+    .sort((a, b) => rank(a.diag!.cause) - rank(b.diag!.cause))[0]
   if (best?.diag) {
     const d = best.diag
     const isPending = d.cause.startsWith("pending_")

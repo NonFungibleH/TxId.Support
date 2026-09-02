@@ -1,8 +1,22 @@
 import { CHAIN_CONFIGS } from "./types"
 import type { PendingDiagnosis } from "./types"
 
-/** Minimal JSON-RPC call against a chain's public RPC. Returns result or null. */
-async function rpcCall(rpcUrl: string, method: string, params: unknown[]): Promise<unknown> {
+/**
+ * Minimal JSON-RPC call against a chain's public RPC.
+ *
+ * `answered` is the whole point. A node that replies `null` is telling us a
+ * fact (it has never seen this hash). A node that times out is telling us
+ * nothing. They used to be the same `null`, and the probe below read both as
+ * "the network does not know this transaction", which the resolver then
+ * renders as DROPPED: custody unchanged, retryable, "submit it again". For a
+ * transaction that had in fact succeeded, that is an instruction to execute
+ * it twice.
+ */
+async function rpcProbe(
+  rpcUrl: string,
+  method: string,
+  params: unknown[],
+): Promise<{ answered: true; result: unknown } | { answered: false }> {
   try {
     const res = await fetch(rpcUrl, {
       method: "POST",
@@ -10,12 +24,20 @@ async function rpcCall(rpcUrl: string, method: string, params: unknown[]): Promi
       body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }),
       signal: AbortSignal.timeout(6000),
     })
-    if (!res.ok) return null
-    const json = (await res.json()) as { result?: unknown }
-    return json.result ?? null
+    if (!res.ok) return { answered: false }
+    const json = (await res.json()) as { result?: unknown; error?: unknown }
+    // A JSON-RPC error object is the node declining to answer, not answering.
+    if (json.error && json.result === undefined) return { answered: false }
+    return { answered: true, result: json.result ?? null }
   } catch {
-    return null
+    return { answered: false }
   }
+}
+
+/** Result or null, for the secondary reads whose absence is handled locally. */
+async function rpcCall(rpcUrl: string, method: string, params: unknown[]): Promise<unknown> {
+  const probe = await rpcProbe(rpcUrl, method, params)
+  return probe.answered ? probe.result : null
 }
 
 type RpcTx = {
@@ -60,7 +82,17 @@ export async function diagnosePendingTx(
   const rpc = cfg.rpcUrl
   const symbol = cfg.nativeCurrency
 
-  const tx = (await rpcCall(rpc, "eth_getTransactionByHash", [hash])) as RpcTx | null
+  // The one read whose failure must not be mistaken for an answer. Everything
+  // after this branches on what the node SAID; if it said nothing, stop here.
+  const probe = await rpcProbe(rpc, "eth_getTransactionByHash", [hash])
+  if (!probe.answered) {
+    return {
+      cause: "lookup_failed",
+      reason: `The ${cfg.name} node could not be reached to check this hash. This is a failure of the lookup, not a statement about the transaction: it may be mined, pending or dropped, and nothing here can tell which.`,
+      detail: "RPC unreachable or timed out",
+    }
+  }
+  const tx = probe.result as RpcTx | null
 
   // ── Transaction is in the mempool but not yet mined ──────────────────────
   if (tx && tx.blockNumber == null) {
