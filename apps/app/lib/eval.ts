@@ -105,10 +105,20 @@ export async function runEval(opts?: { tx?: string; txChain?: string }): Promise
 
   // 8. Wallet approvals (Moralis): a highly-active wallet must have >0 approvals,
   // so a broken/empty endpoint is caught rather than silently passing.
+  //
+  // The lookup now reports WHY it has nothing, which this check needs: a failed
+  // read used to arrive as an empty array and was indistinguishable from a
+  // wallet that has genuinely approved nothing.
   checks.push(await check("wallet_approvals (active wallet has approvals)", async () => {
     const VITALIK = "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045"
-    const approvals = await getWalletApprovals(VITALIK, ETH)
-    return { pass: Array.isArray(approvals) && approvals.length > 0, detail: `${approvals.length} approvals returned` }
+    const lookup = await getWalletApprovals(VITALIK, ETH)
+    if (lookup.status !== "ok") {
+      return { pass: false, detail: `lookup did not complete: ${lookup.status}` }
+    }
+    return {
+      pass: lookup.approvals.length > 0,
+      detail: `${lookup.approvals.length} approvals returned`,
+    }
   }))
 
   // 9. Sanctions screening: a known OFAC SDN address must flag; a clean one must not.
