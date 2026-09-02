@@ -31,8 +31,18 @@ function decodeMethodName(input: string, abiJson: string): string | undefined {
 
 const MORALIS_BASE = "https://deep-index.moralis.io/api/v2.2"
 
-function moralisChain(chainId: string): string {
-  return CHAIN_CONFIGS[chainId]?.moralisChain ?? "eth"
+/**
+ * The indexer's name for a chain, or null when we have none.
+ *
+ * NULL IS A REAL ANSWER, and it used to be "eth". A chain we do not recognise,
+ * and a chain Moralis does not index (Etherlink has no `moralisChain`), both
+ * land here. Defaulting to Ethereum meant asking the wrong chain and then
+ * reporting its truthful "no such transaction" as a fact about the user's own
+ * transaction. Every caller must now decide what to do without an indexer;
+ * none of them may guess a chain.
+ */
+function moralisChain(chainId: string): string | null {
+  return CHAIN_CONFIGS[chainId]?.moralisChain ?? null
 }
 
 function moralisHeaders(): Record<string, string> {
@@ -64,6 +74,7 @@ export async function getWalletApprovals(
   if (usesBlockscoutWallet(chainId)) return bsWalletApprovals()
   try {
     const chain = moralisChain(chainId)
+    if (!chain) return []
     const res = await fetch(
       `${MORALIS_BASE}/wallets/${address}/approvals?chain=${chain}`,
       { headers: moralisHeaders(), signal: AbortSignal.timeout(9000) },
@@ -105,6 +116,7 @@ export async function getNativeBalance(
 ): Promise<NativeBalance> {
   if (usesBlockscoutWallet(chainId)) return bsNativeBalance(address, chainId)
   const chain = moralisChain(chainId)
+  if (!chain) throw new Error(`No indexer configured for chain ${chainId}`)
   const res = await fetch(
     `${MORALIS_BASE}/${address}/balance?chain=${chain}`,
     { headers: moralisHeaders(), signal: AbortSignal.timeout(8000) },
@@ -126,6 +138,7 @@ export async function getTokenBalances(
 ): Promise<TokenBalance[]> {
   if (usesBlockscoutWallet(chainId)) return bsTokenBalances(address, chainId)
   const chain = moralisChain(chainId)
+  if (!chain) throw new Error(`No indexer configured for chain ${chainId}`)
   const res = await fetch(
     `${MORALIS_BASE}/${address}/erc20?chain=${chain}`,
     { headers: moralisHeaders(), signal: AbortSignal.timeout(8000) },
@@ -260,6 +273,8 @@ export async function getTransactionByHash(
   // money has already moved.
   let raw: MoralisTx | null = null
   try {
+    // No indexer for this chain: the RPC below is the only honest source.
+    if (!chain) throw new Error("no indexer for this chain")
     const res = await fetch(
       `${MORALIS_BASE}/transaction/${hash}?chain=${chain}`,
       { headers: moralisHeaders(), signal: AbortSignal.timeout(8000) },
@@ -347,6 +362,7 @@ export async function getContractTransactions(
 ): Promise<Transaction[]> {
   if (usesBlockscoutWallet(chainId)) return bsContractTransactions(contractAddress, chainId, limit)
   const chain = moralisChain(chainId)
+  if (!chain) throw new Error(`No indexer configured for chain ${chainId}`)
   // Fetch more than we need — Moralis returns both incoming and outgoing; we filter to incoming
   const res = await fetch(
     `${MORALIS_BASE}/${contractAddress}?chain=${chain}&limit=${Math.min(limit * 3, 60)}`,
@@ -415,6 +431,7 @@ export async function getRecentTransactions(
 ): Promise<Transaction[]> {
   if (usesBlockscoutWallet(chainId)) return bsRecentTransactions(address, chainId, limit)
   const chain = moralisChain(chainId)
+  if (!chain) throw new Error(`No indexer configured for chain ${chainId}`)
   const res = await fetch(
     `${MORALIS_BASE}/${address}?chain=${chain}&limit=${limit}`,
     { headers: moralisHeaders(), signal: AbortSignal.timeout(8000) },
