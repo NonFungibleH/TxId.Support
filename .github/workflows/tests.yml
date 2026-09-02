@@ -25,6 +25,16 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: Unit tests
         run: pnpm --filter @txid/app exec vitest run
+
+      # The two build-time gates that need no runtime keys. Until 2026-09-03
+      # this check ran neither, so a commit could be green here and fail the
+      # Vercel Preview: next build lints test files too, and an `as any` in a
+      # test took the build down. Static page generation needs Clerk keys and
+      # stays Vercel's job; a full `next build` here would fail on env alone.
+      - name: Lint (what next build runs first)
+        run: pnpm --filter @txid/app exec next lint
+      - name: Typecheck
+        run: pnpm --filter @txid/app exec tsc --noEmit
       # The packages were never covered. abort.test.ts guarded the Move abort
       # decoder and had not run once in CI; decoder.test.ts guards the revert
       # replay. Both are core and both are pure, so there is no reason they

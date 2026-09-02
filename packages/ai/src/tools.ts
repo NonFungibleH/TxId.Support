@@ -727,7 +727,11 @@ export async function executeTool(
       const reachable = candidates.filter(c => !unreachableChains.includes(c))
       // "Checked" means a node answered. An unreachable chain was attempted, not checked.
       const checkedChains = checkAptos ? [...reachable, "aptos"] : reachable
-      if (reachable.length === 0 && !aptosTx) {
+      // Only when there WERE EVM candidates and none could be asked. An
+      // Aptos-only session has no EVM candidates at all, and the fullnode
+      // answering "no such transaction" is a real answer, not an outage; that
+      // case must fall through to the not-found branch with its Aptos causes.
+      if (candidates.length > 0 && reachable.length === 0 && !checkAptos) {
         return {
           hash,
           status: "lookup_failed",
@@ -839,9 +843,13 @@ export async function executeTool(
           hash,
           status: "lookup_failed",
           unreachableChains: candidates,
+          checkedChains,
           lookupFailed: true,
           pendingDiagnosis: best.diag,
-          note: "None of the candidate chains could be reached, so this hash was NOT checked. Do not say it was not found, dropped, or never broadcast. Say the chain could not be read just now, that this says nothing about their transaction or their funds, and offer to try again.",
+          // Aptos may have answered even when every EVM chain was silent.
+          note: checkedChains.length
+            ? `The chains that could be reached (${checkedChains.join(", ")}) do not have this hash; the rest (${candidates.join(", ")}) could not be reached. Say exactly that: not found where it was checked, unchecked where it was not. Do not call it dropped. This says nothing about their funds; offer to try again.`
+            : "None of the candidate chains could be reached, so this hash was NOT checked. Do not say it was not found, dropped, or never broadcast. Say the chain could not be read just now, that this says nothing about their transaction or their funds, and offer to try again.",
         }
       }
       if (best?.diag) {

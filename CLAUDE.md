@@ -846,7 +846,7 @@ the answer with what you believe you changed.
 
 ## Shipping workflow (since 2026-08-12)
 
-**`master` is protected**: required status check `test` (the Tests workflow: vitest + embed smoke + build), `enforce_admins` on, no force pushes. Direct pushes are rejected; land changes via PR (`gh pr create`, merge when green) or fast-forward a commit already carrying a green check (the staging promotion path). A persistent **`staging` branch** is the pre-prod surface; it carries `apps/app/public/harness.html` (widget host-API click-through, `/harness.html?key=pk_…`) which must NEVER be merged to master. Migrations run on the staging Supabase first (project pending), production second. Pure content (blog posts) may PR straight to master. The embed smoke (`pnpm --filter @txid/app run smoke:embed`) is part of the local gate for ANY widget.js change: it caught nothing locally on 2026-08-11 only because it was not run.
+**`master` is protected**: required status check `test` (the Tests workflow: vitest + `next lint` + `tsc --noEmit` + embed smoke; it does NOT run a full `next build`, because static page generation needs Clerk keys, so the Vercel Preview deploy is the build gate and a red Preview is real), `enforce_admins` on, no force pushes. Direct pushes are rejected; land changes via PR (`gh pr create`, merge when green) or fast-forward a commit already carrying a green check (the staging promotion path). A persistent **`staging` branch** is the pre-prod surface; it carries `apps/app/public/harness.html` (widget host-API click-through, `/harness.html?key=pk_…`) which must NEVER be merged to master. Migrations run on the staging Supabase first (project pending), production second. Pure content (blog posts) may PR straight to master. The embed smoke (`pnpm --filter @txid/app run smoke:embed`) is part of the local gate for ANY widget.js change: it caught nothing locally on 2026-08-11 only because it was not run.
 
 ### Launch-audit hardening (2026-08-12, all shipped)
 Four-auditor CTO audit; every finding fixed: `/api/chat` rejects non-string message content + pins roles (content-block arrays bypassed the length cap); `safeEnqueue` + persistence moved to `finally` so a disconnect mid-stream loses neither the transcript nor the `token_usage` row (the model loop deliberately runs to completion); `maxDuration` 300; Telegram runs behind `checkSpendBudget` + `TELEGRAM_LIMITS.perChatPerDay` (300); preview sessions excluded from the conversation quota (migration `20260812000001`) and from both usage displays; quota RPC failure falls back to an explicit count (was fail-open); Groq fallback + `completeChatWithUsage` record real token usage (was zero during Anthropic outages); `/api/check` has a global 600/min bucket; widget SSE parsing buffers across chunk boundaries; quota 429 copy is end-user-neutral; `requireCapability("tickets")` on the legacy ticket actions; `app/dashboard/error.tsx` boundary; origin guards on `actions/rebuild` + `ack`.
@@ -943,6 +943,9 @@ not overlap.
 - **Secrets that change what you can see:** `SLACK_WEBHOOK_URL` (repo),
   `SENTRY_DSN` (Vercel; the logger is `console.error` without it),
   `APTOS_API_KEY` (rate limits).
+- **`next build` lints test files.** An `as any` in a test fails the Vercel
+  Preview deploy while every unit test passes. The required check runs
+  `next lint` and `tsc --noEmit` since 2026-09-03 so this is caught first.
 - **Yamata's integration sends `chainId: "0x38"`** (hex), which is why #69
   never affected them. Their `allowedDomains` should be confirmed set.
 
