@@ -137,6 +137,9 @@ function classify(input: ResolveInput): string {
       case "pending_underpriced": return "TXID-3003"
       case "pending_congestion": return "TXID-3007"
       case "dropped": return "TXID-3008"
+      // An unreachable node is not evidence of anything. TXID-9004 carries
+      // custody "unknown" and retryable "unknown", which is the truth.
+      case "lookup_failed": return "TXID-9004"
       case "insufficient_gas_balance": return "TXID-2001"
     }
   }

@@ -20,6 +20,9 @@ const PENDING_CAUSES = new Set([
   "pending_congestion",
   "dropped",
   "insufficient_gas_balance",
+  // Not a mempool state. Routed here only so the node's own wording reaches
+  // `raw`; classify() maps it to INSUFFICIENT_EVIDENCE, never to DROPPED.
+  "lookup_failed",
 ])
 
 /** The five decoder revert causes. */

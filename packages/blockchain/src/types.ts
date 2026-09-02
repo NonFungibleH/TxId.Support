@@ -39,6 +39,10 @@ export interface PendingDiagnosis {
     | "pending_congestion"       // in mempool, just waiting to be mined
     | "dropped"                  // unknown to the node: dropped/replaced/never broadcast
     | "insufficient_gas_balance" // wallet has no native token to pay gas
+    // The node could not be asked at all. NOT a statement about the transaction.
+    // This exists because a timed-out RPC used to fall through to "dropped",
+    // which the resolver turns into "nothing moved, submit it again".
+    | "lookup_failed"
   reason: string                 // plain-English description
   detail?: string                // extra specifics (fees, nonce gap) when available
 }
