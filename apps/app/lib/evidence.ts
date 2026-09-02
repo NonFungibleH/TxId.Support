@@ -1,5 +1,6 @@
 import { createHash } from "crypto"
 import { getAptosNetworkStatus } from "@txid/aptos"
+import { CHAIN_CONFIGS } from "@txid/blockchain"
 
 /**
  * The conditions an answer was produced under.
@@ -20,7 +21,16 @@ import type { EvidenceSource } from "@txid/ai"
 
 export interface AnswerEvidence {
   /** Chain state the answer rested on, so it can be replayed. */
-  chain?: { chainId: string; ledgerVersion?: string; readAt: string }
+  chain?: {
+    chainId: string
+    /** Aptos: the global ledger version the answer was true as of. */
+    ledgerVersion?: string
+    /** EVM: the block the answer was true as of, and its hash so a reorg cannot
+     *  quietly swap the block a reviewer replays against. */
+    blockNumber?: string
+    blockHash?: string
+    readAt: string
+  }
   request?: {
     country?: string
     region?: string
@@ -146,14 +156,55 @@ export function requestGeo(headers: Headers): { country?: string; region?: strin
  * than taking the answer's word for it. Read after the response is already
  * streamed, so it costs the user nothing.
  */
+/**
+ * The chain height an answer was finalised at, so a reviewer can read the same
+ * state later and check the answer against it.
+ *
+ * This used to stamp a ledger version for Aptos and a bare timestamp for every
+ * other chain. A timestamp maps to roughly one BNB Chain block, from a node
+ * that may have been lagging, so an EVM record was not replayable at anything:
+ * the deck's "replayable at that ledger version" was true for Decibel and
+ * false for Yamata. EVM chains now record the latest block number AND hash.
+ * The hash matters: a number alone can be reassigned by a reorg, a hash cannot.
+ *
+ * Runs AFTER the answer has streamed, so it costs the user nothing, but it sits
+ * before persistence, so the timeout is tight. Any failure degrades to the
+ * timestamp. It must never invent a block, and it must never fail the write.
+ */
 export async function chainStateAt(chainId?: string): Promise<AnswerEvidence["chain"]> {
   if (!chainId) return undefined
   const readAt = new Date().toISOString()
-  if (chainId !== "aptos") return { chainId, readAt }
+
+  if (chainId === "aptos") {
+    try {
+      const status = await getAptosNetworkStatus()
+      const version = status?.latestVersion
+      return { chainId, readAt, ...(version ? { ledgerVersion: String(version) } : {}) }
+    } catch {
+      return { chainId, readAt }
+    }
+  }
+
+  const rpcUrl = CHAIN_CONFIGS[chainId]?.rpcUrl
+  if (!rpcUrl) return { chainId, readAt }
   try {
-    const status = await getAptosNetworkStatus()
-    const version = status?.latestVersion
-    return { chainId, readAt, ...(version ? { ledgerVersion: String(version) } : {}) }
+    const res = await fetch(rpcUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "eth_getBlockByNumber", params: ["latest", false] }),
+      signal: AbortSignal.timeout(4000),
+    })
+    if (!res.ok) return { chainId, readAt }
+    const json = (await res.json()) as { result?: { number?: string; hash?: string } | null }
+    const number = json.result?.number
+    if (!number) return { chainId, readAt }
+    const hash = json.result?.hash
+    return {
+      chainId,
+      readAt,
+      blockNumber: String(BigInt(number)),
+      ...(hash ? { blockHash: hash } : {}),
+    }
   } catch {
     return { chainId, readAt }
   }
