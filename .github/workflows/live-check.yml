@@ -28,6 +28,10 @@ jobs:
   live:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    # Job-level so the notify step's `if:` can read it. Optional: with no
+    # SLACK_WEBHOOK_URL repository secret the step is skipped, never failed.
+    env:
+      SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
     steps:
       - uses: actions/checkout@v4
 
@@ -59,3 +63,14 @@ jobs:
           LIVE: "1"
           APTOS_API_KEY: ${{ secrets.APTOS_API_KEY }}
         run: pnpm --filter @txid/aptos exec vitest run src/live-check.test.ts
+
+      # A red run nobody sees is a red run that did not happen. Every provider
+      # failure this week was found by a customer or by luck; this is the first
+      # path from "a real chain stopped answering" to a human. Set the
+      # SLACK_WEBHOOK_URL repository secret to enable it.
+      - name: Notify on failure
+        if: failure() && env.SLACK_WEBHOOK_URL != ''
+        run: |
+          curl -sS -X POST -H 'Content-Type: application/json' \
+            --data "{\"text\":\"Live chain check FAILED (${{ github.workflow }}): ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\"}" \
+            "$SLACK_WEBHOOK_URL"
