@@ -7,11 +7,11 @@ import { recordCaseAccess } from "@/lib/case-access"
 // reviewer can replay the chain state and check the answer has not changed.
 const HEADER = [
   "session_id", "wallet_address", "chain_id", "conversation_started", "role", "content",
-  "ledger_version", "state_read_at", "country", "model", "answer_sha256",
+  "ledger_version", "block_number", "block_hash", "state_read_at", "country", "model", "answer_sha256",
 ].join(",")
 
 interface EvidenceShape {
-  chain?: { ledgerVersion?: string; readAt?: string }
+  chain?: { ledgerVersion?: string; blockNumber?: string; blockHash?: string; readAt?: string }
   request?: { country?: string }
   model?: { name?: string }
   answer?: { sha256?: string }
@@ -103,6 +103,8 @@ export async function GET() {
           escapeCell(msg.role),
           escapeCell(msg.content),
           escapeCell(ev?.chain?.ledgerVersion),
+          escapeCell(ev?.chain?.blockNumber),
+          escapeCell(ev?.chain?.blockHash),
           escapeCell(ev?.chain?.readAt),
           escapeCell(ev?.request?.country),
           escapeCell(ev?.model?.name),

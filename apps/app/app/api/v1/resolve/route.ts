@@ -3,6 +3,7 @@ import { rateLimit } from "@/lib/rate-limit"
 import { log } from "@/lib/logger"
 import { resolveByHash } from "@/lib/resolution/gather"
 import { recordResolution } from "@/lib/resolution/record"
+import { chainStateAt } from "@/lib/evidence"
 import type { Intent } from "@/lib/resolution/types"
 
 /**
@@ -106,6 +107,14 @@ export async function POST(request: Request) {
     // module-and-code wording.
     const watched = (project.config as { watchedContracts?: { address: string; chain: string }[] } | null)
       ?.watchedContracts
+    // The chain height this answer is true as of, so a reviewer can replay it.
+    // `chain_state_at` was never set on the API path: the widget stamped its
+    // records and the API did not, so the product on slide 11 could not make
+    // the claim on slide 8. When the caller names the chain, the stamp runs
+    // alongside resolution and costs nothing; otherwise it runs after, only
+    // for a chain the transaction was actually found on. Either way a failed
+    // read degrades to no stamp, never to an invented one.
+    const earlyState = chain ? chainStateAt(chain) : Promise.resolve(undefined)
     const resolution = await resolveByHash(tx, {
       ...(chain ? { chain } : {}),
       ...(intent ? { intent } : {}),
@@ -113,10 +122,13 @@ export async function POST(request: Request) {
       ...(offchain ? { offchainState: offchain } : {}),
       ...(watched ? { watchedContracts: watched } : {}),
     })
+    const state = (await earlyState) ?? (resolution.chain ? await chainStateAt(resolution.chain) : undefined)
+    const height = state?.blockNumber ?? state?.ledgerVersion
+    const stamped = height ? { ...resolution, chain_state_at: height } : resolution
 
     // Deliberately not awaited: the caller gets their answer at the same speed
     // whether or not the stats write lands, and recordResolution never throws.
-    void recordResolution(resolution, {
+    void recordResolution(stamped, {
       projectId: project.id,
       source: "api",
       ...(chain ? { chain } : {}),
@@ -126,12 +138,13 @@ export async function POST(request: Request) {
     log.info("API resolve", {
       event: "api.resolve",
       projectId: project.id,
-      code: resolution.txid_code,
-      status: resolution.status,
-      basis: resolution.basis,
+      code: stamped.txid_code,
+      status: stamped.status,
+      basis: stamped.basis,
+      ...(height ? { chainStateAt: height } : {}),
     })
 
-    return json(resolution, 200)
+    return json(stamped, 200)
   } catch (err) {
     log.error("API resolve error", err, { event: "api.resolve_error" })
     return json({ error: "Server error." }, 500)

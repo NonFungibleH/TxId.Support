@@ -182,6 +182,7 @@ function EvidenceBadge({ evidence }: { evidence: NonNullable<ConversationWithMes
               <p className="text-[10px] font-semibold uppercase tracking-wider text-primary">Chain state</p>
               <Field label="Chain" value={chain.chainId} />
               {chain.ledgerVersion && <Field label="Ledger" value={chain.ledgerVersion} />}
+              {chain.blockNumber && <Field label="Block" value={chain.blockNumber} />}
               <Field label="Read at" value={new Date(chain.readAt).toLocaleString()} />
             </div>
           )}
