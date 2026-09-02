@@ -166,6 +166,7 @@ export interface ResolveInput {
       | "pending_congestion"
       | "dropped"
       | "insufficient_gas_balance"
+      | "lookup_failed"
     reason?: string
   }
   /** packages/aptos decodeAbort output. */
