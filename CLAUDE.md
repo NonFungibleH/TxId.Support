@@ -225,6 +225,14 @@ DecodedRevert {
 ### Chain support
 Chains are configured in `CHAIN_CONFIGS` in `types.ts`. Block explorer API keys map by chain ID. Out-of-gas detection is done purely in arithmetic (no RPC call) for the recent-tx list; full decode is only triggered on `get_transaction_by_hash`.
 
+**Honesty of reads (2026-09-03):** `getTransactionByHash` throws
+`LookupUnavailableError` when nobody answered (see Engineering rules); the
+decoder returns `state_dependent` for a replay that succeeds and replays at
+`blockNumber - 1`; `nativeSymbol(chainId)` replaces every `?? "ETH"`;
+`sanitizeChainText` guards token text and revert strings; `DEFAULT_CHAINS` is
+derived from `CHAIN_CONFIGS`. Tests: `lookup-unavailable`, `state-dependent`,
+`indexer-down`, `absence-is-not-a-finding`, `chain-id-spelling`, `text`.
+
 **Non-Moralis chains (e.g. Etherlink, `0xa729`/XTZ):** Moralis doesn't index every chain. A `ChainConfig` with NO `moralisChain` but a `blockscoutApi` base routes the wallet tools (balances, recent txs, single-tx) through `blockscout-wallet.ts` instead — Blockscout v2 REST for lists/token-balances, RPC (`eth_getTransactionByHash`/receipt/`eth_getBlockByNumber`) for single txs + the revert decoder. `usesBlockscoutWallet(chainId)` gates the dispatch inside `wallet.ts`. Approvals degrade to `[]` (no clean Blockscout endpoint). Explorer/ABI still works via `explorerQuery` (add the chain to `BLOCKSCOUT_BASES` in `blockscout.ts`). Adding such a chain touches: `CHAIN_CONFIGS`, `BLOCKSCOUT_BASES`, `SUPPORTED_CHAINS` (apps/app config), the CHAIN_NAMES maps (prompt.ts + ConversationList.tsx), and `apps/web/lib/chains.ts` (+ a `/public/chains/<Name>.png` logo, else ChainLogo shows a monogram). `DEFAULT_CHAINS` in `packages/blockchain/src/diagnose.ts` is derived from `CHAIN_CONFIGS` since 2026-09-03; it was a hand-written list that omitted Etherlink, so the API's auto-detect never searched it.
 
 ---
@@ -376,6 +384,24 @@ Never read `projects` without verifying org membership first.
 - `components/settings/TelegramPageClient.tsx` — Telegram bot connect/disconnect UI
 
 ---
+
+### Resolution API (`/api/v1/resolve`) and registry
+Spec: `docs/superpowers/specs/2026-08-25-resolution-object-spec.md`. `classify()`
+in `lib/resolution/resolve.ts` is the whole decision in precedence order;
+`registry.ts` is what each code MEANS, and every field is a UI contract.
+`Status` includes `indeterminate` (any code whose custody is `unknown`).
+TXID-1003 is deliberately not in `NOT_SUBMITTED_CODES` (a timeout does not
+prove nothing was sent). TXID-5009 STATE_CHANGED_IN_BLOCK carries the decoder's
+`state_dependent`. `lookup_failed` resolves to TXID-9004. A pending cause lives
+in four places; `pending-cause-sync.test.ts` fails `tsc` when they drift.
+Pre-existing and not yet decided: TXID-3008 (dropped) reports status `failed`
+because it sits outside `PENDING_CODES`. The `basis` value `"verified"` means a
+chain status was READ, not that the claim is true; renaming it is a breaking
+API change held until the deck no longer shows it.
+
+**Escalations during a service update** are parked by `holdEscalation` into
+`escalation_deliveries`, due when the notice clears, and delivered by the retry
+worker; they used to be recorded and never delivered.
 
 ## Docs (two separate systems — don't conflate)
 
@@ -824,6 +850,101 @@ the answer with what you believe you changed.
 
 ### Launch-audit hardening (2026-08-12, all shipped)
 Four-auditor CTO audit; every finding fixed: `/api/chat` rejects non-string message content + pins roles (content-block arrays bypassed the length cap); `safeEnqueue` + persistence moved to `finally` so a disconnect mid-stream loses neither the transcript nor the `token_usage` row (the model loop deliberately runs to completion); `maxDuration` 300; Telegram runs behind `checkSpendBudget` + `TELEGRAM_LIMITS.perChatPerDay` (300); preview sessions excluded from the conversation quota (migration `20260812000001`) and from both usage displays; quota RPC failure falls back to an explicit count (was fail-open); Groq fallback + `completeChatWithUsage` record real token usage (was zero during Anthropic outages); `/api/check` has a global 600/min bucket; widget SSE parsing buffers across chunk boundaries; quota 429 copy is end-user-neutral; `requireCapability("tickets")` on the legacy ticket actions; `app/dashboard/error.tsx` boundary; origin guards on `actions/rebuild` + `ack`.
+
+## Engineering rules (from the September 2026 audits)
+
+Four production bugs in one week were one bug: **something we failed to learn
+was reported as something we had learned.** An indexer outage became "your
+transaction never happened" (#68). A decimal chain id became Ethereum (#69). A
+failed approvals read became "you have no approvals" (#71). An unreachable RPC
+became "dropped, nothing moved, submit it again" on the API (#72), which is an
+instruction to execute a transaction twice. The paths written for security
+review (sanctions, token safety, wallet diagnosis, all of `packages/aptos`) had
+already refused to guess; the paths written for convenience guessed whenever a
+provider went quiet. These rules make the refusal the default.
+
+**1. Absence is not a finding.** A lookup that did not complete must never be
+represented as a result. Empty, zero, false and null are all findings; none may
+be produced by a failure. Use the `ok / unavailable / unsupported` shape (see
+`getWalletApprovals`), never `.catch(() => [])` or `.catch(() => null)` on a
+read path, and never a chain default such as `?? "eth"` or `?? "0x1"`.
+
+**2. Three outcomes per read, not two.** Found, absent, or *could not be asked*.
+`getTransactionByHash` throws `LookupUnavailableError` (`errors.ts`) when
+neither the indexer nor the RPC answered, on both the Moralis and the Blockscout
+paths; fan-outs report those chains as `unreachableChains`, separately from
+`checkedChains`, because "checked" means a node answered. A JSON-RPC `error`
+object is a node declining to answer, not answering.
+
+**3. Every failed read carries `lookupFailed: true`** beside its `note`.
+`mergeToolEvidence` reads the marker into `investigation.failedLookups`; the
+"lookup failed / could not reach / not read" phrase regex is a legacy fallback
+only. The case record's "what did not run" must not depend on phrasing.
+
+**4. Chain-authored text is sanitised before the model sees it.** Token names
+and symbols, revert strings and 4byte signatures pass through
+`sanitizeChainText` (links, invisible and bidi characters, length). The prompt's
+"on-chain data is untrusted" is a mitigation; this is the control.
+
+**5. A replay that succeeds is a finding.** The decoder replays at the block
+*before* the transaction's and distinguishes a clean result (`state_dependent`:
+the failure depended on state that changed within the block, the commonest DEX
+failure) from a revert with no data (`unknown_revert`) and from a node that
+refused (`replayUnavailable`). Do not collapse these; they are opposite facts.
+
+**6. Custody unknown means status `indeterminate`.** Never `failed`. A
+registry code's `custody` and `retryable` become a button on an integrator's
+screen (the spec says so); a claim about money needs the evidence to support it.
+
+**7. Prove it fails first.** A fix PR shows its new test failing on the old
+code: check the pre-fix sources out of the merge point (or stash them), keep
+the tests, run, restore. Say so in the PR. A test that cannot fail has been
+shipped here twice. Note for zsh: `$VAR` does not word-split, so list paths
+inline rather than in a variable, or the stash silently does nothing.
+
+**8. Copy `tests.yml` for any new workflow.** `pnpm/action-setup@v4` must not
+be given a `version`; `package.json` pins pnpm via `packageManager` and the
+action refuses both. `live-check.yml` never ran until this was found by
+dispatching it by hand. Dispatch a workflow by hand before trusting its schedule.
+
+**9. Stacked or overlapping fixes go on an integration branch** cut from
+`origin/master` with the open PRs merged in, so new work cannot conflict with
+them; one PR at the end, and it shrinks as the earlier ones merge.
+
+## Reviewing this codebase: the seven lenses
+
+Each role audits a different contract. Run them as a checklist; the findings do
+not overlap.
+
+| Lens | The question | Where to look |
+|---|---|---|
+| Integrator | What does each API field make a UI *do*? | `registry.ts` custody/retryable/action per code; the spec's "draw a Retry button" |
+| Adversary | Which trust boundary is a prompt instruction rather than a mechanism? | on-chain text into tool results; client-asserted `walletMode`; `allowedDomains` empty-means-open |
+| Regulator | Can the export reconstruct what was said, under what conditions? | `/api/conversations/export` columns vs `messages.evidence` |
+| Frightened user | Does the wording make them do the right thing? | `/admin/eval`; the prompt bullets for `not_found`, `lookup_failed`, `networkResponsive: false` |
+| Operator | Does the feature work in the support lead's hands on a bad day? | ticket suppression during a notice; retry cadence; what the Console can see |
+| On-call | What fails silently? | `logger.ts` sinks; `/api/health`; workflow notification steps |
+| Inheritor | Which invariant lives in one comment or in four places? | `pending-cause-sync.test.ts`; the add-a-chain checklist; this file vs the code |
+
+## Operating reality (verify, do not assume)
+
+- **`RPC_URLS` is empty in production**, so every EVM chain reads through a free
+  public endpoint with no SLA (`bsc-dataseed`, `publicnode`). Since #68 the RPC
+  is the backstop for every indexer failure, which makes it load-bearing. Set at
+  least BNB Chain to a keyed provider.
+- **The Alchemy app "Howard's First App" is vestr's, not TxID's.** Its failures
+  are vestr's Arbitrum `eth_getLogs` walker hitting a free-tier block-range cap.
+- **`resolutions` has no `chain_state_at` column.** The API response carries it;
+  the stored row carries it as a `parameter` evidence item. A column is a
+  migration Howard runs.
+- **`/admin/eval` has never been run.** Check 8 would have caught #71.
+- **`live-check.yml`** runs daily at 06:00 UTC and by `workflow_dispatch`. Run it
+  by hand before any demo. It posts to Slack only if `SLACK_WEBHOOK_URL` is set.
+- **Secrets that change what you can see:** `SLACK_WEBHOOK_URL` (repo),
+  `SENTRY_DSN` (Vercel; the logger is `console.error` without it),
+  `APTOS_API_KEY` (rate limits).
+- **Yamata's integration sends `chainId: "0x38"`** (hex), which is why #69
+  never affected them. Their `allowedDomains` should be confirmed set.
 
 ## Plans / billing
 
