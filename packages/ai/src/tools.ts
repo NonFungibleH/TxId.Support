@@ -616,8 +616,25 @@ export async function executeTool(
           note: "Aptos has no standing token approvals, coins and fungible assets can only move when the owner signs. Nothing to revoke.",
         }
       }
-      const approvals = await getWalletApprovals(wallet.address, wallet.chainId)
-      return { address: wallet.address, count: approvals.length, approvals }
+      const lookup = await getWalletApprovals(wallet.address, wallet.chainId)
+      // An unanswered question must not render as an all-clear. Someone asking
+      // what they have approved usually suspects they have been drained, and
+      // "no approvals" is the answer that stops them revoking.
+      if (lookup.status === "unavailable") {
+        return {
+          address: wallet.address,
+          available: false,
+          note: "Could not read this wallet's approvals: the lookup did not complete. This is NOT a finding that the wallet has no approvals. Say the check did not run, and suggest they check a revoke tool directly rather than treating this as an all-clear.",
+        }
+      }
+      if (lookup.status === "unsupported") {
+        return {
+          address: wallet.address,
+          available: false,
+          note: "Approval listing is not available on this chain, so the wallet was not checked. Do not imply it was checked and found clean.",
+        }
+      }
+      return { address: wallet.address, count: lookup.approvals.length, approvals: lookup.approvals }
     }
 
     case "get_transaction_by_hash": {
