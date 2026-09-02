@@ -41,6 +41,7 @@ import {
 
   canonicalChainId,
 } from "@txid/blockchain"
+import type { TokenBalance } from "@txid/blockchain"
 import {
   getSolanaWalletBalance,
   getSolanaRecentTransactions,
@@ -486,11 +487,14 @@ export async function executeTool(
               : {}),
         }
       }
-      const [native, tokens] = await Promise.all([
+      const [native, tokenResult] = await Promise.all([
         getNativeBalance(wallet.address, wallet.chainId),
-        getTokenBalances(wallet.address, wallet.chainId).catch(() => []),
+        tokensOrNote(wallet.address, wallet.chainId),
       ])
-      return { address: wallet.address, native, tokens: tokens.slice(0, 20) }
+      if ("tokensUnavailable" in tokenResult) {
+        return { address: wallet.address, native, ...tokenResult }
+      }
+      return { address: wallet.address, native, tokens: tokenResult.tokens.slice(0, 20) }
     }
 
     case "get_recent_transactions": {
@@ -616,8 +620,25 @@ export async function executeTool(
           note: "Aptos has no standing token approvals, coins and fungible assets can only move when the owner signs. Nothing to revoke.",
         }
       }
-      const approvals = await getWalletApprovals(wallet.address, wallet.chainId)
-      return { address: wallet.address, count: approvals.length, approvals }
+      const lookup = await getWalletApprovals(wallet.address, wallet.chainId)
+      // An unanswered question must not render as an all-clear. Someone asking
+      // what they have approved usually suspects they have been drained, and
+      // "no approvals" is the answer that stops them revoking.
+      if (lookup.status === "unavailable") {
+        return {
+          address: wallet.address,
+          available: false,
+          note: "Could not read this wallet's approvals: the lookup did not complete. This is NOT a finding that the wallet has no approvals. Say the check did not run, and suggest they check a revoke tool directly rather than treating this as an all-clear.",
+        }
+      }
+      if (lookup.status === "unsupported") {
+        return {
+          address: wallet.address,
+          available: false,
+          note: "Approval listing is not available on this chain, so the wallet was not checked. Do not imply it was checked and found clean.",
+        }
+      }
+      return { address: wallet.address, count: lookup.approvals.length, approvals: lookup.approvals }
     }
 
     case "get_transaction_by_hash": {
@@ -988,11 +1009,14 @@ export async function executeTool(
             }
           : { contract: target.name, error: APTOS_LOOKUP_FAILED }
       }
-      const [native, tokens] = await Promise.all([
+      const [native, tokenResult] = await Promise.all([
         getNativeBalance(target.address, target.chain),
-        getTokenBalances(target.address, target.chain).catch(() => []),
+        tokensOrNote(target.address, target.chain),
       ])
-      return { contract: target.name, address: target.address, native, tokens: tokens.slice(0, 30) }
+      if ("tokensUnavailable" in tokenResult) {
+        return { contract: target.name, address: target.address, native, ...tokenResult }
+      }
+      return { contract: target.name, address: target.address, native, tokens: tokenResult.tokens.slice(0, 30) }
     }
 
     case "get_contract_state": {
@@ -1511,6 +1535,31 @@ export async function executeTool(
 
     default:
       throw new Error(`Unknown tool: ${name}`)
+  }
+}
+
+/**
+ * A token-balance read that reports its own failure.
+ *
+ * `.catch(() => [])` handed the model an empty token list whenever the indexer
+ * wavered, and the model said "you hold no tokens". Same bug as the approvals
+ * all-clear: a read that did not happen must not arrive looking like a finding,
+ * and "your wallet is empty" is a finding people act on.
+ *
+ * The native balance is deliberately NOT guarded this way. It has no fallback,
+ * so letting it throw is already honest.
+ */
+async function tokensOrNote(
+  address: string,
+  chainId: string,
+): Promise<{ tokens: TokenBalance[] } | { tokensUnavailable: true; note: string }> {
+  try {
+    return { tokens: await getTokenBalances(address, chainId) }
+  } catch {
+    return {
+      tokensUnavailable: true,
+      note: "The token balance lookup failed, so the token list is UNKNOWN, not empty. Do not say the wallet holds no tokens. The native balance below was read successfully and can be quoted.",
+    }
   }
 }
 

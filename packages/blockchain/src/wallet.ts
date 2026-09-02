@@ -62,24 +62,44 @@ export interface WalletApproval {
 }
 
 /**
- * List the ERC-20 approvals a wallet has granted (token → spender → amount),
- * via Moralis' wallet approvals endpoint. Newest/riskiest first as returned.
- * Returns [] on any failure — never throws.
+ * What a wallet has approved, or an honest statement that we could not find out.
+ *
+ * THE EMPTY ARRAY WAS A LIE. This returned [] on every failure: an indexer
+ * outage, a missing API key, a chain with no approvals endpoint. The tool above
+ * reported that as `count: 0`, and the assistant told the user they had no
+ * standing approvals.
+ *
+ * "What have I approved?" is asked by people who think they have been drained.
+ * Answering "nothing" when we did not manage to look is the same bug that told
+ * a user their transaction never happened, except it resolves toward safety,
+ * so nobody questions it and the user does not revoke. An unanswered question
+ * must never render as an all-clear.
+ *
+ * `none` is a real finding. `unavailable` is our failure. `unsupported` is the
+ * chain's. The caller must be able to tell them apart, so they are three
+ * states rather than one empty list.
  */
+export type ApprovalsLookup =
+  | { status: "ok"; approvals: WalletApproval[] }
+  | { status: "unavailable" }
+  | { status: "unsupported" }
+
 export async function getWalletApprovals(
   address: string,
   chainId: string,
   limit = 25,
-): Promise<WalletApproval[]> {
-  if (usesBlockscoutWallet(chainId)) return bsWalletApprovals()
+): Promise<ApprovalsLookup> {
+  // Blockscout has no clean approvals endpoint. That is a fact about the chain,
+  // not an outage, and it is not "you have approved nothing".
+  if (usesBlockscoutWallet(chainId)) return { status: "unsupported" }
   try {
     const chain = moralisChain(chainId)
-    if (!chain) return []
+    if (!chain) return { status: "unsupported" }
     const res = await fetch(
       `${MORALIS_BASE}/wallets/${address}/approvals?chain=${chain}`,
       { headers: moralisHeaders(), signal: AbortSignal.timeout(9000) },
     )
-    if (!res.ok) return []
+    if (!res.ok) return { status: "unavailable" }
     const json = (await res.json()) as {
       result?: Array<{
         token?: { address?: string; symbol?: string }
@@ -88,7 +108,7 @@ export async function getWalletApprovals(
         value_formatted?: string
       }>
     }
-    return (json.result ?? []).slice(0, limit).map(a => {
+    const approvals = (json.result ?? []).slice(0, limit).map(a => {
       const raw = a.value ?? "0"
       let isUnlimited = false
       try { isUnlimited = BigInt(raw) >= 1n << 255n } catch { /* keep false */ }
@@ -104,8 +124,9 @@ export async function getWalletApprovals(
       if (a.value_formatted) out.valueFormatted = a.value_formatted
       return out
     })
+    return { status: "ok", approvals }
   } catch {
-    return []
+    return { status: "unavailable" }
   }
 }
 
