@@ -1,0 +1,61 @@
+# Live checks against real chains, on a schedule.
+#
+# WHY THIS IS SEPARATE FROM `tests.yml`. The unit suite runs on every PR and
+# must be deterministic, so it mocks every provider. Both "transaction not
+# found" bugs shipped THROUGH a green unit suite: an indexer outage rendered as
+# "your transaction never happened" (#68), and a decimal chain id resolving to
+# Ethereum (#69). Neither is visible against a mock, and both were obvious the
+# first time a real provider answered.
+#
+# So this hits the public BSC RPC and the Aptos fullnode/Indexer for real. That
+# makes it unsuitable as a PR gate: it can fail because a public endpoint is
+# rate limited, which must never block a merge. It runs daily instead, and a
+# red run means "go and look", not "the build is broken".
+#
+# Run it by hand before a demo or a customer call: Actions > Live chain checks
+# > Run workflow. That is the intended use as much as the schedule is.
+
+name: Live chain checks
+
+on:
+  schedule:
+    # 06:00 UTC, before a UK working day, so a provider that broke overnight is
+    # known about before anyone demos on it.
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+
+jobs:
+  live:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # No MORALIS_API_KEY is set deliberately: that reproduces the production
+      # symptom of #68, where the indexer is unavailable and the RPC fallback
+      # is the only thing standing between a user and being told their
+      # transaction does not exist. If the fallback regresses, this goes red.
+      - name: EVM (BNB Chain)
+        env:
+          LIVE: "1"
+        run: pnpm --filter @txid/blockchain exec vitest run src/live-check.test.ts
+
+      # APTOS_API_KEY raises the anonymous rate limit (40k CU per 300s per IP).
+      # Without it the check still runs and may be throttled, which is itself
+      # worth seeing.
+      - name: Aptos mainnet
+        env:
+          LIVE: "1"
+          APTOS_API_KEY: ${{ secrets.APTOS_API_KEY }}
+        run: pnpm --filter @txid/aptos exec vitest run src/live-check.test.ts
