@@ -125,8 +125,15 @@ export function toolEvidenceFrom(tool: string, result: unknown, errored: boolean
         prices[symbol] = String(value)
       }
     }
-    // The codebase says "lookup failed" in the note whenever a read did not
-    // happen, precisely so it is never read as a statement about the account.
+    // Tools that could not complete a read set `lookupFailed: true` beside their
+    // note. That is the contract; the regex below is the legacy fallback for a
+    // note written before the marker existed. The record of "what did not run"
+    // used to depend entirely on how a sentence was phrased, and it was already
+    // missing sanctions ("Could not screen") and the transaction path.
+    if (key === "lookupFailed" && value === true) {
+      const note = typeof parent.note === "string" ? parent.note : "lookup failed"
+      failed.push(note.slice(0, 120))
+    }
     if (key === "note" && typeof value === "string" && /lookup failed|could not reach|not read/i.test(value)) {
       failed.push(value.slice(0, 120))
     }

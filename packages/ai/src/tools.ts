@@ -12,6 +12,7 @@ import {
   getTokenBalances,
   getRecentTransactions,
   getTransactionByHash,
+  LookupUnavailableError,
   getContractTransactions,
   diagnosePendingTx,
   getContractEvents,
@@ -628,6 +629,7 @@ export async function executeTool(
         return {
           address: wallet.address,
           available: false,
+          lookupFailed: true,
           note: "Could not read this wallet's approvals: the lookup did not complete. This is NOT a finding that the wallet has no approvals. Say the check did not run, and suggest they check a revoke tool directly rather than treating this as an all-clear.",
         }
       }
@@ -713,13 +715,28 @@ export async function executeTool(
         Promise.all(
           candidates.map(async chainId => ({
             chainId,
-            tx: await getTransactionByHash(hash, chainId, knownAbis).catch(() => null),
+            // Found, absent, or could not be asked. The third must never read as the second.
+            tx: await getTransactionByHash(hash, chainId, knownAbis).catch((e: unknown) =>
+              e instanceof LookupUnavailableError ? ("unreachable" as const) : null,
+            ),
           })),
         ),
         checkAptos ? getAptosTransactionByHash(hash, errmapFor(watchedContracts)).catch(() => null) : Promise.resolve(null),
       ])
-      const checkedChains = checkAptos ? [...candidates, "aptos"] : candidates
-      const hit = results.find(r => r.tx)
+      const unreachableChains = results.filter(r => r.tx === "unreachable").map(r => r.chainId)
+      const reachable = candidates.filter(c => !unreachableChains.includes(c))
+      // "Checked" means a node answered. An unreachable chain was attempted, not checked.
+      const checkedChains = checkAptos ? [...reachable, "aptos"] : reachable
+      if (reachable.length === 0 && !aptosTx) {
+        return {
+          hash,
+          status: "lookup_failed",
+          unreachableChains,
+          lookupFailed: true,
+          note: "None of the candidate chains could be reached, so this hash was NOT checked. Do not say it was not found, dropped, or never broadcast. Say the chain could not be read just now, that this says nothing about their transaction or their funds, and offer to try again.",
+        }
+      }
+      const hit = results.find(r => r.tx && r.tx !== "unreachable") as { chainId: string; tx: Exclude<typeof results[number]["tx"], "unreachable" | null> } | undefined
       if (hit?.tx && aptosTx) {
         // Both an EVM chain and Aptos claim this hash (astronomically unlikely):
         // prefer the connected wallet's chain and say which chain was used.
@@ -822,17 +839,22 @@ export async function executeTool(
           hash,
           status: "lookup_failed",
           unreachableChains: candidates,
+          lookupFailed: true,
           pendingDiagnosis: best.diag,
           note: "None of the candidate chains could be reached, so this hash was NOT checked. Do not say it was not found, dropped, or never broadcast. Say the chain could not be read just now, that this says nothing about their transaction or their funds, and offer to try again.",
         }
       }
       if (best?.diag) {
-        return { hash, chainId: best.chainId, status: "not_mined", pendingDiagnosis: best.diag, checkedChains }
+        return {
+          hash, chainId: best.chainId, status: "not_mined", pendingDiagnosis: best.diag, checkedChains,
+          ...(unreachableChains.length ? { unreachableChains } : {}),
+        }
       }
       return {
         hash,
         status: "not_found",
         checkedChains,
+        ...(unreachableChains.length ? { unreachableChains } : {}),
         note: `This transaction was not found on any of the chains checked (${checkedChains.join(", ")}). Do not claim it is on, or dropped from, a specific chain, state which chains were checked.`,
         // Aptos was one of the chains searched, so the EVM default ("probably
         // still pending in the mempool") may be the wrong explanation entirely.
@@ -977,7 +999,7 @@ export async function executeTool(
         // Aptos has no contract-creation tx: modules are published to an
         // account, so the account's FIRST transaction is the true equivalent.
         const dep = await getAptosDeployment(target.address)
-        if (!dep) return { contract: target.name, note: "Could not look up when this account was created: the Aptos indexer or fullnode did not respond. This is a failed lookup, NOT a statement that the account is new or does not exist. Try again shortly." }
+        if (!dep) return { contract: target.name, lookupFailed: true, note: "Could not look up when this account was created: the Aptos indexer or fullnode did not respond. This is a failed lookup, NOT a statement that the account is new or does not exist. Try again shortly." }
         const pkgs = await getAptosPackages(target.address)
         return {
           contract: target.name,
@@ -1122,7 +1144,7 @@ export async function executeTool(
       const data = await getContractData(target.address, target.chain, functionName, args, target.abi ?? undefined)
       return data
         ? { contract: target.name, ...data }
-        : { contract: target.name, function: functionName, note: "Could not read that function, it may take unsupported argument types, not be a view function, or have reverted." }
+        : { contract: target.name, function: functionName, lookupFailed: true, note: "Could not read that function, it may take unsupported argument types, not be a view function, or have reverted." }
     }
 
     case "get_contract_info": {
@@ -1250,7 +1272,10 @@ export async function executeTool(
     case "get_token_info": {
       const token = typeof input.token_address === "string" ? input.token_address : undefined
       if (!token) throw new Error("token_address is required")
-      const chainId = typeof input.chain_id === "string" ? input.chain_id : (wallet?.chainId ?? watchedContracts[0]?.chain ?? "0x1")
+      const chainId = typeof input.chain_id === "string" ? input.chain_id : (wallet?.chainId ?? watchedContracts[0]?.chain ?? "")
+      // No wallet, no watched contracts, no chain_id: there is no chain to ask.
+      // This used to default to Ethereum and answer about the wrong network.
+      if (!chainId) return { lookupFailed: true, note: "No chain is known for this request: no wallet is connected and this project has no watched contracts. Ask the user which network, or pass chain_id." }
       if (isSolanaChain(chainId)) return { note: "Token reads here are EVM-only." }
       if (isAptosChain(chainId)) {
         const rows = await getAptosAssetMetadata(token)
@@ -1259,7 +1284,7 @@ export async function executeTool(
         return meta ?? { token, note: "The Aptos indexer has no fungible-asset metadata for this asset type. Check the exact asset type (e.g. 0x1::aptos_coin::AptosCoin, or a metadata object address) on explorer.aptoslabs.com." }
       }
       const info = await getTokenInfo(token, chainId)
-      return info ?? { token, note: "Could not read token details (not an ERC-20, or the read failed)." }
+      return info ?? { token, lookupFailed: true, note: "Could not read token details (not an ERC-20, or the read failed)." }
     }
 
     case "get_token_allowance": {
@@ -1267,13 +1292,16 @@ export async function executeTool(
       const owner = typeof input.owner === "string" ? input.owner : wallet?.address
       const spender = typeof input.spender === "string" ? input.spender : undefined
       if (!token || !owner || !spender) throw new Error("token_address, owner and spender are required")
-      const chainId = typeof input.chain_id === "string" ? input.chain_id : (wallet?.chainId ?? watchedContracts[0]?.chain ?? "0x1")
+      const chainId = typeof input.chain_id === "string" ? input.chain_id : (wallet?.chainId ?? watchedContracts[0]?.chain ?? "")
+      // No wallet, no watched contracts, no chain_id: there is no chain to ask.
+      // This used to default to Ethereum and answer about the wrong network.
+      if (!chainId) return { lookupFailed: true, note: "No chain is known for this request: no wallet is connected and this project has no watched contracts. Ask the user which network, or pass chain_id." }
       if (isSolanaChain(chainId)) return { note: "Allowance reads here are EVM-only." }
       if (isAptosChain(chainId)) {
         return { note: "Aptos has no token-allowance concept, coins and fungible assets move only when the owner signs, so no approval is ever needed and there is nothing to check." }
       }
       const allowance = await getTokenAllowance(token, owner, spender, chainId)
-      return allowance ?? { token, owner, spender, note: "Could not read the allowance." }
+      return allowance ?? { token, owner, spender, lookupFailed: true, note: "Could not read the allowance." }
     }
 
     case "get_token_price": {
@@ -1285,15 +1313,21 @@ export async function executeTool(
     }
 
     case "get_native_price": {
-      const chainId = typeof input.chain_id === "string" ? input.chain_id : (wallet?.chainId ?? watchedContracts[0]?.chain ?? "0x1")
+      const chainId = typeof input.chain_id === "string" ? input.chain_id : (wallet?.chainId ?? watchedContracts[0]?.chain ?? "")
+      // No wallet, no watched contracts, no chain_id: there is no chain to ask.
+      // This used to default to Ethereum and answer about the wrong network.
+      if (!chainId) return { lookupFailed: true, note: "No chain is known for this request: no wallet is connected and this project has no watched contracts. Ask the user which network, or pass chain_id." }
       if (isSolanaChain(chainId)) return { chainId, note: "Native price is not available for Solana here." }
       // "aptos" is handled by getNativeTokenPrice (APT priced by coin type on DexScreener)
       const price = await getNativeTokenPrice(chainId)
-      return price ?? { chainId, note: "Could not fetch the native token price for this chain." }
+      return price ?? { chainId, lookupFailed: true, note: "Could not fetch the native token price for this chain." }
     }
 
     case "get_network_status": {
-      const chainId = typeof input.chain_id === "string" ? input.chain_id : (wallet?.chainId ?? watchedContracts[0]?.chain ?? "0x1")
+      const chainId = typeof input.chain_id === "string" ? input.chain_id : (wallet?.chainId ?? watchedContracts[0]?.chain ?? "")
+      // No wallet, no watched contracts, no chain_id: there is no chain to ask.
+      // This used to default to Ethereum and answer about the wrong network.
+      if (!chainId) return { lookupFailed: true, note: "No chain is known for this request: no wallet is connected and this project has no watched contracts. Ask the user which network, or pass chain_id." }
       if (isSolanaChain(chainId)) return { chainId, note: "Network status is not available for Solana here." }
       if (isAptosChain(chainId)) {
         const aptosStatus = await getAptosNetworkStatus()
@@ -1397,6 +1431,7 @@ export async function executeTool(
           onProtocolChain,
           protocolChains,
           ...(switchTo ? { switchTo } : {}),
+          lookupFailed: true,
           note: "Could not reach a public RPC for this chain, it may be unsupported or non-EVM.",
         }
       }
@@ -1412,14 +1447,17 @@ export async function executeTool(
     case "check_token_safety": {
       const token = typeof input.token_address === "string" ? input.token_address : undefined
       if (!token) throw new Error("token_address is required")
-      const chainId = typeof input.chain_id === "string" ? input.chain_id : (wallet?.chainId ?? watchedContracts[0]?.chain ?? "0x1")
+      const chainId = typeof input.chain_id === "string" ? input.chain_id : (wallet?.chainId ?? watchedContracts[0]?.chain ?? "")
+      // No wallet, no watched contracts, no chain_id: there is no chain to ask.
+      // This used to default to Ethereum and answer about the wrong network.
+      if (!chainId) return { lookupFailed: true, note: "No chain is known for this request: no wallet is connected and this project has no watched contracts. Ask the user which network, or pass chain_id." }
       if (isSolanaChain(chainId)) return { token, note: "Token safety screening is EVM-only." }
       if (isAptosChain(chainId)) {
         // No third-party scanner covers Aptos, so report the facts Aptos
         // itself publishes rather than guessing or refusing outright.
         const signals = await getAptosTokenSafety(token)
         if (!signals) {
-          return { token, note: "Could not read this asset's on-chain metadata, or the indexer has no record of it. Do not claim the asset is safe or unsafe." }
+          return { token, lookupFailed: true, note: "Could not read this asset's on-chain metadata, or the indexer has no record of it. Do not claim the asset is safe or unsafe." }
         }
         return {
           token,
@@ -1438,7 +1476,7 @@ export async function executeTool(
         }
       }
       const safety = await getTokenSafety(token, chainId)
-      return safety ?? { token, note: "Could not screen this token, the chain may be unsupported or the safety API unavailable." }
+      return safety ?? { token, lookupFailed: true, note: "Could not screen this token, the chain may be unsupported or the safety API unavailable." }
     }
 
     case "resolve_ens_name": {
@@ -1474,7 +1512,7 @@ export async function executeTool(
         return { name: resolution.name, chain: "aptos", resolves: false, note: "The Aptos Names registry has no record of this name, so it has not been registered." }
       }
       const resolution = await resolveEnsName(name)
-      return resolution ?? { name, note: "ENS lookup failed, the resolver RPC did not respond." }
+      return resolution ?? { name, lookupFailed: true, note: "ENS lookup failed, the resolver RPC did not respond." }
     }
 
     case "estimate_action": {
@@ -1523,7 +1561,7 @@ export async function executeTool(
       const estimate = await estimateAction(target.address, target.chain, functionName, args, wallet.address, target.abi ?? undefined)
       return estimate
         ? { contractName: target.name, ...estimate }
-        : { contractName: target.name, function: functionName, note: "Could not estimate, the function may take unsupported argument types or not exist on this contract." }
+        : { contractName: target.name, function: functionName, lookupFailed: true, note: "Could not estimate, the function may take unsupported argument types or not exist on this contract." }
     }
 
     case "check_address_sanctions": {
@@ -1543,7 +1581,7 @@ export async function executeTool(
         }
       }
       const result = await checkSanctioned(address)
-      return result ?? { address, note: "Could not screen this address against the sanctions oracle." }
+      return result ?? { address, lookupFailed: true, note: "Could not screen this address against the sanctions oracle." }
     }
 
     default:
@@ -1565,12 +1603,13 @@ export async function executeTool(
 async function tokensOrNote(
   address: string,
   chainId: string,
-): Promise<{ tokens: TokenBalance[] } | { tokensUnavailable: true; note: string }> {
+): Promise<{ tokens: TokenBalance[] } | { tokensUnavailable: true; lookupFailed: true; note: string }> {
   try {
     return { tokens: await getTokenBalances(address, chainId) }
   } catch {
     return {
       tokensUnavailable: true,
+      lookupFailed: true,
       note: "The token balance lookup failed, so the token list is UNKNOWN, not empty. Do not say the wallet holds no tokens. The native balance below was read successfully and can be quoted.",
     }
   }
