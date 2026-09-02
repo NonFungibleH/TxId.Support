@@ -14,7 +14,7 @@
 import type { Intent, ResolveInput } from "./types"
 
 /** The pending/dropped causes, which arrive on the same `cause` field as reverts. */
-const PENDING_CAUSES = new Set([
+export const PENDING_CAUSES = new Set([
   "pending_stuck_nonce",
   "pending_underpriced",
   "pending_congestion",
