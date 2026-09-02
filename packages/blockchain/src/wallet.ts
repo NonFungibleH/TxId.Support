@@ -162,6 +162,78 @@ export async function getTokenBalances(
   })
 }
 
+/** The fields this module needs from a transaction, whatever the source. */
+interface MoralisTx {
+  hash: string
+  block_number: string
+  block_timestamp: string
+  from_address: string
+  to_address: string | null
+  value: string
+  gas: string
+  input: string | null
+  receipt_gas_used: string | null
+  receipt_status: string | null
+}
+
+/**
+ * The same transaction, read straight from the chain's own RPC.
+ *
+ * Deliberately a fallback rather than the default: this is three round trips
+ * (transaction, receipt, block timestamp) where the indexer is one, and the
+ * indexer also fills fields the RPC has no concept of. But an RPC that answers
+ * beats an indexer that does not.
+ */
+async function rpcTransactionByHash(hash: string, chainId: string): Promise<MoralisTx | null> {
+  const rpcUrl = CHAIN_CONFIGS[chainId]?.rpcUrl
+  if (!rpcUrl) return null
+
+  const call = async (method: string, params: unknown[]): Promise<Record<string, string> | null> => {
+    try {
+      const res = await fetch(rpcUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }),
+        signal: AbortSignal.timeout(8000),
+      })
+      if (!res.ok) return null
+      const json = (await res.json()) as { result?: Record<string, string> | null }
+      return json.result ?? null
+    } catch {
+      return null
+    }
+  }
+
+  const tx = await call("eth_getTransactionByHash", [hash])
+  // A null result here IS the chain saying it has never seen this hash, which
+  // is the one case where "not found" is a fact rather than a failure.
+  if (!tx || !tx.blockNumber) return null
+
+  const [receipt, block] = await Promise.all([
+    call("eth_getTransactionReceipt", [hash]),
+    call("eth_getBlockByNumber", [tx.blockNumber, false]),
+  ])
+
+  const dec = (hex: string | undefined) => (hex ? String(BigInt(hex)) : "0")
+  return {
+    hash: tx.hash ?? hash,
+    block_number: dec(tx.blockNumber),
+    block_timestamp: block?.timestamp
+      ? new Date(Number(BigInt(block.timestamp)) * 1000).toISOString()
+      : new Date().toISOString(),
+    from_address: tx.from ?? "",
+    to_address: tx.to ?? null,
+    value: dec(tx.value),
+    gas: dec(tx.gas),
+    input: tx.input ?? "0x",
+    receipt_gas_used: receipt?.gasUsed ? dec(receipt.gasUsed) : null,
+    // Moralis reports "1"/"0"; the RPC reports 0x1/0x0. Normalise, and leave it
+    // null when there is no receipt so a caller cannot read a missing receipt
+    // as a failed transaction.
+    receipt_status: receipt?.status === undefined ? null : receipt.status === "0x1" ? "1" : "0",
+  }
+}
+
 /**
  * Get the full details of a single transaction by hash.
  * Pass knownAbis (address → ABI JSON) so the decoder can use a pre-stored ABI
@@ -174,12 +246,35 @@ export async function getTransactionByHash(
 ): Promise<Transaction | null> {
   if (usesBlockscoutWallet(chainId)) return bsTransactionByHash(hash, chainId, knownAbis)
   const chain = moralisChain(chainId)
-  const res = await fetch(
-    `${MORALIS_BASE}/transaction/${hash}?chain=${chain}`,
-    { headers: moralisHeaders(), signal: AbortSignal.timeout(8000) },
-  )
-  if (!res.ok) return null
-  const tx = (await res.json()) as {
+
+  // The indexer is the preferred source because it returns the whole
+  // transaction in one call. It is NOT the only source: when it is down, rate
+  // limited or out of quota, the chain's own RPC still has the transaction,
+  // and the alternative is telling a user their transaction does not exist.
+  //
+  // This was a real failure. Three successful PancakeSwap swaps, over an hour
+  // old and plainly on BNB Chain, were reported to a user as "not found on BNB
+  // Chain, most likely rejected in your wallet, no gas was spent". A provider
+  // outage was rendered as a statement about the chain, which is the worst
+  // answer this product can give: it tells someone nothing happened when their
+  // money has already moved.
+  let raw: MoralisTx | null = null
+  try {
+    const res = await fetch(
+      `${MORALIS_BASE}/transaction/${hash}?chain=${chain}`,
+      { headers: moralisHeaders(), signal: AbortSignal.timeout(8000) },
+    )
+    // 404 is the indexer saying it has no such transaction, which is a real
+    // answer but not a final one: it may simply not have indexed it yet. Every
+    // other non-OK status is the indexer failing to answer at all.
+    if (res.ok) raw = (await res.json()) as MoralisTx
+  } catch {
+    // Timeout or network failure: fall through to the chain itself.
+  }
+
+  if (!raw) raw = await rpcTransactionByHash(hash, chainId)
+  if (!raw) return null
+  const tx = raw as {
     hash: string
     block_number: string
     block_timestamp: string
