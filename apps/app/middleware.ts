@@ -27,6 +27,12 @@ const isPublicRoute = createRouteMatcher([
   "/api/actions/rebuild(.*)",
   "/api/actions/ack(.*)",
   "/api/v1/diagnose(.*)",
+  // /api/v1/resolve shipped without this line, so Clerk intercepted every call
+  // and the Resolution API was unreachable by the API clients it exists for:
+  // it validated secret keys perfectly well and never ran. Invisible in the
+  // route's own code, and invisible in a browser where a dashboard session
+  // sails through. Like /diagnose it authenticates itself with the secret key.
+  "/api/v1/resolve(.*)",
   "/api/v1/status(.*)",
 ]);
 
