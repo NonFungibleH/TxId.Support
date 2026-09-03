@@ -126,6 +126,23 @@ describe("describeOwnFills", () => {
     expect(out!.fillsNote).toMatch(/never take the market from the transaction's arguments/i)
   })
 
+  it("carries leverage from the user's own position event, and nothing when absent", async () => {
+    vi.stubGlobal("fetch", decibelViews())
+    const position = (user: string, lev: number) => ({
+      type: `${DECIBEL}::perp_market::PositionUpdateEvent`,
+      data: { __variant__: "V1", user, market: { inner: APT_MARKET }, size: "0", is_long: true, user_leverage: lev },
+    })
+    const withLev = await describeOwnFills(adapter, [tradeEvent(SUB), position(SUB, 10)], [SUB])
+    expect(withLev!.fills[0]!.leverage, "10 was real; the model's second '5x' was invented").toBe("10x")
+
+    // A counterparty's leverage must not be adopted as the user's.
+    const other = await describeOwnFills(adapter, [tradeEvent(SUB), position(COUNTERPARTY, 3)], [SUB])
+    expect(other!.fills[0]!.leverage).toBeNull()
+
+    const none = await describeOwnFills(adapter, [tradeEvent(SUB)], [SUB])
+    expect(none!.fills[0]!.leverage).toBeNull()
+  })
+
   it("does nothing without events or accounts", async () => {
     expect(await describeOwnFills(adapter, [], [SUB])).toBeNull()
     expect(await describeOwnFills(adapter, [tradeEvent(SUB)], [])).toBeNull()

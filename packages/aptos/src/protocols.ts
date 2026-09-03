@@ -591,6 +591,8 @@ export interface FillSummary {
   fee: string | null
   realizedPnl: string | null
   role: "taker" | "maker" | null
+  /** From the user's own PositionUpdateEvent. Null when absent; never inferred. */
+  leverage: string | null
 }
 
 /** "CloseLong" to "closed a long". Unrecognised variants pass through as-is. */
@@ -626,6 +628,20 @@ export async function describeOwnFills(
   const markets = await getProtocolMarkets(adapter).catch(() => null)
   const byObject = new Map((markets ?? []).map(m => [normalizeAptosAddress(m.object), m]))
 
+  // Leverage is a plain integer on the user's own position event. The model
+  // reported "10x and 5x" for two fills: the 10 was real and the 5 invented,
+  // so carry the real one and let the absence of a field be the answer.
+  const leverageByMarket = new Map<string, string>()
+  for (const e of events) {
+    if (!e.type.endsWith("::PositionUpdateEvent")) continue
+    const d = (e.data ?? {}) as Record<string, unknown>
+    const user = d.user
+    if (typeof user !== "string" || !mine.has(normalizeAptosAddress(user))) continue
+    const object = unwrapObject(d.market)
+    const lev = num(d.user_leverage)
+    if (object && lev !== null) leverageByMarket.set(normalizeAptosAddress(object), `${lev}x`)
+  }
+
   const unknownScale = "unknown: this market's size decimals could not be read, so the size cannot be stated"
   const fills = raw.map(e => {
     const d = (e.data ?? {}) as Record<string, unknown>
@@ -648,6 +664,7 @@ export async function describeOwnFills(
       fee: usd(d.fee, DECIBEL_SCALE),
       realizedPnl: usd(d.realized_pnl, DECIBEL_SCALE),
       role: d.is_taker === true ? ("taker" as const) : d.is_taker === false ? ("maker" as const) : null,
+      leverage: object ? leverageByMarket.get(normalizeAptosAddress(object)) ?? null : null,
     }
   })
 

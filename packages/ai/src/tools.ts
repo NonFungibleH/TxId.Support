@@ -551,7 +551,19 @@ export async function executeTool(
             const transactions = await Promise.all(
               merged.transactions.map(async t => {
                 const f = await describeOwnFills(adapter, t.events ?? [], ownAccounts).catch(() => null)
-                return f ? { ...t, ...f } : t
+                if (!f) return t
+                // MECHANICAL, not advisory. Telling the model not to read
+                // numbers out of raw events did not stop it inventing a market
+                // three times running, so the events the fills supersede are
+                // replaced rather than left beside them. Everything else in the
+                // list is untouched: deposits and other events still describe
+                // themselves, and the fills carry the trade truth.
+                const events = (t.events ?? []).map(e =>
+                  e.type.endsWith("::TradeEvent") || e.type.endsWith("::PositionUpdateEvent")
+                    ? { type: e.type, data: "superseded: see the scaled figures in fills" }
+                    : e,
+                )
+                return { ...t, ...f, events }
               }),
             )
             return {
