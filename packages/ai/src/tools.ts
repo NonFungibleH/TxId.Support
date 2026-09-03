@@ -83,6 +83,7 @@ import {
   resolveAptosName,
   errmapFor,
   type AptosModuleAbi,
+  describeOwnFills,
   getConfidentialState,
   confidentialNote,
 } from "@txid/aptos"
@@ -542,8 +543,19 @@ export async function executeTool(
               errmap,
             )
             if (!merged) return { error: APTOS_LOOKUP_FAILED }
+            // The raw events carry fixed-point integers with no market and no
+            // scale. Asked what their last trade was, the model invented all
+            // three: a real APT/USD close became "1.65 MEGA at 602.6". Scale
+            // the user's OWN fills here, and say so, so it never has to guess.
+            const ownAccounts = [wallet.address, resolved.address]
+            const transactions = await Promise.all(
+              merged.transactions.map(async t => {
+                const f = await describeOwnFills(adapter, t.events ?? [], ownAccounts).catch(() => null)
+                return f ? { ...t, ...f } : t
+              }),
+            )
             return {
-              transactions: merged.transactions,
+              transactions,
               note: `This history covers the user's wallet AND their ${accountLabel} (${resolved.address}), merged into one timeline; each transaction's activityOn field says which account it touched. ${adapter.name} orders are placed by a delegated session key on the trader's behalf, so those transactions show a sender that is NOT the user's wallet address: they are still this user's own activity, never someone else's. Transactions sent by the protocol's own engine (entry functions like admin_apis or public_apis) touched this ${adapter.accountLabel} because they processed something for it, a fill, funding, or a triggered order: look at each one's events involving this ${adapter.accountLabel} to say what actually happened to the user, and never present the keeper's entry-function name alone as the user's action.`,
               ...(merged.unavailable.length > 0
                 ? {

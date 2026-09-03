@@ -3,8 +3,8 @@ export { decodeAbort } from "./abort"
 export type { AbortErrmap } from "./abort"
 export { isAptosAddress, normalizeAptosAddress } from "./address"
 export { PROTOCOL_ERRMAPS, errmapFor } from "./errmap"
-export { PROTOCOL_ADAPTERS, adapterFor, getProtocolAccount, getProtocolMarkets, marketsInArguments, resolveProtocolAccountAddress } from "./protocols"
-export type { ProtocolAdapter, ProtocolAccount } from "./protocols"
+export { PROTOCOL_ADAPTERS, adapterFor, getProtocolAccount, getProtocolMarkets, marketsInArguments, resolveProtocolAccountAddress, describeOwnFills } from "./protocols"
+export type { ProtocolAdapter, ProtocolAccount, ProtocolMarket, FillSummary } from "./protocols"
 export {
   getLedgerInfo,
   getAccount,
