@@ -160,6 +160,49 @@ export function microsToIso(micros: string): string {
   return Number.isFinite(ms) ? new Date(ms).toISOString() : ""
 }
 
+/**
+ * How long ago a timestamp was, computed HERE rather than by the model.
+ *
+ * WHY THIS EXISTS. The system prompt supplies the wall clock and asked the
+ * model to do the subtraction. Asked "what was my last trade", it answered
+ * with the correct fill and "about 9 minutes ago at 14:09:47 UTC" when the
+ * current time was 15:19 UTC: the absolute stamp was right and the elapsed
+ * time was an hour out, because comparing 14:09 to 15:19 by their minute
+ * fields alone gives nine. The two halves of its own sentence disagreed, and
+ * the session opener, which computes the same age in code, had it right on
+ * screen at the same moment.
+ *
+ * This is the rule `feeApt` already follows one field above ("so the model
+ * never does the maths itself"), applied to time. A derived figure we can
+ * compute must never be left for the model to derive.
+ *
+ * Hours are spelled out alongside minutes ("1 hour 9 minutes ago") precisely
+ * because a dropped hour is the observed failure: there is no phrasing here
+ * that can lose one silently. A clock-skewed future stamp is labelled as such
+ * rather than rendered as a negative age.
+ */
+export function relativeAge(iso: string, nowMs: number = Date.now()): string | null {
+  const t = Date.parse(iso)
+  if (!Number.isFinite(t)) return null
+  const diff = nowMs - t
+  const future = diff < 0
+  const mins = Math.floor(Math.abs(diff) / 60_000)
+  const phrase = (() => {
+    if (mins < 1) return "just now"
+    if (mins < 60) return `${mins} minute${mins === 1 ? "" : "s"}`
+    const hrs = Math.floor(mins / 60)
+    if (hrs < 24) {
+      const rem = mins % 60
+      const h = `${hrs} hour${hrs === 1 ? "" : "s"}`
+      return rem === 0 ? h : `${h} ${rem} minute${rem === 1 ? "" : "s"}`
+    }
+    const days = Math.floor(hrs / 24)
+    return `${days} day${days === 1 ? "" : "s"}`
+  })()
+  if (phrase === "just now") return "just now"
+  return future ? `in ${phrase}` : `${phrase} ago`
+}
+
 export interface AptosPackage {
   name: string
   /** Times the package has been upgraded since first publish (0 = never upgraded). */
@@ -215,6 +258,7 @@ export async function getAptosTransactionByHash(
     success: raw.success,
     vmStatus: raw.vm_status,
     timestamp: microsToIso(raw.timestamp),
+    age: relativeAge(microsToIso(raw.timestamp)),
     sender: raw.sender,
     functionId: isEntryFunction ? (payload?.function ?? null) : null,
     typeArguments: (isEntryFunction ? payload?.type_arguments : undefined) ?? [],

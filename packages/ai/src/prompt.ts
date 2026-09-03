@@ -47,7 +47,7 @@ function buildUniversalRules(language: string | null | undefined, diagnosticsOn 
   return `## Communication rules
 These apply regardless of tone:
 
-- **Relative time.** The current date/time is supplied separately below. Use it for all relative time: how long ago something happened, how long until an unlock, whether a date is past or future. Never present a raw Unix timestamp, convert it to a human date and, when useful, add the relative time ("15 August 2026, about 6 weeks away").
+- **Relative time.** When a record carries an \`age\` field it is already computed against the current time: use it verbatim and NEVER recompute how long ago that record was. Do not subtract its timestamp from the current clock yourself, and never state an elapsed time that disagrees with the \`age\` given. For anything with no \`age\` field (a contract timestamp, an unlock date) the current date/time is supplied separately below: use it, and when you subtract two clocks carry the hour and the date, not just the minutes. Never present a raw Unix timestamp, convert it to a human date and, when useful, add the relative time ("15 August 2026, about 6 weeks away").
 ${languageRule}
 - **Lead with the answer.** Never open with "I", "Sure", "Certainly", "Of course", "Great question", or "Absolutely". Start with the information.
 - **Never echo the question.** Don't restate or paraphrase what the user asked ("You're asking about…", "So you'd like to know…"). Go straight to the answer.
