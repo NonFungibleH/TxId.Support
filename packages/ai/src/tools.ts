@@ -83,6 +83,8 @@ import {
   resolveAptosName,
   errmapFor,
   type AptosModuleAbi,
+  getConfidentialState,
+  confidentialNote,
 } from "@txid/aptos"
 import type { WatchedContractSnapshot } from "./types"
 
@@ -474,13 +476,22 @@ export async function executeTool(
         // confidently WRONG answer for any trader, so resolve the protocol
         // account alongside it whenever the watched protocol is a known one.
         const adapter = adapterFor(watchedContracts)
-        const [balance, protocolAccount] = await Promise.all([
+        // Confidential (cAPT) balances are held in 0x1::confidential_asset with
+        // encrypted amounts, so they are ABSENT from the Indexer's balance
+        // table. Reading only that table tells a holder their balance is
+        // smaller than it is, or that their wallet is empty. We cannot read the
+        // amount and never claim to; we can read that it exists.
+        const [balance, protocolAccount, confidential] = await Promise.all([
           getAptosWalletBalance(wallet.address),
           adapter ? getProtocolAccount(adapter, wallet.address) : Promise.resolve(null),
+          getConfidentialState(wallet.address).catch(() => null),
         ])
         if (!balance && !protocolAccount) return { error: APTOS_LOOKUP_FAILED }
+        const cNote = confidentialNote(confidential)
         return {
           ...(balance ?? { walletBalanceNote: APTOS_LOOKUP_FAILED }),
+          ...(confidential?.hasStore ? { confidentialBalance: { present: true, amount: "encrypted, not readable" } } : {}),
+          ...(cNote ? { confidentialNote: cNote, ...(confidential === null ? { lookupFailed: true } : {}) } : {}),
           ...(protocolAccount
             ? { protocolAccount }
             : adapter

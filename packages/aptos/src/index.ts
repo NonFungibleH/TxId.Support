@@ -61,6 +61,8 @@ export type { AptosObject, AptosObjectLookup, AptosOwnedObject } from "./objects
 export { getAptosNfts, getAptosPendingNftClaims, getAptosNftActivity } from "./digital-assets"
 export type { AptosNftHolding, AptosPendingNftClaim, AptosNftActivityEntry } from "./digital-assets"
 export { resolveAptosName, reverseAptosName } from "./names"
+export { getConfidentialState, confidentialNote, APT_FA_METADATA } from "./confidential"
+export type { ConfidentialState } from "./confidential"
 
 export function isAptosChain(chainId: string): boolean {
   return chainId === "aptos"
