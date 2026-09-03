@@ -17,6 +17,7 @@ export {
   getAptosNetworkStatus,
   formatUnits,
   microsToIso,
+  relativeAge,
 } from "./fullnode"
 export type { AptosLedgerInfo, AptosNetworkStatus, AptosPackage, AptosSimulation, ViewResult } from "./fullnode"
 export {
