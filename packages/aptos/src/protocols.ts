@@ -558,6 +558,123 @@ export async function getProtocolAccount(
 // Market lists are static enough to cache for the life of a warm lambda, and
 // resolving them costs 1 + N view calls, which would otherwise blow the model's
 // tool-round budget (Decibel has 60 markets).
+/**
+ * One of the user's OWN fills, with every figure already scaled.
+ *
+ * WHY THIS EXISTS. `get_recent_transactions` handed the model an Aptos
+ * transaction's raw `events` and `functionArguments`: fixed-point integers with
+ * no market name and no scale. Asked "what was my last trade", the model
+ * invented all three. A real APT/USD close of 16.5 APT at $0.6026 with a 5 cent
+ * loss was reported as "1.65 MEGA at 602.6, a loss of -49,500 in base units".
+ * MEGA/USD is a real Decibel market, which is what made the answer dangerous
+ * rather than obviously broken.
+ *
+ * Three rules are baked in here rather than left to the model:
+ *
+ *   1. THE MARKET COMES FROM THE EVENT, not from the transaction's arguments.
+ *      Fills are emitted inside a keeper transaction whose arguments describe
+ *      what the keeper was doing, so arguments are the wrong source.
+ *   2. SIZE SCALE IS PER MARKET. Without the market's own szDecimals the size
+ *      is not stated at all, exactly as the position humanizer does.
+ *   3. ONLY THE USER'S OWN ACCOUNT. A Decibel fill emits a TradeEvent for BOTH
+ *      sides, so the counterparty's position sits in the same event list. The
+ *      model described it as the user's, which leaks one trader's position to
+ *      another. Filtering here is the only reliable fix.
+ */
+export interface FillSummary {
+  market: string
+  /** From the event's own action variant, e.g. "closed a long". Never inferred. */
+  action: string
+  size: string | null
+  price: string | null
+  notional: string | null
+  fee: string | null
+  realizedPnl: string | null
+  role: "taker" | "maker" | null
+  /** From the user's own PositionUpdateEvent. Null when absent; never inferred. */
+  leverage: string | null
+}
+
+/** "CloseLong" to "closed a long". Unrecognised variants pass through as-is. */
+function readableAction(variant: string): string {
+  const m = /^(Open|Close|Increase|Decrease|Flip|Liquidate)(Long|Short)$/.exec(variant)
+  if (!m) return variant
+  const verb = { Open: "opened", Close: "closed", Increase: "increased", Decrease: "decreased", Flip: "flipped", Liquidate: "was liquidated on" }[m[1]!]
+  return `${verb} a ${m[2]!.toLowerCase()}`
+}
+
+/**
+ * Scale the user's own fills out of a transaction's events.
+ *
+ * Returns null when there are no fills of the user's, so a caller can attach
+ * nothing rather than an empty shape. Never throws: an unreachable market list
+ * costs the names, not the diagnosis.
+ */
+export async function describeOwnFills(
+  adapter: ProtocolAdapter,
+  events: readonly { type: string; data: unknown }[],
+  ownAccounts: readonly string[],
+): Promise<{ fills: FillSummary[]; fillsNote: string } | null> {
+  if (events.length === 0 || ownAccounts.length === 0) return null
+  const mine = new Set(ownAccounts.map(a => normalizeAptosAddress(a)))
+
+  const raw = events.filter(e => {
+    if (!e.type.endsWith("::TradeEvent")) return false
+    const acct = (e.data as { account?: unknown } | null)?.account
+    return typeof acct === "string" && mine.has(normalizeAptosAddress(acct))
+  })
+  if (raw.length === 0) return null
+
+  const markets = await getProtocolMarkets(adapter).catch(() => null)
+  const byObject = new Map((markets ?? []).map(m => [normalizeAptosAddress(m.object), m]))
+
+  // Leverage is a plain integer on the user's own position event. The model
+  // reported "10x and 5x" for two fills: the 10 was real and the 5 invented,
+  // so carry the real one and let the absence of a field be the answer.
+  const leverageByMarket = new Map<string, string>()
+  for (const e of events) {
+    if (!e.type.endsWith("::PositionUpdateEvent")) continue
+    const d = (e.data ?? {}) as Record<string, unknown>
+    const user = d.user
+    if (typeof user !== "string" || !mine.has(normalizeAptosAddress(user))) continue
+    const object = unwrapObject(d.market)
+    const lev = num(d.user_leverage)
+    if (object && lev !== null) leverageByMarket.set(normalizeAptosAddress(object), `${lev}x`)
+  }
+
+  const unknownScale = "unknown: this market's size decimals could not be read, so the size cannot be stated"
+  const fills = raw.map(e => {
+    const d = (e.data ?? {}) as Record<string, unknown>
+    const object = unwrapObject(d.market)
+    const info = object ? byObject.get(normalizeAptosAddress(object)) ?? null : null
+    const sizeScale = info?.szDecimals != null ? 10 ** info.szDecimals : null
+    const size = num(d.size)
+    const price = num(d.price)
+    const variant = (d.action as { __variant__?: unknown } | null)?.__variant__
+    const notional =
+      size !== null && price !== null && sizeScale !== null
+        ? usd((size / sizeScale) * (price / DECIBEL_SCALE) * DECIBEL_SCALE, DECIBEL_SCALE)
+        : null
+    return {
+      market: info?.name || object || "unknown market",
+      action: typeof variant === "string" ? readableAction(variant) : "traded",
+      size: size === null ? null : sizeScale === null ? unknownScale : String(size / sizeScale),
+      price: usd(price, DECIBEL_SCALE),
+      notional,
+      fee: usd(d.fee, DECIBEL_SCALE),
+      realizedPnl: usd(d.realized_pnl, DECIBEL_SCALE),
+      role: d.is_taker === true ? ("taker" as const) : d.is_taker === false ? ("maker" as const) : null,
+      leverage: object ? leverageByMarket.get(normalizeAptosAddress(object)) ?? null : null,
+    }
+  })
+
+  return {
+    fills,
+    fillsNote:
+      "These are the user's OWN fills from this transaction, with every figure already scaled: sizes by the market's own size decimals, prices and USD amounts by 1e6. Quote these values verbatim. Do NOT read sizes, prices, fees or PnL out of the raw `events` and do NOT scale a raw integer yourself: the scales differ per market and getting one wrong states a confidently wrong price. The market name here comes from the fill event itself, so it is a fact about this trade; never take the market from the transaction's arguments, which describe what a keeper was doing. Any other account appearing in `events` is a COUNTERPARTY or a keeper, not this user, so never describe its position, size or PnL as theirs.",
+  }
+}
+
 export interface ProtocolMarket {
   name: string
   object: string

@@ -3,7 +3,9 @@
 // transactions + revert decoding. Produces the SAME normalised shapes as the
 // Moralis path in wallet.ts, so it's a drop-in behind the same functions.
 
-import { CHAIN_CONFIGS } from "./types"
+import { CHAIN_CONFIGS, nativeSymbol } from "./types"
+import { LookupUnavailableError } from "./errors"
+import { sanitizeChainText } from "./text"
 import type { TokenBalance, NativeBalance, Transaction, DecodedRevert } from "./types"
 import { decodeTxRevert } from "./decoder"
 import type { WalletApproval } from "./wallet"
@@ -24,9 +26,14 @@ async function bsGet(chainId: string, path: string): Promise<unknown | null> {
   }
 }
 
-async function rpc(chainId: string, method: string, params: unknown[]): Promise<string | null> {
+/**
+ * `answered` is the whole point: a node replying null has never seen the hash,
+ * a node that timed out has said nothing. The Moralis path learned to tell
+ * them apart; this path serves Etherlink and must not be the exception.
+ */
+async function rpcProbe(chainId: string, method: string, params: unknown[]): Promise<{ answered: true; result: unknown } | { answered: false }> {
   const url = CHAIN_CONFIGS[chainId]?.rpcUrl
-  if (!url) return null
+  if (!url) return { answered: false }
   try {
     const res = await fetch(url, {
       method: "POST",
@@ -34,12 +41,19 @@ async function rpc(chainId: string, method: string, params: unknown[]): Promise<
       body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }),
       signal: AbortSignal.timeout(8000),
     })
-    if (!res.ok) return null
-    const body = (await res.json()) as { result?: unknown }
-    return body.result === undefined || body.result === null ? null : (body.result as string)
+    if (!res.ok) return { answered: false }
+    const body = (await res.json()) as { result?: unknown; error?: unknown }
+    if (body.error && body.result === undefined) return { answered: false }
+    return { answered: true, result: body.result === undefined ? null : body.result }
   } catch {
-    return null
+    return { answered: false }
   }
+}
+
+/** Result or null, for the secondary reads whose absence is handled locally. */
+async function rpc(chainId: string, method: string, params: unknown[]): Promise<string | null> {
+  const p = await rpcProbe(chainId, method, params)
+  return p.answered && p.result !== null ? (p.result as string) : null
 }
 
 async function rpcObj<T>(chainId: string, method: string, params: unknown[]): Promise<T | null> {
@@ -64,7 +78,7 @@ function fmtUnits(raw: bigint, decimals: number): string {
 // ── Balances (native via RPC, tokens via Blockscout) ─────────────────────────
 
 export async function bsNativeBalance(address: string, chainId: string): Promise<NativeBalance> {
-  const symbol = CHAIN_CONFIGS[chainId]?.nativeCurrency ?? "ETH"
+  const symbol = nativeSymbol(chainId)
   const hex = await rpc(chainId, "eth_getBalance", [address, "latest"])
   const raw = hex ? BigInt(hex) : 0n
   return { balance: raw.toString(), balanceFormatted: fmtNative(raw), symbol }
@@ -84,8 +98,8 @@ export async function bsTokenBalances(address: string, chainId: string): Promise
       const usd = rate !== null ? (Number(raw) / 10 ** decimals) * rate : null
       return {
         tokenAddress: t.token!.address!,
-        symbol: t.token?.symbol ?? "?",
-        name: t.token?.name ?? "",
+        symbol: sanitizeChainText(t.token?.symbol, 24) || "?",
+        name: sanitizeChainText(t.token?.name, 64),
         decimals,
         balance: raw.toString(),
         balanceFormatted: fmtUnits(raw, decimals),
@@ -113,7 +127,7 @@ interface BsTxItem {
 }
 
 function mapBsTx(tx: BsTxItem, chainId: string): Transaction {
-  const symbol = CHAIN_CONFIGS[chainId]?.nativeCurrency ?? "ETH"
+  const symbol = nativeSymbol(chainId)
   const valueRaw = (() => { try { return BigInt(tx.value ?? "0") } catch { return 0n } })()
   const valueFmt = (Number(valueRaw) / 1e18).toLocaleString("en-US", { maximumFractionDigits: 6 })
   const isFailed = tx.status === "error"
@@ -177,14 +191,15 @@ export async function bsTransactionByHash(
   chainId: string,
   knownAbis: Record<string, string> = {},
 ): Promise<Transaction | null> {
-  const tx = await rpcObj<{ blockNumber?: string; from?: string; to?: string | null; value?: string; gas?: string; input?: string }>(
-    chainId, "eth_getTransactionByHash", [hash],
-  )
+  // The one read whose failure must not be mistaken for an answer.
+  const first = await rpcProbe(chainId, "eth_getTransactionByHash", [hash])
+  if (!first.answered) throw new LookupUnavailableError(chainId)
+  const tx = first.result as { blockNumber?: string; from?: string; to?: string | null; value?: string; gas?: string; input?: string } | null
   if (!tx?.from) return null
   const receipt = await rpcObj<{ status?: string; gasUsed?: string; blockNumber?: string }>(
     chainId, "eth_getTransactionReceipt", [hash],
   )
-  const symbol = CHAIN_CONFIGS[chainId]?.nativeCurrency ?? "ETH"
+  const symbol = nativeSymbol(chainId)
 
   const toDec = (h?: string) => (h ? BigInt(h).toString() : "0")
   const blockNumber = toDec(tx.blockNumber)

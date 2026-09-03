@@ -70,7 +70,7 @@ describe.skipIf(!process.env.LIVE)("the demo protocol is readable", () => {
     // A missing module is a real answer; a null is the fullnode failing.
     // Either is worth knowing the day before a demo, so log rather than assume.
     if (abi === null) console.log("  perp_market not readable (module renamed, or fullnode down)")
-    else console.log(`  perp_market has ${abi.exposed_functions?.length ?? 0} exposed functions`)
+    else console.log(`  perp_market has ${abi.functions.length} functions`)
     expect(abi === null || typeof abi === "object").toBe(true)
   }, 30_000)
 

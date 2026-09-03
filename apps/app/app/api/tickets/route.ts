@@ -8,7 +8,7 @@ import { verifyPreviewToken } from "@/lib/preview-token"
 import type { Database } from "@/lib/supabase/types"
 import { rateLimit, clientIp } from "@/lib/rate-limit"
 import { TICKET_LIMITS } from "@/lib/limits"
-import { dispatchEscalation } from "@/lib/integrations/escalation"
+import { dispatchEscalation, holdEscalation } from "@/lib/integrations/escalation"
 import { coarseDevice, requestGeo } from "@/lib/evidence"
 
 type ProjectRow = Database["public"]["Tables"]["projects"]["Row"]
@@ -291,9 +291,25 @@ export async function POST(request: Request) {
     // escalations and buries the ones that are actually different. The ticket
     // is still RECORDED, so nothing is lost and the volume is visible; it just
     // does not page the team again for something they raised themselves.
+    const escalation = {
+      ref,
+      projectName: typedProject.name,
+      summary: safeSummary,
+      reason: reason || null,
+      userName: name || null,
+      userEmail: email || null,
+      conversation: safeConversation,
+      disclaimer: resolveDisclaimer(config.branding) || null,
+    }
+
     const notice = activeStatusNotice(config)
     if (notice) {
-      return new Response(JSON.stringify({ ref, suppressed: true }), {
+      // Parked, not dropped: delivered by the retry worker once the notice
+      // is due to have cleared. A notice with no expiry gets the default the
+      // dashboard applies, four hours.
+      const deliverAt = notice.expiresAt ?? new Date(Date.now() + 4 * 3600_000).toISOString()
+      waitUntil(holdEscalation(supabase, typedProject.id, escalation, config.integrations, deliverAt))
+      return new Response(JSON.stringify({ ref, suppressed: true, heldUntil: deliverAt }), {
         status: 200,
         headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
       })
@@ -311,16 +327,7 @@ export async function POST(request: Request) {
       supabase,
       typedProject.id,
       ticketDbId,
-      {
-        ref,
-        projectName: typedProject.name,
-        summary: safeSummary,
-        reason: reason || null,
-        userName: name || null,
-        userEmail: email || null,
-        conversation: safeConversation,
-        disclaimer: resolveDisclaimer(config.branding) || null,
-      },
+      escalation,
       config.integrations,
       config.telegramBotToken ?? undefined,
     ))

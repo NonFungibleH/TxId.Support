@@ -14,16 +14,19 @@
 import type { Intent, ResolveInput } from "./types"
 
 /** The pending/dropped causes, which arrive on the same `cause` field as reverts. */
-const PENDING_CAUSES = new Set([
+export const PENDING_CAUSES = new Set([
   "pending_stuck_nonce",
   "pending_underpriced",
   "pending_congestion",
   "dropped",
   "insufficient_gas_balance",
+  // Not a mempool state. Routed here only so the node's own wording reaches
+  // `raw`; classify() maps it to INSUFFICIENT_EVIDENCE, never to DROPPED.
+  "lookup_failed",
 ])
 
 /** The five decoder revert causes. */
-const REVERT_CAUSES = new Set(["out_of_gas", "revert_reason", "custom_error", "panic", "unknown_revert"])
+const REVERT_CAUSES = new Set(["out_of_gas", "revert_reason", "custom_error", "panic", "unknown_revert", "state_dependent"])
 
 /** Structural shape of @txid/blockchain TxDiagnosis. Redeclared to keep this module dependency free. */
 export interface EvmDiagnosisLike {

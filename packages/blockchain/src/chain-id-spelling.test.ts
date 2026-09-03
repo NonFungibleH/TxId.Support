@@ -23,7 +23,9 @@ const BNB_DECIMAL = "56"
 beforeEach(() => vi.stubEnv("MORALIS_API_KEY", "test-key"))
 afterEach(() => { vi.unstubAllGlobals(); vi.unstubAllEnvs() })
 
-/** Records every URL asked for, and answers nothing. */
+/** Records every URL asked for, and answers nothing. Since the lookup learned to
+ *  tell "nobody answered" from "no such transaction", answering nothing makes it
+ *  throw, which is correct; these tests only care which URLs were asked. */
 function recordingFetch() {
   const urls: string[] = []
   const fn = vi.fn(async (url: string | URL) => {
@@ -55,7 +57,7 @@ describe("chain id spelling", () => {
   it("never asks Ethereum about a BNB Chain transaction", async () => {
     const { fn, urls } = recordingFetch()
     vi.stubGlobal("fetch", fn)
-    await getTransactionByHash(HASH, BNB_DECIMAL)
+    await getTransactionByHash(HASH, BNB_DECIMAL).catch(() => null)
 
     const moralis = urls.filter(u => u.includes("moralis"))
     expect(moralis.length, "the indexer should have been asked").toBeGreaterThan(0)
@@ -68,7 +70,7 @@ describe("chain id spelling", () => {
   it("uses the BNB Chain RPC for the fallback, not none at all", async () => {
     const { fn, urls } = recordingFetch()
     vi.stubGlobal("fetch", fn)
-    await getTransactionByHash(HASH, BNB_DECIMAL)
+    await getTransactionByHash(HASH, BNB_DECIMAL).catch(() => null)
 
     // The fallback reads rpcUrl from the same lookup. A missed key made it
     // return null, so the indexer fix did not save a decimal chain id either.
@@ -79,11 +81,11 @@ describe("chain id spelling", () => {
   it("asks the same questions for both spellings", async () => {
     const hex = recordingFetch()
     vi.stubGlobal("fetch", hex.fn)
-    await getTransactionByHash(HASH, BNB_HEX)
+    await getTransactionByHash(HASH, BNB_HEX).catch(() => null)
 
     const dec = recordingFetch()
     vi.stubGlobal("fetch", dec.fn)
-    await getTransactionByHash(HASH, BNB_DECIMAL)
+    await getTransactionByHash(HASH, BNB_DECIMAL).catch(() => null)
 
     expect(dec.urls).toEqual(hex.urls)
   })

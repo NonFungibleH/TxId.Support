@@ -16,7 +16,7 @@ export interface NativeBalance {
 }
 
 export interface DecodedRevert {
-  cause: "out_of_gas" | "revert_reason" | "custom_error" | "panic" | "unknown_revert"
+  cause: "out_of_gas" | "revert_reason" | "custom_error" | "panic" | "unknown_revert" | "state_dependent"
   reason: string           // raw error string or description
   errorName?: string       // e.g. "SlippageTooHigh", used to match error glossary entries
   errorSignature?: string  // e.g. "SlippageTooHigh(uint256,uint256)"
@@ -39,6 +39,10 @@ export interface PendingDiagnosis {
     | "pending_congestion"       // in mempool, just waiting to be mined
     | "dropped"                  // unknown to the node: dropped/replaced/never broadcast
     | "insufficient_gas_balance" // wallet has no native token to pay gas
+    // The node could not be asked at all. NOT a statement about the transaction.
+    // This exists because a timed-out RPC used to fall through to "dropped",
+    // which the resolver turns into "nothing moved, submit it again".
+    | "lookup_failed"
   reason: string                 // plain-English description
   detail?: string                // extra specifics (fees, nonce gap) when available
 }
@@ -271,6 +275,18 @@ function rpcOverrides(): Record<string, string> {
  * canonical spelling. DEFAULT_CHAIN_CONFIGS is deliberately left hex-only:
  * resolveChainKey enumerates it and must not see every chain twice.
  */
+/**
+ * The native token's symbol, or an honest placeholder.
+ *
+ * Seven call sites did `CHAIN_CONFIGS[chainId]?.nativeCurrency ?? "ETH"`. After
+ * both chain id spellings were registered that default became unreachable for
+ * every supported chain, but it is still the wrong shape: an unknown chain
+ * would have labelled a BNB balance as ETH. "native token" is what we know.
+ */
+export function nativeSymbol(chainId: string): string {
+  return CHAIN_CONFIGS[chainId]?.nativeCurrency ?? "native token"
+}
+
 export const CHAIN_CONFIGS: Record<string, ChainConfig> = (() => {
   const overrides = rpcOverrides()
   const merged: Record<string, ChainConfig> = {}

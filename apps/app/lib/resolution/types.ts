@@ -33,6 +33,8 @@ export type Status =
   | "failed"
   | "succeeded"
   | "succeeded_intent_unmet"
+  /** We could not determine what happened. Distinct from "failed", which is a finding. */
+  | "indeterminate"
 
 /**
  * What was OBSERVED about the user's assets. Deliberately not "funds_safe":
@@ -152,7 +154,7 @@ export interface ResolveInput {
   onchain?: "success" | "failure" | "pending" | "not_found"
   /** packages/blockchain DecodedRevert (EVM). */
   revert?: {
-    cause: "out_of_gas" | "revert_reason" | "custom_error" | "panic" | "unknown_revert"
+    cause: "out_of_gas" | "revert_reason" | "custom_error" | "panic" | "unknown_revert" | "state_dependent"
     reason?: string
     errorName?: string
     rawHex?: string
@@ -166,6 +168,7 @@ export interface ResolveInput {
       | "pending_congestion"
       | "dropped"
       | "insufficient_gas_balance"
+      | "lookup_failed"
     reason?: string
   }
   /** packages/aptos decodeAbort output. */

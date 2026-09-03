@@ -63,6 +63,14 @@ function failedVerdict(d: TxDiagnosis): TxVerdict {
     }
   }
 
+  if (d.cause === "state_dependent") {
+    return {
+      tone: "failed",
+      headline: "This transaction failed because conditions changed while it was being processed.",
+      customerMessage: `${what} didn't go through because something changed in the same block it landed in, usually the price moving past the allowed limit or another transaction taking the liquidity first. ${NO_FUNDS} Please try again; if it keeps happening, a little more slippage or a higher fee usually fixes it.`,
+    }
+  }
+
   if (d.cause === "custom_error" || d.cause === "revert_reason") {
     const kind = failureKind(d.error)
     switch (kind) {

@@ -1,4 +1,5 @@
 import { CHAIN_CONFIGS } from "./types"
+import { sanitizeChainText } from "./text"
 import type { DecodedRevert } from "./types"
 import { explorerQuery } from "./blockscout"
 
@@ -33,7 +34,9 @@ const PANIC_MESSAGES: Record<number, string> = {
  * whose reason was in fact readable.
  */
 type RevertProbe =
-  | { ran: true; hex: string | null }
+  /** The node replayed the call. `reverted: false` means it SUCCEEDED, which for
+   *  a transaction that failed on-chain is a finding of its own (see below). */
+  | { ran: true; reverted: boolean; hex: string | null }
   | { ran: false; note: string }
 
 /** Node messages that mean "I cannot serve this", not "the call reverted". */
@@ -49,7 +52,10 @@ async function fetchRevertHex(
   rpcUrl: string,
 ): Promise<RevertProbe> {
   try {
-    const blockHex = "0x" + parseInt(blockNumber, 10).toString(16)
+    // Replay against the state at the START of the transaction's block, which is
+    // the end of the previous one. eth_call at block N runs against the state
+    // AFTER every transaction in N, including the ones that came after ours.
+    const blockHex = "0x" + Math.max(0, parseInt(blockNumber, 10) - 1).toString(16)
     const valueHex = "0x" + BigInt(value || "0").toString(16)
     const res = await fetch(rpcUrl, {
       method: "POST",
@@ -67,12 +73,17 @@ async function fetchRevertHex(
       result?: unknown
       error?: { data?: string; message?: string }
     }
-    if (json.error?.data) return { ran: true, hex: json.error.data }
+    if (json.error?.data) return { ran: true, reverted: true, hex: json.error.data }
     const message = json.error?.message ?? ""
     if (message && CANNOT_SERVE.test(message)) return { ran: false, note: message.slice(0, 160) }
-    // Either a clean result (no revert at this block) or a revert carrying no
-    // data. Both mean the replay genuinely ran and found no reason to report.
-    return { ran: true, hex: null }
+    // These two used to be one case, and they are opposite facts. An error with
+    // no data is a contract that reverted silently. A clean RESULT is a call
+    // that succeeded on replay, for a transaction that failed on-chain: the
+    // failure depended on state that changed within its block. On an exchange
+    // that is the commonest failure there is, and it was being reported as
+    // "the contract gave no reason" followed by a guess.
+    if (json.error) return { ran: true, reverted: true, hex: null }
+    return { ran: true, reverted: false, hex: null }
   } catch (e) {
     return { ran: false, note: e instanceof Error ? e.message.slice(0, 160) : "replay failed" }
   }
@@ -87,7 +98,9 @@ async function lookup4Byte(selector: string): Promise<string | null> {
     )
     if (!res.ok) return null
     const data = (await res.json()) as { results?: Array<{ text_signature: string }> }
-    return data.results?.[0]?.text_signature ?? null
+    const sig = data.results?.[0]?.text_signature
+    // 4byte is a public, writable registry. Anyone can register any text.
+    return sig ? sanitizeChainText(sig, 120) : null
   } catch {
     return null
   }
@@ -207,6 +220,15 @@ export async function decodeTxRevert(params: {
     }
   }
 
+  if (!probe.reverted) {
+    return {
+      cause: "state_dependent",
+      reason:
+        "The transaction failed on-chain, but replaying it against the state just before its block succeeds. The failure depended on something that changed in the same block: most often another trade moving the price past the slippage limit, or a competing transaction taking the liquidity or position first.",
+      gasInfo,
+    }
+  }
+
   const revertHex = probe.hex
   if (!revertHex || revertHex === "0x" || revertHex.length < 10) {
     return { cause: "unknown_revert", reason: "The smart contract reverted but did not return a specific error message.", gasInfo }
@@ -219,7 +241,7 @@ export async function decodeTxRevert(params: {
   if (selector === ERROR_SELECTOR) {
     const message = decodeErrorString(revertHex)
     if (message !== null) {
-      return { cause: "revert_reason", reason: message || "Reverted without a reason string.", rawHex: revertHex, gasInfo }
+      return { cause: "revert_reason", reason: sanitizeChainText(message, 200) || "Reverted without a reason string.", rawHex: revertHex, gasInfo }
     }
   }
 

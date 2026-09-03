@@ -94,8 +94,10 @@ const NO_FEE_CODES = new Set([
 const PENDING_CODES = new Set(["TXID-3002", "TXID-3005", "TXID-3006", "TXID-3007", "TXID-7001", "TXID-7002", "TXID-7004"])
 
 /** Codes that describe something never submitted to the network at all. */
+// TXID-1003 (RPC unavailable) is deliberately NOT here: a timeout during
+// submission does not establish that nothing was submitted.
 const NOT_SUBMITTED_CODES = new Set([
-  "TXID-1001", "TXID-1002", "TXID-1003", "TXID-1004", "TXID-1005", "TXID-1006",
+  "TXID-1001", "TXID-1002", "TXID-1004", "TXID-1005", "TXID-1006",
   "TXID-8001", "TXID-8002", "TXID-8003",
 ])
 
@@ -121,6 +123,7 @@ function classify(input: ResolveInput): string {
 
   if (input.revert) {
     if (input.revert.cause === "out_of_gas") return "TXID-2003"
+    if (input.revert.cause === "state_dependent") return "TXID-5009"
     if (input.revert.cause === "panic") return codeFromPanic(input.revert.reason ?? input.revert.errorName)
     if (input.revert.cause === "revert_reason" || input.revert.cause === "custom_error") {
       const named = codeFromErrorText(input.revert.errorName) ?? codeFromErrorText(input.revert.reason)
@@ -137,6 +140,9 @@ function classify(input: ResolveInput): string {
       case "pending_underpriced": return "TXID-3003"
       case "pending_congestion": return "TXID-3007"
       case "dropped": return "TXID-3008"
+      // An unreachable node is not evidence of anything. TXID-9004 carries
+      // custody "unknown" and retryable "unknown", which is the truth.
+      case "lookup_failed": return "TXID-9004"
       case "insufficient_gas_balance": return "TXID-2001"
     }
   }
@@ -161,6 +167,9 @@ function statusFor(code: string, input: ResolveInput): Status {
   if (code === "TXID-7003") return "succeeded_intent_unmet"
   if (NOT_SUBMITTED_CODES.has(code)) return "not_submitted"
   if (PENDING_CODES.has(code)) return "pending"
+  // Custody unknown means we do not know what happened, and "failed" is a
+  // claim that we do. An outage used to come back as status "failed".
+  if (REGISTRY[code]?.custody === "unknown") return "indeterminate"
   if (input.onchain === "success") return input.intentMet === false ? "succeeded_intent_unmet" : "succeeded"
   return "failed"
 }
