@@ -1,3 +1,4 @@
+import { PROGRAM_ERRMAPS } from "./errmap"
 /**
  * What a failed Solana transaction actually says, and what it means.
  *
@@ -168,6 +169,16 @@ export function decodeSolanaError(err: unknown, ctx: SolanaErrorContext | readon
   if (anchor && anchor.number === custom) {
     return { ...base, cause: "program_error", instructionIndex: idx, code: custom, errorName: anchor.name, unrecognised: false,
       reason: `${who} rejected the transaction: ${humanise(anchor.message, anchor.name)}. Nothing was completed and only the fee was spent.` }
+  }
+
+  // HARVESTED MAP. The Anchor log is only present on ~11% of failures, so the
+  // same program hitting the same code silently gets nothing. Every entry here
+  // was observed being printed by that program, so this carries the answer
+  // across to the times it stays quiet.
+  const mapped = program ? PROGRAM_ERRMAPS[program]?.[custom] : undefined
+  if (mapped) {
+    return { ...base, cause: "program_error", instructionIndex: idx, code: custom, errorName: mapped.name, unrecognised: false,
+      reason: `${who} rejected the transaction: ${mapped.reason}` }
   }
 
   // The System program's Custom(1) is the one code common enough, and

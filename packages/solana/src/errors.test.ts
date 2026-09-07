@@ -85,3 +85,39 @@ describe("decodeSolanaError", () => {
     }
   })
 })
+
+describe("the harvested error map", () => {
+  const PUMP = "pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA"
+
+  // The whole point of the map: the SAME failure, without the Anchor log.
+  it("answers when the program did not print its error this time", () => {
+    const withLog = decodeSolanaError({ InstructionError: [3, { Custom: 6004 }] }, [
+      "Program log: AnchorError thrown in programs/pump-amm/src/…/sell.rs:170. Error Code: ExceededSlippage. Error Number: 6004. Error Message: ExceededSlippage.",
+      `Program ${PUMP} failed: custom program error: 0x1774`,
+    ])
+    const withoutLog = decodeSolanaError({ InstructionError: [3, { Custom: 6004 }] }, [
+      `Program ${PUMP} failed: custom program error: 0x1774`,
+    ])
+    expect(withLog.errorName).toBe("ExceededSlippage")
+    expect(withoutLog.errorName).toBe("ExceededSlippage")
+    expect(withoutLog.unrecognised).toBe(false)
+    // and the map gives the user something to DO, which the raw name does not
+    expect(withoutLog.reason).toMatch(/raise your slippage tolerance/i)
+  })
+
+  it("still refuses for a program it has no definitions for", () => {
+    const d = decodeSolanaError({ InstructionError: [0, { Custom: 6004 }] }, [
+      "Program SomeProgramWeHaveNeverSeen1111111111111111 failed: custom program error: 0x1774",
+    ])
+    expect(d.unrecognised).toBe(true)
+    expect(d.errorName).toBeNull()
+  })
+
+  it("does not apply one program's code to another", () => {
+    // 6004 is ExceededSlippage on pump.fun and means nothing here.
+    const d = decodeSolanaError({ InstructionError: [0, { Custom: 6004 }] }, [
+      "Program 11111111111111111111111111111111 failed: custom program error: 0x1774",
+    ])
+    expect(d.errorName).toBeNull()
+  })
+})
