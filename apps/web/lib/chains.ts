@@ -375,6 +375,27 @@ export const CHAINS: ChainInfo[] = [
 /** Chains shown publicly: listings, static params, sitemap. */
 export const VISIBLE_CHAINS: ChainInfo[] = CHAINS.filter((c) => !c.hidden)
 
+/**
+ * DERIVED. "Nine chains live" and the FAQ's hand-written list were both stale
+ * the hour a tenth went live, and each had to be found separately. Anything
+ * stating what we support reads from here.
+ */
+export const LIVE_CHAINS = VISIBLE_CHAINS.filter(
+  (c) => c.status === "live" && c.family !== "cross-chain",
+)
+
+export const LIVE_CHAIN_COUNT = LIVE_CHAINS.length
+
+/** "A, B and C" */
+export function listChainNames(names: readonly string[]): string {
+  if (names.length <= 1) return names[0] ?? ""
+  return `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`
+}
+
+export const LIVE_EVM_NAMES = LIVE_CHAINS.filter((c) => c.family === "evm").map((c) => c.name)
+export const LIVE_NON_EVM_NAMES = LIVE_CHAINS.filter((c) => c.family === "non-evm").map((c) => c.name)
+
+
 export function getChain(slug: string): ChainInfo | undefined {
   return CHAINS.find((c) => c.slug === slug)
 }

@@ -1,4 +1,5 @@
 import { FadeIn } from "@/components/ui/FadeIn";
+import { LIVE_EVM_NAMES, LIVE_NON_EVM_NAMES, listChainNames } from "@/lib/chains";
 
 export const FAQS = [
   {
@@ -35,7 +36,7 @@ export const FAQS = [
   },
   {
     q: "Which blockchains does TxID work with?",
-    a: "TxID works across Ethereum, Base, BNB Chain, Polygon, Arbitrum, Optimism, Avalanche and Etherlink, plus Aptos (the Move-based L1). It detects the connected wallet on any of these and looks up balances and transactions on the relevant chain.",
+    a: `TxID works across ${listChainNames(LIVE_EVM_NAMES)}, plus ${listChainNames(LIVE_NON_EVM_NAMES)} (the Move-based L1). It detects the connected wallet on any of these and looks up balances and transactions on the relevant chain. It also follows cross-chain transfers sent through LayerZero, so a user whose funds have left one chain and not arrived on the other gets a real answer.`,
   },
   {
     q: "Can it explain why a transaction failed?",

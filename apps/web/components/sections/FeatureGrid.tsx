@@ -13,6 +13,7 @@ import {
   Send,
 } from "lucide-react";
 import { FadeIn } from "@/components/ui/FadeIn";
+import { LIVE_CHAIN_COUNT } from "@/lib/chains";
 
 const FEATURES = [
   {
@@ -61,7 +62,7 @@ const FEATURES = [
     icon: Globe2,
     title: "Multi-chain",
     description:
-      "Nine chains live, led by Move-native Aptos alongside every major EVM network.",
+      `${LIVE_CHAIN_COUNT} chains live, led by Move-native Aptos alongside every major EVM network, plus cross-chain transfers through LayerZero.`,
   },
   {
     icon: BarChart3,
