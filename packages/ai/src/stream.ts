@@ -2,7 +2,7 @@ import Anthropic from "@anthropic-ai/sdk"
 import OpenAI from "openai"
 import type { ChatMessage, WatchedContractSnapshot } from "./types"
 import { toolEvidenceFrom, type ToolEvidence } from "./evidence"
-import { buildWalletTools, buildTxLookupTool, buildContractTxsTool, buildContractEventsTool, buildContractDeploymentTool, buildContractHoldingsTool, buildContractStateTool, buildContractDataTool, buildContractInfoTool, buildContractFunctionsTool, buildUpgradeHistoryTool, buildTokenTools, buildNetworkTool, buildWalletDiagnosisTool, buildNativePriceTool, buildSanctionsTool, buildTokenSafetyTool, buildEnsTool, buildEstimateActionTool, buildEscalationTool, executeTool } from "./tools"
+import { buildWalletTools, buildTxLookupTool, buildContractTxsTool, buildContractEventsTool, buildContractDeploymentTool, buildContractHoldingsTool, buildContractStateTool, buildContractDataTool, buildContractInfoTool, buildContractFunctionsTool, buildUpgradeHistoryTool, buildTokenTools, buildNetworkTool, buildBridgeTool, buildWalletDiagnosisTool, buildNativePriceTool, buildSanctionsTool, buildTokenSafetyTool, buildEnsTool, buildEstimateActionTool, buildEscalationTool, executeTool } from "./tools"
 import type { WalletConfig } from "./tools"
 import { buildPrepareContractActionTool, buildPrepareSwapTool, executeActionTool } from "./actions"
 import type { ActionsContext, ActionPayload } from "./actions"
@@ -323,6 +323,7 @@ async function* streamChatWithToolsRaw(
       ...contractToolset,
       ...buildTokenTools(),
       buildNetworkTool(),
+      buildBridgeTool(),
       ...(needsWalletTools ? [buildWalletDiagnosisTool()] : []),
       buildNativePriceTool(),
       buildSanctionsTool(),
@@ -503,6 +504,7 @@ async function* streamChatWithToolsRaw(
     ...contractToolset,
     ...buildTokenTools(),
     buildNetworkTool(),
+    buildBridgeTool(),
     ...(walletConfig ? [buildWalletDiagnosisTool()] : []),
     buildNativePriceTool(),
     buildSanctionsTool(),

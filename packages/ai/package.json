@@ -16,7 +16,8 @@
     "@txid/blockchain": "workspace:*",
     "@txid/solana": "workspace:*",
     "openai": "^6.34.0",
-    "voyageai": "^0.2.1"
+    "voyageai": "^0.2.1",
+    "@txid/layerzero": "workspace:*"
   },
   "devDependencies": {
     "typescript": "^5.4.0"
