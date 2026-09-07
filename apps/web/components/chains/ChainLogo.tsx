@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { readableText } from "@/lib/chains";
 
 interface ChainLogoProps {
   src: string;
@@ -40,7 +41,9 @@ export function ChainLogo({ src, name, color, size = 40, className, whiteBg }: C
           height: size,
           borderRadius: "50%",
           background: color,
-          color: "#fff",
+          // NOT hardcoded white. Bright brand colours exist (Robinhood's lime,
+          // Etherlink's green) and white on them is an invisible monogram.
+          color: readableText(color),
           display: "inline-flex",
           alignItems: "center",
           justifyContent: "center",

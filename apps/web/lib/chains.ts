@@ -11,7 +11,10 @@ export interface ChainInfo {
   slug: string
   name: string
   ticker: string
-  family: "evm" | "non-evm"
+  /** "cross-chain" is not a network: LayerZero is a message layer that runs
+   *  ACROSS the chains above, so it gets its own section rather than being
+   *  filed under one execution model it does not belong to. */
+  family: "evm" | "non-evm" | "cross-chain"
   status: "live" | "coming-soon"
   /** Hidden chains keep their page content for later but are excluded from
    *  listings, static params, and the sitemap, and their pages 404. Used to
@@ -220,7 +223,7 @@ export const CHAINS: ChainInfo[] = [
     ticker: "ETH",
     family: "evm",
     status: "live",
-    color: "#00C805",
+    color: "#CCFF00",
     logo: "/chains/Robinhood.png",
     explorerName: "Blockscout",
     tagline: "Native diagnosis on Robinhood Chain, for users who have never opened a block explorer.",
@@ -275,6 +278,31 @@ export const CHAINS: ChainInfo[] = [
       { title: "Gas budget too low", detail: "Separates a budget that was set too low from a wallet that is genuinely short of SUI." },
       { title: "Shared object contention", detail: "Explains when a transaction lost a race for a shared object, and whether retrying will help." },
       { title: "Objects that no longer exist", detail: "Catches a reference to an object that was transferred, wrapped or deleted before the transaction landed." },
+    ],
+  },
+
+  // ── Cross-chain ───────────────────────────────────────────────────────────
+  {
+    slug: "layerzero",
+    name: "LayerZero",
+    ticker: "",
+    family: "cross-chain",
+    status: "live",
+    color: "#E4E4E7",
+    logo: "/chains/LayerZero.png",
+    explorerName: "LayerZero Scan",
+    tagline: "Answers the worst question in crypto: it says it worked, so where is my money?",
+    intro:
+      "A bridge transfer leaves one chain in a transaction the user sent, and arrives on another in a transaction they did not send and cannot see. Every tool reports the same useless fact in between, that the source transaction succeeded. TxID reads the message itself and says where the value actually is.",
+    metaDescription:
+      "Bridged and it has not arrived? TxID reads the LayerZero message and tells your users whether their transfer is in transit, delivered, or needs a human.",
+    builtFor:
+      "TxID follows the transfer across, so a user whose funds have left one chain and not reached the other is told they are in transit rather than left to guess.",
+    failures: [
+      { title: "Sent but not arrived", detail: "Confirms the transfer left the source chain and is still in flight, so the user knows it is in transit rather than lost." },
+      { title: "Bridging twice", detail: "Never tells a user to retry while a transfer is live. The first one is still coming, and a second would go through too." },
+      { title: "Which side to look at", detail: "Names the destination chain and the delivery transaction, so nobody keeps refreshing the chain the funds already left." },
+      { title: "States nobody can read", detail: "When the bridge reports something we cannot interpret, it says so and hands over the message id, rather than inventing a meaning." },
     ],
   },
   {

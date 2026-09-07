@@ -7,10 +7,16 @@ import { ChainLogo } from "@/components/chains/ChainLogo";
 import { VISIBLE_CHAINS, hexToRgba, type ChainInfo } from "@/lib/chains";
 import { ArrowRight } from "lucide-react";
 
+/** Counted, not typed by hand: the hero copy carried "9 chains live" into the
+ *  hour a tenth went live. */
+const LIVE_CHAIN_COUNT = VISIBLE_CHAINS.filter(
+  (c) => c.status === "live" && c.family !== "cross-chain",
+).length;
+
 export const metadata: Metadata = {
   title: "Supported Chains | TxID",
   description:
-    "TxID diagnoses failed transactions natively across each supported network, understanding the execution model, contract behaviour, and failure patterns unique to each ecosystem. 9 chains live, including Move-native Aptos.",
+    `TxID diagnoses failed transactions natively across each supported network, understanding the execution model, contract behaviour, and failure patterns unique to each ecosystem. ${LIVE_CHAIN_COUNT} chains live, including Move-native Aptos, plus cross-chain transfers through LayerZero.`,
   alternates: { canonical: "/chains" },
 };
 
@@ -21,13 +27,18 @@ function ChainCard({ chain }: { chain: ChainInfo }) {
       className="group flex h-full flex-col bg-[var(--bg-surface)] border border-[var(--border)] rounded-xl p-5 transition-colors hover:border-[color:var(--hover)]"
       style={{ ["--hover" as string]: hexToRgba(chain.color, 0.4) }}
     >
-      {/* No status pill: the section heading already says these are live, and a
-          per-card pill inherits each chain's brand colour, so the row reads as
-          nine different colours rather than one state. No ticker either: the
-          name carries the card. */}
+      {/* A pill ONLY for coming-soon. Live needs none (the section heading says
+          so), and a pill per card in each chain's own brand colour would read
+          as a row of different colours rather than one state, so this one is
+          deliberately neutral. No ticker either: the name carries the card. */}
       <div className="flex items-center gap-3 mb-3">
         <ChainLogo src={chain.logo} name={chain.name} color={chain.color} size={36} whiteBg={chain.logoWhiteBg} />
         <h3 className="font-display font-semibold text-white truncate">{chain.name}</h3>
+        {chain.status === "coming-soon" && (
+          <span className="ml-auto shrink-0 text-[10px] font-medium uppercase tracking-wider text-muted border border-[var(--border)] rounded-full px-2 py-0.5">
+            Coming soon
+          </span>
+        )}
       </div>
       {/* Fixed two-line tagline zone so every card sits at the same height. */}
       <p className="text-sm text-muted leading-relaxed mb-3 line-clamp-3 min-h-[4.35em] flex-1">{chain.tagline}</p>
@@ -39,14 +50,20 @@ function ChainCard({ chain }: { chain: ChainInfo }) {
 }
 
 export default function ChainsPage() {
-  // Live chains only. The coming-soon entries keep their detail pages (deep
-  // links and SEO), but a "roadmap" section under nine live chains read as
-  // filler, so the index doesn't advertise them. Grouped by family: the two
-  // execution models are genuinely different products under the hood, and the
-  // split gives Move-native Aptos its own stage.
-  const liveChains = VISIBLE_CHAINS.filter((c) => c.status === "live");
-  const evm = liveChains.filter((c) => c.family === "evm");
-  const nonEvm = liveChains.filter((c) => c.family === "non-evm");
+  // Coming-soon chains are shown as tiles, badged, rather than hidden: where we
+  // are going next is a signal buyers actually want, and each already has a
+  // detail page. Grouped by family, because the execution models are genuinely
+  // different products underneath, and LayerZero is not a chain at all.
+  const evm = VISIBLE_CHAINS.filter((c) => c.family === "evm");
+  const nonEvm = VISIBLE_CHAINS.filter((c) => c.family === "non-evm");
+  const crossChain = VISIBLE_CHAINS.filter((c) => c.family === "cross-chain");
+  const liveCount = (list: ChainInfo[]) => list.filter((c) => c.status === "live").length;
+  const countLabel = (list: ChainInfo[]) => {
+    const live = liveCount(list);
+    const soon = list.length - live;
+    const head = live === 1 ? "1 chain live" : `${live} chains live`;
+    return soon > 0 ? `${head}, ${soon} coming` : head;
+  };
 
   return (
     <>
@@ -72,7 +89,8 @@ export default function ChainsPage() {
                 unique to each ecosystem.
               </p>
               <p className="text-lg text-muted max-w-2xl mx-auto">
-                9 chains live, including Move-native Aptos.
+                {liveCount([...evm, ...nonEvm])} chains live, including Move-native Aptos,
+                plus cross-chain transfers through LayerZero.
               </p>
             </FadeIn>
           </div>
@@ -84,7 +102,7 @@ export default function ChainsPage() {
             <FadeIn>
               <div className="flex items-baseline justify-between mb-2">
                 <h2 className="font-display text-2xl font-bold text-white">EVM</h2>
-                <p className="text-sm text-muted">{evm.length} chains live</p>
+                <p className="text-sm text-muted">{countLabel(evm)}</p>
               </div>
               <p className="text-sm text-muted mb-6 max-w-2xl">
                 One engine across every EVM network: real revert decoding, gas and approval checks,
@@ -107,11 +125,12 @@ export default function ChainsPage() {
             <FadeIn>
               <div className="flex items-baseline justify-between mb-2">
                 <h2 className="font-display text-2xl font-bold text-white">Non-EVM</h2>
-                <p className="text-sm text-muted">{nonEvm.length === 1 ? "1 chain live" : `${nonEvm.length} chains live`}</p>
+                <p className="text-sm text-muted">{countLabel(nonEvm)}</p>
               </div>
               <p className="text-sm text-muted mb-6 max-w-2xl">
                 Non-EVM ecosystems get their own native engine, not an EVM adapter. On Aptos that
                 means Move aborts, subaccounts and sponsored transactions, handled first-class.
+                Solana and Sui are next.
               </p>
             </FadeIn>
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -123,6 +142,34 @@ export default function ChainsPage() {
             </div>
           </div>
         </section>
+
+        {/* Cross-chain. Its own section because a message layer is not a chain:
+            filing it under either execution model would be wrong, and the whole
+            point is that it runs across both. */}
+        {crossChain.length > 0 && (
+          <section className="py-10 pb-24 border-t border-[var(--border)]">
+            <div className="max-w-6xl mx-auto px-6 pt-14">
+              <FadeIn>
+                <div className="flex items-baseline justify-between mb-2">
+                  <h2 className="font-display text-2xl font-bold text-white">Cross-chain</h2>
+                  <p className="text-sm text-muted">{liveCount(crossChain) === crossChain.length ? "Live" : "Coming soon"}</p>
+                </div>
+                <p className="text-sm text-muted mb-6 max-w-2xl">
+                  Value that leaves one chain and arrives on another does so in two transactions,
+                  and the user only ever sees the first. TxID follows it across and says where it
+                  actually is.
+                </p>
+              </FadeIn>
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {crossChain.map((c, i) => (
+                  <FadeIn key={c.slug} delay={(i % 3) * 0.05}>
+                    <ChainCard chain={c} />
+                  </FadeIn>
+                ))}
+              </div>
+            </div>
+          </section>
+        )}
 
       </main>
       <Footer />
