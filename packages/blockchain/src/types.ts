@@ -137,6 +137,29 @@ const DEFAULT_CHAIN_CONFIGS: Record<string, ChainConfig> = {
     moralisChain: "avalanche",
     rpcUrl: "https://api.avax.network/ext/bc/C/rpc",
   },
+  "0x1237": {
+    id: "0x1237",
+    name: "Robinhood Chain",
+    nativeCurrency: "ETH",
+    explorer: "https://robinhoodchain.blockscout.com",
+    rpcUrl: "https://rpc.mainnet.chain.robinhood.com",
+    // NO blockscoutApi, deliberately. The explorer is Blockscout, but its API
+    // sits behind a Cloudflare bot challenge that returns the interstitial to
+    // any non-browser client; only a spoofed browser User-Agent gets through,
+    // and we do not defeat bot detection to read a public API. The explorer URL
+    // above is still correct for links a user clicks.
+    //
+    // What that costs: token balances and recent-transaction lists need an
+    // indexer, so they are UNAVAILABLE here and getTokenBalances throws "No
+    // indexer configured" rather than reporting an empty wallet. Single
+    // transaction lookup, revert decoding, native balance, nonce and gas all
+    // run on the RPC and work normally, which is the failed-transaction path.
+    //
+    // To light up the rest: Alchemy indexes this chain and is Robinhood's own
+    // recommended provider. Point RPC_URLS at it for a keyed endpoint today
+    // ({"robinhood":"https://robinhood-mainnet.g.alchemy.com/v2/KEY"}); the
+    // indexed lists need an Alchemy wallet adapter alongside Moralis/Blockscout.
+  },
   "0xa729": {
     id: "0xa729",
     name: "Etherlink",
@@ -207,6 +230,8 @@ export function canonicalChainId(chain: string): string {
 
 /** Extra spellings people actually type for a chain. */
 const CHAIN_ALIASES: Record<string, string> = {
+  robinhood: "0x1237",
+  rhc: "0x1237",
   bsc: "0x38",
   binance: "0x38",
   eth: "0x1",
