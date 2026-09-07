@@ -243,6 +243,31 @@ export const CHAINS: ChainInfo[] = [
 
   // ── Non-EVM (coming soon) ──────────────────────────────────────────────────
   {
+    slug: "aptos",
+    name: "Aptos",
+    ticker: "APT",
+    family: "non-evm",
+    status: "live",
+    color: "#2DD8A5",
+    logo: "/chains/Aptos.png",
+    logoWhiteBg: true,
+    explorerName: "Aptos Explorer",
+    tagline: "Turn Aptos error codes into answers your users can act on.",
+    intro:
+      "Give your Aptos users instant answers: why a transaction failed, where their funds actually are, and the exact next step, without leaving your app. Most never see a reason at all, just a transaction that did not work, while the explanation sits on chain as a Move abort nobody has translated. TxID translates it and answers in plain language.",
+    metaDescription:
+      "Diagnose failed Aptos transactions without leaving your app. TxID turns Move abort codes into plain answers and shows users where their funds actually are.",
+    builtFor:
+      "TxID is built for Aptos rather than adapted to it, so it answers the questions only Move raises: what an abort code actually means, and why a balance looks empty when the funds are sitting in a subaccount.",
+    failures: [
+      { title: "Move error codes", detail: "A code like 0x10010 becomes a plain explanation of what went wrong, whether any funds moved, and what to do next." },
+      { title: "Funds that look missing", detail: "On venues that hold balances in a subaccount rather than the wallet, shows the user their real position and history instead of an empty account." },
+      { title: "Transactions that never landed", detail: "Explains a transaction that expired before it reached the chain, so a user staring at no record knows their funds were never sent." },
+      { title: "Gas paid by someone else", detail: "Explains a sponsored transaction, so a fee the user did not pay does not read as something going wrong." },
+      { title: "A wallet showing the wrong address", detail: "Spots a rotated authentication key and points the user at the address actually holding their funds." },
+    ],
+  },
+  {
     slug: "solana",
     name: "Solana",
     ticker: "SOL",
@@ -268,7 +293,7 @@ export const CHAINS: ChainInfo[] = [
     family: "non-evm",
     status: "coming-soon",
     color: "#4DA2FF",
-    logo: "/chains/Sui.svg",
+    logo: "/chains/Sui.png",
     explorerName: "SuiScan",
     tagline: "Transaction diagnosis is coming to Sui.",
     intro:
@@ -343,31 +368,6 @@ export const CHAINS: ChainInfo[] = [
       { title: "Out of gas (exit 13)", detail: "Catches a compute-phase gas exhaustion and tells the user what to adjust." },
       { title: "Action-phase failures (exit 32 to 34)", detail: "Explains invalid, too many, or failed actions after a successful compute phase." },
       { title: "Bounced messages", detail: "Tells the user when their message bounced back instead of executing." },
-    ],
-  },
-  {
-    slug: "aptos",
-    name: "Aptos",
-    ticker: "APT",
-    family: "non-evm",
-    status: "live",
-    color: "#2DD8A5",
-    logo: "/chains/Aptos.png",
-    logoWhiteBg: true,
-    explorerName: "Aptos Explorer",
-    tagline: "Turn Aptos error codes into answers your users can act on.",
-    intro:
-      "Give your Aptos users instant answers: why a transaction failed, where their funds actually are, and the exact next step, without leaving your app. Most never see a reason at all, just a transaction that did not work, while the explanation sits on chain as a Move abort nobody has translated. TxID translates it and answers in plain language.",
-    metaDescription:
-      "Diagnose failed Aptos transactions without leaving your app. TxID turns Move abort codes into plain answers and shows users where their funds actually are.",
-    builtFor:
-      "TxID is built for Aptos rather than adapted to it, so it answers the questions only Move raises: what an abort code actually means, and why a balance looks empty when the funds are sitting in a subaccount.",
-    failures: [
-      { title: "Move error codes", detail: "A code like 0x10010 becomes a plain explanation of what went wrong, whether any funds moved, and what to do next." },
-      { title: "Funds that look missing", detail: "On venues that hold balances in a subaccount rather than the wallet, shows the user their real position and history instead of an empty account." },
-      { title: "Transactions that never landed", detail: "Explains a transaction that expired before it reached the chain, so a user staring at no record knows their funds were never sent." },
-      { title: "Gas paid by someone else", detail: "Explains a sponsored transaction, so a fee the user did not pay does not read as something going wrong." },
-      { title: "A wallet showing the wrong address", detail: "Spots a rotated authentication key and points the user at the address actually holding their funds." },
     ],
   },
 ]
