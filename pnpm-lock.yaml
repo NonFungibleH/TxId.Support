@@ -263,6 +263,9 @@ importers:
       '@txid/solana':
         specifier: workspace:*
         version: link:../solana
+      '@txid/sui':
+        specifier: workspace:*
+        version: link:../sui
       openai:
         specifier: ^6.34.0
         version: 6.34.0(ws@8.20.0)(zod@4.3.6)
@@ -328,6 +331,15 @@ importers:
         version: 5.9.3
 
   packages/solana:
+    devDependencies:
+      typescript:
+        specifier: ^5.4.0
+        version: 5.9.3
+      vitest:
+        specifier: ^2
+        version: 2.1.9(@types/node@20.19.37)(msw@2.12.14(@types/node@20.19.37)(typescript@5.9.3))
+
+  packages/sui:
     devDependencies:
       typescript:
         specifier: ^5.4.0

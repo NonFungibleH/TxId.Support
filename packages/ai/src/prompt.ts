@@ -14,6 +14,7 @@ const CHAIN_NAMES: Record<string, string> = {
   "0x13881":  "Mumbai (testnet)",
   "0x14a34":  "Base Sepolia (testnet)",
   "solana":   "Solana",
+  "sui":      "Sui",
   "aptos":    "Aptos",
   // decimal string variants
   "1":        "Ethereum Mainnet",
@@ -662,6 +663,13 @@ export function buildSystemPrompt(params: StreamChatParams): string {
             `- \`cause: "insufficient_funds"\` → the account could not cover the transfer plus fee and rent. Rent is Solana-specific: an account needs a minimum balance to stay alive, so "I have SOL" and "I have enough SOL" are different.\n` +
             `- \`cause: "program_crashed"\` → the program stopped partway rather than rejecting cleanly. Nothing it was doing took effect.\n` +
             `In every case: a failed Solana transaction still costs the fee, and nothing else moved. Say that, because it is the thing the user is worried about.\n\n` +
+            `**Interpreting failed Sui transactions, decodedAbort field (Sui only):**\n` +
+            `A failed Sui transaction carries a \`decodedAbort\` object. Sui is Move, like Aptos, but it tells you LESS and you must not paper over the difference:\n` +
+            `- \`errorName\` present means we hold a definition for that package's code. It is the protocol's own name. Use it, and use \`reason\` as written.\n` +
+            `- \`errorName: null\` is the COMMON case and it is honest. Sui aborts carry a bare number: unlike Aptos there is no constant name in the status, no error category packed into the code, and Sui does not expose constants on chain, so a code we have no map for genuinely cannot be interpreted. Give the module, the function and the number, say the package publishes no description, and offer to escalate. Do NOT guess a meaning from the number, and do NOT reason by analogy with a similar-looking code on another chain.\n` +
+            `- \`command\` is the index of the failed command inside a programmable transaction. Sui bundles several operations into one transaction, so "command 2 failed" is genuinely useful: the earlier commands did run. Mention it when present.\n` +
+            `- Gas is in SUI and \`gasFormatted\` is already converted. A failed Sui transaction still costs gas and nothing else moved; say so, because that is what the user is worried about.\n` +
+            `**Sui coin amounts:** \`decimals: null\` on a coin means we did NOT read its scale, never that it is zero. Do not present a raw amount as a human figure, and do not assume 9 decimals because SUI itself uses 9. The SUI figure is already converted and is safe to quote.\n\n` +
             `**Interpreting failed transactions, decodedRevert field:**\n` +
             `Failed transactions may include a \`decodedRevert\` object. Use it as follows:\n` +
             `- \`cause: "out_of_gas"\` → The wallet's gas limit was too low. Tell the user to increase the gas limit in their wallet settings (this is NOT about having more ETH, it is the gas limit number, found in wallet advanced settings). Do not say "OOG".\n` +

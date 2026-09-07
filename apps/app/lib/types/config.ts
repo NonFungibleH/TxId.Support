@@ -75,6 +75,7 @@ export const SUPPORTED_CHAINS = [
   { id: "0xa86a",   name: "Avalanche",         explorer: "snowtrace.io" },
   { id: "0xa729",   name: "Etherlink",         explorer: "explorer.etherlink.com" },
   { id: "aptos",    name: "Aptos",             explorer: "explorer.aptoslabs.com" },
+  { id: "sui",      name: "Sui",               explorer: "suiscan.xyz" },
   { id: "solana",   name: "Solana",            explorer: "solscan.io" },
   { id: "0xaa36a7", name: "Sepolia (Testnet)",  explorer: "sepolia.etherscan.io" },
 ] as const
@@ -85,6 +86,10 @@ export type ChainId = (typeof SUPPORTED_CHAINS)[number]["id"]
 // (existing configs keep working; new selections are EVM-only for now).
 const PAUSED_CHAINS = new Set<string>([
   "solana",
+  // Sui reads and decodes, but every error map is hand-written (the chain
+  // exposes no constants), so almost every abort resolves to a bare code. It
+  // stays out of the pickers until at least one real protocol is mapped.
+  "sui",
 ])
 
 /** Chains offered in chain pickers - SUPPORTED_CHAINS minus paused ones. */
