@@ -39,10 +39,22 @@ describe("decodeSolanaError", () => {
     expect(d.code).toBe(6001)
   })
 
-  // The honest floor: a program's own code with no Anchor log and no map.
-  it("refuses to invent a meaning for an unmapped program code", () => {
+  // Jupiter 6001 was the single biggest unexplained code on Solana, 624
+  // occurrences in one sample, and unreachable by harvesting because Jupiter
+  // never prints its errors. Its on-chain IDL closed it.
+  it("explains Jupiter 6001, which only the on-chain IDL could reach", () => {
     const d = decodeSolanaError({ InstructionError: [3, { Custom: 6001 }] }, [
       `Program ${JUP} failed: custom program error: 0x1771`,
+    ])
+    expect(d.errorName).toBe("SlippageToleranceExceeded")
+    expect(d.unrecognised).toBe(false)
+    expect(d.reason).toMatch(/raise your slippage tolerance/i)
+  })
+
+  // The honest floor still stands for a program we hold nothing for.
+  it("refuses to invent a meaning for an unmapped program code", () => {
+    const d = decodeSolanaError({ InstructionError: [3, { Custom: 6001 }] }, [
+      "Program NA247a7YE9S3p9CdKmMyETx8TTwbSdVbVYHHxpnHTUV failed: custom program error: 0x1771",
     ])
     expect(d.unrecognised).toBe(true)
     expect(d.reason).toMatch(/does not publish a description/)
