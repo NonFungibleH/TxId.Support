@@ -79,7 +79,11 @@ async function recentAptos(config: ProjectConfig, address: string): Promise<Rece
   // null is a FAILED LOOKUP, not an empty history. The distinction is the whole
   // reason this returns null rather than [].
   if (txs === null) return null
-  return txs.map(t => ({
+  // A partly read history is not a history. The opener leads with a specific
+  // claim about somebody's own past ("your last swap didn't go through"), and
+  // silence is a valid output, so an incomplete read says nothing at all.
+  if (txs.unread > 0) return null
+  return txs.transactions.map(t => ({
     failed: !t.success,
     when: ago(t.timestamp),
     freshMs: Date.now() - (Date.parse(t.timestamp) || 0),

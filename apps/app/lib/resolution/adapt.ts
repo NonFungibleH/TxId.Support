@@ -155,6 +155,24 @@ export function fromAptosTx(tx: AptosTxLike, hash: string, ctx: CallerContext = 
 }
 
 /** Nothing was found on any chain we checked. Says so, never guesses why. */
+/**
+ * Nobody could be asked, which is not an answer of "no".
+ *
+ * Routed through the `lookup_failed` pending cause because that is already the
+ * path to TXID-9004, whose custody and retryable are both "unknown". That is
+ * the truth and it is what an integrator must draw: not a Retry button, and not
+ * a "your funds are safe" line, because neither is established.
+ */
+export function lookupFailed(hash: string, ctx: CallerContext = {}, reason?: string): ResolveInput {
+  return {
+    hash,
+    pending: { cause: "lookup_failed", ...(reason ? { reason } : {}) },
+    ...(ctx.intent ? { intent: ctx.intent } : {}),
+    ...(ctx.offchainState ? { offchainState: ctx.offchainState } : {}),
+    ...(ctx.observedAt ? { observedAt: ctx.observedAt } : {}),
+  }
+}
+
 export function notFound(hash: string, ctx: CallerContext = {}): ResolveInput {
   return {
     hash,

@@ -65,6 +65,7 @@ import {
   getAptosWalletBalance,
   getAptosRecentTransactions,
   getAptosRecentTransactionsMerged,
+  AptosLookupUnavailableError,
   getAptosTransactionByHash,
   getAptosAssetMetadata,
   getAptosModuleAbi,
@@ -131,6 +132,13 @@ async function withMarketNames<T extends { functionArguments?: unknown[] }>(
 
 // The Aptos clients return null when the fetch itself failed — that is NOT an
 // empty wallet / empty history, and the model must never present it as one.
+/**
+ * The index named some versions and the fullnode could not be asked about them.
+ * A short list presented as a complete one is an absence produced by a failure.
+ */
+const UNREAD_NOTE_TEXT =
+  "transactions the index listed but the fullnode could not be read for. This history is therefore INCOMPLETE. Do not describe it as the user's full recent activity, do not count failures from it, and say some transactions could not be read just now."
+
 const APTOS_LOOKUP_FAILED =
   "Could not reach the Aptos indexer to check this right now, this is a failed lookup, NOT a statement about the wallet's contents or history. Try again shortly."
 
@@ -608,12 +616,25 @@ export async function executeTool(
                       "History for these accounts could not be fetched right now, so activity there is UNVERIFIED, not absent.",
                   }
                 : {}),
+              ...(merged.unread > 0
+                ? {
+                    lookupFailed: true,
+                    unreadTransactions: merged.unread,
+                    incompleteNote: `${merged.unread} ${UNREAD_NOTE_TEXT}`,
+                  }
+                : {}),
             }
           }
           // "none" / "failed": fall through to plain wallet history.
         }
         const aptosTxs = await getAptosRecentTransactions(wallet.address, programOrContract, limit, errmap)
-        return aptosTxs ?? { error: APTOS_LOOKUP_FAILED }
+        if (!aptosTxs) return { error: APTOS_LOOKUP_FAILED }
+        return {
+          transactions: aptosTxs.transactions,
+          ...(aptosTxs.unread > 0
+            ? { lookupFailed: true, unreadTransactions: aptosTxs.unread, incompleteNote: `${aptosTxs.unread} ${UNREAD_NOTE_TEXT}` }
+            : {}),
+        }
       }
 
       // EVM. THE CONTRACT FILTER USED TO MANUFACTURE FALSE NEGATIVES, twice
@@ -777,14 +798,29 @@ export async function executeTool(
       if (aptosInPlay && looksAptosVersion) {
         // errmapFor is pure/synchronous: protocol abort tables for the watched
         // Aptos contracts (decodeAbort adds the framework table by itself).
-        const versionTx = await getAptosTransactionByHash(hash, errmapFor(watchedContracts))
+        // Three outcomes. The note used to carry "or the fullnode could not be
+        // reached" in prose while `status` said not_found, and status is the
+        // field a caller keys on.
+        let versionTx: Awaited<ReturnType<typeof getAptosTransactionByHash>>
+        try {
+          versionTx = await getAptosTransactionByHash(hash, errmapFor(watchedContracts))
+        } catch (e) {
+          if (!(e instanceof AptosLookupUnavailableError)) throw e
+          return {
+            hash,
+            chainId: "aptos",
+            status: "lookup_failed",
+            lookupFailed: true,
+            note: `The Aptos fullnode could not be read (${e.message}), so this version was NOT checked. Do not say the transaction was not found, does not exist, failed or was dropped. Say the chain could not be read just now, that this says nothing about their transaction or their funds, and offer to try again.`,
+          }
+        }
         return versionTx
           ? { chainId: "aptos", ...(await withMarketNames(versionTx, watchedContracts)) }
           : {
               hash,
               chainId: "aptos",
               status: "not_found",
-              note: "No Aptos user transaction exists at this version, or the fullnode could not be reached. Do not claim the transaction failed or was dropped; say it could not be found by this version number.",
+              note: "The Aptos fullnode answered and has no user transaction at this version. Do not claim the transaction failed or was dropped; say it could not be found by this version number.",
               aptosNotFoundCauses: APTOS_NOT_FOUND_CAUSES,
             }
       }
@@ -811,7 +847,7 @@ export async function executeTool(
       // Look on all candidate chains at once (Aptos joins the same fan-out —
       // it tolerates misses like every other candidate); take the
       // highest-priority hit.
-      const [results, aptosTx] = await Promise.all([
+      const [results, aptosResult] = await Promise.all([
         Promise.all(
           candidates.map(async chainId => ({
             chainId,
@@ -821,17 +857,27 @@ export async function executeTool(
             ),
           })),
         ),
-        checkAptos ? getAptosTransactionByHash(hash, errmapFor(watchedContracts)).catch(() => null) : Promise.resolve(null),
+        // `.catch(() => null)` here was the same bug the EVM arm above already
+        // fixed: it turned an unreachable fullnode into "Aptos was checked and
+        // your transaction is not on it".
+        checkAptos
+          ? getAptosTransactionByHash(hash, errmapFor(watchedContracts)).catch((e: unknown) =>
+              e instanceof AptosLookupUnavailableError ? ("unreachable" as const) : null,
+            )
+          : Promise.resolve(null),
       ])
+      const aptosUnreachable = aptosResult === "unreachable"
+      const aptosTx = aptosUnreachable ? null : aptosResult
       const unreachableChains = results.filter(r => r.tx === "unreachable").map(r => r.chainId)
+      if (aptosUnreachable) unreachableChains.push("aptos")
       const reachable = candidates.filter(c => !unreachableChains.includes(c))
       // "Checked" means a node answered. An unreachable chain was attempted, not checked.
-      const checkedChains = checkAptos ? [...reachable, "aptos"] : reachable
+      const checkedChains = checkAptos && !aptosUnreachable ? [...reachable, "aptos"] : reachable
       // Only when there WERE EVM candidates and none could be asked. An
       // Aptos-only session has no EVM candidates at all, and the fullnode
       // answering "no such transaction" is a real answer, not an outage; that
       // case must fall through to the not-found branch with its Aptos causes.
-      if (candidates.length > 0 && reachable.length === 0 && !checkAptos) {
+      if ((candidates.length > 0 && reachable.length === 0 && !checkAptos) || (checkedChains.length === 0 && unreachableChains.length > 0)) {
         return {
           hash,
           status: "lookup_failed",
@@ -996,7 +1042,14 @@ export async function executeTool(
         // On Aptos the "contract" is a module-publishing account; fetch its
         // recent transactions filtered to calls into its own modules.
         const aptosTxs = await getAptosRecentTransactions(contractAddress, contractAddress, limit, errmapFor(watchedContracts))
-        return aptosTxs ?? { contract: contractAddress, error: APTOS_LOOKUP_FAILED }
+        if (!aptosTxs) return { contract: contractAddress, error: APTOS_LOOKUP_FAILED }
+        return {
+          contract: contractAddress,
+          transactions: aptosTxs.transactions,
+          ...(aptosTxs.unread > 0
+            ? { lookupFailed: true, unreadTransactions: aptosTxs.unread, incompleteNote: `${aptosTxs.unread} ${UNREAD_NOTE_TEXT}` }
+            : {}),
+        }
       }
       return getContractTransactions(contractAddress, chainId, limit)
     }

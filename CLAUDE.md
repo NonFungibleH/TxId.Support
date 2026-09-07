@@ -1046,6 +1046,27 @@ be produced by a failure. Use the `ok / unavailable / unsupported` shape (see
 `getWalletApprovals`), never `.catch(() => [])` or `.catch(() => null)` on a
 read path, and never a chain default such as `?? "eth"` or `?? "0x1"`.
 
+> **Aptos had this hole for another five days** and it is worth knowing how it
+> hid. `aptosGet` collapses a clean 404, a 500, a timeout and an unparseable
+> body into one `null`, so `getAptosTransactionByHash` looked correct at every
+> call site while meaning two different things. `aptosRead` (`fullnode.ts`) is
+> the tri-state; `AptosLookupUnavailableError` (`errors.ts`) is what a caller
+> now has to catch. **The lesson is that a helper returning `T | null` is where
+> this bug class lives**, because the conflation happens one layer below the
+> code you are reading. `aptosGet` itself is unchanged and still fine for
+> optional fields; anything whose answer reaches a user goes through
+> `aptosRead`. Fixed on 2026-09-07 in three callers (the agent fan-out, which
+> listed "aptos" among CHECKED chains during an outage; the version
+> short-circuit, which set `status: "not_found"` and hedged only in prose; and
+> `gather.ts`, whose `notFound` gives the user a list of causes for a
+> transaction we never actually looked for). **A partial read is the same bug
+> quieter:** `hydrateVersions` dropped versions the fullnode could not answer
+> for, so ten in became seven out with nothing saying so. It now returns
+> `{ transactions, unread }`, `diagnoseAptosWallet` reports
+> `recentFailureCount: null` rather than a count from a short list, and the
+> session opener stays silent instead of leading with a claim about somebody's
+> own past. Tests: `outage-is-not-absence`, `aptos-outage`.
+
 **2. Three outcomes per read, not two.** Found, absent, or *could not be asked*.
 `getTransactionByHash` throws `LookupUnavailableError` (`errors.ts`) when
 neither the indexer nor the RPC answered, on both the Moralis and the Blockscout

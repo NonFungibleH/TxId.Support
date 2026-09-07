@@ -13,9 +13,9 @@
  */
 
 import { diagnoseTransaction } from "@txid/blockchain"
-import { getAptosTransactionByHash, errmapFor } from "@txid/aptos"
+import { AptosLookupUnavailableError, getAptosTransactionByHash, errmapFor } from "@txid/aptos"
 import { resolve } from "./resolve"
-import { fromEvmDiagnosis, fromAptosTx, notFound, type CallerContext } from "./adapt"
+import { fromEvmDiagnosis, fromAptosTx, lookupFailed, notFound, type CallerContext } from "./adapt"
 import type { Resolution } from "./types"
 
 export interface ResolveByHashOptions extends CallerContext {
@@ -44,17 +44,28 @@ export async function resolveByHash(hash: string, opts: ResolveByHashOptions = {
       ? diagnoseTransaction(hash, chain && chain !== "aptos" ? chain : undefined).catch(() => null)
       : Promise.resolve(null),
     wantsAptos
-      ? getAptosTransactionByHash(hash, errmap).catch(() => null)
+      // `.catch(() => null)` sent an unreachable fullnode down the not_found
+      // path, and not_found carries a custody claim an integrator draws a
+      // button from. That is bug #72 in the Aptos arm.
+      ? getAptosTransactionByHash(hash, errmap).catch((e: unknown) =>
+          e instanceof AptosLookupUnavailableError ? ("unreachable" as const) : null,
+        )
       : Promise.resolve(null),
   ])
+  const aptosUnreachable = aptos === "unreachable"
+  const aptosTx = aptosUnreachable ? null : aptos
 
   // Prefer whichever chain actually has the transaction. A found Aptos tx beats
   // an EVM "not_found", and vice versa; if both somehow hit, EVM wins only when
   // it genuinely mined the transaction.
   const evmFound = !!evm && evm.status !== "not_found"
   if (evmFound) return resolve(fromEvmDiagnosis(evm, hash, ctx))
-  if (aptos) return resolve(fromAptosTx(aptos, hash, ctx))
+  if (aptosTx) return resolve(fromAptosTx(aptosTx, hash, ctx))
   if (evm) return resolve(fromEvmDiagnosis(evm, hash, ctx))
+
+  // Nobody could be asked. Custody is unknown, so the answer is indeterminate,
+  // never "we looked and it is not there".
+  if (aptosUnreachable) return resolve(lookupFailed(hash, ctx))
 
   return resolve(notFound(hash, ctx))
 }

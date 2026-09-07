@@ -1,3 +1,4 @@
+export { AptosLookupUnavailableError } from "./errors"
 export type { AptosBalance, AptosTransaction, DecodedAbort, AptosModuleFunction, AptosModuleAbi, AptosWalletDiagnosis } from "./types"
 export { decodeAbort } from "./abort"
 export type { AbortErrmap } from "./abort"
@@ -9,6 +10,7 @@ export {
   getLedgerInfo,
   getAccount,
   getAptosModuleAbi,
+  aptosRead,
   getAptosTransactionByHash,
   getAptosPackages,
   viewFunction,

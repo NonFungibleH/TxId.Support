@@ -1,5 +1,6 @@
 import type { AbortErrmap } from "./abort"
 import { normalizeAptosAddress } from "./address"
+import { AptosLookupUnavailableError } from "./errors"
 import {
   aptosAuthHeaders,
   aptosFetch,
@@ -112,18 +113,37 @@ const HISTORY_QUERY = `query AccountTransactions($addr: String!) {
   }
 }`
 
-async function hydrateVersions(versions: string[], stopAt?: number, errmap?: AbortErrmap): Promise<AptosTransaction[]> {
+export interface HydratedHistory {
+  transactions: AptosTransaction[]
+  /** Versions the fullnode could not be asked about. NOT versions that are absent. */
+  unread: number
+}
+
+async function hydrateVersions(versions: string[], stopAt?: number, errmap?: AbortErrmap): Promise<HydratedHistory> {
   const results: AptosTransaction[] = []
+  let unread = 0
   for (let i = 0; i < versions.length; i += 3) {
     if (stopAt !== undefined && results.length >= stopAt) break
     if (i > 0) await sleep(300)
     const chunk = versions.slice(i, i + 3)
-    const txs = await Promise.all(chunk.map(v => getAptosTransactionByHash(v, errmap)))
+    // A version the fullnode could not answer for is NOT a version that does
+    // not exist. Dropping it silently shortens somebody's history without
+    // saying so, which is the same false finding in a quieter disguise, so the
+    // count is carried out to the caller.
+    const txs = await Promise.all(
+      chunk.map(v =>
+        getAptosTransactionByHash(v, errmap).catch((e: unknown) => {
+          if (e instanceof AptosLookupUnavailableError) return "unavailable" as const
+          throw e
+        }),
+      ),
+    )
     for (const tx of txs) {
-      if (tx) results.push(tx)
+      if (tx === "unavailable") unread++
+      else if (tx) results.push(tx)
     }
   }
-  return results
+  return { transactions: results, unread }
 }
 
 function functionIdMatchesModule(functionId: string | null, normalizedModuleAddress: string): boolean {
@@ -133,12 +153,18 @@ function functionIdMatchesModule(functionId: string | null, normalizedModuleAddr
   return normalizeAptosAddress(functionId.slice(0, sep)) === normalizedModuleAddress
 }
 
+/**
+ * Returns null only when the INDEX itself could not be read, which is the
+ * existing "we know nothing" case. `unread` is the different failure: the index
+ * named some versions and the fullnode could not be asked about them, so the
+ * list you are holding is short and the caller must not present it as complete.
+ */
 export async function getAptosRecentTransactions(
   address: string,
   moduleAddress?: string,
   limit = 10,
   errmap?: AbortErrmap
-): Promise<AptosTransaction[] | null> {
+): Promise<HydratedHistory | null> {
   const addr = normalizeAptosAddress(address)
   const data = await aptosGraphql<{ account_transactions: { transaction_version: number | string }[] }>(
     HISTORY_QUERY,
@@ -149,12 +175,13 @@ export async function getAptosRecentTransactions(
   const versions = data.account_transactions.map(row => String(row.transaction_version))
   // Thread the protocol errmap so failed txs in the history decode to the
   // protocol's own error explanations, not a generic category reason.
-  let txs = await hydrateVersions(versions, moduleAddress ? undefined : limit, errmap)
+  const hydrated = await hydrateVersions(versions, moduleAddress ? undefined : limit, errmap)
+  let txs = hydrated.transactions
   if (moduleAddress) {
     const target = normalizeAptosAddress(moduleAddress)
     txs = txs.filter(tx => functionIdMatchesModule(tx.functionId, target))
   }
-  return txs.slice(0, limit)
+  return { transactions: txs.slice(0, limit), unread: hydrated.unread }
 }
 
 export interface AptosHistoryAccount {
@@ -180,7 +207,7 @@ export async function getAptosRecentTransactionsMerged(
   moduleAddress?: string,
   limit = 10,
   errmap?: AbortErrmap
-): Promise<{ transactions: (AptosTransaction & { activityOn: string[] })[]; unavailable: string[] } | null> {
+): Promise<{ transactions: (AptosTransaction & { activityOn: string[] })[]; unavailable: string[]; unread: number } | null> {
   const lists = await Promise.all(
     accounts.map(async account => ({
       account,
@@ -206,7 +233,8 @@ export async function getAptosRecentTransactionsMerged(
   }
 
   const versions = Array.from(byVersion.keys()).sort((a, b) => Number(b) - Number(a))
-  let txs = await hydrateVersions(versions, moduleAddress ? undefined : limit, errmap)
+  const hydrated = await hydrateVersions(versions, moduleAddress ? undefined : limit, errmap)
+  let txs = hydrated.transactions
   if (moduleAddress) {
     const target = normalizeAptosAddress(moduleAddress)
     txs = txs.filter(tx => functionIdMatchesModule(tx.functionId, target))
@@ -214,6 +242,7 @@ export async function getAptosRecentTransactionsMerged(
   return {
     transactions: txs.slice(0, limit).map(tx => ({ ...tx, activityOn: byVersion.get(tx.version) ?? [] })),
     unavailable,
+    unread: hydrated.unread,
   }
 }
 
@@ -981,11 +1010,9 @@ export async function diagnoseAptosWallet(
   // Delegated-trading protocols keep the user's activity on a protocol
   // account, not the wallet, so the failure count must look at both or a
   // failing trader would diagnose as "no recent failures".
-  const recentPromise =
+  const recentPromise: Promise<{ transactions: AptosTransaction[]; unread: number } | null> =
     extraAccounts && extraAccounts.length > 0
-      ? getAptosRecentTransactionsMerged([{ address: addr, label: "wallet" }, ...extraAccounts], undefined, 10).then(
-          r => (r ? r.transactions : null)
-        )
+      ? getAptosRecentTransactionsMerged([{ address: addr, label: "wallet" }, ...extraAccounts], undefined, 10)
       : getAptosRecentTransactions(addr, undefined, 10)
   const [account, balanceResult, recent] = await Promise.all([
     getAccount(addr),
@@ -997,6 +1024,10 @@ export async function diagnoseAptosWallet(
     exists: account !== null,
     sequenceNumber: account?.sequenceNumber ?? null,
     aptBalance: typeof octas === "string" ? formatUnits(octas, 8) : null,
-    recentFailureCount: recent ? recent.filter(tx => !tx.success).length : null,
+    // A count taken from a list we know is short is a wrong count, so an
+    // incomplete read reports null (NOT READ) rather than a number that would
+    // tell a failing trader they had no recent failures.
+    recentFailureCount:
+      recent && recent.unread === 0 ? recent.transactions.filter(tx => !tx.success).length : null,
   }
 }
