@@ -214,6 +214,30 @@ export const CHAINS: ChainInfo[] = [
     ],
   },
 
+  {
+    slug: "robinhood",
+    name: "Robinhood Chain",
+    ticker: "ETH",
+    family: "evm",
+    status: "live",
+    color: "#00C805",
+    logo: "/chains/Robinhood.png",
+    explorerName: "Blockscout",
+    tagline: "Native diagnosis on Robinhood Chain, for users who have never opened a block explorer.",
+    intro:
+      "Robinhood Chain brings a lot of people on-chain for the first time. When something fails, TxID reads the actual transaction, decodes why it failed, and gives the fix in plain English, right inside your product.",
+    metaDescription:
+      "An AI support agent for Robinhood Chain apps. TxID reads the chain, decodes failed transactions and explains the fix in plain English.",
+    builtFor:
+      "TxID reads Robinhood Chain directly, so a failed transaction gets a real answer instead of a status code, whether or not the user knows what a revert is.",
+    failures: [
+      { title: "Reverted transactions", detail: "Replays the call against the chain and decodes the contract's own revert reason, custom Solidity errors included." },
+      { title: "Out-of-gas failures", detail: "Tells the user it was the gas limit rather than their ETH balance, and what to raise it to." },
+      { title: "Stuck and underpriced transactions", detail: "Spots a pending nonce jam or a max fee below the base fee, and explains how to unstick it." },
+      { title: "Approvals that never landed", detail: "Checks whether the token approval actually went through before anyone blames the contract." },
+    ],
+  },
+
   // ── Non-EVM (coming soon) ──────────────────────────────────────────────────
   {
     slug: "solana",
@@ -221,18 +245,36 @@ export const CHAINS: ChainInfo[] = [
     ticker: "SOL",
     family: "non-evm",
     status: "coming-soon",
-    hidden: true,
     color: "#9945FF",
     logo: "/chains/Solana.svg",
     explorerName: "Solscan",
     tagline: "Transaction diagnosis is coming to Solana.",
     intro:
-      "Compute budgets, expired blockhashes and Anchor errors make Solana support its own language. TxID is bringing the same plain-English diagnosis to Solana. Talk to us for early access.",
+      "Compute budgets, expired blockhashes and failures that surface as nothing but \"custom program error: 0x1771\" make Solana support its own language. TxID is bringing the same plain-English diagnosis to Solana. Talk to us for early access.",
     failures: [
+      { title: "Custom program errors", detail: "Turns a bare code like 0x1771 into the program that rejected it and what the user should do." },
       { title: "Compute-unit limit exceeded", detail: "Explains when a transaction ran out of compute budget and how to raise it." },
       { title: "Blockhash expired", detail: "Catches the classic 'transaction expired' and tells the user to simply retry." },
       { title: "Not enough SOL for fees or rent", detail: "Distinguishes a fee shortfall from a rent-exemption shortfall, which need different fixes." },
-      { title: "Anchor program errors", detail: "Decodes custom Anchor error codes into plain English." },
+    ],
+  },
+  {
+    slug: "sui",
+    name: "Sui",
+    ticker: "SUI",
+    family: "non-evm",
+    status: "coming-soon",
+    color: "#4DA2FF",
+    logo: "/chains/Sui.svg",
+    explorerName: "SuiScan",
+    tagline: "Transaction diagnosis is coming to Sui.",
+    intro:
+      "Move aborts, gas budgets and contention for shared objects give Sui its own failure language. TxID already decodes Move on Aptos, and is bringing the same plain-English diagnosis to Sui. Talk to us for early access.",
+    failures: [
+      { title: "Move aborts", detail: "Turns a module and an abort code into what actually went wrong, and what to do about it." },
+      { title: "Gas budget too low", detail: "Separates a budget that was set too low from a wallet that is genuinely short of SUI." },
+      { title: "Shared object contention", detail: "Explains when a transaction lost a race for a shared object, and whether retrying will help." },
+      { title: "Objects that no longer exist", detail: "Catches a reference to an object that was transferred, wrapped or deleted before the transaction landed." },
     ],
   },
   {

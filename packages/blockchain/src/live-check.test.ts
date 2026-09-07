@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest"
 import { getTransactionByHash } from "./wallet"
+import { CHAIN_CONFIGS } from "./types"
 
 /**
  * Live check against the three transactions a user was wrongly told did not
@@ -34,4 +35,53 @@ describe.skipIf(!process.env.LIVE)("the three misreported transactions", () => {
     expect(decimal!.status).toBe(hex!.status)
     console.log(`  0x38 and 56 agree: block ${decimal!.blockNumber} ${decimal!.status}`)
   }, 30_000)
+})
+
+/**
+ * Robinhood Chain (4663) has no indexer wired: Moralis does not cover it, and
+ * its Blockscout sits behind a Cloudflare bot challenge we will not defeat. So
+ * the ENTIRE chain rides on one public RPC, which is exactly the arrangement
+ * that rotted on Ethereum (cloudflare-eth decommissioned) and Polygon ("tenant
+ * disabled"). This check exists to notice that happening.
+ *
+ * It picks a transaction from the current tip rather than hardcoding a hash,
+ * because a single-RPC chain with no archive guarantee may not retain one.
+ */
+describe.skipIf(!process.env.LIVE)("Robinhood Chain rides on one RPC", () => {
+  it("resolves a live transaction by both spellings of the chain id", async () => {
+    const rpc = CHAIN_CONFIGS["0x1237"]!.rpcUrl
+    const call = async (method: string, params: unknown[]) => {
+      const r = await fetch(rpc, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }),
+        signal: AbortSignal.timeout(20_000),
+      })
+      return ((await r.json()) as { result?: unknown }).result
+    }
+
+    const chainId = (await call("eth_chainId", [])) as string
+    expect(chainId, "the public RPC no longer serves Robinhood Chain").toBe("0x1237")
+
+    const tip = parseInt((await call("eth_blockNumber", [])) as string, 16)
+    let hash: string | null = null
+    for (let i = 0; i < 10 && !hash; i++) {
+      const block = (await call("eth_getBlockByNumber", ["0x" + (tip - i).toString(16), true])) as
+        | { transactions?: { hash: string; gas: string }[] }
+        | null
+      // Skip the per-block system transaction (type 0x6a, gas 0x0): a user
+      // never pastes one, and it is not a useful round-trip subject.
+      hash = block?.transactions?.find(t => t.gas !== "0x0")?.hash ?? null
+    }
+    expect(hash, "no ordinary transaction found near the tip").not.toBeNull()
+
+    const [hex, decimal] = await Promise.all([
+      getTransactionByHash(hash!, "0x1237"),
+      getTransactionByHash(hash!, "4663"),
+    ])
+    expect(hex, "RPC-only chain must still resolve a transaction").not.toBeNull()
+    expect(decimal, "a decimal chain id must not lose the transaction").not.toBeNull()
+    expect(decimal!.hash).toBe(hex!.hash)
+    console.log(`  Robinhood Chain OK: block ${hex!.blockNumber} ${hex!.status}`)
+  }, 60_000)
 })
