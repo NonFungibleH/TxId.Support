@@ -12,7 +12,7 @@ import type { ProjectConfig, WatchedContract, ErrorGlossaryEntry, Plan } from "@
 import { PLAN_CHAIN_LIMITS } from "@/lib/types/config"
 import type { Database, Json } from "@/lib/supabase/types"
 import { fetchAbiFromExplorer, fetchAbiWithProxy } from "@txid/blockchain"
-import { fetchIdlFromRegistry } from "@txid/solana"
+import { fetchIdl } from "@txid/solana"
 import { getAptosModuleAbi } from "@txid/aptos"
 
 type ProjectRow = Database["public"]["Tables"]["projects"]["Row"]
@@ -152,6 +152,10 @@ export async function addContract(
   return { ok: true, contract: newContract }
 }
 
+/** found: we have one. not_published: the program has none. unavailable: we
+ *  could not ask. not_found: the source cannot tell those last two apart. */
+export type RefreshOutcome = "found" | "not_published" | "unavailable" | "not_found"
+
 export async function refreshContractAbi(projectId: string, contractId: string) {
   await requireCapability("settings")
   const project = await resolveProjectWithOwnership(projectId)
@@ -159,20 +163,36 @@ export async function refreshContractAbi(projectId: string, contractId: string) 
   const contract = (config.watchedContracts ?? []).find((c) => c.id === contractId)
   if (!contract) throw new Error("Contract not found")
 
-  const abi = contract.chain === "solana"
-    ? await fetchIdlFromRegistry(contract.address)
-    : contract.chain === "aptos"
-    ? await fetchAptosAbiJson(contract.address, contract.moduleName)
-    : await fetchAbiWithProxy(contract.address, contract.chain, fetchAbiFromExplorer)
+  // Solana can now tell the two apart: fetchIdl returns not_published (a fact
+  // about the program) separately from unavailable (a fact about the RPC).
+  // EVM and Aptos still collapse both into null, so they stay honestly
+  // ambiguous rather than claiming either.
+  let abi: string | null = null
+  let outcome: RefreshOutcome = "not_found"
+  let reason: string | undefined
+  if (contract.chain === "solana") {
+    const r = await fetchIdl(contract.address)
+    if (r.kind === "ok") { abi = r.idl; outcome = "found" }
+    else if (r.kind === "not_published") outcome = "not_published"
+    else { outcome = "unavailable"; reason = r.reason }
+  } else if (contract.chain === "aptos") {
+    abi = await fetchAptosAbiJson(contract.address, contract.moduleName)
+    outcome = abi ? "found" : "not_found"
+  } else {
+    abi = await fetchAbiWithProxy(contract.address, contract.chain, fetchAbiFromExplorer)
+    outcome = abi ? "found" : "not_found"
+  }
 
+  // NEVER CLEAR ON A FAILED FETCH. This used to be `abi ? set : clear`, so a
+  // transient RPC blip DESTROYED a working stored ABI: the absence bug in its
+  // most damaging form, because refreshing is what a user does when something
+  // already looks wrong. Refresh only ever improves what is stored; removing
+  // an ABI is what clearContractAbi is for, and it is deliberate.
+  const kept = !abi && Boolean(contract.abi)
   const updated: ProjectConfig = {
     ...config,
     watchedContracts: (config.watchedContracts ?? []).map((c) =>
-      c.id !== contractId
-        ? c
-        : abi
-        ? { ...c, abi, abiSource: "explorer" as const }
-        : { ...c, abi: undefined, abiSource: undefined },
+      c.id !== contractId || !abi ? c : { ...c, abi, abiSource: "explorer" as const },
     ),
   }
 
@@ -184,7 +204,7 @@ export async function refreshContractAbi(projectId: string, contractId: string) 
 
   if (error) throw new Error(error.message)
   revalidatePath("/dashboard/contracts")
-  return { found: !!abi }
+  return { found: !!abi, outcome, kept, ...(reason ? { reason } : {}) }
 }
 
 export async function saveContractAbi(projectId: string, contractId: string, abi: string): Promise<ActionResult> {

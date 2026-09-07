@@ -24,7 +24,7 @@ export function AbiManager({ projectId, contract }: Props) {
   const isSolana = contract.chain === "solana"
   const isAptos = contract.chain === "aptos"
   const label = isSolana ? "IDL" : isAptos ? "Move module ABI" : "ABI"
-  const sourceName = isSolana ? "Anchor registry" : isAptos ? "Aptos fullnode" : "block explorer"
+  const sourceName = isSolana ? "the program\u2019s on-chain IDL" : isAptos ? "Aptos fullnode" : "block explorer"
   const hasAbi = !!contract.abi
   const source = contract.abiSource
 
@@ -33,15 +33,23 @@ export function AbiManager({ projectId, contract }: Props) {
     startTransition(async () => {
       try {
         const result = await refreshContractAbi(projectId, contract.id)
+        // `kept` matters: a refresh that could not reach anything leaves what is
+        // already stored alone, and saying so stops the user thinking they have
+        // just lost it.
+        const keptNote = result.kept ? " Your existing one is untouched." : ""
         if (result.found) {
           toast.success(`${label} fetched from ${sourceName}`)
-        } else if (isAptos) {
-          // The fullnode returns the same null for not-found and network
-          // failure, so stay honestly ambiguous here.
-          toast.error("Could not fetch modules: the address may have no modules published, or the network request failed.")
+        } else if (result.outcome === "unavailable") {
+          // A failed lookup is NOT a finding about the program. Never phrase it
+          // as "no IDL", which is a different fact with a different fix.
+          toast.error(`Could not reach the chain to check.${keptNote} Nothing is known either way, so try again in a moment.`)
+        } else if (result.outcome === "not_published") {
+          toast.error(`This program has not published an ${label} on chain.${keptNote} Paste it below to decode its errors.`)
           setShowPaste(true)
         } else {
-          toast.error(`Program not found in registry. Paste the ${label} manually.`)
+          // EVM and Aptos cannot tell "none published" from "request failed",
+          // so stay honestly ambiguous rather than picking one.
+          toast.error(`Could not fetch the ${label}: there may be none published, or the request failed.${keptNote}`)
           setShowPaste(true)
         }
       } catch {
@@ -90,7 +98,7 @@ export function AbiManager({ projectId, contract }: Props) {
             <CheckCircle2 className="size-3.5 shrink-0" />
             <span>
               {source === "explorer"
-                ? (isSolana ? "Fetched from Anchor registry" : isAptos ? "Fetched from Aptos fullnode" : "Verified on block explorer")
+                ? (isSolana ? "Read from the on-chain IDL" : isAptos ? "Fetched from Aptos fullnode" : "Verified on block explorer")
                 : `${label} uploaded manually`}
             </span>
           </div>
@@ -131,7 +139,7 @@ export function AbiManager({ projectId, contract }: Props) {
               : <AlertTriangle className="size-3.5 text-amber-500 shrink-0 mt-0.5" />}
             <p className={`text-xs leading-relaxed ${isAptos ? "text-muted-foreground" : "text-amber-400"}`}>
               {isSolana
-                ? `No IDL found. Custom program errors won't be decoded. Check the Anchor registry, or paste your IDL JSON below.`
+                ? `No IDL stored. Custom program errors will show as bare codes. Check the chain, or paste your IDL JSON below.`
                 : isAptos
                 ? `No module ABI stored, and nothing is missing: the AI reads Move module ABIs live from the fullnode on every question. Store a copy only if you want it pinned.`
                 : `No ABI found. Custom error names won't be decoded, so the AI will see raw hex instead of the error name. Either verify this contract on the block explorer, or paste the ABI below.`}
@@ -182,7 +190,7 @@ export function AbiManager({ projectId, contract }: Props) {
                 {checking ? <Loader2 className="size-3 animate-spin" /> : <RefreshCw className="size-3" />}
                 {checking
                   ? "Checking…"
-                  : isSolana ? "Check Anchor registry" : isAptos ? "Check Aptos fullnode" : "Check block explorer"}
+                  : isSolana ? "Check on-chain IDL" : isAptos ? "Check Aptos fullnode" : "Check block explorer"}
               </Button>
               <Button
                 variant="ghost"
