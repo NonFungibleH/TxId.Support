@@ -1,4 +1,5 @@
 import type { AbortErrmap } from "./abort"
+import { AptosLookupUnavailableError } from "./errors"
 import { decodeAbort } from "./abort"
 import { normalizeAptosAddress } from "./address"
 import type { AptosModuleAbi, AptosModuleFunction, AptosTransaction, DecodedAbort } from "./types"
@@ -35,6 +36,33 @@ export async function aptosGet<T>(path: string): Promise<T | null> {
     return (await res.json()) as T
   } catch {
     return null
+  }
+}
+
+/**
+ * Three outcomes, never two: found, absent, or COULD NOT BE ASKED.
+ *
+ * `aptosGet` above collapses all three into `null`, which is fine where the
+ * caller only wants a best effort at an optional field, and is a false claim
+ * anywhere the answer reaches a user. The fullnode 404s cleanly on a genuine
+ * miss (that is how `getAccount` detects a never-created address), so the
+ * status code separates them reliably. Anything else, including a body we
+ * could not parse, is a failure to ask.
+ */
+export type AptosRead<T> =
+  | { kind: "ok"; value: T }
+  | { kind: "not_found" }
+  | { kind: "unavailable"; reason: string }
+
+export async function aptosRead<T>(path: string): Promise<AptosRead<T>> {
+  const res = await aptosFetch(`${FULLNODE_BASE}${path}`, { headers: { ...aptosAuthHeaders() } })
+  if (!res) return { kind: "unavailable", reason: "the Aptos fullnode could not be reached" }
+  if (res.status === 404) return { kind: "not_found" }
+  if (!res.ok) return { kind: "unavailable", reason: `the Aptos fullnode returned ${res.status}` }
+  try {
+    return { kind: "ok", value: (await res.json()) as T }
+  } catch {
+    return { kind: "unavailable", reason: "the Aptos fullnode returned a body that could not be read" }
   }
 }
 
@@ -247,8 +275,16 @@ export async function getAptosTransactionByHash(
   const path = /^\d+$/.test(hashOrVersion)
     ? `/transactions/by_version/${hashOrVersion}`
     : `/transactions/by_hash/${hashOrVersion}`
-  const raw = await aptosGet<RawUserTransaction>(path)
-  if (!raw || raw.type !== "user_transaction") return null
+  const read = await aptosRead<RawUserTransaction>(path)
+  // The third outcome, and the whole point of this change. A node that did not
+  // answer must never reach a caller as `null`, because every caller treats
+  // `null` as "the chain looked and it is not there".
+  if (read.kind === "unavailable") throw new AptosLookupUnavailableError(read.reason)
+  if (read.kind === "not_found") return null
+  const raw = read.value
+  // A hash that resolves to something other than a user transaction is a real
+  // answer: there is no user transaction here.
+  if (raw.type !== "user_transaction") return null
 
   const payload = raw.payload
   const isEntryFunction = payload?.type === "entry_function_payload"
