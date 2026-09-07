@@ -288,18 +288,36 @@ decodeSolanaError(err, ctx): DecodedSolanaError
 //   sampling problem: it finds only programs that ALREADY tell you, and the ten
 //   biggest sources of failure never print their error at all. Jupiter's 6001
 //   alone was 624 occurrences and is unreachable this way.
-//   So the on-chain IDL reader is NOT optional polish, it is the only route to
-//   the programs users actually hit. Do not expect more harvesting to close it.
+//   The on-chain IDL reader (idl.ts) was built for exactly this and did close
+//   the biggest single gap, Jupiter's 6001. See the TWO CEILINGS note below for
+//   where it stops.
 
-// idl.ts
-fetchIdl(programAddress): Promise<IdlLookup>   // ok | unavailable
-// BOTH public Anchor IDL registries are DEAD: anchor.projectserum.com and
-// api.apr.dev, neither resolves (verified 2026-09-07). The old
-// fetchIdlFromRegistry swallowed that into `null`, which a caller could not
-// tell from "this program has no IDL" — absence-is-not-a-finding, silently
-// true for as long as the registry has been down. The on-chain IDL account
-// still exists for programs that published one, but reading it needs base58 +
-// PDA derivation, which this package does not have yet.
+// pubkey.ts — base58, an ed25519 on-curve check, findProgramAddress and
+// createWithSeed, by hand and with no dependencies. Reaching the IDL needs
+// exactly this much and @solana/web3.js would be a large runtime dependency in
+// a package that otherwise only makes HTTP calls. A PDA is DEFINED as an
+// address that is not a valid curve point, which is what makes it unsignable.
+
+// idl.ts — fetchIdl(program): ok | not_published | unavailable
+// Anchor writes the IDL ON CHAIN at createWithSeed(pda([], program),
+// "anchor:idl", program): 8 discriminator + 32 authority + 4 u32 LE length +
+// zlib. `not_published` is a FINDING (many programs legitimately have none);
+// `unavailable` is not, and callers must tell them apart. Both public
+// registries are dead (anchor.projectserum.com, api.apr.dev, verified
+// 2026-09-07), so this is the only source left.
+
+// TWO CEILINGS, BOTH MEASURED. READ BEFORE PLANNING WORK HERE.
+//   1. HARVESTING tops out near 10%. It only finds programs that ALREADY print
+//      their errors, and the ten biggest sources of failure never do.
+//   2. THE IDL closes the biggest single gap and then hits its own wall: of the
+//      35 programs accounting for the most failure, only THREE published one.
+//      Jupiter was one of them, which mattered enormously (6001
+//      SlippageToleranceExceeded, 624 occurrences, unreachable by sampling).
+//   Together: 19% of the harvested corpus, 37% of live failures explained, with
+//   the program identified on 100%. The remainder (NA247 661, Dhpy 619, Prism
+//   487, 7JwTi 449) publish nothing at all and are unreachable by any automated
+//   route. Closing those needs the protocol's own docs or the protocol itself.
+//   Do not plan on more sampling or more IDL fetching moving these numbers.
 
 // index.ts
 isSolanaChain(chainId: string): boolean

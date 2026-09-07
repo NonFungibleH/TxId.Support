@@ -1,6 +1,13 @@
 {
   "named": [
     {
+      "program": "JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4",
+      "code": 6001,
+      "name": "SlippageToleranceExceeded",
+      "message": "Slippage tolerance exceeded",
+      "seen": 624
+    },
+    {
       "program": "pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA",
       "code": 6004,
       "name": "ExceededSlippage",
@@ -145,6 +152,13 @@
       "code": 6003,
       "name": "TooLittleSolReceived",
       "message": "slippage: Too little SOL received to sell the given amount of tokens.",
+      "seen": 3
+    },
+    {
+      "program": "JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4",
+      "code": 6024,
+      "name": "InsufficientFunds",
+      "message": "Insufficient funds",
       "seen": 3
     },
     {
@@ -377,6 +391,1035 @@
       "name": "InvalidInstructionData",
       "message": "InvalidInstructionData",
       "seen": 1
+    },
+    {
+      "program": "JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4",
+      "code": 6000,
+      "name": "EmptyRoute",
+      "message": "Empty route",
+      "seen": 0
+    },
+    {
+      "program": "JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4",
+      "code": 6002,
+      "name": "InvalidCalculation",
+      "message": "Invalid calculation",
+      "seen": 0
+    },
+    {
+      "program": "JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4",
+      "code": 6003,
+      "name": "MissingPlatformFeeAccount",
+      "message": "Missing platform fee account",
+      "seen": 0
+    },
+    {
+      "program": "JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4",
+      "code": 6004,
+      "name": "InvalidSlippage",
+      "message": "Invalid slippage",
+      "seen": 0
+    },
+    {
+      "program": "JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4",
+      "code": 6005,
+      "name": "NotEnoughPercent",
+      "message": "Not enough percent to 100",
+      "seen": 0
+    },
+    {
+      "program": "JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4",
+      "code": 6006,
+      "name": "InvalidInputIndex",
+      "message": "Token input index is invalid",
+      "seen": 0
+    },
+    {
+      "program": "JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4",
+      "code": 6007,
+      "name": "InvalidOutputIndex",
+      "message": "Token output index is invalid",
+      "seen": 0
+    },
+    {
+      "program": "JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4",
+      "code": 6008,
+      "name": "NotEnoughAccountKeys",
+      "message": "Not Enough Account keys",
+      "seen": 0
+    },
+    {
+      "program": "JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4",
+      "code": 6009,
+      "name": "NonZeroMinimumOutAmountNotSupported",
+      "message": "Non zero minimum out amount not supported",
+      "seen": 0
+    },
+    {
+      "program": "JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4",
+      "code": 6010,
+      "name": "InvalidRoutePlan",
+      "message": "Invalid route plan",
+      "seen": 0
+    },
+    {
+      "program": "JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4",
+      "code": 6011,
+      "name": "InvalidReferralAuthority",
+      "message": "Invalid referral authority",
+      "seen": 0
+    },
+    {
+      "program": "JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4",
+      "code": 6012,
+      "name": "LedgerTokenAccountDoesNotMatch",
+      "message": "Token account doesn't match the ledger",
+      "seen": 0
+    },
+    {
+      "program": "JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4",
+      "code": 6013,
+      "name": "InvalidTokenLedger",
+      "message": "Invalid token ledger",
+      "seen": 0
+    },
+    {
+      "program": "JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4",
+      "code": 6014,
+      "name": "IncorrectTokenProgramID",
+      "message": "Token program ID is invalid",
+      "seen": 0
+    },
+    {
+      "program": "JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4",
+      "code": 6015,
+      "name": "TokenProgramNotProvided",
+      "message": "Token program not provided",
+      "seen": 0
+    },
+    {
+      "program": "JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4",
+      "code": 6016,
+      "name": "SwapNotSupported",
+      "message": "Swap not supported",
+      "seen": 0
+    },
+    {
+      "program": "JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4",
+      "code": 6017,
+      "name": "ExactOutAmountNotMatched",
+      "message": "Exact out amount doesn't match",
+      "seen": 0
+    },
+    {
+      "program": "JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4",
+      "code": 6018,
+      "name": "SourceAndDestinationMintCannotBeTheSame",
+      "message": "Source mint and destination mint cannot the same",
+      "seen": 0
+    },
+    {
+      "program": "JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4",
+      "code": 6019,
+      "name": "InvalidMint",
+      "message": "Invalid mint",
+      "seen": 0
+    },
+    {
+      "program": "JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4",
+      "code": 6020,
+      "name": "InvalidProgramAuthority",
+      "message": "Invalid program authority",
+      "seen": 0
+    },
+    {
+      "program": "JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4",
+      "code": 6021,
+      "name": "InvalidOutputTokenAccount",
+      "message": "Invalid output token account",
+      "seen": 0
+    },
+    {
+      "program": "JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4",
+      "code": 6022,
+      "name": "InvalidFeeWallet",
+      "message": "Invalid fee wallet",
+      "seen": 0
+    },
+    {
+      "program": "JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4",
+      "code": 6023,
+      "name": "InvalidAuthority",
+      "message": "Invalid authority",
+      "seen": 0
+    },
+    {
+      "program": "JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4",
+      "code": 6025,
+      "name": "InvalidTokenAccount",
+      "message": "Invalid token account",
+      "seen": 0
+    },
+    {
+      "program": "JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4",
+      "code": 6026,
+      "name": "BondingCurveAlreadyCompleted",
+      "message": "Bonding curve already completed",
+      "seen": 0
+    },
+    {
+      "program": "JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4",
+      "code": 6027,
+      "name": "IncorrectSwapProgramId",
+      "message": "Swap program ID is invalid",
+      "seen": 0
+    },
+    {
+      "program": "pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA",
+      "code": 6000,
+      "name": "FeeBasisPointsExceedsMaximum",
+      "message": "FeeBasisPointsExceedsMaximum",
+      "seen": 0
+    },
+    {
+      "program": "pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA",
+      "code": 6002,
+      "name": "ZeroQuoteAmount",
+      "message": "ZeroQuoteAmount",
+      "seen": 0
+    },
+    {
+      "program": "pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA",
+      "code": 6003,
+      "name": "TooLittlePoolTokenLiquidity",
+      "message": "TooLittlePoolTokenLiquidity",
+      "seen": 0
+    },
+    {
+      "program": "pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA",
+      "code": 6005,
+      "name": "InvalidAdmin",
+      "message": "InvalidAdmin",
+      "seen": 0
+    },
+    {
+      "program": "pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA",
+      "code": 6006,
+      "name": "UnsupportedBaseMint",
+      "message": "UnsupportedBaseMint",
+      "seen": 0
+    },
+    {
+      "program": "pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA",
+      "code": 6007,
+      "name": "UnsupportedQuoteMint",
+      "message": "UnsupportedQuoteMint",
+      "seen": 0
+    },
+    {
+      "program": "pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA",
+      "code": 6008,
+      "name": "InvalidBaseMint",
+      "message": "InvalidBaseMint",
+      "seen": 0
+    },
+    {
+      "program": "pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA",
+      "code": 6010,
+      "name": "InvalidLpMint",
+      "message": "InvalidLpMint",
+      "seen": 0
+    },
+    {
+      "program": "pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA",
+      "code": 6011,
+      "name": "AllProtocolFeeRecipientsShouldBeNonZero",
+      "message": "AllProtocolFeeRecipientsShouldBeNonZero",
+      "seen": 0
+    },
+    {
+      "program": "pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA",
+      "code": 6012,
+      "name": "UnsortedNotUniqueProtocolFeeRecipients",
+      "message": "UnsortedNotUniqueProtocolFeeRecipients",
+      "seen": 0
+    },
+    {
+      "program": "pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA",
+      "code": 6013,
+      "name": "InvalidProtocolFeeRecipient",
+      "message": "InvalidProtocolFeeRecipient",
+      "seen": 0
+    },
+    {
+      "program": "pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA",
+      "code": 6014,
+      "name": "InvalidPoolBaseTokenAccount",
+      "message": "InvalidPoolBaseTokenAccount",
+      "seen": 0
+    },
+    {
+      "program": "pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA",
+      "code": 6015,
+      "name": "InvalidPoolQuoteTokenAccount",
+      "message": "InvalidPoolQuoteTokenAccount",
+      "seen": 0
+    },
+    {
+      "program": "pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA",
+      "code": 6016,
+      "name": "BuyMoreBaseAmountThanPoolReserves",
+      "message": "BuyMoreBaseAmountThanPoolReserves",
+      "seen": 0
+    },
+    {
+      "program": "pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA",
+      "code": 6017,
+      "name": "DisabledCreatePool",
+      "message": "DisabledCreatePool",
+      "seen": 0
+    },
+    {
+      "program": "pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA",
+      "code": 6018,
+      "name": "DisabledDeposit",
+      "message": "DisabledDeposit",
+      "seen": 0
+    },
+    {
+      "program": "pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA",
+      "code": 6019,
+      "name": "DisabledWithdraw",
+      "message": "DisabledWithdraw",
+      "seen": 0
+    },
+    {
+      "program": "pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA",
+      "code": 6020,
+      "name": "DisabledBuy",
+      "message": "DisabledBuy",
+      "seen": 0
+    },
+    {
+      "program": "pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA",
+      "code": 6021,
+      "name": "DisabledSell",
+      "message": "DisabledSell",
+      "seen": 0
+    },
+    {
+      "program": "pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA",
+      "code": 6022,
+      "name": "SameMint",
+      "message": "SameMint",
+      "seen": 0
+    },
+    {
+      "program": "pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA",
+      "code": 6023,
+      "name": "Overflow",
+      "message": "Overflow",
+      "seen": 0
+    },
+    {
+      "program": "pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA",
+      "code": 6024,
+      "name": "Truncation",
+      "message": "Truncation",
+      "seen": 0
+    },
+    {
+      "program": "pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA",
+      "code": 6025,
+      "name": "DivisionByZero",
+      "message": "DivisionByZero",
+      "seen": 0
+    },
+    {
+      "program": "pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA",
+      "code": 6026,
+      "name": "NewSizeLessThanCurrentSize",
+      "message": "NewSizeLessThanCurrentSize",
+      "seen": 0
+    },
+    {
+      "program": "pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA",
+      "code": 6027,
+      "name": "AccountTypeNotSupported",
+      "message": "AccountTypeNotSupported",
+      "seen": 0
+    },
+    {
+      "program": "pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA",
+      "code": 6028,
+      "name": "OnlyCanonicalPumpPoolsCanHaveCoinCreator",
+      "message": "OnlyCanonicalPumpPoolsCanHaveCoinCreator",
+      "seen": 0
+    },
+    {
+      "program": "pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA",
+      "code": 6029,
+      "name": "InvalidAdminSetCoinCreatorAuthority",
+      "message": "InvalidAdminSetCoinCreatorAuthority",
+      "seen": 0
+    },
+    {
+      "program": "pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA",
+      "code": 6030,
+      "name": "StartTimeInThePast",
+      "message": "StartTimeInThePast",
+      "seen": 0
+    },
+    {
+      "program": "pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA",
+      "code": 6031,
+      "name": "EndTimeInThePast",
+      "message": "EndTimeInThePast",
+      "seen": 0
+    },
+    {
+      "program": "pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA",
+      "code": 6032,
+      "name": "EndTimeBeforeStartTime",
+      "message": "EndTimeBeforeStartTime",
+      "seen": 0
+    },
+    {
+      "program": "pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA",
+      "code": 6033,
+      "name": "TimeRangeTooLarge",
+      "message": "TimeRangeTooLarge",
+      "seen": 0
+    },
+    {
+      "program": "pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA",
+      "code": 6034,
+      "name": "EndTimeBeforeCurrentDay",
+      "message": "EndTimeBeforeCurrentDay",
+      "seen": 0
+    },
+    {
+      "program": "pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA",
+      "code": 6035,
+      "name": "SupplyUpdateForFinishedRange",
+      "message": "SupplyUpdateForFinishedRange",
+      "seen": 0
+    },
+    {
+      "program": "pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA",
+      "code": 6036,
+      "name": "DayIndexAfterEndIndex",
+      "message": "DayIndexAfterEndIndex",
+      "seen": 0
+    },
+    {
+      "program": "pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA",
+      "code": 6037,
+      "name": "DayInActiveRange",
+      "message": "DayInActiveRange",
+      "seen": 0
+    },
+    {
+      "program": "pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA",
+      "code": 6038,
+      "name": "InvalidIncentiveMint",
+      "message": "InvalidIncentiveMint",
+      "seen": 0
+    },
+    {
+      "program": "pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA",
+      "code": 6039,
+      "name": "BuyNotEnoughQuoteTokensToCoverFees",
+      "message": "buy: Not enough quote tokens to cover for fees.",
+      "seen": 0
+    },
+    {
+      "program": "pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA",
+      "code": 6041,
+      "name": "MayhemModeDisabled",
+      "message": "MayhemModeDisabled",
+      "seen": 0
+    },
+    {
+      "program": "pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA",
+      "code": 6042,
+      "name": "OnlyPumpPoolsMayhemMode",
+      "message": "OnlyPumpPoolsMayhemMode",
+      "seen": 0
+    },
+    {
+      "program": "pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA",
+      "code": 6043,
+      "name": "MayhemModeInDesiredState",
+      "message": "MayhemModeInDesiredState",
+      "seen": 0
+    },
+    {
+      "program": "pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA",
+      "code": 6044,
+      "name": "NotEnoughRemainingAccounts",
+      "message": "NotEnoughRemainingAccounts",
+      "seen": 0
+    },
+    {
+      "program": "pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA",
+      "code": 6045,
+      "name": "InvalidSharingConfigBaseMint",
+      "message": "InvalidSharingConfigBaseMint",
+      "seen": 0
+    },
+    {
+      "program": "pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA",
+      "code": 6046,
+      "name": "InvalidSharingConfigCoinCreator",
+      "message": "InvalidSharingConfigCoinCreator",
+      "seen": 0
+    },
+    {
+      "program": "pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA",
+      "code": 6047,
+      "name": "CoinCreatorMigratedToSharingConfig",
+      "message": "coin creator has been migrated to sharing config, use pump_fees::reset_fee_sharing_config instead",
+      "seen": 0
+    },
+    {
+      "program": "pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA",
+      "code": 6048,
+      "name": "CreatorVaultMigratedToSharingConfig",
+      "message": "creator_vault has been migrated to sharing config, use pump:distribute_creator_fees instead",
+      "seen": 0
+    },
+    {
+      "program": "pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA",
+      "code": 6049,
+      "name": "CashbackNotEnabled",
+      "message": "Cashback is disabled",
+      "seen": 0
+    },
+    {
+      "program": "pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA",
+      "code": 6050,
+      "name": "OnlyPumpPoolsCashback",
+      "message": "OnlyPumpPoolsCashback",
+      "seen": 0
+    },
+    {
+      "program": "pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA",
+      "code": 6051,
+      "name": "CashbackNotInDesiredState",
+      "message": "CashbackNotInDesiredState",
+      "seen": 0
+    },
+    {
+      "program": "pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA",
+      "code": 6052,
+      "name": "TokensInVaultLessThanCashbackEarned",
+      "message": "TokensInVaultLessThanCashbackEarned",
+      "seen": 0
+    },
+    {
+      "program": "pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA",
+      "code": 6053,
+      "name": "BuybackFeeRecipientNotAuthorized",
+      "message": "Buyback fee recipient not authorized",
+      "seen": 0
+    },
+    {
+      "program": "pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA",
+      "code": 6054,
+      "name": "AllBuybackFeeRecipientsShouldBeNonZero",
+      "message": "AllBuybackFeeRecipientsShouldBeNonZero",
+      "seen": 0
+    },
+    {
+      "program": "pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA",
+      "code": 6055,
+      "name": "NotUniqueBuybackFeeRecipients",
+      "message": "NotUniqueBuybackFeeRecipients",
+      "seen": 0
+    },
+    {
+      "program": "pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA",
+      "code": 6056,
+      "name": "BuybackBasisPointsOutOfRange",
+      "message": "buyback_basis_points must be <= 10_000",
+      "seen": 0
+    },
+    {
+      "program": "pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA",
+      "code": 6057,
+      "name": "WrongBuybackFeeRecipientsCount",
+      "message": "buyback fee recipients require exactly 8 remaining accounts (or none)",
+      "seen": 0
+    },
+    {
+      "program": "pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA",
+      "code": 6058,
+      "name": "BuybackFeeRecipientMissing",
+      "message": "BuybackFeeRecipientMissing",
+      "seen": 0
+    },
+    {
+      "program": "dbcij3LWUppWqq96dh6gJWwBifmcGfLSB5D4DuSMaqN",
+      "code": 6000,
+      "name": "MathOverflow",
+      "message": "Math operation overflow",
+      "seen": 0
+    },
+    {
+      "program": "dbcij3LWUppWqq96dh6gJWwBifmcGfLSB5D4DuSMaqN",
+      "code": 6001,
+      "name": "InvalidFee",
+      "message": "Invalid fee setup",
+      "seen": 0
+    },
+    {
+      "program": "dbcij3LWUppWqq96dh6gJWwBifmcGfLSB5D4DuSMaqN",
+      "code": 6003,
+      "name": "ExceedMaxFeeBps",
+      "message": "Exceeded max fee bps",
+      "seen": 0
+    },
+    {
+      "program": "dbcij3LWUppWqq96dh6gJWwBifmcGfLSB5D4DuSMaqN",
+      "code": 6004,
+      "name": "InvalidAdmin",
+      "message": "Invalid admin",
+      "seen": 0
+    },
+    {
+      "program": "dbcij3LWUppWqq96dh6gJWwBifmcGfLSB5D4DuSMaqN",
+      "code": 6005,
+      "name": "AmountIsZero",
+      "message": "Amount is zero",
+      "seen": 0
+    },
+    {
+      "program": "dbcij3LWUppWqq96dh6gJWwBifmcGfLSB5D4DuSMaqN",
+      "code": 6006,
+      "name": "TypeCastFailed",
+      "message": "Type cast error",
+      "seen": 0
+    },
+    {
+      "program": "dbcij3LWUppWqq96dh6gJWwBifmcGfLSB5D4DuSMaqN",
+      "code": 6007,
+      "name": "InvalidActivationType",
+      "message": "Invalid activation type",
+      "seen": 0
+    },
+    {
+      "program": "dbcij3LWUppWqq96dh6gJWwBifmcGfLSB5D4DuSMaqN",
+      "code": 6008,
+      "name": "InvalidQuoteMint",
+      "message": "Invalid quote mint",
+      "seen": 0
+    },
+    {
+      "program": "dbcij3LWUppWqq96dh6gJWwBifmcGfLSB5D4DuSMaqN",
+      "code": 6009,
+      "name": "InvalidCollectFeeMode",
+      "message": "Invalid collect fee mode",
+      "seen": 0
+    },
+    {
+      "program": "dbcij3LWUppWqq96dh6gJWwBifmcGfLSB5D4DuSMaqN",
+      "code": 6010,
+      "name": "InvalidMigrationFeeOption",
+      "message": "Invalid migration fee option",
+      "seen": 0
+    },
+    {
+      "program": "dbcij3LWUppWqq96dh6gJWwBifmcGfLSB5D4DuSMaqN",
+      "code": 6011,
+      "name": "InvalidInput",
+      "message": "Invalid input",
+      "seen": 0
+    },
+    {
+      "program": "dbcij3LWUppWqq96dh6gJWwBifmcGfLSB5D4DuSMaqN",
+      "code": 6012,
+      "name": "NotEnoughLiquidity",
+      "message": "Not enough liquidity",
+      "seen": 0
+    },
+    {
+      "program": "dbcij3LWUppWqq96dh6gJWwBifmcGfLSB5D4DuSMaqN",
+      "code": 6013,
+      "name": "PoolIsCompleted",
+      "message": "Pool is completed",
+      "seen": 0
+    },
+    {
+      "program": "dbcij3LWUppWqq96dh6gJWwBifmcGfLSB5D4DuSMaqN",
+      "code": 6014,
+      "name": "PoolIsIncompleted",
+      "message": "Pool is incompleted",
+      "seen": 0
+    },
+    {
+      "program": "dbcij3LWUppWqq96dh6gJWwBifmcGfLSB5D4DuSMaqN",
+      "code": 6015,
+      "name": "InvalidMigrationOption",
+      "message": "Invalid migration option",
+      "seen": 0
+    },
+    {
+      "program": "dbcij3LWUppWqq96dh6gJWwBifmcGfLSB5D4DuSMaqN",
+      "code": 6016,
+      "name": "InvalidTokenDecimals",
+      "message": "Invalid token decimals",
+      "seen": 0
+    },
+    {
+      "program": "dbcij3LWUppWqq96dh6gJWwBifmcGfLSB5D4DuSMaqN",
+      "code": 6017,
+      "name": "InvalidTokenType",
+      "message": "Invalid token type",
+      "seen": 0
+    },
+    {
+      "program": "dbcij3LWUppWqq96dh6gJWwBifmcGfLSB5D4DuSMaqN",
+      "code": 6018,
+      "name": "InvalidFeePercentage",
+      "message": "Invalid fee percentage",
+      "seen": 0
+    },
+    {
+      "program": "dbcij3LWUppWqq96dh6gJWwBifmcGfLSB5D4DuSMaqN",
+      "code": 6019,
+      "name": "InvalidQuoteThreshold",
+      "message": "Invalid quote threshold",
+      "seen": 0
+    },
+    {
+      "program": "dbcij3LWUppWqq96dh6gJWwBifmcGfLSB5D4DuSMaqN",
+      "code": 6020,
+      "name": "InvalidTokenSupply",
+      "message": "Invalid token supply",
+      "seen": 0
+    },
+    {
+      "program": "dbcij3LWUppWqq96dh6gJWwBifmcGfLSB5D4DuSMaqN",
+      "code": 6021,
+      "name": "InvalidCurve",
+      "message": "Invalid curve",
+      "seen": 0
+    },
+    {
+      "program": "dbcij3LWUppWqq96dh6gJWwBifmcGfLSB5D4DuSMaqN",
+      "code": 6022,
+      "name": "NotPermitToDoThisAction",
+      "message": "Not permit to do this action",
+      "seen": 0
+    },
+    {
+      "program": "dbcij3LWUppWqq96dh6gJWwBifmcGfLSB5D4DuSMaqN",
+      "code": 6023,
+      "name": "InvalidOwnerAccount",
+      "message": "Invalid owner account",
+      "seen": 0
+    },
+    {
+      "program": "dbcij3LWUppWqq96dh6gJWwBifmcGfLSB5D4DuSMaqN",
+      "code": 6024,
+      "name": "InvalidConfigAccount",
+      "message": "Invalid config account",
+      "seen": 0
+    },
+    {
+      "program": "dbcij3LWUppWqq96dh6gJWwBifmcGfLSB5D4DuSMaqN",
+      "code": 6025,
+      "name": "SurplusHasBeenWithdraw",
+      "message": "Surplus has been withdraw",
+      "seen": 0
+    },
+    {
+      "program": "dbcij3LWUppWqq96dh6gJWwBifmcGfLSB5D4DuSMaqN",
+      "code": 6026,
+      "name": "LeftoverHasBeenWithdraw",
+      "message": "Leftover has been withdraw",
+      "seen": 0
+    },
+    {
+      "program": "dbcij3LWUppWqq96dh6gJWwBifmcGfLSB5D4DuSMaqN",
+      "code": 6027,
+      "name": "TotalBaseTokenExceedMaxSupply",
+      "message": "Total base token is exceeded max supply",
+      "seen": 0
+    },
+    {
+      "program": "dbcij3LWUppWqq96dh6gJWwBifmcGfLSB5D4DuSMaqN",
+      "code": 6028,
+      "name": "UnsupportNativeMintToken2022",
+      "message": "Unsupport native mint token 2022",
+      "seen": 0
+    },
+    {
+      "program": "dbcij3LWUppWqq96dh6gJWwBifmcGfLSB5D4DuSMaqN",
+      "code": 6029,
+      "name": "InsufficientLiquidityForMigration",
+      "message": "Insufficient liquidity for migration",
+      "seen": 0
+    },
+    {
+      "program": "dbcij3LWUppWqq96dh6gJWwBifmcGfLSB5D4DuSMaqN",
+      "code": 6030,
+      "name": "MissingPoolConfigInRemainingAccount",
+      "message": "Missing pool config in remaining account",
+      "seen": 0
+    },
+    {
+      "program": "dbcij3LWUppWqq96dh6gJWwBifmcGfLSB5D4DuSMaqN",
+      "code": 6031,
+      "name": "InvalidVestingParameters",
+      "message": "Invalid vesting parameters",
+      "seen": 0
+    },
+    {
+      "program": "dbcij3LWUppWqq96dh6gJWwBifmcGfLSB5D4DuSMaqN",
+      "code": 6032,
+      "name": "InvalidLeftoverAddress",
+      "message": "Invalid leftover address",
+      "seen": 0
+    },
+    {
+      "program": "dbcij3LWUppWqq96dh6gJWwBifmcGfLSB5D4DuSMaqN",
+      "code": 6034,
+      "name": "InvalidFeeScheduler",
+      "message": "Invalid fee scheduler",
+      "seen": 0
+    },
+    {
+      "program": "dbcij3LWUppWqq96dh6gJWwBifmcGfLSB5D4DuSMaqN",
+      "code": 6035,
+      "name": "InvalidCreatorTradingFeePercentage",
+      "message": "Invalid creator trading fee percentage",
+      "seen": 0
+    },
+    {
+      "program": "dbcij3LWUppWqq96dh6gJWwBifmcGfLSB5D4DuSMaqN",
+      "code": 6036,
+      "name": "InvalidNewCreator",
+      "message": "Invalid new creator",
+      "seen": 0
+    },
+    {
+      "program": "dbcij3LWUppWqq96dh6gJWwBifmcGfLSB5D4DuSMaqN",
+      "code": 6037,
+      "name": "InvalidTokenAuthorityOption",
+      "message": "Invalid token authority option",
+      "seen": 0
+    },
+    {
+      "program": "dbcij3LWUppWqq96dh6gJWwBifmcGfLSB5D4DuSMaqN",
+      "code": 6038,
+      "name": "InvalidAccount",
+      "message": "Invalid account for the instruction",
+      "seen": 0
+    },
+    {
+      "program": "dbcij3LWUppWqq96dh6gJWwBifmcGfLSB5D4DuSMaqN",
+      "code": 6039,
+      "name": "InvalidMigratorFeePercentage",
+      "message": "Invalid migrator fee percentage",
+      "seen": 0
+    },
+    {
+      "program": "dbcij3LWUppWqq96dh6gJWwBifmcGfLSB5D4DuSMaqN",
+      "code": 6040,
+      "name": "MigrationFeeHasBeenWithdraw",
+      "message": "Migration fee has been withdraw",
+      "seen": 0
+    },
+    {
+      "program": "dbcij3LWUppWqq96dh6gJWwBifmcGfLSB5D4DuSMaqN",
+      "code": 6041,
+      "name": "InvalidBaseFeeMode",
+      "message": "Invalid base fee mode",
+      "seen": 0
+    },
+    {
+      "program": "dbcij3LWUppWqq96dh6gJWwBifmcGfLSB5D4DuSMaqN",
+      "code": 6042,
+      "name": "InvalidFeeRateLimiter",
+      "message": "Invalid fee rate limiter",
+      "seen": 0
+    },
+    {
+      "program": "dbcij3LWUppWqq96dh6gJWwBifmcGfLSB5D4DuSMaqN",
+      "code": 6043,
+      "name": "FailToValidateSingleSwapInstruction",
+      "message": "Fail to validate single swap instruction in rate limiter",
+      "seen": 0
+    },
+    {
+      "program": "dbcij3LWUppWqq96dh6gJWwBifmcGfLSB5D4DuSMaqN",
+      "code": 6044,
+      "name": "InvalidMigratedPoolFee",
+      "message": "Invalid migrated pool fee params",
+      "seen": 0
+    },
+    {
+      "program": "dbcij3LWUppWqq96dh6gJWwBifmcGfLSB5D4DuSMaqN",
+      "code": 6045,
+      "name": "UndeterminedError",
+      "message": "Undertermined error",
+      "seen": 0
+    },
+    {
+      "program": "dbcij3LWUppWqq96dh6gJWwBifmcGfLSB5D4DuSMaqN",
+      "code": 6046,
+      "name": "RateLimiterNotSupported",
+      "message": "Rate limiter not supported",
+      "seen": 0
+    },
+    {
+      "program": "dbcij3LWUppWqq96dh6gJWwBifmcGfLSB5D4DuSMaqN",
+      "code": 6047,
+      "name": "AmountLeftIsNotZero",
+      "message": "Amount left is not zero",
+      "seen": 0
+    },
+    {
+      "program": "dbcij3LWUppWqq96dh6gJWwBifmcGfLSB5D4DuSMaqN",
+      "code": 6048,
+      "name": "NextSqrtPriceIsSmallerThanStartSqrtPrice",
+      "message": "Next sqrt price is smaller than start sqrt price",
+      "seen": 0
+    },
+    {
+      "program": "dbcij3LWUppWqq96dh6gJWwBifmcGfLSB5D4DuSMaqN",
+      "code": 6049,
+      "name": "InvalidMinBaseFee",
+      "message": "Invalid min base fee",
+      "seen": 0
+    },
+    {
+      "program": "dbcij3LWUppWqq96dh6gJWwBifmcGfLSB5D4DuSMaqN",
+      "code": 6050,
+      "name": "AccountInvariantViolation",
+      "message": "Account invariant violation",
+      "seen": 0
+    },
+    {
+      "program": "dbcij3LWUppWqq96dh6gJWwBifmcGfLSB5D4DuSMaqN",
+      "code": 6051,
+      "name": "InvalidPoolCreationFee",
+      "message": "Invalid pool creation fee",
+      "seen": 0
+    },
+    {
+      "program": "dbcij3LWUppWqq96dh6gJWwBifmcGfLSB5D4DuSMaqN",
+      "code": 6052,
+      "name": "PoolCreationFeeHasBeenClaimed",
+      "message": "Pool creation fee has been claimed",
+      "seen": 0
+    },
+    {
+      "program": "dbcij3LWUppWqq96dh6gJWwBifmcGfLSB5D4DuSMaqN",
+      "code": 6053,
+      "name": "Unauthorized",
+      "message": "Not permit to do this action",
+      "seen": 0
+    },
+    {
+      "program": "dbcij3LWUppWqq96dh6gJWwBifmcGfLSB5D4DuSMaqN",
+      "code": 6054,
+      "name": "ZeroPoolCreationFee",
+      "message": "Pool creation fee is zero",
+      "seen": 0
+    },
+    {
+      "program": "dbcij3LWUppWqq96dh6gJWwBifmcGfLSB5D4DuSMaqN",
+      "code": 6055,
+      "name": "InvalidMigrationLockedLiquidity",
+      "message": "Invalid migration locked liquidity",
+      "seen": 0
+    },
+    {
+      "program": "dbcij3LWUppWqq96dh6gJWwBifmcGfLSB5D4DuSMaqN",
+      "code": 6056,
+      "name": "InvalidFeeMarketCapScheduler",
+      "message": "Invalid fee market cap scheduler",
+      "seen": 0
+    },
+    {
+      "program": "dbcij3LWUppWqq96dh6gJWwBifmcGfLSB5D4DuSMaqN",
+      "code": 6057,
+      "name": "FirstSwapValidationFailed",
+      "message": "Fail to validate first swap with minimum fee",
+      "seen": 0
+    },
+    {
+      "program": "dbcij3LWUppWqq96dh6gJWwBifmcGfLSB5D4DuSMaqN",
+      "code": 6058,
+      "name": "IncorrectATA",
+      "message": "Incorrect ATA",
+      "seen": 0
+    },
+    {
+      "program": "dbcij3LWUppWqq96dh6gJWwBifmcGfLSB5D4DuSMaqN",
+      "code": 6059,
+      "name": "InsufficientPoolLamports",
+      "message": "Pool has insufficient lamports to perform the operation",
+      "seen": 0
+    },
+    {
+      "program": "dbcij3LWUppWqq96dh6gJWwBifmcGfLSB5D4DuSMaqN",
+      "code": 6060,
+      "name": "InvalidPermission",
+      "message": "Invalid permission",
+      "seen": 0
+    },
+    {
+      "program": "dbcij3LWUppWqq96dh6gJWwBifmcGfLSB5D4DuSMaqN",
+      "code": 6061,
+      "name": "InvalidWithdrawProtocolFeeZapAccounts",
+      "message": "Invalid withdraw protocol fee zap accounts",
+      "seen": 0
+    },
+    {
+      "program": "dbcij3LWUppWqq96dh6gJWwBifmcGfLSB5D4DuSMaqN",
+      "code": 6062,
+      "name": "MintRestrictedFromZap",
+      "message": "SOL,USDC protocol fee cannot be withdrawn via zap",
+      "seen": 0
+    },
+    {
+      "program": "dbcij3LWUppWqq96dh6gJWwBifmcGfLSB5D4DuSMaqN",
+      "code": 6063,
+      "name": "InvalidZapOutParameters",
+      "message": "Invalid zap out parameters",
+      "seen": 0
+    },
+    {
+      "program": "dbcij3LWUppWqq96dh6gJWwBifmcGfLSB5D4DuSMaqN",
+      "code": 6064,
+      "name": "CpiDisabled",
+      "message": "CPI disabled",
+      "seen": 0
+    },
+    {
+      "program": "dbcij3LWUppWqq96dh6gJWwBifmcGfLSB5D4DuSMaqN",
+      "code": 6065,
+      "name": "MissingZapOutInstruction",
+      "message": "Missing zap out instruction",
+      "seen": 0
+    },
+    {
+      "program": "dbcij3LWUppWqq96dh6gJWwBifmcGfLSB5D4DuSMaqN",
+      "code": 6066,
+      "name": "InvalidZapAccounts",
+      "message": "Invalid zap accounts",
+      "seen": 0
+    },
+    {
+      "program": "dbcij3LWUppWqq96dh6gJWwBifmcGfLSB5D4DuSMaqN",
+      "code": 6067,
+      "name": "InvalidCompoundingParameters",
+      "message": "Invalid compounding parameters",
+      "seen": 0
     }
   ],
   "unnamed": [
@@ -384,11 +1427,6 @@
       "program": "NA247a7YE9S3p9CdKmMyETx8TTwbSdVbVYHHxpnHTUV",
       "code": 60,
       "seen": 661
-    },
-    {
-      "program": "JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4",
-      "code": 6001,
-      "seen": 624
     },
     {
       "program": "DhpyNWkdxFh3DRPsBrwRwrK3TYC5t7Q4arnSvf3t84HY",
@@ -763,11 +1801,6 @@
     {
       "program": "BotGm1qZsnqDeXtyZaoSpTV7iq8LNjHWH4P4Mkk7atzv",
       "code": 10001,
-      "seen": 3
-    },
-    {
-      "program": "JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4",
-      "code": 6024,
       "seen": 3
     },
     {
