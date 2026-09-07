@@ -49,6 +49,7 @@ import {
   getSolanaTransactionBySignature,
   isSolanaChain,
 } from "@txid/solana"
+import { getLayerZeroMessages, explainLayerZero } from "@txid/layerzero"
 import {
   isAptosChain,
   isAptosAddress,
@@ -1366,6 +1367,49 @@ export async function executeTool(
       return price ?? { chainId, lookupFailed: true, note: "Could not fetch the native token price for this chain." }
     }
 
+    case "check_bridge_transfer": {
+      const hash = typeof input.tx_hash === "string" ? input.tx_hash : ""
+      if (!hash) return { lookupFailed: true, note: "No transaction hash was given, so no bridge transfer could be looked up." }
+      const found = await getLayerZeroMessages(hash)
+      // not_found is a FINDING: this transaction carries no LayerZero message.
+      // unavailable is not, and must never be reported as one, because telling
+      // someone whose funds are in flight that their transfer does not exist is
+      // the most frightening thing we can say.
+      if (found.kind === "unavailable") {
+        return { lookupFailed: true, note: `Could not reach the LayerZero bridge index (${found.reason}). Do NOT tell the user their transfer does not exist or that nothing was sent: this lookup did not complete. Say the bridge status could not be read and offer to try again.` }
+      }
+      if (found.kind === "not_found") {
+        return {
+          txHash: hash,
+          bridged: false,
+          note: "This transaction carries no LayerZero message, so it did not send a cross-chain transfer through LayerZero. It may still have bridged through a different bridge, which this tool cannot see. Do not conclude the user's funds are safe or lost from this alone.",
+        }
+      }
+      return {
+        txHash: hash,
+        bridged: true,
+        transfers: found.messages.map(m => {
+          const e = explainLayerZero(m)
+          return {
+            route: `${m.source.chain ?? "unknown"} to ${m.destination.chain ?? "unknown"}`,
+            app: m.app,
+            messageId: m.guid,
+            sourceStatus: m.source.status,
+            destinationStatus: m.destination.status,
+            destinationTxHash: m.destination.txHash,
+            status: e.status,
+            custody: e.custody,
+            retryable: e.retryable,
+            nextActionOwner: e.nextActionOwner,
+            answer: e.headline,
+            whatToDo: e.recommendedAction,
+            ...(e.unrecognised ? { unrecognisedStatus: true } : {}),
+          }
+        }),
+        note: "Give the user `answer` and `whatToDo` as written. NEVER suggest sending the transfer again while anything is in transit or unrecognised: the first transfer is still live and a second one would also go through.",
+      }
+    }
+
     case "get_network_status": {
       const chainId = typeof input.chain_id === "string" ? input.chain_id : (wallet?.chainId ?? watchedContracts[0]?.chain ?? "")
       // No wallet, no watched contracts, no chain_id: there is no chain to ask.
@@ -2135,6 +2179,29 @@ export function buildNativePriceTool(): Anthropic.Tool {
         chain_id: { type: "string", description: "Optional chain ID; defaults to the connected wallet or the protocol's chain." },
       },
       required: [],
+    },
+  }
+}
+
+/**
+ * Cross-chain delivery status. Offered on every project, because a bridge
+ * transfer leaves through the protocol's own chain and the user asking where
+ * it went is asking the protocol's support agent.
+ */
+export function buildBridgeTool(): Anthropic.Tool {
+  return {
+    name: "check_bridge_transfer",
+    description:
+      "Check whether a transaction sent a cross-chain transfer through LayerZero, and if so where that transfer has got to. " +
+      "USE THIS whenever a user says a bridge, swap or transfer 'went through but hasn't arrived', their funds are 'missing' or 'stuck', or they are asking about money that left one chain for another. " +
+      "The source transaction succeeding tells you nothing about whether the value landed: delivery is a SECOND transaction on the destination chain that the user never sent and cannot see. " +
+      "Returns the route, the delivery status, and whether sending again is safe. It is almost never safe, and this tool is the way to find out before a user bridges twice.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        tx_hash: { type: "string", description: "The SOURCE transaction hash, the one the user sent on the chain the funds left." },
+      },
+      required: ["tx_hash"],
     },
   }
 }

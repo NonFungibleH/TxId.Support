@@ -333,6 +333,41 @@ The developer API gateway rebranded: build.aptoslabs.com redirects to geomi.dev 
 
 ---
 
+## packages/layerzero
+
+Source: `packages/layerzero/src/`. **Not a chain, a message layer**, so it has no
+entry in `CHAIN_CONFIGS` and no wallet path. Reads LayerZero Scan
+(`https://scan.layerzero-api.com/v1`, no key; override with `LAYERZERO_SCAN_API`).
+
+**The case it exists for:** a user's funds leave one chain in a transaction they
+sent, and arrive on another in a transaction they did not send and cannot see.
+Between the two, every other tool reports the same useless fact, that the source
+transaction SUCCEEDED. "It says it worked and my money isn't there" is where
+people conclude they have been robbed, and where they do the one thing that
+actually loses money: bridge it again.
+
+**`retryable` is the whole point.** Every in-flight and every unrecognised state
+returns `"no"`. Waiting is not retrying, and not knowing is never a licence to
+act. The first transfer is still live and a second one lands too.
+
+**Statuses are only those observed live** (100 messages, 2026-09-07): `SUCCEEDED`,
+`WAITING`, `VALIDATING_TX`. The stack can emit others; we have not seen them, so
+they take a conservative path that states the raw status, refuses to interpret
+it, and still says do not send it again. Do not add wording for a status without
+a real payload for it.
+
+`getLayerZeroMessages` returns the house tri-state: `ok` / `not_found` /
+`unavailable`. The upstream 404s cleanly on a genuine miss (verified), and a 200
+with an empty list is treated as `not_found` because it is the same fact. A
+lookup that did not complete must never reach a user as "your transfer does not
+exist". A leg that has not landed reports an all-zeroes hash upstream; that is
+normalised to `null` rather than rendered as a dead explorer link.
+
+Wired into the agent as `check_bridge_transfer` (`buildBridgeTool` in
+`packages/ai/src/tools.ts`, registered in both tool lists in `stream.ts`),
+offered on every project: a bridge leaves through the protocol's own chain, so
+the user asking where it went is asking the protocol's support agent.
+
 ## apps/app
 
 ### Important patterns
