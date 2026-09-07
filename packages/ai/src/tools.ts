@@ -52,6 +52,12 @@ import {
 } from "@txid/solana"
 import { getLayerZeroMessages, explainLayerZero } from "@txid/layerzero"
 import {
+  isSuiChain,
+  getSuiTransaction,
+  getSuiBalance,
+  getSuiRecentTransactions,
+} from "@txid/sui"
+import {
   isAptosChain,
   isAptosAddress,
   normalizeAptosAddress,
@@ -402,6 +408,7 @@ export async function executeTool(
 ): Promise<unknown> {
   const solana = wallet ? isSolanaChain(wallet.chainId) : false
   const aptos = wallet ? isAptosChain(wallet.chainId) : false
+  const sui = wallet ? isSuiChain(wallet.chainId) : false
 
   switch (name) {
     case "get_staking_positions": {
@@ -472,6 +479,17 @@ export async function executeTool(
       if (solana) {
         return getSolanaWalletBalance(wallet.address)
       }
+      if (sui) {
+        const r = await getSuiBalance(wallet.address)
+        if (r.kind === "unavailable") return { lookupFailed: true, note: `Could not read the Sui balance (${r.reason}). Do NOT say the wallet is empty: this lookup did not complete.` }
+        if (r.kind === "not_found") return { address: wallet.address, note: "No account found at this Sui address." }
+        return {
+          address: wallet.address,
+          sui: `${r.value.sui} SUI`,
+          coins: r.value.coins,
+          note: "Coin DECIMALS were not read: `decimals: null` means unknown, never zero. State other coin amounts as raw units, or say the scale is unknown. Never present a raw amount as a human figure. The SUI figure above is already converted and is safe to quote.",
+        }
+      }
       if (aptos) {
         // On Aptos a protocol's user state usually lives in ITS OWN account
         // object, not the wallet: Decibel keeps collateral and positions in a
@@ -520,6 +538,12 @@ export async function executeTool(
 
       if (solana) {
         return getSolanaRecentTransactions(wallet.address, programOrContract, limit)
+      }
+      if (sui) {
+        const r = await getSuiRecentTransactions(wallet.address, limit)
+        if (r.kind === "unavailable") return { lookupFailed: true, note: `Could not read Sui history (${r.reason}). Do NOT say the wallet has no activity: this lookup did not complete.` }
+        if (r.kind === "not_found") return { address: wallet.address, transactions: [], note: "The node has no transactions for this Sui address. That is an answer, not a failed lookup." }
+        return { address: wallet.address, transactions: r.value }
       }
       if (aptos) {
         const errmap = errmapFor(watchedContracts)
@@ -650,6 +674,7 @@ export async function executeTool(
     case "get_wallet_approvals": {
       if (!wallet) throw new Error("Wallet not connected")
       if (solana) return { approvals: [], note: "Approval listing is EVM-only." }
+      if (sui) return { approvals: [], note: "Sui has no token approvals: coins are owned objects, so there is nothing standing that could be revoked. Say that rather than implying the list is empty." }
       if (aptos) {
         return {
           address: wallet.address,
@@ -690,6 +715,26 @@ export async function executeTool(
       // Solana signatures are base58 (no 0x). Route to Solana when the hash is
       // not an EVM hash and the project/wallet is Solana.
       const looksEvm = /^0x[0-9a-fA-F]{64}$/.test(hash)
+      // Sui digests and Solana signatures are BOTH base58 with no 0x, so the
+      // discriminator is length: a Sui digest is 32 bytes (43-44 chars), a
+      // Solana signature is 64 (87-88). Without this, a Sui digest pasted into
+      // a Solana project would be looked up on the wrong chain and reported as
+      // never having existed.
+      const looksSuiDigest = /^[1-9A-HJ-NP-Za-km-z]{43,44}$/.test(hash)
+      const suiInPlay =
+        isSuiChain(providedChain ?? "") ||
+        isSuiChain(wallet?.chainId ?? "") ||
+        watchedContracts.some(c => isSuiChain(c.chain))
+      if (looksSuiDigest && suiInPlay) {
+        const r = await getSuiTransaction(hash)
+        if (r.kind === "unavailable") {
+          return { digest: hash, lookupFailed: true, note: `Could not read Sui (${r.reason}). Do NOT tell the user this transaction does not exist or that nothing happened: this lookup did not complete. Say the lookup could not be made and offer to try again.` }
+        }
+        if (r.kind === "not_found") {
+          return { digest: hash, found: false, note: "The Sui node looked and has no transaction with this digest. That is an answer from the node, not a failed lookup: either the digest is wrong, or the transaction was never executed." }
+        }
+        return r.value
+      }
       const solanaInPlay =
         isSolanaChain(providedChain ?? "") ||
         isSolanaChain(wallet?.chainId ?? "") ||
@@ -697,7 +742,7 @@ export async function executeTool(
       // NOTE: all-numeric input is also valid base58 — if Solana is ever
       // un-paused alongside Aptos, the Aptos version short-circuit below must
       // move above this return.
-      if (!looksEvm && solanaInPlay) {
+      if (!looksEvm && !looksSuiDigest && solanaInPlay) {
         // Found, absent, or COULD NOT BE ASKED. The third must never reach a
         // user as the second: telling somebody their transaction does not
         // exist because Helius was down is the worst answer we can give.
@@ -1446,6 +1491,7 @@ export async function executeTool(
     case "diagnose_wallet": {
       if (!wallet) throw new Error("Wallet not connected, connect a wallet to diagnose its network/RPC state")
       if (solana) return { note: "Wallet RPC diagnosis is EVM-only." }
+      if (sui) return { note: "Wallet RPC diagnosis is EVM-only, so it was not run for this Sui wallet." }
       const chainId = wallet.chainId
       // Which chains does the protocol actually have contracts on? Used to spot
       // the #1 pre-tx failure: the wallet is connected to the wrong network.

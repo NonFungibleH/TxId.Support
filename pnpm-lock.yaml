@@ -263,6 +263,9 @@ importers:
       '@txid/solana':
         specifier: workspace:*
         version: link:../solana
+      '@txid/sui':
+        specifier: workspace:*
+        version: link:../sui
       openai:
         specifier: ^6.34.0
         version: 6.34.0(ws@8.20.0)(zod@4.3.6)
