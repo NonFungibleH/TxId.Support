@@ -1,3 +1,4 @@
+import { decodeSolanaError } from "./errors"
 import type { SolanaBalance, SolanaTokenBalance, SolanaTransaction } from "./types"
 
 const HELIUS_RPC = "https://mainnet.helius-rpc.com"
@@ -110,6 +111,14 @@ function mapEnrichedTx(tx: HeliusEnrichedTx): SolanaTransaction {
     }
   }
 
+  // A raw {"InstructionError":[3,{"Custom":6001}]} is not an answer, it is the
+  // thing users paste into search engines. Decode it here so every caller gets
+  // the explanation rather than each one re-deriving it, and so the enriched
+  // and raw paths cannot drift apart.
+  const decodedError = tx.transactionError
+    ? decodeSolanaError(tx.transactionError, { programIds: (tx.instructions ?? []).map(i => i.programId) })
+    : undefined
+
   return {
     signature: tx.signature,
     blockTime: tx.timestamp,
@@ -132,6 +141,7 @@ function mapEnrichedTx(tx: HeliusEnrichedTx): SolanaTransaction {
       amount: t.amount,
     })),
     error: errorMsg,
+    ...(decodedError ? { decodedError } : {}),
     programIds,
   }
 }
