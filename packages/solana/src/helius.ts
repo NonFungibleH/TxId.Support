@@ -1,4 +1,5 @@
 import { decodeSolanaError } from "./errors"
+import { SolanaLookupUnavailableError } from "./lookup"
 import type { SolanaBalance, SolanaTokenBalance, SolanaTransaction } from "./types"
 
 const HELIUS_RPC = "https://mainnet.helius-rpc.com"
@@ -181,17 +182,32 @@ export async function getSolanaTransactionBySignature(
   signature: string,
 ): Promise<SolanaTransaction | null> {
   const key = apiKey()
-  const res = await fetch(
-    `${HELIUS_API}/transactions?api-key=${key}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ transactions: [signature] }),
-      signal: AbortSignal.timeout(10000),
-    },
-  )
-  if (!res.ok) return null
-  const data = (await res.json()) as HeliusEnrichedTx[]
+  let res: Response
+  try {
+    res = await fetch(
+      `${HELIUS_API}/transactions?api-key=${key}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ transactions: [signature] }),
+        signal: AbortSignal.timeout(10000),
+      },
+    )
+  } catch (e) {
+    throw new SolanaLookupUnavailableError(e instanceof Error ? e.message : "network error")
+  }
+  // NOT null. A 500, a 429 or a timeout means we could not ask; returning the
+  // same value as "no such transaction" is how an outage becomes "that
+  // transaction does not exist" to somebody looking for their money.
+  if (!res.ok) throw new SolanaLookupUnavailableError(`Helius returned ${res.status}`)
+  let data: HeliusEnrichedTx[]
+  try {
+    data = (await res.json()) as HeliusEnrichedTx[]
+  } catch {
+    throw new SolanaLookupUnavailableError("Helius returned unreadable JSON")
+  }
+  if (!Array.isArray(data)) throw new SolanaLookupUnavailableError("Helius returned an unexpected shape")
+  // An empty array IS an answer: Helius looked and has no such signature.
   const tx = data[0]
   if (!tx) return null
   return mapEnrichedTx(tx)
