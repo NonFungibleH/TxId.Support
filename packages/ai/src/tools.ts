@@ -56,6 +56,7 @@ import {
   getSuiTransaction,
   getSuiBalance,
   getSuiRecentTransactions,
+  SUI_ERRMAPS,
 } from "@txid/sui"
 import {
   isAptosChain,
@@ -540,7 +541,12 @@ export async function executeTool(
         return getSolanaRecentTransactions(wallet.address, programOrContract, limit)
       }
       if (sui) {
-        const r = await getSuiRecentTransactions(wallet.address, limit)
+        // SUI_ERRMAPS is offered on every Sui project, not only DeepBook's. It
+        // holds one protocol keyed on its own original package id, so it cannot
+        // collide with another, and aggregators route through DeepBook
+        // constantly: a user of some other app whose swap died inside DeepBook
+        // is asking their own protocol's support agent what happened.
+        const r = await getSuiRecentTransactions(wallet.address, limit, SUI_ERRMAPS)
         if (r.kind === "unavailable") return { lookupFailed: true, note: `Could not read Sui history (${r.reason}). Do NOT say the wallet has no activity: this lookup did not complete.` }
         if (r.kind === "not_found") return { address: wallet.address, transactions: [], note: "The node has no transactions for this Sui address. That is an answer, not a failed lookup." }
         return { address: wallet.address, transactions: r.value }
@@ -726,7 +732,7 @@ export async function executeTool(
         isSuiChain(wallet?.chainId ?? "") ||
         watchedContracts.some(c => isSuiChain(c.chain))
       if (looksSuiDigest && suiInPlay) {
-        const r = await getSuiTransaction(hash)
+        const r = await getSuiTransaction(hash, SUI_ERRMAPS)
         if (r.kind === "unavailable") {
           return { digest: hash, lookupFailed: true, note: `Could not read Sui (${r.reason}). Do NOT tell the user this transaction does not exist or that nothing happened: this lookup did not complete. Say the lookup could not be made and offer to try again.` }
         }

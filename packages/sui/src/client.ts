@@ -1,66 +1,7 @@
-import { decodeSuiAbort, type SuiErrmap } from "./abort"
+import { decodeSuiAbort, type DecodedSuiAbort, type SuiErrmap } from "./abort"
+import { resolveOriginalPackage } from "./package"
+import { rpc } from "./rpc"
 import type { SuiBalance, SuiCoinBalance, SuiLookup, SuiTransaction } from "./types"
-
-/**
- * Reading Sui, which is harder than it should be.
- *
- * SUI'S OWN PUBLIC FULLNODE NO LONGER SERVES JSON-RPC. Every method returns
- * "JSON-RPC on public fullnodes has been deprecated" (verified 2026-09-07,
- * every method tried, not just one). Mysten points at gRPC and GraphQL through
- * commercial providers. Two third-party endpoints still serve the JSON-RPC
- * keyless, one of them PublicNode, which our Ethereum and Polygon defaults
- * already use.
- *
- * So this rides on somebody else's infrastructure by necessity, not by choice.
- * That is exactly the arrangement that rotted on Ethereum (cloudflare-eth
- * decommissioned) and Polygon ("tenant disabled"), so: more than one endpoint,
- * tried in order, and SUI_RPC_URLS overrides the list without a deploy.
- */
-const DEFAULT_ENDPOINTS = [
-  "https://sui-rpc.publicnode.com",
-  "https://rpc-mainnet.suiscan.xyz",
-]
-
-function endpoints(): string[] {
-  const raw = process.env.SUI_RPC_URLS
-  if (!raw) return DEFAULT_ENDPOINTS
-  const list = raw.split(",").map(s => s.trim()).filter(s => /^https?:\/\//i.test(s))
-  // A set-but-useless value is the dangerous case: someone believes they have
-  // moved off the public endpoints when they have not. Say so.
-  if (list.length === 0) {
-    console.warn("[sui] SUI_RPC_URLS is set but contains no usable http(s) endpoints. Using the public ones.")
-    return DEFAULT_ENDPOINTS
-  }
-  return list
-}
-
-type RpcOutcome = { ok: true; result: unknown } | { ok: false; reason: string }
-
-/**
- * One call, across the endpoint list. A JSON-RPC `error` object is a node
- * DECLINING to answer, not an answer, so it does not stop the fallback.
- */
-async function rpc(method: string, params: unknown[], timeoutMs = 12_000): Promise<RpcOutcome> {
-  let lastReason = "no endpoint answered"
-  for (const url of endpoints()) {
-    try {
-      const res = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }),
-        signal: AbortSignal.timeout(timeoutMs),
-      })
-      if (!res.ok) { lastReason = `${new URL(url).host} returned ${res.status}`; continue }
-      const body = (await res.json()) as { result?: unknown; error?: { message?: string } }
-      if (body.error) { lastReason = body.error.message ?? "the node declined the request"; continue }
-      if (body.result === undefined) { lastReason = `${new URL(url).host} returned no result`; continue }
-      return { ok: true, result: body.result }
-    } catch (e) {
-      lastReason = e instanceof Error ? e.message : "network error"
-    }
-  }
-  return { ok: false, reason: lastReason }
-}
 
 const MIST = 1_000_000_000n
 
@@ -75,9 +16,71 @@ function formatMist(raw: bigint, dp = 4): string {
 /** A coin type's last segment. A LABEL, not a verified symbol: anyone can publish a type called USDC. */
 const symbolOf = (coinType: string) => coinType.split("::").pop() ?? coinType
 
+/**
+ * What the transaction actually cost, which on Sui can be LESS THAN NOTHING.
+ *
+ * Net gas is computation + storage, less the storage rebate, and a transaction
+ * that frees more storage than it takes gets back more than it paid. Observed
+ * live on 2026-09-07: a failed transaction with a net of -0.0008 SUI. Rendering
+ * that as "-0.0008 SUI" of gas alongside "only the gas was spent" is a sentence
+ * that cannot be true, so the negative case says what actually happened to the
+ * balance instead of printing a minus sign at a worried user.
+ */
+function gasSummary(g: RawEffects["gasUsed"]): { gasUsed: string | null; gasFormatted: string | null } {
+  if (!g) return { gasUsed: null, gasFormatted: null }
+  let net: bigint
+  try {
+    net = BigInt(g.computationCost ?? "0") + BigInt(g.storageCost ?? "0") - BigInt(g.storageRebate ?? "0")
+  } catch {
+    return { gasUsed: null, gasFormatted: null }
+  }
+  if (net < 0n) {
+    return { gasUsed: net.toString(), gasFormatted: `${formatMist(-net)} SUI returned, because the storage rebate came to more than the cost` }
+  }
+  return { gasUsed: net.toString(), gasFormatted: `${formatMist(net)} SUI` }
+}
+
 interface RawEffects {
   status?: { status?: string; error?: string }
   gasUsed?: { computationCost?: string; storageCost?: string; storageRebate?: string }
+}
+
+interface RawTx {
+  digest?: string
+  timestampMs?: string
+  checkpoint?: string
+  effects?: RawEffects
+  transaction?: { data?: { sender?: string; transaction?: { transactions?: unknown[] } } }
+}
+
+/** The programmable transaction's own command list, from `showInput`. Undefined means NOT READ. */
+const commandsOf = (r: RawTx): unknown[] | undefined => {
+  const cmds = r.transaction?.data?.transaction?.transactions
+  return Array.isArray(cmds) ? cmds : undefined
+}
+
+/**
+ * Decode, and pay for a package-origin lookup only when it could change the
+ * answer: there is a map to consult, the first pass found nothing in it, and
+ * the abort names a package and module. A Sui upgrade republishes at a new
+ * address, so the runtime address in the abort is not a stable key (see
+ * package.ts). Resolution is cached process-wide, so a list of failures from
+ * one protocol costs one call.
+ */
+async function decodeWithOrigin(
+  error: string,
+  errmap: SuiErrmap | undefined,
+  commands: unknown[] | undefined,
+  budget: { left: number },
+): Promise<DecodedSuiAbort> {
+  const first = decodeSuiAbort(error, errmap, { commands })
+  if (!errmap || first.errorName || first.cause !== "move_abort") return first
+  if (!first.package || !first.module || budget.left <= 0) return first
+
+  budget.left -= 1
+  const origin = await resolveOriginalPackage(first.package, first.module)
+  if (origin.kind !== "ok" || origin.original === first.package) return first
+  return decodeSuiAbort(error, errmap, { commands, originalPackage: origin.original })
 }
 
 export async function getSuiTransaction(digest: string, errmap?: SuiErrmap): Promise<SuiLookup<SuiTransaction>> {
@@ -94,19 +97,13 @@ export async function getSuiTransaction(digest: string, errmap?: SuiErrmap): Pro
     if (/could not find|not\s*found|does not exist/i.test(out.reason)) return { kind: "not_found" }
     return { kind: "unavailable", reason: out.reason }
   }
-  const r = out.result as { digest?: string; timestampMs?: string; checkpoint?: string; effects?: RawEffects; transaction?: { data?: { sender?: string } } } | null
+  const r = out.result as RawTx | null
   if (!r || typeof r !== "object") return { kind: "not_found" }
 
   const eff = r.effects ?? {}
   const failed = eff.status?.status === "failure"
   const error = failed ? (eff.status?.error ?? null) : null
-  const g = eff.gasUsed
-  let gasUsed: bigint | null = null
-  if (g) {
-    try {
-      gasUsed = BigInt(g.computationCost ?? "0") + BigInt(g.storageCost ?? "0") - BigInt(g.storageRebate ?? "0")
-    } catch { gasUsed = null }
-  }
+  const gas = gasSummary(eff.gasUsed)
 
   const tx: SuiTransaction = {
     digest: r.digest ?? d,
@@ -114,10 +111,10 @@ export async function getSuiTransaction(digest: string, errmap?: SuiErrmap): Pro
     checkpoint: r.checkpoint ?? null,
     sender: r.transaction?.data?.sender ?? null,
     status: failed ? "failed" : "success",
-    gasUsed: gasUsed === null ? null : gasUsed.toString(),
-    gasFormatted: gasUsed === null ? null : `${formatMist(gasUsed)} SUI`,
+    gasUsed: gas.gasUsed,
+    gasFormatted: gas.gasFormatted,
     error,
-    ...(error ? { decodedAbort: decodeSuiAbort(error, errmap) } : {}),
+    ...(error ? { decodedAbort: await decodeWithOrigin(error, errmap, commandsOf(r), { left: 1 }) } : {}),
   }
   return { kind: "ok", value: tx }
 }
@@ -169,26 +166,25 @@ export async function getSuiRecentTransactions(owner: string, limit = 10, errmap
   if (!page || !Array.isArray(page.data)) return { kind: "unavailable", reason: "unexpected response shape" }
 
   const txs: SuiTransaction[] = []
+  // A list can hold failures from many packages. Cache hits are free, so this
+  // caps only the calls that would actually go out on a cold process.
+  const budget = { left: 5 }
   for (const raw of page.data) {
-    const r = raw as { digest?: string; timestampMs?: string; checkpoint?: string; effects?: RawEffects; transaction?: { data?: { sender?: string } } }
+    const r = raw as RawTx
     const eff = r.effects ?? {}
     const failed = eff.status?.status === "failure"
     const error = failed ? (eff.status?.error ?? null) : null
-    const g = eff.gasUsed
-    let gasUsed: bigint | null = null
-    if (g) {
-      try { gasUsed = BigInt(g.computationCost ?? "0") + BigInt(g.storageCost ?? "0") - BigInt(g.storageRebate ?? "0") } catch { gasUsed = null }
-    }
+    const gas = gasSummary(eff.gasUsed)
     txs.push({
       digest: r.digest ?? "",
       timestampMs: r.timestampMs ? Number(r.timestampMs) : null,
       checkpoint: r.checkpoint ?? null,
       sender: r.transaction?.data?.sender ?? a,
       status: failed ? "failed" : "success",
-      gasUsed: gasUsed === null ? null : gasUsed.toString(),
-      gasFormatted: gasUsed === null ? null : `${formatMist(gasUsed)} SUI`,
+      gasUsed: gas.gasUsed,
+      gasFormatted: gas.gasFormatted,
       error,
-      ...(error ? { decodedAbort: decodeSuiAbort(error, errmap) } : {}),
+      ...(error ? { decodedAbort: await decodeWithOrigin(error, errmap, commandsOf(r), budget) } : {}),
     })
   }
   return { kind: "ok", value: txs }

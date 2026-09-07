@@ -103,3 +103,50 @@ describe("Sui reads distinguish three outcomes", () => {
     expect(r.value.coins[0]?.symbol).toBe("USDC")
   })
 })
+
+// Sui gas is computation + storage LESS the storage rebate, and a transaction
+// that frees more storage than it takes ends up net negative. Seen live on
+// 2026-09-07 at -0.0008 SUI, on a failed transaction, which would have reached
+// a worried user as "gas: -0.0008 SUI" beside "only the gas was spent".
+describe("net gas can be negative, and must not be shown as a minus sign", () => {
+  const txWith = (gasUsed: Record<string, string>) => jsonRes({
+    jsonrpc: "2.0", id: 1,
+    result: {
+      digest: REAL_DIGEST,
+      effects: { status: { status: "failure", error: "InsufficientCoinBalance in command 1" }, gasUsed },
+      transaction: { data: { sender: ADDR } },
+    },
+  })
+
+  it("says what happened to the balance when the rebate exceeded the cost", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => txWith({
+      computationCost: "234000", storageCost: "20132400", storageRebate: "21166400",
+    })))
+    const r = await getSuiTransaction(REAL_DIGEST)
+    expect(r.kind).toBe("ok")
+    if (r.kind !== "ok") return
+    expect(r.value.gasFormatted).not.toMatch(/^-/)
+    expect(r.value.gasFormatted).toMatch(/returned/)
+    expect(r.value.gasFormatted).toMatch(/storage rebate/)
+    // The signed net is still available to anything that needs to compute.
+    expect(r.value.gasUsed).toBe("-800000")
+  })
+
+  it("formats an ordinary positive cost unchanged", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => txWith({
+      computationCost: "234000", storageCost: "20132400", storageRebate: "19931076",
+    })))
+    const r = await getSuiTransaction(REAL_DIGEST)
+    expect(r.kind === "ok" && r.value.gasFormatted).toBe("0.0004 SUI")
+  })
+
+  it("reports null rather than zero when the node gave no gas figures", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => jsonRes({
+      jsonrpc: "2.0", id: 1,
+      result: { digest: REAL_DIGEST, effects: { status: { status: "success" } }, transaction: { data: { sender: ADDR } } },
+    })))
+    const r = await getSuiTransaction(REAL_DIGEST)
+    expect(r.kind === "ok" && r.value.gasUsed).toBeNull()
+    expect(r.kind === "ok" && r.value.gasFormatted).toBeNull()
+  })
+})

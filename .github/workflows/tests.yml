@@ -39,10 +39,18 @@ jobs:
       # decoder and had not run once in CI; decoder.test.ts guards the revert
       # replay. Both are core and both are pure, so there is no reason they
       # were not here.
+      #
+      # Sui, Solana and LayerZero were added later and were left out, which is
+      # the same omission again: 75 tests that had never run in CI, guarding
+      # the read paths written specifically to stop an outage reaching a user
+      # as a finding. Every package with tests belongs on this list.
       - name: Package unit tests
         run: |
           pnpm --filter @txid/blockchain exec vitest run
           pnpm --filter @txid/aptos exec vitest run
+          pnpm --filter @txid/solana exec vitest run
+          pnpm --filter @txid/sui exec vitest run
+          pnpm --filter @txid/layerzero exec vitest run
       - name: Install Chromium
         run: pnpm --filter @txid/app exec playwright install --with-deps chromium
       - name: Embed smoke (spotlight choreography)
