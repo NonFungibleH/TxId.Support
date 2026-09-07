@@ -21,6 +21,12 @@ export interface AptosTransaction {
   success: boolean
   vmStatus: string
   timestamp: string
+  /**
+   * The elapsed time since `timestamp`, computed at read time, so the model
+   * never subtracts two clocks itself. Null only when the timestamp did not
+   * parse. See relativeAge() for the answer that made this necessary.
+   */
+  age: string | null
   sender: string
   functionId: string | null
   typeArguments: string[]
