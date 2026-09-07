@@ -27,18 +27,13 @@ function ChainCard({ chain }: { chain: ChainInfo }) {
       className="group flex h-full flex-col bg-[var(--bg-surface)] border border-[var(--border)] rounded-xl p-5 transition-colors hover:border-[color:var(--hover)]"
       style={{ ["--hover" as string]: hexToRgba(chain.color, 0.4) }}
     >
-      {/* A pill ONLY for coming-soon. Live needs none (the section heading says
-          so), and a pill per card in each chain's own brand colour would read
-          as a row of different colours rather than one state, so this one is
-          deliberately neutral. No ticker either: the name carries the card. */}
+      {/* No status pill on the tile: the grid reads as one set. Status is not
+          hidden, it is stated on each chain's own page, which is where someone
+          deciding whether to build on it will look. No ticker either: the name
+          carries the card. */}
       <div className="flex items-center gap-3 mb-3">
         <ChainLogo src={chain.logo} name={chain.name} color={chain.color} size={36} whiteBg={chain.logoWhiteBg} />
         <h3 className="font-display font-semibold text-white truncate">{chain.name}</h3>
-        {chain.status === "coming-soon" && (
-          <span className="ml-auto shrink-0 text-[10px] font-medium uppercase tracking-wider text-muted border border-[var(--border)] rounded-full px-2 py-0.5">
-            Coming soon
-          </span>
-        )}
       </div>
       {/* Fixed two-line tagline zone so every card sits at the same height. */}
       <p className="text-sm text-muted leading-relaxed mb-3 line-clamp-3 min-h-[4.35em] flex-1">{chain.tagline}</p>
@@ -58,12 +53,11 @@ export default function ChainsPage() {
   const nonEvm = VISIBLE_CHAINS.filter((c) => c.family === "non-evm");
   const crossChain = VISIBLE_CHAINS.filter((c) => c.family === "cross-chain");
   const liveCount = (list: ChainInfo[]) => list.filter((c) => c.status === "live").length;
-  const countLabel = (list: ChainInfo[]) => {
-    const live = liveCount(list);
-    const soon = list.length - live;
-    const head = live === 1 ? "1 chain live" : `${live} chains live`;
-    return soon > 0 ? `${head}, ${soon} coming` : head;
-  };
+  // Counts what is listed, not what is live. The hero carries the live figure,
+  // and each chain's own page states its status: a section heading is the wrong
+  // place to make a per-chain claim, and "1 live, 2 coming" reads as a caveat
+  // on the whole section rather than on the two it applies to.
+  const countLabel = (list: ChainInfo[]) => (list.length === 1 ? "1 chain" : `${list.length} chains`);
 
   return (
     <>
