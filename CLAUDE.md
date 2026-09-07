@@ -481,6 +481,12 @@ discovery (the Aptos implementation ports across), the `sui` arm in the
 host-page bridge in `widget.js` (so `widget` label + embed smoke), a
 `WALLET_SUI_RE` paste fallback, and the chat route accepting a Sui address.
 
+**Do not add Sui to the help centre's "Supported chains" grid until it is
+unpaused.** That page documents what a customer can ENABLE, so listing a paused
+chain there documents a control that is not there. Nearly shipped in this PR;
+caught because the marketing page correctly still says coming-soon and the two
+would have contradicted each other.
+
 ### What is not built
 Protocol maps beyond DeepBook. The rest of Sui's failure volume is obfuscated
 arbitrage packages (single-letter modules, `h86261::h8b64d`) whose codes are

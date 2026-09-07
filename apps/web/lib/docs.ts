@@ -481,7 +481,6 @@ export const DOCS: Doc[] = [
         { title: "Optimism", description: "Ethereum L2 rollup. Enable for OP-based protocols." },
         { title: "Avalanche C-Chain", description: "Avalanche's EVM chain. Enable for Avalanche-deployed protocols." },
         { title: "Aptos", description: "Move-based L1. Reads on-chain modules and decodes Move aborts to diagnose failed transactions in plain English." },
-        { title: "Sui", description: "Move-based L1, read through public RPC with no key. Decodes Move aborts against DeepBook's published error definitions, and explains the failures that are not aborts at all, such as a command that ran short of a coin." },
         { title: "Etherlink", description: "The Tezos EVM Layer 2. Wallet and transaction lookups run through Blockscout rather than Moralis, which does not index it." },
         { title: "Sepolia (testnet)", description: "Ethereum testnet. Enable during development to test wallet lookup without real assets." },
       ]},
