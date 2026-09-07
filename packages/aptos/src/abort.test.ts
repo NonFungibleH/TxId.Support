@@ -2,6 +2,28 @@ import { describe, it, expect } from "vitest"
 import { decodeAbort } from "./abort"
 
 describe("decodeAbort", () => {
+  // REAL mainnet status, version 7065372986, captured by scripts/failure-census.ts.
+  // Decibel embeds its own multi-line doc comment in the abort message, which
+  // used to kill the regex and produce cause "unknown" for a failure we hold a
+  // written answer for. 9 of 231 sampled Decibel failures looked like this.
+  it("decodes a multi-line vm_status (Decibel embeds doc comments in aborts)", async () => {
+    const { PROTOCOL_ERRMAPS } = await import("./errmap")
+    const vmStatus =
+      "Move abort in 0x50ead22afd6ffd9769e3b3d6e0e64a2a350d68e8b102c4e72e33d0b8cfdfdb06::spot_order_public_api: " +
+      "EINSUFFICIENT_PFS_FUNDS(0x1): PFS-sourced bulk order rejected because the user's PFS balance is\n" +
+      " short on either the base or quote side. Asserted up front in\n" +
+      " `place_bulk_order_from_pfs` so the failure surfaces cleanly here\n" +
+      " instead of as the generic abort that\n" +
+      " `primary_fungible_store::withdraw` would raise mid-placement."
+    const d = decodeAbort(vmStatus, PROTOCOL_ERRMAPS)
+    expect(d.cause).toBe("move_abort")
+    expect(d.errorName).toBe("EINSUFFICIENT_PFS_FUNDS")
+    expect(d.code).toBe(1)
+    // the protocol map's own wording, not the developer prose from the chain
+    expect(d.reason).toMatch(/available balance is short on one side of the pair/i)
+    expect(d.reason).not.toMatch(/doesn't recognize/i)
+  })
+
   it("parses canonical std::error abort with category", () => {
     const d = decodeAbort("Move abort in 0x1::coin: 0x10006")
     expect(d.cause).toBe("move_abort")

@@ -77,8 +77,26 @@ const NORMALIZED_FRAMEWORK: Record<string, Record<number, { name: string; reason
   Object.entries(FRAMEWORK_ERRORS).map(([k, v]) => [normalizeModuleKey(k), v])
 )
 
-const MOVE_ABORT_RE = /^Move abort in (0x[0-9a-fA-F]+::[A-Za-z_][A-Za-z0-9_]*):\s*(.+)$/
-const NAMED_CODE_RE = /^([A-Za-z_][A-Za-z0-9_]*)\((0x[0-9a-fA-F]+|\d+)\)(?::\s*.*)?$/
+/**
+ * `[\s\S]` rather than `.`, because a vm_status is NOT one line.
+ *
+ * Decibel embeds the developer's own multi-line doc comment in the abort
+ * message, so a real mainnet status reads:
+ *
+ *   Move abort in 0x50ead…::spot_order_public_api: EINSUFFICIENT_PFS_FUNDS(0x1): PFS-sourced bulk order rejected because the user's PFS balance is
+ *    short on either the base or quote side. Asserted up front in
+ *    `place_bulk_order_from_pfs` so the failure surfaces cleanly here
+ *
+ * With `.` the match died at the first newline and the whole status fell
+ * through to cause "unknown" — "a status this decoder doesn't recognize" — even
+ * though the module, the code AND a written reason for it were all already in
+ * our error map. A census of 200,100 mainnet transactions on 2026-09-03 found
+ * this on 9 of 231 Decibel failures (3.9%): every one of them was an answer we
+ * held and threw away. Same bug class as the rest of this file guards against,
+ * an absence manufactured from something we could in fact resolve.
+ */
+const MOVE_ABORT_RE = /^Move abort in (0x[0-9a-fA-F]+::[A-Za-z_][A-Za-z0-9_]*):\s*([\s\S]+)$/
+const NAMED_CODE_RE = /^([A-Za-z_][A-Za-z0-9_]*)\((0x[0-9a-fA-F]+|\d+)\)(?::\s*[\s\S]*)?$/
 
 export function decodeAbort(vmStatus: string, errmap?: AbortErrmap): DecodedAbort {
   const raw = typeof vmStatus === "string" ? vmStatus : String(vmStatus ?? "")
