@@ -1,0 +1,485 @@
+{
+  "balance_manager": [
+    {
+      "name": "EInvalidOwner",
+      "code": 0,
+      "doc": ""
+    },
+    {
+      "name": "EInvalidTrader",
+      "code": 1,
+      "doc": ""
+    },
+    {
+      "name": "EInvalidProof",
+      "code": 2,
+      "doc": ""
+    },
+    {
+      "name": "EBalanceManagerBalanceTooLow",
+      "code": 3,
+      "doc": ""
+    },
+    {
+      "name": "EMaxCapsReached",
+      "code": 4,
+      "doc": ""
+    },
+    {
+      "name": "ECapNotInList",
+      "code": 5,
+      "doc": ""
+    },
+    {
+      "name": "EInvalidReferralOwner",
+      "code": 6,
+      "doc": ""
+    }
+  ],
+  "book": [
+    {
+      "name": "EInvalidAmountIn",
+      "code": 1,
+      "doc": ""
+    },
+    {
+      "name": "EEmptyOrderbook",
+      "code": 2,
+      "doc": ""
+    },
+    {
+      "name": "EInvalidPriceRange",
+      "code": 3,
+      "doc": ""
+    },
+    {
+      "name": "EInvalidTicks",
+      "code": 4,
+      "doc": ""
+    },
+    {
+      "name": "EOrderBelowMinimumSize",
+      "code": 5,
+      "doc": ""
+    },
+    {
+      "name": "EOrderInvalidLotSize",
+      "code": 6,
+      "doc": ""
+    },
+    {
+      "name": "ENewQuantityMustBeLessThanOriginal",
+      "code": 7,
+      "doc": ""
+    }
+  ],
+  "order": [
+    {
+      "name": "EInvalidNewQuantity",
+      "code": 0,
+      "doc": ""
+    },
+    {
+      "name": "EOrderExpired",
+      "code": 1,
+      "doc": ""
+    }
+  ],
+  "order_info": [
+    {
+      "name": "EOrderInvalidPrice",
+      "code": 0,
+      "doc": ""
+    },
+    {
+      "name": "EOrderBelowMinimumSize",
+      "code": 1,
+      "doc": ""
+    },
+    {
+      "name": "EOrderInvalidLotSize",
+      "code": 2,
+      "doc": ""
+    },
+    {
+      "name": "EInvalidExpireTimestamp",
+      "code": 3,
+      "doc": ""
+    },
+    {
+      "name": "EInvalidOrderType",
+      "code": 4,
+      "doc": ""
+    },
+    {
+      "name": "EPOSTOrderCrossesOrderbook",
+      "code": 5,
+      "doc": ""
+    },
+    {
+      "name": "EFOKOrderCannotBeFullyFilled",
+      "code": 6,
+      "doc": ""
+    },
+    {
+      "name": "EMarketOrderCannotBePostOnly",
+      "code": 7,
+      "doc": ""
+    },
+    {
+      "name": "ESelfMatchingCancelTaker",
+      "code": 8,
+      "doc": ""
+    }
+  ],
+  "big_vector": [
+    {
+      "name": "ESliceTooSmall",
+      "code": 0,
+      "doc": "Max Slice Size provided is too small."
+    },
+    {
+      "name": "ESliceTooBig",
+      "code": 1,
+      "doc": "Max Slice Size provided is too big."
+    },
+    {
+      "name": "EFanOutTooSmall",
+      "code": 2,
+      "doc": "Max Fan-out provided is too small."
+    },
+    {
+      "name": "EFanOutTooBig",
+      "code": 3,
+      "doc": "Max Fan-out provided is too big."
+    },
+    {
+      "name": "ENotEmpty",
+      "code": 4,
+      "doc": "`BigVector` is not empty."
+    },
+    {
+      "name": "ENotFound",
+      "code": 5,
+      "doc": "Key not found in `BigVector`."
+    },
+    {
+      "name": "EExists",
+      "code": 6,
+      "doc": "Key already exists in `BigVector`."
+    },
+    {
+      "name": "EBadRemove",
+      "code": 7,
+      "doc": "Found a node in an unexpected state during removal (namely, we tried to remove from a node's child and found that it had become empty, which should not be possible)."
+    },
+    {
+      "name": "ENotAdjacent",
+      "code": 8,
+      "doc": "Found a pair of nodes that are expected to be adjacent but whose linked list pointers don't match up."
+    },
+    {
+      "name": "EBadRedistribution",
+      "code": 9,
+      "doc": "Tried to redistribute between two nodes, but the operation would have had no effect."
+    }
+  ],
+  "constants": [
+    {
+      "name": "EOrderInfoMismatch",
+      "code": 0,
+      "doc": ""
+    },
+    {
+      "name": "EBookOrderMismatch",
+      "code": 1,
+      "doc": ""
+    },
+    {
+      "name": "EIncorrectMidPrice",
+      "code": 2,
+      "doc": ""
+    },
+    {
+      "name": "EIncorrectPoolId",
+      "code": 3,
+      "doc": ""
+    },
+    {
+      "name": "EFillMismatch",
+      "code": 4,
+      "doc": ""
+    }
+  ],
+  "math": [
+    {
+      "name": "EInvalidPrecision",
+      "code": 0,
+      "doc": "Error codes"
+    }
+  ],
+  "pool": [
+    {
+      "name": "EInvalidFee",
+      "code": 1,
+      "doc": ""
+    },
+    {
+      "name": "ESameBaseAndQuote",
+      "code": 2,
+      "doc": ""
+    },
+    {
+      "name": "EInvalidTickSize",
+      "code": 3,
+      "doc": ""
+    },
+    {
+      "name": "EInvalidLotSize",
+      "code": 4,
+      "doc": ""
+    },
+    {
+      "name": "EInvalidMinSize",
+      "code": 5,
+      "doc": ""
+    },
+    {
+      "name": "EInvalidQuantityIn",
+      "code": 6,
+      "doc": ""
+    },
+    {
+      "name": "EIneligibleReferencePool",
+      "code": 7,
+      "doc": ""
+    },
+    {
+      "name": "EInvalidOrderBalanceManager",
+      "code": 8,
+      "doc": ""
+    },
+    {
+      "name": "EIneligibleTargetPool",
+      "code": 9,
+      "doc": ""
+    },
+    {
+      "name": "EPackageVersionDisabled",
+      "code": 10,
+      "doc": ""
+    },
+    {
+      "name": "EMinimumQuantityOutNotMet",
+      "code": 11,
+      "doc": ""
+    },
+    {
+      "name": "EInvalidStake",
+      "code": 12,
+      "doc": ""
+    },
+    {
+      "name": "EPoolNotRegistered",
+      "code": 13,
+      "doc": ""
+    },
+    {
+      "name": "EPoolCannotBeBothWhitelistedAndStable",
+      "code": 14,
+      "doc": ""
+    },
+    {
+      "name": "EInvalidReferralMultiplier",
+      "code": 15,
+      "doc": ""
+    },
+    {
+      "name": "EInvalidEWMAAlpha",
+      "code": 16,
+      "doc": ""
+    },
+    {
+      "name": "EInvalidZScoreThreshold",
+      "code": 17,
+      "doc": ""
+    },
+    {
+      "name": "EInvalidAdditionalTakerFee",
+      "code": 18,
+      "doc": ""
+    },
+    {
+      "name": "EWrongPoolReferral",
+      "code": 19,
+      "doc": ""
+    },
+    {
+      "name": "EInvalidDeepPrice",
+      "code": 20,
+      "doc": ""
+    }
+  ],
+  "registry": [
+    {
+      "name": "EPoolAlreadyExists",
+      "code": 1,
+      "doc": ""
+    },
+    {
+      "name": "EPoolDoesNotExist",
+      "code": 2,
+      "doc": ""
+    },
+    {
+      "name": "EPackageVersionNotEnabled",
+      "code": 3,
+      "doc": ""
+    },
+    {
+      "name": "EVersionNotEnabled",
+      "code": 4,
+      "doc": ""
+    },
+    {
+      "name": "EVersionAlreadyEnabled",
+      "code": 5,
+      "doc": ""
+    },
+    {
+      "name": "ECoinAlreadyWhitelisted",
+      "code": 6,
+      "doc": ""
+    },
+    {
+      "name": "ECoinNotWhitelisted",
+      "code": 7,
+      "doc": ""
+    },
+    {
+      "name": "EMaxBalanceManagersReached",
+      "code": 8,
+      "doc": ""
+    },
+    {
+      "name": "EAppNotAuthorized",
+      "code": 9,
+      "doc": ""
+    },
+    {
+      "name": "EPauseCapNotValid",
+      "code": 10,
+      "doc": ""
+    }
+  ],
+  "governance": [
+    {
+      "name": "EInvalidMakerFee",
+      "code": 1,
+      "doc": ""
+    },
+    {
+      "name": "EInvalidTakerFee",
+      "code": 2,
+      "doc": ""
+    },
+    {
+      "name": "EProposalDoesNotExist",
+      "code": 3,
+      "doc": ""
+    },
+    {
+      "name": "EMaxProposalsReachedNotEnoughVotes",
+      "code": 4,
+      "doc": ""
+    },
+    {
+      "name": "EWhitelistedPoolCannotChange",
+      "code": 5,
+      "doc": ""
+    },
+    {
+      "name": "EInvalidStakeRequired",
+      "code": 6,
+      "doc": ""
+    }
+  ],
+  "history": [
+    {
+      "name": "EHistoricVolumesNotFound",
+      "code": 0,
+      "doc": ""
+    }
+  ],
+  "state": [
+    {
+      "name": "ENoStake",
+      "code": 1,
+      "doc": ""
+    },
+    {
+      "name": "EMaxOpenOrders",
+      "code": 2,
+      "doc": ""
+    },
+    {
+      "name": "EAlreadyProposed",
+      "code": 3,
+      "doc": ""
+    }
+  ],
+  "deep_price": [
+    {
+      "name": "EDataPointRecentlyAdded",
+      "code": 1,
+      "doc": ""
+    },
+    {
+      "name": "ENoDataPoints",
+      "code": 2,
+      "doc": ""
+    }
+  ],
+  "vault": [
+    {
+      "name": "ENotEnoughBaseForLoan",
+      "code": 1,
+      "doc": ""
+    },
+    {
+      "name": "ENotEnoughQuoteForLoan",
+      "code": 2,
+      "doc": ""
+    },
+    {
+      "name": "EInvalidLoanQuantity",
+      "code": 3,
+      "doc": ""
+    },
+    {
+      "name": "EIncorrectLoanPool",
+      "code": 4,
+      "doc": ""
+    },
+    {
+      "name": "EIncorrectTypeReturned",
+      "code": 5,
+      "doc": ""
+    },
+    {
+      "name": "EIncorrectQuantityReturned",
+      "code": 6,
+      "doc": ""
+    },
+    {
+      "name": "ENoBalanceToSettle",
+      "code": 7,
+      "doc": ""
+    },
+    {
+      "name": "EHasOwedBalances",
+      "code": 8,
+      "doc": ""
+    }
+  ]
+}

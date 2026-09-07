@@ -392,6 +392,89 @@ The developer API gateway rebranded: build.aptoslabs.com redirects to geomi.dev 
 
 ---
 
+## packages/sui
+
+Source: `packages/sui/src/`. Chain id string: `"sui"`. Move, so it rhymes with
+Aptos, but it tells you LESS at every step and the package exists mostly to be
+honest about that. Keyless: **Sui's own public fullnode no longer serves JSON-RPC
+at all** (verified 2026-09-07, every method), so this rides on `sui-rpc.publicnode.com`
+and `rpc-mainnet.suiscan.xyz`, overridable with `SUI_RPC_URLS`.
+
+### The failure census that shaped it (4,122 mainnet transactions, 150 checkpoints, 2026-09-07)
+420 failed, **10.19%**, close to Solana's rate and roughly twenty times Aptos's.
+344 were Move aborts. **76, a full 18%, were not**, and every one of them used to
+reach the user as "a status this decoder does not recognise". They are
+`InsufficientCoinBalance` (70) and `InsufficientGas` (6), both structural Sui
+statuses needing no protocol knowledge at all.
+
+### Three things Sui does not give you
+1. **No name in the abort.** Aptos embeds the constant (`EPRICE_CROSSING(0x1)`); Sui gives a bare integer.
+2. **No constants on chain.** `sui_getNormalizedMoveModule` returns structs and functions and no constants field, so unlike Aptos's `PackageRegistry` there is no on-chain route to a code's meaning. Every Sui error map comes from published source.
+3. **No `std::error` category.** An unmapped Aptos code still yields "invalid state"; an unmapped Sui code yields nothing.
+
+So the honest floor states module, function and number, says the package
+publishes no description, and stops. Do not "improve" that away.
+
+### A package upgrade republishes at a NEW address (the load-bearing one)
+Both versions stay live and apps migrate at their own pace, so the abort reports
+whichever runtime address ran. Measured: DeepBook aborts arrived under **three**
+addresses (`0x0e735f8c`, `0xb29d83c2`, `0xcaf6ba05`) inside a single
+150-checkpoint window. A map keyed on the address you saw today explains a third
+of them and, after the next upgrade, none.
+
+`resolveOriginalPackage` (`package.ts`) reads the module's own `address` from
+`sui_getNormalizedMoveModule`, which is the ORIGINAL published id and does not
+move. All three resolve to `0x2c8d603b…`. Maps are keyed on that. Tri-state, and
+`unavailable` must never collapse into `unknown`: "we could not ask which
+package this is" and "this package publishes no description for that code" read
+identically to a user and have opposite fixes. `decodeWithOrigin` in `client.ts`
+pays for the lookup only when there is a map, the first pass missed, and the
+abort names a package; resolutions are cached process-wide and capped per list.
+
+### The error map (`errmap.ts`)
+DeepBook v3 only, 91 constants across 14 modules, **harvested mechanically** by
+`scripts/harvest-deepbook.ts` from Mysten's published Move source into
+`scripts/deepbook-errors.json`, which is checked in as evidence. The English is
+ours, the mapping is theirs, and `errmap.test.ts` fails if the two drift or if a
+constant loses its entry. `SUI_ERRMAPS` is offered on EVERY Sui project, not
+only DeepBook's: it is keyed on DeepBook's own original package id so it cannot
+collide, and aggregators route through DeepBook constantly.
+
+Live-verified end to end (`scripts/verify-live.ts`): a real
+`balance_manager::withdraw_with_proof` code 3 at the upgraded address
+`0xcaf6ba05…` resolves to `EBalanceManagerBalanceTooLow` and explains that
+DeepBook funds sit in the balance manager, not the wallet.
+
+### `InsufficientCoinBalance`: where the shortfall was
+The status names a command index and NOT a coin. The transaction's own command
+list (`showInput`, already requested) says what that command was, and for
+`SplitCoins`/`MergeCoins` where its coin came from: `Input`/`GasCoin` means the
+sender's own wallet, `Result`/`NestedResult` means **produced earlier in the same
+transaction**. Telling somebody their wallet was short when a swap earlier in
+their route returned less than expected is precisely the confidently wrong answer
+this codebase exists to refuse. `coinOrigin: null` means NOT READ, and the
+sentence is omitted rather than guessed. Never imply the coin was SUI.
+
+### Net gas can be negative
+Computation + storage less the storage rebate, and a transaction that frees more
+storage than it takes ends up net negative (observed live at -0.0008 SUI on a
+FAILED transaction). `gasUsed` keeps the signed net; `gasFormatted` says what
+happened to the balance instead of printing a minus sign beside "only the gas
+was spent", which cannot both be true.
+
+### Statuses are only those observed live
+`MoveAbort`, `InsufficientCoinBalance`, `InsufficientGas`. The stack emits others
+(argument errors, unused values, object not found); we hold no real payload for
+them, so they take the floor rather than wording invented from the type
+definition. **Do not add a branch without a captured example.**
+
+### What is not built
+Protocol maps beyond DeepBook. The rest of Sui's failure volume is obfuscated
+arbitrage packages (single-letter modules, `h86261::h8b64d`) whose codes are
+undocumented by design, plus a handful of AMMs whose source would have to be
+found first. `scripts/verify-live.ts` and the census script are the tools for
+deciding whether a given one is worth mapping.
+
 ## packages/layerzero
 
 Source: `packages/layerzero/src/`. **Not a chain, a message layer**, so it has no

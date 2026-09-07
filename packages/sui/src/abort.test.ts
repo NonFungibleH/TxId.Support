@@ -71,11 +71,15 @@ describe("decodeSuiAbort", () => {
   })
 
   it("says so, rather than guessing, for a status it does not recognise", () => {
-    const d = decodeSuiAbort("InsufficientGas")
+    // Sui emits several statuses we have never held a real payload for. Wording
+    // invented from the type definition is exactly what this floor prevents.
+    const d = decodeSuiAbort("CommandArgumentError { arg_idx: 0, kind: TypeMismatch } in command 1")
     expect(d.cause).toBe("unknown")
     expect(d.code).toBeNull()
     expect(d.reason).toMatch(/does not recognise/)
-    expect(d.reason).toContain("InsufficientGas")
+    expect(d.reason).toContain("CommandArgumentError")
+    // Even at the floor, the command index is structural and always extractable.
+    expect(d.command).toBe(1)
   })
 
   it("never throws, whatever it is handed", () => {
@@ -87,5 +91,105 @@ describe("decodeSuiAbort", () => {
   it("normalises addresses both ways", () => {
     expect(normalizeSuiAddress("0x2")).toBe("0x" + "2".padStart(64, "0"))
     expect(normalizeSuiAddress("2")).toBe(normalizeSuiAddress("0x2"))
+  })
+})
+
+// 18% of Sui's failures are not Move aborts at all. Census of 4,122 mainnet
+// transactions across 150 checkpoints, 2026-09-07: 420 failed, 344 aborts, and
+// 76 execution statuses that used to reach the user as "a status this decoder
+// does not recognise". Every payload below is one of those, captured live.
+describe("failures that are not Move aborts", () => {
+  // Real: digest 5NoACwkLqc4CP5XricKmwo52F5X6iqvyC2Y4mGSv8nZv, command 3 was
+  // SplitCoins off the result of command 2, inside a six-command swap route.
+  const ROUTE_COMMANDS = [
+    { MoveCall: { package: "0x0e73", module: "pool", function: "swap" } },
+    { MoveCall: { package: "0xf369", module: "jk", function: "ce" } },
+    { MoveCall: { package: "0x075a", module: "jk", function: "ce" } },
+    { SplitCoins: [{ Result: 2 }, [{ Input: 1 }]] },
+    { MoveCall: { package: "0x0e73", module: "pool", function: "swap" } },
+    { MoveCall: { package: "0x6470", module: "pool", function: "swap" } },
+  ]
+
+  it("names InsufficientCoinBalance instead of shrugging at it", () => {
+    const d = decodeSuiAbort("InsufficientCoinBalance in command 3")
+    expect(d.cause).toBe("insufficient_coin")
+    expect(d.command).toBe(3)
+    expect(d.reason).not.toMatch(/does not recognise/)
+    expect(d.reason).toMatch(/held less than the amount asked for/)
+  })
+
+  // The distinction the whole branch exists for. Telling somebody their wallet
+  // was short, when the shortfall was in what an earlier swap returned, is the
+  // confidently wrong answer this codebase is built to refuse.
+  it("separates a shortfall in the user's wallet from one in the route", () => {
+    const route = decodeSuiAbort("InsufficientCoinBalance in command 3", undefined, { commands: ROUTE_COMMANDS })
+    expect(route.coinOrigin).toBe("earlier_command")
+    expect(route.commandKind).toBe("SplitCoins")
+    expect(route.reason).toMatch(/an earlier command in the same transaction had produced/)
+    expect(route.reason).not.toMatch(/shortfall was in your balance/)
+
+    const own = decodeSuiAbort("InsufficientCoinBalance in command 0", undefined, {
+      commands: [{ SplitCoins: [{ Input: 0 }, [{ Input: 1 }]] }],
+    })
+    expect(own.coinOrigin).toBe("sender")
+    expect(own.reason).toMatch(/supplied out of your own wallet/)
+  })
+
+  // The status never names the coin. Assuming SUI is the obvious wrong guess.
+  it("never implies which coin was short", () => {
+    const d = decodeSuiAbort("InsufficientCoinBalance in command 3", undefined, { commands: ROUTE_COMMANDS })
+    expect(d.reason).toMatch(/does not say in the status which coin/)
+    expect(d.reason).toMatch(/not necessarily your SUI balance/)
+  })
+
+  it("reports the call that failed when the failing command is a MoveCall", () => {
+    const d = decodeSuiAbort("InsufficientCoinBalance in command 5", undefined, { commands: ROUTE_COMMANDS })
+    expect(d.commandKind).toBe("MoveCall")
+    expect(d.commandTarget).toBe("0x6470::pool::swap")
+    expect(d.reason).toContain("0x6470::pool::swap")
+  })
+
+  it("says nothing about the failing step when the command list was not read", () => {
+    const d = decodeSuiAbort("InsufficientCoinBalance in command 3")
+    expect(d.commandKind).toBeNull()
+    expect(d.coinOrigin).toBeNull()
+    expect(d.reason).not.toMatch(/your own wallet|earlier command/)
+  })
+
+  // A gas BUDGET below what execution needed, which is not the same as a wallet
+  // with no SUI in it, and the two have different fixes.
+  it("explains InsufficientGas as a budget, not a balance", () => {
+    const d = decodeSuiAbort("InsufficientGas")
+    expect(d.cause).toBe("insufficient_gas")
+    expect(d.reason).toMatch(/more gas than the budget/)
+    expect(d.reason).toMatch(/rather than how much SUI is in the wallet/)
+  })
+})
+
+// A Sui upgrade republishes the package at a NEW address, and both versions
+// stay live. Measured 2026-09-07: DeepBook aborts arrived under three different
+// runtime addresses inside a single 150-checkpoint window.
+describe("error maps survive a package upgrade", () => {
+  const ORIGINAL = "0x2c8d603bc51326b8c13cef9dd07031a408a48dddb541963357661df5d3204809"
+  const RUNTIME = "0xcaf6ba059d539a97646d47f0b9ddf843e138d215e2a12ca1f4585d386f7aec3a"
+  // Real: balance_manager::withdraw_with_proof code 3, seen at three addresses.
+  const status = `MoveAbort(MoveLocation { module: ModuleId { address: ${RUNTIME.slice(2)}, name: Identifier("balance_manager") }, function: 12, instruction: 40, function_name: Some("withdraw_with_proof") }, 3) in command 2`
+  const errmap: SuiErrmap = {
+    [`${ORIGINAL}::balance_manager`]: { 3: { name: "EBalanceManagerBalanceTooLow", reason: "More than the balance manager holds." } },
+  }
+
+  it("misses when keyed only on the runtime address", () => {
+    expect(decodeSuiAbort(status, errmap).errorName).toBeNull()
+  })
+
+  it("hits once the original package id is resolved", () => {
+    const d = decodeSuiAbort(status, errmap, { originalPackage: ORIGINAL })
+    expect(d.errorName).toBe("EBalanceManagerBalanceTooLow")
+    expect(d.package).toBe(RUNTIME)
+  })
+
+  it("still hits a map written against the runtime address", () => {
+    const runtimeMap: SuiErrmap = { [`${RUNTIME}::balance_manager`]: { 3: { name: "X", reason: "y" } } }
+    expect(decodeSuiAbort(status, runtimeMap, { originalPackage: ORIGINAL }).errorName).toBe("X")
   })
 })
