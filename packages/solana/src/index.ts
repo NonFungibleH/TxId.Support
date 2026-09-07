@@ -1,5 +1,8 @@
 export { getSolanaWalletBalance, getSolanaRecentTransactions, getSolanaTransactionBySignature } from "./helius"
-export { fetchIdlFromRegistry } from "./idl"
+export { fetchIdl, fetchIdlFromRegistry } from "./idl"
+export type { IdlLookup } from "./idl"
+export { decodeSolanaError } from "./errors"
+export type { DecodedSolanaError, SolanaErrorCause, SolanaErrorContext } from "./errors"
 export type { SolanaBalance, SolanaTokenBalance, SolanaTransaction, SolanaTokenTransfer, SolanaNativeTransfer } from "./types"
 
 export function isSolanaChain(chainId: string): boolean {

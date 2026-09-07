@@ -256,9 +256,34 @@ getSolanaRecentTransactions(address, programAddress?, limit): Promise<SolanaTran
 getSolanaTransactionBySignature(signature): Promise<SolanaTransaction | null>
 // POST https://api.helius.xyz/v0/transactions — single enriched tx
 
+// errors.ts
+decodeSolanaError(err, ctx): DecodedSolanaError
+// Turns {"InstructionError":[3,{"Custom":6001}]} into an explanation. Built from
+// 164 real mainnet failures (2026-09-07): 90% Custom, 8% ProgramFailedToComplete,
+// 2% ComputationalBudgetExceeded. 9.5% of ALL transactions in a sampled slot had
+// failed, ~20x the Aptos rate.
+//   THE `err` OBJECT DOES NOT NAME THE PROGRAM. It gives an instruction index.
+//   Two sources fill that in: `logs` ("Program <id> failed:") on the raw RPC
+//   path, and `programIds` (instruction list) on the Helius enriched path.
+//   Verified: program identified on 56 of 56 live failures.
+//   LADDER: Anchor's own error log ("Error Code: X. Error Number: N. Error
+//   Message: M.", present on ~11% and authoritative when it is) -> System
+//   Custom(1) -> Anchor's reserved RANGES (100/1000/2000/3000, which name the
+//   KIND of failure and are far more stable than individual codes) -> honest
+//   floor. 6000+ is a program's OWN error space, so an unmapped one says the
+//   meaning is defined by the program, and never invents it. 88% of live
+//   failures currently take the honest floor; per-program error maps are what
+//   close that, exactly as PROTOCOL_ERRMAPS does on Aptos.
+
 // idl.ts
-fetchIdlFromRegistry(programAddress): Promise<string | null>
-// GET https://anchor.projectserum.com/idl/{programAddress} — null if not found
+fetchIdl(programAddress): Promise<IdlLookup>   // ok | unavailable
+// BOTH public Anchor IDL registries are DEAD: anchor.projectserum.com and
+// api.apr.dev, neither resolves (verified 2026-09-07). The old
+// fetchIdlFromRegistry swallowed that into `null`, which a caller could not
+// tell from "this program has no IDL" — absence-is-not-a-finding, silently
+// true for as long as the registry has been down. The on-chain IDL account
+// still exists for programs that published one, but reading it needs base58 +
+// PDA derivation, which this package does not have yet.
 
 // index.ts
 isSolanaChain(chainId: string): boolean

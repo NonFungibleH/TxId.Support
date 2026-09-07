@@ -1,3 +1,5 @@
+import type { DecodedSolanaError } from "./errors"
+
 export interface SolanaBalance {
   sol: string           // formatted, e.g. "1.234"
   solRaw: number        // lamports
@@ -21,7 +23,8 @@ export interface SolanaTransaction {
   type: string | null        // e.g. "SWAP", "TRANSFER"
   tokenTransfers: SolanaTokenTransfer[]
   nativeTransfers: SolanaNativeTransfer[]
-  error: string | null       // error message if failed
+  error: string | null       // raw error, as the chain reported it
+  decodedError?: DecodedSolanaError  // what it MEANS, when the transaction failed
   programIds: string[]       // programs involved in the tx
 }
 
