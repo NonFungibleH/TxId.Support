@@ -3,6 +3,18 @@ import { Button } from "@/components/ui/Button";
 import { FadeIn } from "@/components/ui/FadeIn";
 import { InvestigationMockup } from "./InvestigationMockup";
 import { HeroTxCheck } from "./HeroTxCheck";
+import { VISIBLE_CHAINS } from "@/lib/chains";
+
+/**
+ * DERIVED, not a second list. This strip was hand-maintained and was missing
+ * Robinhood Chain within the hour of it going live, while /chains had it. One
+ * source of truth, non-EVM first because Move is the differentiator, and
+ * cross-chain excluded: LayerZero is not somewhere the product is "available
+ * on", it is a layer that runs across the rest.
+ */
+const HERO_CHAINS = VISIBLE_CHAINS
+  .filter((c) => c.status === "live" && c.family !== "cross-chain")
+  .sort((a, b) => (a.family === b.family ? 0 : a.family === "non-evm" ? -1 : 1));
 
 export function Hero() {
   return (
@@ -63,17 +75,7 @@ export function Hero() {
               </p>
               <div className="flex flex-wrap items-center gap-x-2.5 gap-y-2">
                 <span className="text-xs text-muted/50 font-mono shrink-0">Available on</span>
-                {[
-                  { name: "Aptos",    file: "Aptos.png",    whiteBg: true  },
-                  { name: "Ethereum", file: "Ethereum.png", whiteBg: false },
-                  { name: "Base",     file: "Base.png",     whiteBg: true  },
-                  { name: "Arbitrum", file: "Arbitrum.png", whiteBg: false },
-                  { name: "Polygon",  file: "Polygon.png",  whiteBg: true  },
-                  { name: "Optimism", file: "Optimism.png", whiteBg: false },
-                  { name: "Avalanche", file: "Avalanche.png", whiteBg: false },
-                  { name: "Etherlink", file: "Etherlink.png", whiteBg: false },
-                  { name: "BNB",      file: "BNB.png",      whiteBg: false },
-                ].map(({ name, file, whiteBg }) => (
+                {HERO_CHAINS.map(({ name, logo, logoWhiteBg: whiteBg }) => (
                   <div
                     key={name}
                     title={name}
@@ -86,7 +88,7 @@ export function Hero() {
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
-                      src={`/chains/${file}`}
+                      src={logo}
                       alt={name}
                       className="w-full h-full object-contain"
                     />
