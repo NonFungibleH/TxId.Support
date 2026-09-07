@@ -468,6 +468,25 @@ was spent", which cannot both be true.
 them, so they take the floor rather than wording invented from the type
 definition. **Do not add a branch without a captured example.**
 
+### Why Sui is still paused, and it is NOT the decoder
+The written pause condition ("until at least one real protocol is mapped") is
+MET. The blocker is a second prerequisite the first one hid: **the widget has no
+Sui path at all**. `walletTarget` in `WidgetApp.tsx` is
+`"solana" | "aptos" | "evm"`, and the address check accepts a `0x`+64hex address
+only when the chain is `"aptos"`. A Sui project therefore falls through to the
+EVM branch, offers MetaMask, and takes an Ethereum address, which is the same
+silent dead end the Aptos work fixed for Solana. Unpausing before that is built
+ships the dead end rather than the feature. What is needed: Sui Wallet Standard
+discovery (the Aptos implementation ports across), the `sui` arm in the
+host-page bridge in `widget.js` (so `widget` label + embed smoke), a
+`WALLET_SUI_RE` paste fallback, and the chat route accepting a Sui address.
+
+**Do not add Sui to the help centre's "Supported chains" grid until it is
+unpaused.** That page documents what a customer can ENABLE, so listing a paused
+chain there documents a control that is not there. Nearly shipped in this PR;
+caught because the marketing page correctly still says coming-soon and the two
+would have contradicted each other.
+
 ### What is not built
 Protocol maps beyond DeepBook. The rest of Sui's failure volume is obfuscated
 arbitrage packages (single-letter modules, `h86261::h8b64d`) whose codes are
