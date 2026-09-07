@@ -86,9 +86,23 @@ export type ChainId = (typeof SUPPORTED_CHAINS)[number]["id"]
 // (existing configs keep working; new selections are EVM-only for now).
 const PAUSED_CHAINS = new Set<string>([
   "solana",
-  // Sui reads and decodes, but every error map is hand-written (the chain
-  // exposes no constants), so almost every abort resolves to a bare code. It
-  // stays out of the pickers until at least one real protocol is mapped.
+  // Sui's WRITTEN pause condition is now met: "it stays out of the pickers
+  // until at least one real protocol is mapped". DeepBook v3 is mapped, 91
+  // constants harvested from Mysten's published source, keyed on the original
+  // package id so it survives an upgrade, verified against live mainnet.
+  //
+  // IT STAYS PAUSED ANYWAY, because there is a SECOND prerequisite nobody had
+  // written down and the first one hid: THE WIDGET HAS NO SUI PATH AT ALL.
+  // `walletTarget` in WidgetApp.tsx is "solana" | "aptos" | "evm", and the
+  // address check at line 340 accepts a 0x+64hex address only when the chain
+  // is "aptos". So a Sui project today falls through to the EVM branch, offers
+  // the user MetaMask, and takes an Ethereum address on a Sui project. That is
+  // the same silent dead end the Aptos work fixed for Solana, and unpausing
+  // now would ship it rather than fix it.
+  //
+  // Unpause when the widget can connect a Sui wallet (the Wallet Standard
+  // discovery already written for Aptos ports across) and accept a pasted Sui
+  // address. The read layer, the decoder and the error map are all done.
   "sui",
 ])
 
