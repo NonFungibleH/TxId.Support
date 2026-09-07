@@ -47,6 +47,7 @@ import {
   getSolanaWalletBalance,
   getSolanaRecentTransactions,
   getSolanaTransactionBySignature,
+  SolanaLookupUnavailableError,
   isSolanaChain,
 } from "@txid/solana"
 import { getLayerZeroMessages, explainLayerZero } from "@txid/layerzero"
@@ -697,7 +698,19 @@ export async function executeTool(
       // un-paused alongside Aptos, the Aptos version short-circuit below must
       // move above this return.
       if (!looksEvm && solanaInPlay) {
-        return getSolanaTransactionBySignature(hash)
+        // Found, absent, or COULD NOT BE ASKED. The third must never reach a
+        // user as the second: telling somebody their transaction does not
+        // exist because Helius was down is the worst answer we can give.
+        try {
+          const tx = await getSolanaTransactionBySignature(hash)
+          if (tx) return tx
+          return { signature: hash, found: false, note: "Helius has no record of this signature on Solana. That is an answer from the indexer, not a failed lookup: either the signature is wrong, or the transaction was never confirmed." }
+        } catch (e) {
+          if (e instanceof SolanaLookupUnavailableError) {
+            return { signature: hash, lookupFailed: true, note: `Could not read Solana: ${e.message}. Do NOT tell the user this transaction does not exist or that nothing happened, because this lookup did not complete. Say the lookup could not be made and offer to try again.` }
+          }
+          throw e
+        }
       }
 
       // Aptos tx hashes are 0x+64hex — format-IDENTICAL to EVM hashes, so
