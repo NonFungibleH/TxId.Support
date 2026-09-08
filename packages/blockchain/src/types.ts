@@ -51,6 +51,12 @@ export interface Transaction {
   hash: string
   blockNumber: string
   timestamp: string
+  /**
+   * How long ago, COMPUTED HERE so the model never subtracts two clocks. It got
+   * that wrong by an hour on a real answer (see @txid/shared relativeAge).
+   * Null means the timestamp was unusable, never "just now".
+   */
+  age: string | null
   from: string
   to: string | null
   value: string          // in native currency, formatted

@@ -150,3 +150,32 @@ describe("net gas can be negative, and must not be shown as a minus sign", () =>
     expect(r.kind === "ok" && r.value.gasFormatted).toBeNull()
   })
 })
+
+// #77 computed elapsed time in code for Aptos and left the other chains, so Sui
+// still handed the model a bare timestamp to subtract from the clock. That is
+// the arithmetic that turned "1 hour 9 minutes ago" into "9 minutes ago".
+describe("elapsed time is computed here, not by the model", () => {
+  it("stamps an age beside the timestamp", async () => {
+    const ms = Date.now() - 69 * 60_000
+    vi.stubGlobal("fetch", vi.fn(async () => jsonRes({
+      jsonrpc: "2.0", id: 1,
+      result: {
+        digest: REAL_DIGEST, timestampMs: String(ms),
+        effects: { status: { status: "success" } },
+        transaction: { data: { sender: ADDR } },
+      },
+    })))
+    const r = await getSuiTransaction(REAL_DIGEST)
+    expect(r.kind === "ok" && r.value.age).toBe("1 hour 9 minutes ago")
+  })
+
+  // NOT READ must never render as 1970, and must never render as "just now".
+  it("reports null when the node gave no timestamp", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => jsonRes({
+      jsonrpc: "2.0", id: 1,
+      result: { digest: REAL_DIGEST, effects: { status: { status: "success" } }, transaction: { data: { sender: ADDR } } },
+    })))
+    const r = await getSuiTransaction(REAL_DIGEST)
+    expect(r.kind === "ok" && r.value.age).toBeNull()
+  })
+})

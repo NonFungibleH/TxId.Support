@@ -131,8 +131,7 @@ export function toolEvidenceFrom(tool: string, result: unknown, errored: boolean
     // used to depend entirely on how a sentence was phrased, and it was already
     // missing sanctions ("Could not screen") and the transaction path.
     if (key === "lookupFailed" && value === true) {
-      const note = typeof parent.note === "string" ? parent.note : "lookup failed"
-      failed.push(note.slice(0, 120))
+      failed.push(failureText(parent).slice(0, 120))
     }
     if (key === "note" && typeof value === "string" && /lookup failed|could not reach|not read/i.test(value)) {
       failed.push(value.slice(0, 120))
@@ -148,6 +147,22 @@ export function toolEvidenceFrom(tool: string, result: unknown, errored: boolean
   if (sources.length > 0) evidence.sources = sources
   if (numbers.size > 0) evidence.numbers = [...numbers]
   return evidence
+}
+
+/**
+ * The sentence that says WHAT did not run, from whichever key the tool put it
+ * under. Marking a read as failed and then recording the words "lookup failed"
+ * makes the case record say a lookup failed without saying which, which is most
+ * of the value gone. Tools legitimately use `error`, or a scoped `somethingNote`
+ * when only part of a result is missing, so all three are read here.
+ */
+function failureText(parent: Record<string, unknown>): string {
+  if (typeof parent.note === "string" && parent.note) return parent.note
+  if (typeof parent.error === "string" && parent.error) return parent.error
+  for (const [k, v] of Object.entries(parent)) {
+    if (k !== "note" && k.endsWith("Note") && typeof v === "string" && v) return v
+  }
+  return "lookup failed"
 }
 
 /** Merge per-call evidence into one record for the message. */

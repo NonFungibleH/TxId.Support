@@ -278,6 +278,10 @@ importers:
         version: 5.9.3
 
   packages/aptos:
+    dependencies:
+      '@txid/shared':
+        specifier: workspace:*
+        version: link:../shared
     devDependencies:
       tsx:
         specifier: ^4
@@ -294,6 +298,9 @@ importers:
       '@supabase/supabase-js':
         specifier: ^2.100.0
         version: 2.100.0
+      '@txid/shared':
+        specifier: workspace:*
+        version: link:../shared
       moralis:
         specifier: ^2.26.0
         version: 2.27.2
@@ -330,7 +337,20 @@ importers:
         specifier: ^5.4.0
         version: 5.9.3
 
+  packages/shared:
+    devDependencies:
+      typescript:
+        specifier: ^5.4.0
+        version: 5.9.3
+      vitest:
+        specifier: ^2
+        version: 2.1.9(@types/node@20.19.37)(msw@2.12.14(@types/node@20.19.37)(typescript@5.9.3))
+
   packages/solana:
+    dependencies:
+      '@txid/shared':
+        specifier: workspace:*
+        version: link:../shared
     devDependencies:
       typescript:
         specifier: ^5.4.0
@@ -340,6 +360,10 @@ importers:
         version: 2.1.9(@types/node@20.19.37)(msw@2.12.14(@types/node@20.19.37)(typescript@5.9.3))
 
   packages/sui:
+    dependencies:
+      '@txid/shared':
+        specifier: workspace:*
+        version: link:../shared
     devDependencies:
       typescript:
         specifier: ^5.4.0

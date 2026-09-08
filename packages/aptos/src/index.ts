@@ -1,3 +1,4 @@
+export { relativeAge } from "@txid/shared"
 export { AptosLookupUnavailableError } from "./errors"
 export type { AptosBalance, AptosTransaction, DecodedAbort, AptosModuleFunction, AptosModuleAbi, AptosWalletDiagnosis } from "./types"
 export { decodeAbort } from "./abort"
@@ -19,7 +20,6 @@ export {
   getAptosNetworkStatus,
   formatUnits,
   microsToIso,
-  relativeAge,
 } from "./fullnode"
 export type { AptosLedgerInfo, AptosNetworkStatus, AptosPackage, AptosSimulation, ViewResult } from "./fullnode"
 export {

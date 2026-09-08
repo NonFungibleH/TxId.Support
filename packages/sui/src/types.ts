@@ -20,6 +20,11 @@ export interface SuiCoinBalance {
 export interface SuiTransaction {
   digest: string
   timestampMs: number | null
+  /**
+   * How long ago, computed here so the model never subtracts two clocks. Null
+   * means the node gave no usable timestamp, never "just now".
+   */
+  age: string | null
   checkpoint: string | null
   sender: string | null
   status: "success" | "failed"

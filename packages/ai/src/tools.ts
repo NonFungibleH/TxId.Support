@@ -428,7 +428,7 @@ export async function executeTool(
         getAptosStakingActivity(wallet.address, 10),
       ])
       if (positions === null && activity === null) {
-        return { error: aptosFullnodeFailed("read this wallet's staking positions") }
+        return { lookupFailed: true, error: aptosFullnodeFailed("read this wallet's staking positions") }
       }
       // Lockups are per pool, so resolve them only for pools this wallet
       // actually uses rather than scanning every validator.
@@ -441,8 +441,8 @@ export async function executeTool(
         walletAddress: wallet.address,
         ...(positions
           ? { positions, lockups: Object.fromEntries(lockups) }
-          : { positionsNote: aptosFullnodeFailed("read this wallet's delegation positions") }),
-        ...(activity ? { recentActivity: activity } : { activityNote: aptosFullnodeFailed("read this wallet's staking history") }),
+          : { lookupFailed: true, positionsNote: aptosFullnodeFailed("read this wallet's delegation positions") }),
+        ...(activity ? { recentActivity: activity } : { lookupFailed: true, activityNote: aptosFullnodeFailed("read this wallet's staking history") }),
         note: "Amounts are octas: 1 APT = 100,000,000 octas. 'active' is earning, 'pending_inactive' is unlocking this cycle, 'inactive' is withdrawable now. A lockup expiry is the CURRENT cycle's end: stake unlocked after that instant waits for the following cycle, so do not present it as a countdown for an unlock the user has not requested yet.",
       }
     }
@@ -454,11 +454,11 @@ export async function executeTool(
         getAptosNfts(wallet.address, 25),
         getAptosPendingNftClaims(wallet.address, 25),
       ])
-      if (held === null && pending === null) return { error: APTOS_LOOKUP_FAILED }
+      if (held === null && pending === null) return { lookupFailed: true, error: APTOS_LOOKUP_FAILED }
       return {
         walletAddress: wallet.address,
-        ...(held ? { holdings: held } : { holdingsNote: APTOS_LOOKUP_FAILED }),
-        ...(pending ? { pendingClaims: pending } : { pendingClaimsNote: APTOS_LOOKUP_FAILED }),
+        ...(held ? { holdings: held } : { lookupFailed: true, holdingsNote: APTOS_LOOKUP_FAILED }),
+        ...(pending ? { pendingClaims: pending } : { lookupFailed: true, pendingClaimsNote: APTOS_LOOKUP_FAILED }),
         note: "pendingClaims are tokens SENT to this wallet that have not been accepted. On the older token standard a transfer has to be claimed by the recipient unless they opted into direct transfers, so a token sitting here is the usual reason for 'someone sent me an NFT and it never arrived': it is not lost, the recipient just needs to claim it. An empty holdings list means this wallet holds no Digital Assets, NOT that the lookup failed.",
       }
     }
@@ -468,7 +468,7 @@ export async function executeTool(
       if (!addr) throw new Error("address is required")
       if (!isAptosAddress(addr)) return { address: addr, note: "This tool inspects Aptos addresses only." }
       const lookup = await getAptosObject(addr)
-      if (!lookup) return { address: addr, error: APTOS_LOOKUP_FAILED }
+      if (!lookup) return { address: addr, lookupFailed: true, error: APTOS_LOOKUP_FAILED }
       if (!lookup.found) {
         return {
           address: addr,
@@ -516,10 +516,10 @@ export async function executeTool(
           adapter ? getProtocolAccount(adapter, wallet.address) : Promise.resolve(null),
           getConfidentialState(wallet.address).catch(() => null),
         ])
-        if (!balance && !protocolAccount) return { error: APTOS_LOOKUP_FAILED }
+        if (!balance && !protocolAccount) return { lookupFailed: true, error: APTOS_LOOKUP_FAILED }
         const cNote = confidentialNote(confidential)
         return {
-          ...(balance ?? { walletBalanceNote: APTOS_LOOKUP_FAILED }),
+          ...(balance ?? { lookupFailed: true, walletBalanceNote: APTOS_LOOKUP_FAILED }),
           ...(confidential?.hasStore ? { confidentialBalance: { present: true, amount: "encrypted, not readable" } } : {}),
           ...(cNote ? { confidentialNote: cNote, ...(confidential === null ? { lookupFailed: true } : {}) } : {}),
           ...(protocolAccount
@@ -582,7 +582,7 @@ export async function executeTool(
               limit,
               errmap,
             )
-            if (!merged) return { error: APTOS_LOOKUP_FAILED }
+            if (!merged) return { lookupFailed: true, error: APTOS_LOOKUP_FAILED }
             // The raw events carry fixed-point integers with no market and no
             // scale. Asked what their last trade was, the model invented all
             // three: a real APT/USD close became "1.65 MEGA at 602.6". Scale
@@ -612,6 +612,7 @@ export async function executeTool(
               ...(merged.unavailable.length > 0
                 ? {
                     unavailableAccounts: merged.unavailable,
+                    lookupFailed: true,
                     unavailableNote:
                       "History for these accounts could not be fetched right now, so activity there is UNVERIFIED, not absent.",
                   }
@@ -628,7 +629,7 @@ export async function executeTool(
           // "none" / "failed": fall through to plain wallet history.
         }
         const aptosTxs = await getAptosRecentTransactions(wallet.address, programOrContract, limit, errmap)
-        if (!aptosTxs) return { error: APTOS_LOOKUP_FAILED }
+        if (!aptosTxs) return { lookupFailed: true, error: APTOS_LOOKUP_FAILED }
         return {
           transactions: aptosTxs.transactions,
           ...(aptosTxs.unread > 0
@@ -1042,7 +1043,7 @@ export async function executeTool(
         // On Aptos the "contract" is a module-publishing account; fetch its
         // recent transactions filtered to calls into its own modules.
         const aptosTxs = await getAptosRecentTransactions(contractAddress, contractAddress, limit, errmapFor(watchedContracts))
-        if (!aptosTxs) return { contract: contractAddress, error: APTOS_LOOKUP_FAILED }
+        if (!aptosTxs) return { contract: contractAddress, lookupFailed: true, error: APTOS_LOOKUP_FAILED }
         return {
           contract: contractAddress,
           transactions: aptosTxs.transactions,
@@ -1081,7 +1082,7 @@ export async function executeTool(
           getAptosModuleEvents(target.address, eventName),
         ])
         if (!scan && !activities) {
-          return { contract: target.name, event: eventName, events: [], checked: false, error: "Could not reach the Aptos indexer to scan this module's transactions right now. This is a failed lookup, NOT evidence that the event never fired. Try again shortly." }
+          return { contract: target.name, event: eventName, events: [], checked: false, lookupFailed: true, error: "Could not reach the Aptos indexer to scan this module's transactions right now. This is a failed lookup, NOT evidence that the event never fired. Try again shortly." }
         }
         const recentEvents = (scan?.events ?? []).map(e => ({
           transactionHash: e.txHash,
@@ -1176,7 +1177,7 @@ export async function executeTool(
       const deployment = await getContractDeployment(target.address, target.chain)
       return deployment
         ? { contract: target.name, ...deployment }
-        : { contract: target.name, note: "Deployment details could not be retrieved." }
+        : { contract: target.name, lookupFailed: true, note: "Deployment details could not be retrieved." }
     }
 
     case "get_contract_holdings": {
@@ -1203,7 +1204,7 @@ export async function executeTool(
               ...holdings,
               note: "On Aptos, protocol funds often sit in separate resource accounts, not the module-publishing account: a low balance here does not mean the protocol holds no funds.",
             }
-          : { contract: target.name, error: APTOS_LOOKUP_FAILED }
+          : { contract: target.name, lookupFailed: true, error: APTOS_LOOKUP_FAILED }
       }
       const [native, tokenResult] = await Promise.all([
         getNativeBalance(target.address, target.chain),
@@ -1324,7 +1325,7 @@ export async function executeTool(
       }
       if (isAptosChain(target.chain)) {
         const modules = await aptosModulesFor(target)
-        if (!modules) return { contract: target.name, error: aptosFullnodeFailed("inspect this account's modules") }
+        if (!modules) return { contract: target.name, lookupFailed: true, error: aptosFullnodeFailed("inspect this account's modules") }
         return {
           contract: target.name,
           address: target.address,
@@ -1339,7 +1340,7 @@ export async function executeTool(
         }
       }
       const info = await getContractInfo(target.address, target.chain)
-      return info ? { contract: target.name, ...info } : { contract: target.name, note: "Verification info could not be retrieved." }
+      return info ? { contract: target.name, ...info } : { contract: target.name, lookupFailed: true, note: "Verification info could not be retrieved." }
     }
 
     case "get_contract_functions": {
@@ -1355,7 +1356,7 @@ export async function executeTool(
       if (!target) throw new Error("Specify which contract (contract_address)")
       if (isAptosChain(target.chain)) {
         const modules = await aptosModulesFor(target)
-        if (!modules) return { contract: target.name, error: aptosFullnodeFailed("read this account's modules") }
+        if (!modules) return { contract: target.name, lookupFailed: true, error: aptosFullnodeFailed("read this account's modules") }
         // A big Aptos package is enormous when fully expanded: Decibel's 91
         // modules serialise to ~15k tokens, which swallows the tool-round
         // budget and buries the handful of functions that answer the question.
@@ -1413,7 +1414,7 @@ export async function executeTool(
         // place, and the on-chain PackageRegistry records how many times each
         // has been upgraded plus whether it is still allowed to change.
         const pkgs = await getAptosPackages(target.address)
-        if (!pkgs) return { contract: target.name, note: aptosFullnodeFailed("read this account's package registry") }
+        if (!pkgs) return { contract: target.name, lookupFailed: true, note: aptosFullnodeFailed("read this account's package registry") }
         const policyName = (p: number) => (p === 2 ? "immutable" : p === 1 ? "compatible" : "arbitrary")
         return {
           contract: target.name,
@@ -1693,7 +1694,7 @@ export async function executeTool(
         // Four distinct outcomes. Collapsing them into one "not registered"
         // message told users something false about expired names.
         if (!resolution) {
-          return { name, chain: "aptos", note: APTOS_LOOKUP_FAILED }
+          return { name, chain: "aptos", lookupFailed: true, note: APTOS_LOOKUP_FAILED }
         }
         if (resolution.status === "active") {
           return {

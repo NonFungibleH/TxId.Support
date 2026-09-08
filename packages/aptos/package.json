@@ -14,5 +14,8 @@
     "tsx": "^4",
     "typescript": "^5.4.0",
     "vitest": "^2"
+  },
+  "dependencies": {
+    "@txid/shared": "workspace:*"
   }
 }

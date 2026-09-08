@@ -46,6 +46,7 @@ jobs:
       # as a finding. Every package with tests belongs on this list.
       - name: Package unit tests
         run: |
+          pnpm --filter @txid/shared exec vitest run
           pnpm --filter @txid/blockchain exec vitest run
           pnpm --filter @txid/aptos exec vitest run
           pnpm --filter @txid/solana exec vitest run
