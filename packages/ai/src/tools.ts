@@ -1223,7 +1223,19 @@ export async function executeTool(
           note: "On Aptos, asset movement events (deposits, withdrawals, mints, burns) are indexed and searchable, but protocol-defined events are NOT: the indexer's generic events table was retired. Protocol events are therefore recovered by scanning this module's recent transactions, and transactionsScanned says how many were actually inspected. If the list is empty, say the event does not appear in the last N transactions scanned (give the number and the oldest timestamp) and NEVER say it never fired. Offer explorer.aptoslabs.com for history older than the window.",
         }
       }
-      const events = await getContractEvents(target.address, target.chain, eventName, target.abi ?? undefined)
+      const lookup = await getContractEvents(target.address, target.chain, eventName, target.abi ?? undefined)
+      // `count: 0, checked: true` is an explicit claim that we looked and the
+      // event never fired. It must not survive an explorer that never answered.
+      if (lookup.status === "unavailable") {
+        return {
+          contract: target.name,
+          event: eventName,
+          checked: false,
+          lookupFailed: true,
+          error: `The event log could not be read: ${lookup.reason}. This is a failed lookup, NOT a finding that "${eventName}" never fired. Say that you could not check rather than implying it never happened.`,
+        }
+      }
+      const events = lookup.events
       if (events.length === 0 && !canCheckEvent(eventName, target.abi ?? undefined)) {
         // Empty AND we couldn't compute this event's topic. Two very different
         // cases — do NOT let the model claim it never fired, and do NOT claim
@@ -1527,8 +1539,18 @@ export async function executeTool(
           note: "Aptos packages are upgraded in place rather than behind a proxy. timesUpgraded is the on-chain upgrade counter since first publish. upgradePolicy 'immutable' means the code can never change again; 'compatible' means it can be upgraded but only in backward-compatible ways.",
         }
       }
-      const upgrades = await getUpgradeHistory(target.address, target.chain)
-      return { contract: target.name, count: upgrades.length, upgrades }
+      const history = await getUpgradeHistory(target.address, target.chain)
+      // `count: 0` from a failed lookup is an all-clear on the one question
+      // people ask when they think the code changed under them. It must be a
+      // failure the model can see, not a finding.
+      if (history.status === "unavailable") {
+        return {
+          contract: target.name,
+          lookupFailed: true,
+          error: `The upgrade history could not be read: ${history.reason}. This is a failed lookup, NOT a finding that the contract has never been upgraded. Say that you could not check rather than implying the code is unchanged.`,
+        }
+      }
+      return { contract: target.name, count: history.upgrades.length, upgrades: history.upgrades }
     }
 
     case "get_token_info": {
