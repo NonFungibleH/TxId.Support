@@ -52,6 +52,7 @@ jobs:
           pnpm --filter @txid/solana exec vitest run
           pnpm --filter @txid/sui exec vitest run
           pnpm --filter @txid/stellar exec vitest run
+          pnpm --filter @txid/hyperliquid exec vitest run
           pnpm --filter @txid/layerzero exec vitest run
       - name: Install Chromium
         run: pnpm --filter @txid/app exec playwright install --with-deps chromium

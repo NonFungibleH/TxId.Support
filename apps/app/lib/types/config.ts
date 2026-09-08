@@ -77,6 +77,7 @@ export const SUPPORTED_CHAINS = [
   { id: "aptos",    name: "Aptos",             explorer: "explorer.aptoslabs.com" },
   { id: "sui",      name: "Sui",               explorer: "suiscan.xyz" },
   { id: "stellar",  name: "Stellar",           explorer: "stellar.expert" },
+  { id: "hyperliquid", name: "Hyperliquid",   explorer: "app.hyperliquid.xyz" },
   { id: "solana",   name: "Solana",            explorer: "solscan.io" },
   { id: "0xaa36a7", name: "Sepolia (Testnet)",  explorer: "sepolia.etherscan.io" },
 ] as const
@@ -89,6 +90,11 @@ const PAUSED_CHAINS = new Set<string>([
   // Solana stays paused until HELIUS_API_KEY is set in Vercel: without it every
   // Solana read fails, so the chain would be selectable and non-functional.
   "solana",
+  // Hyperliquid reads and explains, but the widget has no connect path for it
+  // yet. HyperCore shares HyperEVM's address space, so the path is an ordinary
+  // EVM connect that reports chainId "hyperliquid", which is a small change and
+  // deliberately not bundled into the package PR.
+  "hyperliquid",
 ])
 
 /**
