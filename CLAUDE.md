@@ -236,6 +236,21 @@ derived from `CHAIN_CONFIGS`. Tests: `lookup-unavailable`, `state-dependent`,
 
 **Non-Moralis chains (e.g. Etherlink, `0xa729`/XTZ):** Moralis doesn't index every chain. A `ChainConfig` with NO `moralisChain` but a `blockscoutApi` base routes the wallet tools (balances, recent txs, single-tx) through `blockscout-wallet.ts` instead — Blockscout v2 REST for lists/token-balances, RPC (`eth_getTransactionByHash`/receipt/`eth_getBlockByNumber`) for single txs + the revert decoder. `usesBlockscoutWallet(chainId)` gates the dispatch inside `wallet.ts`. Approvals degrade to `[]` (no clean Blockscout endpoint). Explorer/ABI still works via `explorerQuery` (add the chain to `BLOCKSCOUT_BASES` in `blockscout.ts`). Adding such a chain touches: `CHAIN_CONFIGS`, `BLOCKSCOUT_BASES`, `SUPPORTED_CHAINS` (apps/app config), the CHAIN_NAMES maps (prompt.ts + ConversationList.tsx), and `apps/web/lib/chains.ts` (+ a `/public/chains/<Name>.png` logo, else ChainLogo shows a monogram). `DEFAULT_CHAINS` in `packages/blockchain/src/diagnose.ts` is derived from `CHAIN_CONFIGS` since 2026-09-03; it was a hand-written list that omitted Etherlink, so the API's auto-detect never searched it.
 
+> **THAT CHECKLIST IS NOW ENFORCED** by `apps/app/lib/__tests__/chain-registry.test.ts`,
+> and it found a live gap the moment it was written: **Robinhood Chain
+> (`0x1237`) was in neither CHAIN_NAMES map**, so a Robinhood user's
+> conversation showed "Chain 0x1237" in the dashboard and the model was handed
+> the raw hex rather than the chain's name. The chain had been live on the
+> marketing site for over a week. Missing a step in this checklist is SILENT:
+> nothing errors, nothing logs, and the only symptom is an assistant that
+> sounds like a database.
+>
+> The test checks only the CANONICAL hex ids. `CHAIN_CONFIGS` carries both
+> `"0x1"` and `"1"` for every chain, which is the #69 fix (a decimal id
+> silently resolved to Ethereum), and requiring decimal entries everywhere
+> would demand rows nothing reads. Testnets are excluded from the
+> public-page check: they are offered for development and have nothing to sell.
+
 ---
 
 ## packages/solana
