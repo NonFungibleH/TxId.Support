@@ -134,26 +134,72 @@ export async function getWalletApprovals(
   }
 }
 
-/** Get native currency balance for a wallet on a given chain */
+function formatNative(raw: bigint, chainId: string): NativeBalance {
+  return {
+    balance: raw.toString(),
+    balanceFormatted: (Number(raw) / 1e18).toLocaleString("en-US", { maximumFractionDigits: 6 }),
+    symbol: nativeSymbol(chainId),
+  }
+}
+
+/**
+ * A native balance is `eth_getBalance`, and EVERY EVM chain answers it.
+ *
+ * This used to throw "No indexer configured" on any chain without Moralis or
+ * Blockscout, which was wrong twice over. It is wrong as engineering, because
+ * the one balance that needs no indexer is the native one: token balances
+ * require enumerating holdings and history requires an index, but this is a
+ * single RPC call every node serves. And it was wrong as a claim, because
+ * Robinhood Chain's own comment in CHAIN_CONFIGS said "native balance, nonce
+ * and gas all run on the RPC and work normally" while this function threw for
+ * it. Verified against live Robinhood Chain on 2026-09-08: the RPC returned a
+ * balance immediately and getNativeBalance threw.
+ *
+ * The indexer stays PREFERRED where there is one, for the same reason
+ * getTransactionByHash prefers it: one call, consistent formatting. The RPC is
+ * the backstop, and on an RPC-only chain it is the only source.
+ */
 export async function getNativeBalance(
   address: string,
   chainId: string,
 ): Promise<NativeBalance> {
   if (usesBlockscoutWallet(chainId)) return bsNativeBalance(address, chainId)
   const chain = moralisChain(chainId)
-  if (!chain) throw new Error(`No indexer configured for chain ${chainId}`)
-  const res = await fetch(
-    `${MORALIS_BASE}/${address}/balance?chain=${chain}`,
-    { headers: moralisHeaders(), signal: AbortSignal.timeout(8000) },
-  )
-  if (!res.ok) throw new Error(`Moralis balance error: ${res.status}`)
-  const data = (await res.json()) as { balance: string }
-  const raw = BigInt(data.balance)
-  const formatted = (Number(raw) / 1e18).toLocaleString("en-US", {
-    maximumFractionDigits: 6,
-  })
-  const symbol = nativeSymbol(chainId)
-  return { balance: data.balance, balanceFormatted: formatted, symbol }
+
+  if (chain) {
+    try {
+      const res = await fetch(
+        `${MORALIS_BASE}/${address}/balance?chain=${chain}`,
+        { headers: moralisHeaders(), signal: AbortSignal.timeout(8000) },
+      )
+      if (res.ok) {
+        const data = (await res.json()) as { balance: string }
+        return formatNative(BigInt(data.balance), chainId)
+      }
+    } catch { /* fall through to the RPC, which is the point of having one */ }
+  }
+
+  const rpcUrl = CHAIN_CONFIGS[chainId]?.rpcUrl
+  if (!rpcUrl) throw new LookupUnavailableError(`No indexer or RPC configured for chain ${chainId}`)
+  try {
+    const res = await fetch(rpcUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "eth_getBalance", params: [address, "latest"] }),
+      signal: AbortSignal.timeout(8000),
+    })
+    if (!res.ok) throw new Error(`${res.status}`)
+    const body = (await res.json()) as { result?: string; error?: { message?: string } }
+    // A JSON-RPC error object is a node DECLINING to answer, not an answer of
+    // zero. Reporting it as a balance would tell somebody their wallet is empty.
+    if (body.error || typeof body.result !== "string") {
+      throw new LookupUnavailableError(`the ${CHAIN_CONFIGS[chainId]?.name ?? chainId} node did not return a balance`)
+    }
+    return formatNative(BigInt(body.result), chainId)
+  } catch (e) {
+    if (e instanceof LookupUnavailableError) throw e
+    throw new LookupUnavailableError(`could not read the ${CHAIN_CONFIGS[chainId]?.name ?? chainId} balance: ${e instanceof Error ? e.message : "network error"}`)
+  }
 }
 
 /** Get ERC-20 token balances for a wallet */
