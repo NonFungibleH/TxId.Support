@@ -31,6 +31,12 @@ jobs:
       # Vercel Preview: next build lints test files too, and an `as any` in a
       # test took the build down. Static page generation needs Clerk keys and
       # stays Vercel's job; a full `next build` here would fail on env alone.
+      # apps/web had no tests at all until 2026-09-08. The gap cost a real
+      # regression: the LayerZero card silently vanished from /chains and the
+      # section it lived in simply stopped rendering.
+      - name: Web unit tests
+        run: pnpm --filter @txid/web exec vitest run
+
       - name: Lint (what next build runs first)
         run: pnpm --filter @txid/app exec next lint
       - name: Typecheck
