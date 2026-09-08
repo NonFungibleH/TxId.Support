@@ -563,6 +563,12 @@ export async function executeTool(
           reserveNote: r.value.reserveXlm
             ? `Of that XLM, ${r.value.reserveXlm} is locked as the account's minimum reserve (1 XLM base plus 0.5 per subentry, and this account has ${r.value.subentryCount}). Spendable XLM is the balance MINUS the reserve. Say so if the user asks why they cannot send their whole balance.`
             : "The reserve could not be computed for this account, so do not present the XLM balance as fully spendable.",
+          // A PARTIAL read is the same bug quieter: the balance came back, the
+          // reserve did not, and the answer looks complete either way. Marked
+          // only when the reserve is missing, so a whole successful balance is
+          // never filed as a failed lookup. `anyReadSucceeded` is unaffected,
+          // since it keys on the call not throwing.
+          ...(r.value.reserveXlm ? {} : { lookupFailed: true }),
           assets: r.value.balances.filter(b => b.asset !== "native"),
           assetNote: "Each non-native line is a TRUSTLINE. On Stellar an account has to explicitly trust an asset before it can hold it, and a trustline carries a limit. A payment can fail because the RECIPIENT has no trustline or their limit would be exceeded, which is nothing to do with either party's balance.",
         }
@@ -1634,7 +1640,11 @@ export async function executeTool(
       if (isSolanaChain(chainId)) return { note: "Token reads here are EVM-only." }
       if (isAptosChain(chainId)) {
         const rows = await getAptosAssetMetadata(token)
-        if (rows === null) return { token, error: "Could not reach the Aptos indexer to look up this asset right now, a failed lookup, not a statement about the asset. Try again shortly." }
+        if (rows === null) // The reason is under `error`, and the legacy phrase fallback in
+          // evidence.ts only ever inspects a key literally called `note`, so
+          // WITHOUT this marker the failure reaches the model correctly and
+          // the case record not at all.
+          return { token, lookupFailed: true, error: "Could not reach the Aptos indexer to look up this asset right now, a failed lookup, not a statement about the asset. Try again shortly." }
         const meta = rows[0]
         return meta ?? { token, note: "The Aptos indexer has no fungible-asset metadata for this asset type. Check the exact asset type (e.g. 0x1::aptos_coin::AptosCoin, or a metadata object address) on explorer.aptoslabs.com." }
       }

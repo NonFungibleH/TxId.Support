@@ -35,6 +35,38 @@ function testFileCount(dir: string): number {
   return n
 }
 
+/**
+ * The list above catches a package that has tests and does not RUN them. It is
+ * blind to a package with no tests at all, which is a bigger hole and exactly
+ * where `packages/ai` sat: 4,327 lines building every prompt and executing all
+ * 27 tool arms, zero test files, invisible to the guard because the guard only
+ * fires when files exist.
+ *
+ * So the packages whose code decides what a user is told are named here and
+ * required to have tests. This is a floor, not a coverage target: it says the
+ * suite exists and runs, nothing about how good it is.
+ */
+const MUST_HAVE_TESTS = [
+  "packages/ai",         // prompts and tool dispatch
+  "packages/blockchain", // every EVM read
+  "packages/near", "packages/stellar", "packages/sui",
+  "packages/aptos", "packages/solana", "packages/hyperliquid",
+]
+
+describe("the packages that decide what a user is told have tests at all", () => {
+  it("each one has both a test script and at least one test", () => {
+    const missing: string[] = []
+    for (const dir of MUST_HAVE_TESTS) {
+      const full = join(ROOT, dir)
+      if (!existsSync(join(full, "package.json"))) { missing.push(`${dir} (no package)`); continue }
+      const pkg = JSON.parse(readFileSync(join(full, "package.json"), "utf8")) as { scripts?: Record<string, string> }
+      if (!pkg.scripts?.test) missing.push(`${dir} (no test script)`)
+      else if (testFileCount(full) === 0) missing.push(`${dir} (no test files)`)
+    }
+    expect(missing).toEqual([])
+  })
+})
+
 describe("every workspace that has tests runs them", () => {
   it("has no package with test files and no test script", () => {
     const unrun: string[] = []
