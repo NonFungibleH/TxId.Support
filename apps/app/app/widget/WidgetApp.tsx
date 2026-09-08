@@ -1,5 +1,6 @@
 "use client"
 
+import { isStellarAccount } from "@txid/stellar"
 import { useState, useEffect, useRef, useCallback } from "react"
 import { useSearchParams } from "next/navigation"
 import { nanoid } from "nanoid"
@@ -336,8 +337,21 @@ const MODULE_PATH_RE = /^(0x[0-9a-fA-F]{20,})((?:::[A-Za-z_][A-Za-z0-9_]*)+)$/
 const WALLET_EVM_RE = /^0x[0-9a-fA-F]{40}$/
 const WALLET_SOL_RE = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/
 const WALLET_APTOS_RE = /^0x[0-9a-fA-F]{1,64}$/
+/** Sui addresses are 0x + 64 hex, the same shape as Aptos, so also chain-gated. */
+const WALLET_SUI_RE = /^0x[0-9a-fA-F]{1,64}$/
 function isValidWalletFormat(addr: string, chainId?: string | null): boolean {
-  return WALLET_EVM_RE.test(addr) || WALLET_SOL_RE.test(addr) || (chainId === "aptos" && WALLET_APTOS_RE.test(addr))
+  return (
+    WALLET_EVM_RE.test(addr) ||
+    WALLET_SOL_RE.test(addr) ||
+    (chainId === "aptos" && WALLET_APTOS_RE.test(addr)) ||
+    (chainId === "sui" && WALLET_SUI_RE.test(addr)) ||
+    // The Stellar check is the SAME FUNCTION the chat route uses, imported
+    // rather than re-expressed. The comment above used to say "keep in sync
+    // with the route", and a comment is not a mechanism: sharing the
+    // implementation is. A widget that accepts what the route rejects 400s
+    // every message while the connect UI is hidden, which bricks the panel.
+    (chainId === "stellar" && isStellarAccount(addr))
+  )
 }
 
 /**
@@ -881,7 +895,10 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
   const [walletConnecting, setWalletConnecting] = useState(false)
   const isSolanaProject = (config?.chains ?? []).includes("solana")
   const isAptosProject = (config?.chains ?? []).includes("aptos")
-  const hasEvmChain = (config?.chains ?? []).some((c) => c !== "solana" && c !== "aptos")
+  const isSuiProject = (config?.chains ?? []).includes("sui")
+  const isStellarProject = (config?.chains ?? []).includes("stellar")
+  const NON_EVM_CHAINS = ["solana", "aptos", "sui", "stellar"]
+  const hasEvmChain = (config?.chains ?? []).some((c) => !NON_EVM_CHAINS.includes(c))
 
   // Wallet setup flow: prompt → (connected | manual | skipped)
   const [walletSetup, setWalletSetup] = useState<"prompt" | "manual-input" | "connected" | "manual" | "skipped">("prompt")
@@ -1227,16 +1244,25 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
   const submitManualAddress = useCallback(() => {
     const addr = manualValue.trim()
     const isEvmAddr = /^0x[0-9a-fA-F]{40}$/.test(addr)
-    const isAptosAddr = isAptosProject && /^0x[0-9a-fA-F]{1,64}$/.test(addr)
-    if (!isEvmAddr && !isAptosAddr) {
+    const isLongHex = /^0x[0-9a-fA-F]{41,64}$/.test(addr)
+    const isMoveAddr = (isAptosProject || isSuiProject) && (isEvmAddr || isLongHex)
+    // Stellar is the one CHECKSUMMED address here, so a typo is caught at the
+    // box rather than becoming an answer about somebody else's account.
+    const isStellarAddr = isStellarProject && isStellarAccount(addr)
+    if (!isEvmAddr && !isMoveAddr && !isStellarAddr) {
       setManualError(true)
       return
     }
-    // 40-hex is valid on both EVM and Aptos: prefer the project's EVM chain and
-    // treat it as Aptos only when the project has none. Longer hex is
-    // unambiguously Aptos.
-    const evmCid = (config?.chains ?? []).find((c) => c !== "solana" && c !== "aptos")
-    const cid = isEvmAddr ? (evmCid ?? (isAptosProject ? "aptos" : "0x1")) : "aptos"
+    // 40-hex is valid on EVM, Aptos AND Sui: prefer the project's EVM chain and
+    // fall back to whichever Move chain the project runs. Longer hex is
+    // unambiguously one of the Move chains.
+    const evmCid = (config?.chains ?? []).find((c) => !NON_EVM_CHAINS.includes(c))
+    const moveCid = isAptosProject ? "aptos" : isSuiProject ? "sui" : "aptos"
+    const cid = isStellarAddr
+      ? "stellar"
+      : isEvmAddr
+        ? (evmCid ?? (isAptosProject || isSuiProject ? moveCid : "0x1"))
+        : moveCid
     setWalletAddress(addr)
     setChainId(cid)
     setWalletSetup("manual")
@@ -1252,7 +1278,7 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
     setManualError(false)
     setTab("chat")
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [manualValue, config, apiKey])
+  }, [manualValue, config, apiKey, isAptosProject, isSuiProject, isStellarProject])
 
   // ── Connect wallet ───────────────────────────────────────────────────────
   // ── Embedded wallet bridge ─────────────────────────────────────────────────
@@ -1262,15 +1288,15 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
   // loader (widget.js) relays connect requests over postMessage. On mount we ask
   // it which providers the host page can see, and connectWallet routes through it.
   const isEmbedded = typeof window !== "undefined" && window.parent !== window
-  const [bridgeWallet, setBridgeWallet] = useState<{ aptos: boolean; evm: boolean; solana: boolean } | null>(null)
+  const [bridgeWallet, setBridgeWallet] = useState<{ aptos: boolean; evm: boolean; solana: boolean; sui: boolean; stellar: boolean } | null>(null)
 
   useEffect(() => {
     if (!isEmbedded || typeof window === "undefined") return
     function onMsg(e: MessageEvent) {
       if (e.source !== window.parent) return
-      const d = e.data as { type?: string; aptos?: boolean; evm?: boolean; solana?: boolean } | null
+      const d = e.data as { type?: string; aptos?: boolean; evm?: boolean; solana?: boolean; sui?: boolean; stellar?: boolean } | null
       if (d?.type === "txid-wallet-available") {
-        setBridgeWallet({ aptos: !!d.aptos, evm: !!d.evm, solana: !!d.solana })
+        setBridgeWallet({ aptos: !!d.aptos, evm: !!d.evm, solana: !!d.solana, sui: !!d.sui, stellar: !!d.stellar })
       }
     }
     window.addEventListener("message", onMsg)
@@ -1278,7 +1304,7 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
     return () => window.removeEventListener("message", onMsg)
   }, [isEmbedded])
 
-  const connectViaBridge = useCallback((kind: "aptos" | "evm" | "solana"): Promise<{ address: string; chainId: string } | null> => {
+  const connectViaBridge = useCallback((kind: "aptos" | "evm" | "solana" | "sui" | "stellar"): Promise<{ address: string; chainId: string } | null> => {
     return new Promise((resolve) => {
       if (typeof window === "undefined") { resolve(null); return }
       const id = `wc_${Date.now()}_${Math.random().toString(36).slice(2)}`
@@ -1371,11 +1397,15 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
    */
   const aptosProviderAvailable = hasAptosWallet || (isEmbedded && !!bridgeWallet?.aptos)
   const evmProviderAvailable = hasMetaMask || (isEmbedded && !!bridgeWallet?.evm)
-  const walletTarget: "solana" | "aptos" | "evm" = isSolanaProject
+  const walletTarget: "solana" | "aptos" | "sui" | "stellar" | "evm" = isSolanaProject
     ? "solana"
     : isAptosProject
       ? "aptos"
-      : "evm"
+      : isSuiProject
+        ? "sui"
+        : isStellarProject
+          ? "stellar"
+          : "evm"
   /**
    * An Aptos project ALWAYS attempts Aptos first, and only falls back to EVM
    * from inside that branch if no Aptos path produced an address.
@@ -1404,6 +1434,8 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
    */
   type StandardWallet = {
     name?: string
+    /** e.g. ["sui:mainnet"]. How a Sui wallet is told apart from an Aptos one. */
+    chains?: string[]
     features?: Record<string, { connect?: (...a: unknown[]) => Promise<unknown>; version?: string }>
   }
   const discoverStandardWallets = useCallback((): StandardWallet[] => {
@@ -1503,6 +1535,106 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
         failConnect("no-phantom", "No Solana wallet was detected.")
         return
       }
+      /**
+       * SUI, through the SAME Wallet Standard registry Aptos uses.
+       *
+       * Sui wallets register through the identical `wallet-standard:app-ready`
+       * handshake, so `discoverStandardWallets` is reused verbatim. The only
+       * differences are which feature does the connecting (`standard:connect`,
+       * the generic one, rather than a chain-specific `aptos:connect`) and how
+       * a Sui wallet is recognised: its `chains` list, or any `sui:` feature.
+       */
+      if (walletTarget === "sui") {
+        if (isEmbedded && bridgeWallet) {
+          walletDiag("embedded: asking the host page first (sui)")
+          const viaHost = await connectViaBridge("sui")
+          if (viaHost) { applyConn(viaHost.address, viaHost.chainId || "sui"); return }
+          walletDiag("host bridge did not connect, falling back to in-frame")
+        }
+        const wallets = discoverStandardWallets().filter(w =>
+          (w.chains ?? []).some(c => c.startsWith("sui:")) ||
+          Object.keys(w.features ?? {}).some(f => f.startsWith("sui:")),
+        )
+        walletDiag("sui wallet-standard wallets discovered", wallets.map(w => w.name ?? "unnamed"))
+        let lastError: string | null = null
+        for (const w of wallets) {
+          const feature = w.features?.["standard:connect"]
+          if (typeof feature?.connect !== "function") continue
+          try {
+            // Called ON the feature object: pulling `connect` out loses its
+            // `this` and the wallet then never settles, which presents as the
+            // button hanging with no error. Same trap the Aptos arm documents.
+            const res = await Promise.race([
+              feature.connect(),
+              new Promise((_, rej) => setTimeout(
+                () => rej(new Error(isEmbedded
+                  ? "the wallet did not respond inside the embedded panel"
+                  : "the wallet did not respond within 60 seconds")),
+                isEmbedded ? 6_000 : 60_000,
+              )),
+            ]) as { accounts?: { address?: string }[] }
+            const addr = res?.accounts?.[0]?.address
+            if (typeof addr === "string" && WALLET_SUI_RE.test(addr)) { applyConn(addr, "sui"); return }
+            lastError = `${w.name ?? "the wallet"} connected but returned no usable address`
+          } catch (e) {
+            lastError = e instanceof Error ? e.message : "the wallet refused the connection"
+          }
+        }
+        failConnect("no-sui-wallet", lastError ?? "No Sui wallet was detected.")
+        return
+      }
+
+      /**
+       * STELLAR, through Freighter's injected API.
+       *
+       * Stellar has no widely adopted wallet-standard registry yet, so this is
+       * the one branch that reads a window global. Freighter's API changed:
+       * newer builds expose getAddress() returning {address}, older ones
+       * getPublicKey() returning a string, and requestAccess() is what actually
+       * prompts the user. All three are tried, because a wallet that is
+       * installed and working must not look absent because of its version.
+       */
+      if (walletTarget === "stellar") {
+        type Freighter = {
+          isConnected?: () => Promise<boolean> | boolean
+          requestAccess?: () => Promise<{ address?: string; error?: string } | string>
+          getAddress?: () => Promise<{ address?: string; error?: string }>
+          getPublicKey?: () => Promise<string>
+        }
+        const api = (window as unknown as { freighterApi?: Freighter }).freighterApi
+        if (api) {
+          try {
+            const read = async (): Promise<string | null> => {
+              // requestAccess is the one that PROMPTS, so it goes first: the
+              // read-only getters return an error object when access has never
+              // been granted, which would present as "no wallet".
+              if (typeof api.requestAccess === "function") {
+                const r = await api.requestAccess()
+                const a = typeof r === "string" ? r : r?.address
+                if (typeof a === "string" && a) return a
+              }
+              if (typeof api.getAddress === "function") {
+                const r = await api.getAddress()
+                if (typeof r?.address === "string" && r.address) return r.address
+              }
+              if (typeof api.getPublicKey === "function") {
+                const a = await api.getPublicKey()
+                if (typeof a === "string" && a) return a
+              }
+              return null
+            }
+            const addr = await read()
+            if (addr && isStellarAccount(addr)) { applyConn(addr, "stellar"); return }
+            if (addr) { failConnect("stellar-bad-address", "The wallet returned an address that is not a valid Stellar account."); return }
+          } catch (e) {
+            walletDiag("freighter failed", e instanceof Error ? e.message : String(e))
+          }
+        }
+        if (isEmbedded) { const res = await connectViaBridge("stellar"); if (res) { applyConn(res.address, res.chainId || "stellar"); return } }
+        failConnect("no-freighter", "No Stellar wallet was detected. Freighter is the one this supports.")
+        return
+      }
+
       if (walletTarget === "aptos") {
         /**
          * Try every injected Aptos handle in turn rather than picking one.

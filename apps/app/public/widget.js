@@ -489,6 +489,9 @@
     if (kind === "aptos")  return window.aptos || window.martian || window.petra || null;
     if (kind === "solana") return (window.phantom && window.phantom.solana) || window.solana || null;
     if (kind === "evm")    return window.ethereum || null;
+    // Stellar has no wallet-standard registry in wide use yet, so Freighter's
+    // injected global is the one window global this file still reads.
+    if (kind === "stellar") return window.freighterApi || null;
     return null;
   }
 
@@ -527,6 +530,27 @@
   function txidWalletFeature(w, name) {
     return (w && w.features && w.features[name]) || null;
   }
+
+  // Sui registers through the SAME wallet-standard handshake as Aptos, so the
+  // discovery above is reused. A Sui wallet is told apart by its `chains` list
+  // or by exposing any `sui:` feature.
+  function txidSuiWallets() {
+    var ws = txidStandardWallets();
+    var out = [];
+    for (var i = 0; i < ws.length; i++) {
+      var w = ws[i] || {};
+      var chains = w.chains || [];
+      var isSui = false;
+      for (var c = 0; c < chains.length; c++) if (String(chains[c]).indexOf("sui:") === 0) isSui = true;
+      if (!isSui && w.features) {
+        for (var k in w.features) if (Object.prototype.hasOwnProperty.call(w.features, k) && k.indexOf("sui:") === 0) isSui = true;
+      }
+      if (isSui && txidWalletFeature(w, "standard:connect")) out.push(w);
+    }
+    return out;
+  }
+
+  function txidHasSui() { return txidSuiWallets().length > 0; }
 
   function txidHasAptos() {
     if (txidProvider("aptos")) return true;
@@ -699,6 +723,8 @@
         aptos: txidHasAptos(),
         evm: !!txidProvider("evm"),
         solana: !!txidProvider("solana"),
+        sui: txidHasSui(),
+        stellar: !!txidProvider("stellar"),
       });
       return;
     }
@@ -711,11 +737,60 @@
     if (e.data && e.data.type === "txid-wallet-connect") {
       var id = e.data.id;
       var kind = e.data.provider;
-      // Aptos is resolved separately: it may have no window global at all.
-      var p = kind === "aptos" ? null : txidProvider(kind);
-      if (kind !== "aptos" && !p) { txidToFrame({ type: "txid-wallet-result", id: id, ok: false, error: "no-provider" }); return; }
+      // Aptos and Sui are resolved separately: under the wallet standard they
+      // may have no window global at all.
+      var viaStandard = kind === "aptos" || kind === "sui";
+      var p = viaStandard ? null : txidProvider(kind);
+      if (!viaStandard && !p) { txidToFrame({ type: "txid-wallet-result", id: id, ok: false, error: "no-provider" }); return; }
       Promise.resolve()
         .then(function () {
+          if (kind === "sui") {
+            var suiWallets = txidSuiWallets();
+            var chain = Promise.resolve(null);
+            for (var i = 0; i < suiWallets.length; i++) {
+              (function (w) {
+                chain = chain.then(function (got) {
+                  if (got) return got;
+                  var f = txidWalletFeature(w, "standard:connect");
+                  if (!f || typeof f.connect !== "function") return null;
+                  // Called ON the feature object: pulling connect out loses its
+                  // `this` and the wallet never settles.
+                  return Promise.resolve(f.connect()).then(function (r) {
+                    var a = r && r.accounts && r.accounts[0] && r.accounts[0].address;
+                    return typeof a === "string" && a ? { address: a, chainId: "sui" } : null;
+                  }, function () { return null; });
+                });
+              })(suiWallets[i]);
+            }
+            return chain;
+          }
+          if (kind === "stellar") {
+            // requestAccess is the call that PROMPTS. The read-only getters
+            // return an error object when access was never granted, which would
+            // present as "no wallet" on an installed, working Freighter.
+            var read = function () {
+              if (typeof p.requestAccess === "function") {
+                return Promise.resolve(p.requestAccess()).then(function (r) {
+                  return typeof r === "string" ? r : (r && r.address) || null;
+                });
+              }
+              return Promise.resolve(null);
+            };
+            return read().then(function (a) {
+              if (a) return { address: a, chainId: "stellar" };
+              if (typeof p.getAddress === "function") {
+                return Promise.resolve(p.getAddress()).then(function (r) {
+                  return r && r.address ? { address: r.address, chainId: "stellar" } : null;
+                });
+              }
+              if (typeof p.getPublicKey === "function") {
+                return Promise.resolve(p.getPublicKey()).then(function (k) {
+                  return typeof k === "string" && k ? { address: k, chainId: "stellar" } : null;
+                });
+              }
+              return null;
+            });
+          }
           if (kind === "solana") {
             return p.connect().then(function (r) { return { address: r.publicKey.toString(), chainId: "solana" }; });
           }

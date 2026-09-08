@@ -469,25 +469,6 @@ was spent", which cannot both be true.
 them, so they take the floor rather than wording invented from the type
 definition. **Do not add a branch without a captured example.**
 
-### Why Sui is still paused, and it is NOT the decoder
-The written pause condition ("until at least one real protocol is mapped") is
-MET. The blocker is a second prerequisite the first one hid: **the widget has no
-Sui path at all**. `walletTarget` in `WidgetApp.tsx` is
-`"solana" | "aptos" | "evm"`, and the address check accepts a `0x`+64hex address
-only when the chain is `"aptos"`. A Sui project therefore falls through to the
-EVM branch, offers MetaMask, and takes an Ethereum address, which is the same
-silent dead end the Aptos work fixed for Solana. Unpausing before that is built
-ships the dead end rather than the feature. What is needed: Sui Wallet Standard
-discovery (the Aptos implementation ports across), the `sui` arm in the
-host-page bridge in `widget.js` (so `widget` label + embed smoke), a
-`WALLET_SUI_RE` paste fallback, and the chat route accepting a Sui address.
-
-**Do not add Sui to the help centre's "Supported chains" grid until it is
-unpaused.** That page documents what a customer can ENABLE, so listing a paused
-chain there documents a control that is not there. Nearly shipped in this PR;
-caught because the marketing page correctly still says coming-soon and the two
-would have contradicted each other.
-
 ### What is not built
 Protocol maps beyond DeepBook. The rest of Sui's failure volume is obfuscated
 arbitrage packages (single-letter modules, `h86261::h8b64d`) whose codes are
@@ -584,11 +565,45 @@ one-character typo in a 56-character address still looks like an address, and
 accepting one means telling somebody their account does not exist when we asked
 about an account that was never theirs.
 
-### Paused, and only for the widget
-Same single reason as Sui: `walletTarget` in `WidgetApp.tsx` is
-`"solana" | "aptos" | "evm"`, so a Stellar project falls through to the EVM
-branch and offers MetaMask. Unpause when the widget can connect Freighter and
-accept a pasted G-address. Nothing about the pause is the decoder.
+## The widget wallet path (2026-09-08)
+
+**A chain is not shippable when its DECODER is done. It is shippable when a user
+can connect.** Sui and Stellar were both finished and both paused for days
+behind one missing piece, and it is worth naming because the same trap will
+recur: `walletTarget` in `WidgetApp.tsx` was `"solana" | "aptos" | "evm"`, so
+either project fell through to the EVM branch and offered the user MetaMask.
+That is the identical silent dead end the Aptos work fixed for Solana.
+
+**Sui reuses the Aptos machinery verbatim.** Sui wallets register through the
+SAME `wallet-standard:app-ready` handshake, so `discoverStandardWallets` (widget)
+and `txidStandardWallets` (loader) are shared. Two differences only: the
+connecting feature is `standard:connect` (the generic one) rather than a
+chain-specific `aptos:connect`, and a Sui wallet is recognised by its `chains`
+list starting `sui:` or by exposing any `sui:` feature. The `this`-binding trap
+is the same: call `connect()` ON the feature object or the wallet never settles
+and the button hangs with no error.
+
+**Stellar is the one branch that still reads a window global** (`freighterApi`),
+because Stellar has no widely adopted wallet-standard registry yet. Freighter's
+API changed across versions, so all three shapes are tried and
+`requestAccess()` goes FIRST: it is the call that prompts, while the read-only
+getters return an error object when access was never granted, which would
+present as "no wallet" on an installed, working Freighter.
+
+**The widget and the route must agree on address formats**, and for Stellar they
+now agree BY SHARING `isStellarAccount` rather than by a comment saying "keep in
+sync". They disagreed once, and the failure mode is nasty: the widget accepts an
+address, hides the connect UI because it believes a wallet is attached, and every
+message then 400s with no way back. `wallet-formats.test.ts` pins the rest.
+
+**Sui and Aptos addresses are the same shape** (`0x` + up to 64 hex), so neither
+is accepted on shape alone: the request has to name the chain. Stellar is the one
+CHECKSUMMED address, validated with a real CRC16 in the paste box as well, so a
+typo is caught before it becomes a confident answer about somebody else's
+account.
+
+**Any change to `widget.js` runs the embed smoke** (`pnpm --filter @txid/app run
+smoke:embed`) and carries the `widget` label.
 
 ## packages/layerzero
 
