@@ -58,6 +58,7 @@ import {
   getSuiRecentTransactions,
   SUI_ERRMAPS,
 } from "@txid/sui"
+import { getNearTransaction, getNearWalletBalance, isNearChain, isNearTxHash, NearLookupUnavailableError } from "@txid/near"
 import {
   isStellarChain,
   getStellarTransaction,
@@ -432,6 +433,7 @@ export async function executeTool(
   const aptos = wallet ? isAptosChain(wallet.chainId) : false
   const sui = wallet ? isSuiChain(wallet.chainId) : false
   const stellar = wallet ? isStellarChain(wallet.chainId) : false
+  const near = wallet ? isNearChain(wallet.chainId) : false
   const hyperliquid = wallet ? isHyperliquidChain(wallet.chainId) : false
 
   switch (name) {
@@ -502,6 +504,33 @@ export async function executeTool(
       if (!wallet) throw new Error("Wallet not connected")
       if (solana) {
         return getSolanaWalletBalance(wallet.address)
+      }
+      if (near) {
+        try {
+          const b = await getNearWalletBalance(wallet.address)
+          return {
+            account: wallet.address,
+            near: b.near,
+            // The number the user can actually send. NEAR charges an account
+            // for the state it keeps, so part of a balance is not spendable
+            // without deleting data, and "why can't I send all of it" is the
+            // question that follows. A null here means NOT COMPUTED.
+            spendableNear: b.spendableNear,
+            storageBytes: b.storageBytes,
+            tokens: b.tokens,
+            ...(b.tokensUnavailable
+              ? { tokensNote: "The fungible-token list could not be read, so the tokens array is empty BECAUSE WE DID NOT LOOK. Do NOT say this account holds no tokens.", lookupFailed: true }
+              : {}),
+            note: b.spendableNear === null
+              ? "spendableNear could not be computed, so do not state how much of this balance can be sent."
+              : "NEAR amounts are in NEAR, already converted from yoctoNEAR. spendableNear is the balance minus what the account stakes for its own storage; the difference cannot be sent without deleting data. Token amounts are RAW integers and their decimals live on each token's own contract, so do not convert them yourself.",
+          }
+        } catch (e) {
+          if (e instanceof NearLookupUnavailableError) {
+            return { lookupFailed: true, error: `Could not read this NEAR account (${e.message}). Do NOT say the account is empty or does not exist: this lookup did not complete.` }
+          }
+          throw e
+        }
       }
       if (hyperliquid) {
         const r = await getHyperliquidAccount(wallet.address)
@@ -597,6 +626,22 @@ export async function executeTool(
 
       if (solana) {
         return getSolanaRecentTransactions(wallet.address, programOrContract, limit)
+      }
+      if (near) {
+        // NEAR's JSON-RPC HAS NO ACCOUNT-HISTORY ENDPOINT AT ALL. Listing an
+        // account's past transactions needs a separate indexer, and no keyless
+        // one answered reliably when this was built (NearBlocks timed out on
+        // every attempt on 2026-09-08).
+        //
+        // That is a fact about what we can reach, NOT a finding about the
+        // account, so it says so rather than returning an empty list. An empty
+        // list here would read as "this account has never done anything",
+        // which is the bug this codebase exists to refuse.
+        return {
+          account: wallet.address,
+          unsupported: true,
+          note: "Transaction history is NOT AVAILABLE for NEAR here: NEAR's RPC has no endpoint that lists an account's past transactions, and it needs an indexer we do not currently reach. Do NOT say this account has no transactions or has never been used. Say that you cannot list its history, and ask for a specific transaction hash instead, which CAN be looked up.",
+        }
       }
       if (hyperliquid) {
         // ORDERS, not fills, are the answer to "why did nothing happen": a
@@ -847,6 +892,32 @@ export async function executeTool(
           return { hash: stellarHash, chainId: "stellar", status: "not_found", note: "Horizon looked and has no transaction with this hash. That is an answer from Horizon, not a failed lookup: either the hash is wrong, or the transaction was never submitted. Note that a Stellar transaction which expired past its time bound leaves NO record at all, so a wallet can show a hash for something the ledger never saw." }
         }
         return { chainId: "stellar", ...r.value }
+      }
+
+      // A NEAR TRANSACTION HASH IS BASE58 AND 43 TO 44 CHARACTERS, WHICH IS
+      // EXACTLY A SUI DIGEST. The shape can never tell them apart, so this is
+      // gated on NEAR being in play and sits before the Sui arm; a project is
+      // not on both chains at once. Same rule as the Stellar and Aptos arms.
+      const nearInPlay =
+        isNearChain(providedChain ?? "") ||
+        isNearChain(wallet?.chainId ?? "") ||
+        watchedContracts.some(c => isNearChain(c.chain))
+      if (isNearTxHash(hash) && nearInPlay) {
+        try {
+          // The signer is passed when we have it. NEAR's docs require it and the
+          // node does not currently enforce it, but a user pasting a hash has no
+          // idea what it is, so the lookup must work without one.
+          const tx = await getNearTransaction(hash, wallet?.address)
+          if (!tx) {
+            return { hash, chainId: "near", status: "not_found", note: "An archival NEAR node looked and has no transaction with this hash. That is an answer, not a failed lookup: either the hash is wrong or the transaction was never submitted." }
+          }
+          return { chainId: "near", ...tx }
+        } catch (e) {
+          if (e instanceof NearLookupUnavailableError) {
+            return { hash, chainId: "near", status: "lookup_failed", lookupFailed: true, note: `Could not read NEAR (${e.message}). Do NOT tell the user this transaction does not exist or that nothing happened: this lookup did not complete.` }
+          }
+          throw e
+        }
       }
 
       const suiInPlay =

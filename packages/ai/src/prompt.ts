@@ -21,6 +21,7 @@ const CHAIN_NAMES: Record<string, string> = {
   "solana":   "Solana",
   "sui":      "Sui",
   "stellar":  "Stellar",
+  "near":     "NEAR",
   "hyperliquid": "Hyperliquid",
   "aptos":    "Aptos",
   // decimal string variants

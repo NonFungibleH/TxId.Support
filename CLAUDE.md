@@ -733,6 +733,95 @@ wallet happens to be on. `evmConnectChainId()` in `WidgetApp.tsx` is the one
 place that override lives; passing the wallet's chain through would send every
 read to the wrong place. Same for a pasted address on a Hyperliquid project.
 
+## packages/near
+
+Source: `packages/near/src/`. Chain id string: `"near"`. WASM runtime, Rust
+contracts, receipts model. Keyless.
+
+### Why it was built: NEAR tells you WHY, in English
+Every other chain we read makes us work backwards from a number: a Solidity
+selector, a Move abort code, a signed XDR result, a bare Anchor `u32`. **A NEAR
+contract panics with its own message and the runtime carries it verbatim.**
+
+Census 2026-09-08, 149 mainnet transactions: **40 failed, 26.8%**, the highest
+rate of any chain we have measured, across 13 distinct failing signers of 29.
+Every single failure arrived as ONE shape,
+`ActionError/FunctionCallError/ExecutionError`.
+
+    21  v2.ref-finance.near   "panicked at 'E68: slippage error', ref-exchange/src/simple_pool.rs:313:9"
+    16  game.hot.tg           "panicked at game_contract/src/lib.rs:439:9:\nMax supply reached"
+     3  intents.near          "invalid intent" / "insufficient balance or overflow"
+
+**52% of all failures are one thing: Ref Finance E68**, the same concentration
+Stellar has with path-payment slippage.
+
+### So what is left for us to do? Two things, and they are the whole package
+1. **Strip the Rust panic machinery.** A user must never see
+   `ref-exchange/src/simple_pool.rs:313:9`. It is the contract author's file
+   layout, it reads as an internal error rather than something they did, and it
+   is the part most likely to make somebody think the protocol is broken when
+   their swap simply moved on price. Rust changed its panic format at 1.72 and
+   near-sdk adds its own prefix, so **the same failure arrives in three shapes**
+   and `stripPanic` holds three patterns. All three were observed in one window.
+2. **Translate the code.** `E68` means nothing to somebody whose swap did not go
+   through.
+
+**THE HONEST FLOOR IS HIGHER HERE THAN ON ANY OTHER CHAIN.** An unmapped failure
+still quotes the contract's own sentence rather than printing a number, so a user
+gets "Max supply reached" even where we hold no entry. Verified live through
+`executeTool`.
+
+### The error map's provenance is WEAKER than Sui's, and says so
+DeepBook's map was harvested mechanically from Mysten's published Move source
+with a drift test. **Ref Finance's contracts need a GitHub token**, so
+`errmap.ts` is built from failures OBSERVED LIVE plus what the message itself
+states. Every key was seen returned; nothing is extrapolated from a code's
+neighbours. Keyed by CONTRACT ACCOUNT, because `E68` is Ref's and means nothing
+elsewhere: applying one protocol's codes to another is tested against.
+
+### Retention: the Solana finding, on a different chain
+`rpc.mainnet.near.org` and `free.rpc.fastnear.com` both served 50,000 blocks back
+and answered **UNKNOWN_BLOCK at 200,000**, roughly two days.
+`archival-rpc.mainnet.near.org` served **5,000,000** blocks back, keyless. So a
+pruning node's "I do not have that" is the same response as "that never
+existed". `rpc.ts` puts archival FIRST, and a miss from a list containing no
+archival node is `unavailable`, never a finding. `UNKNOWN_BLOCK` is always
+unavailable; `UNKNOWN_TRANSACTION` and `UNKNOWN_ACCOUNT` are findings.
+
+### Three facts that shape every read
+- **NEAR HAS NO ACCOUNT-HISTORY ENDPOINT.** Not a gap in our code, a fact about
+  the RPC: listing an account's past transactions needs a separate indexer, and
+  no keyless one answered reliably (NearBlocks timed out on every attempt). So
+  `get_recent_transactions` returns `unsupported: true` and NO list. An empty
+  list would read as "this account has never been used".
+- **Storage staking is Stellar's reserve in a different costume.** NEAR charges
+  an account for the state it keeps, so part of a balance cannot be sent.
+  Measured live: `v2.ref-finance.near` holds 31,090 NEAR of which **1,044 is
+  locked** against 104MB of state. `spendableNear: null` means NOT COMPUTED,
+  never zero and never "all of it". `storage_amount_per_byte` is read from the
+  protocol config at runtime, not hardcoded (1e19 as of 2026-09-08).
+- **There is no global fungible-token index.** A balance lives inside each FT
+  contract as `ft_balance_of`, so listing holdings means already knowing which
+  contracts to ask. FastNEAR keeps that index keylessly and is the only reason
+  the list exists. When it fails, `tokensUnavailable` says the list is empty
+  BECAUSE WE DID NOT LOOK.
+
+### Routing: two collisions, and a gift
+**A NEAR transaction hash is base58 and 43 to 44 characters, which is EXACTLY a
+Sui digest.** The shape can never tell them apart, so the arm is gated on NEAR
+being in play and sits before the Sui one. Same rule as Stellar and Aptos.
+
+**An EVM address is a structurally VALID NEAR account name**: `0x` plus hex is
+lowercase alphanumerics, exactly what NEAR permits. `isNearAccount` says yes,
+correctly, and must not be bent. `looksLikeForeignAddress` answers the different
+question ("did the user paste the wrong thing") so a MetaMask address in a NEAR
+project is refused at the box rather than after a round trip.
+
+The gift: **NEAR account ids are human-readable names** (`alice.near`), so the
+paste path is the natural one here rather than a fallback, and the widget's
+confirmation message is chain-specific because the usual "I can look up its
+balance and transactions" would promise history NEAR cannot give.
+
 ## packages/layerzero
 
 Source: `packages/layerzero/src/`. **Not a chain, a message layer**, so it has no

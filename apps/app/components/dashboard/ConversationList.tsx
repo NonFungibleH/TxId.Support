@@ -57,6 +57,7 @@ const CHAIN_NAMES: Record<string, string> = {
   "sui":   "Sui",
   "solana": "Solana",
   "stellar": "Stellar",
+  "near": "NEAR",
   "hyperliquid": "Hyperliquid",
   "0xaa36a7": "Sepolia (Testnet)",
 }

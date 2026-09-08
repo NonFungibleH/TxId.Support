@@ -1,3 +1,4 @@
+import { isNearAccount } from "@txid/near"
 import { isStellarAccount } from "@txid/stellar"
 import { waitUntil } from "@vercel/functions"
 import { originAllowed } from "@/lib/origin-guard"
@@ -228,7 +229,8 @@ export async function POST(request: Request) {
       // rather than pattern-matched: a one-character typo in a 56-character
       // strkey still looks exactly like an address, and accepting one means
       // answering about an account that was never the user's.
-      (chainId === "stellar" && isStellarAccount(walletAddress))
+      (chainId === "stellar" && isStellarAccount(walletAddress)) ||
+      (chainId === "near" && isNearAccount(walletAddress))
     if (!validWalletFormat) {
       return new Response(JSON.stringify({ error: "Invalid wallet address" }), {
         status: 400,

@@ -1,0 +1,113 @@
+import { NearLookupUnavailableError } from "./lookup"
+
+/**
+ * NEAR JSON-RPC, archival first.
+ *
+ * THE RETENTION RULE IS THE LOAD-BEARING PART, and it is the Solana finding
+ * again on a different chain. Measured 2026-09-08 against the same block
+ * heights: `rpc.mainnet.near.org` and `free.rpc.fastnear.com` both serve 50,000
+ * blocks back and answer UNKNOWN_BLOCK at 200,000, roughly two days of history.
+ * `archival-rpc.mainnet.near.org` served 5,000,000 blocks back, keyless.
+ *
+ * So a standard node's "I do not have that" is indistinguishable from "that
+ * never existed", and the user it reaches is the one asking about a
+ * transaction from last month. Every read prefers archival, and an
+ * UNKNOWN_BLOCK or UNKNOWN_TRANSACTION from a node we have not established as
+ * archival is `unavailable`, never a finding.
+ */
+const ARCHIVAL = "https://archival-rpc.mainnet.near.org"
+const STANDARD = ["https://free.rpc.fastnear.com", "https://rpc.mainnet.near.org"]
+
+/** `NEAR_RPC_URLS`, JSON array or comma-separated. Archival endpoints first. */
+export function endpoints(): string[] {
+  const raw = process.env.NEAR_RPC_URLS?.trim()
+  if (raw) {
+    try {
+      const parsed: unknown = JSON.parse(raw)
+      if (Array.isArray(parsed)) {
+        const urls = parsed.filter((u): u is string => typeof u === "string" && u.startsWith("http"))
+        if (urls.length) return urls
+      }
+    } catch {
+      // Not JSON; fall through to the comma-separated form.
+    }
+    const urls = raw.split(",").map(s => s.trim()).filter(u => u.startsWith("http"))
+    if (urls.length) return urls
+  }
+  // Archival leads: it answers everything the standard nodes do, and more.
+  return [ARCHIVAL, ...STANDARD]
+}
+
+interface RpcOk<T> { kind: "ok"; value: T }
+interface RpcMissing { kind: "missing"; name: string }
+interface RpcUnavailable { kind: "unavailable"; reason: string }
+export type RpcResult<T> = RpcOk<T> | RpcMissing | RpcUnavailable
+
+/**
+ * NEAR reports a genuine miss as a JSON-RPC error with a CAUSE NAME, which is
+ * what makes the three states separable at all: UNKNOWN_TRANSACTION and
+ * UNKNOWN_ACCOUNT are findings, TIMEOUT_ERROR and UNKNOWN_BLOCK are not.
+ *
+ * UNKNOWN_BLOCK sits on the unavailable side deliberately. On a pruning node it
+ * means "outside what I keep", and there is no way to tell that from a height
+ * that never existed without knowing the node's retention.
+ */
+const MISSING_CAUSES = new Set(["UNKNOWN_TRANSACTION", "UNKNOWN_ACCOUNT", "UNKNOWN_RECEIPT", "UNKNOWN_ACCESS_KEY"])
+
+export async function nearRpc<T>(method: string, params: unknown, timeoutMs = 15000): Promise<RpcResult<T>> {
+  let lastReason = "no NEAR endpoint is configured"
+  let missing: RpcMissing | null = null
+
+  for (const url of endpoints()) {
+    try {
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ jsonrpc: "2.0", id: "txid", method, params }),
+        signal: AbortSignal.timeout(timeoutMs),
+      })
+      if (!res.ok) { lastReason = `a NEAR node returned ${res.status}`; continue }
+      let body: { result?: T; error?: { cause?: { name?: string }; name?: string; message?: string } }
+      try {
+        body = (await res.json()) as typeof body
+      } catch {
+        lastReason = "a NEAR node returned unreadable JSON"
+        continue
+      }
+      if (body.error) {
+        const cause = body.error.cause?.name ?? body.error.name ?? ""
+        if (MISSING_CAUSES.has(cause)) {
+          // A definite miss. Remember it, but keep trying the other endpoints:
+          // a node that has pruned the record can report the same thing.
+          missing = { kind: "missing", name: cause }
+          continue
+        }
+        lastReason = `a NEAR node declined the request: ${cause || body.error.message || "no reason given"}`
+        continue
+      }
+      if (body.result === undefined || body.result === null) { lastReason = "a NEAR node returned no result"; continue }
+      return { kind: "ok", value: body.result }
+    } catch (e) {
+      lastReason = e instanceof Error && e.name === "TimeoutError"
+        ? "a NEAR node did not respond in time"
+        : "a NEAR node could not be reached"
+    }
+  }
+
+  // A miss is only a FINDING if it came from a node that keeps the whole chain.
+  // Otherwise it is "not in the part I hold", which is a different sentence.
+  if (missing && endpoints().some(u => u === ARCHIVAL)) return missing
+  if (missing) {
+    return {
+      kind: "unavailable",
+      reason: "the NEAR nodes reached keep only recent history, so a missing record cannot be reported as one that never existed",
+    }
+  }
+  return { kind: "unavailable", reason: lastReason }
+}
+
+/** Throws on unavailable, so callers that cannot express the third state stay honest. */
+export function unwrapNear<T>(r: RpcResult<T>): T | null {
+  if (r.kind === "unavailable") throw new NearLookupUnavailableError(r.reason)
+  return r.kind === "missing" ? null : r.value
+}

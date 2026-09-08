@@ -1,5 +1,6 @@
 "use client"
 
+import { isNearAccount, looksLikeForeignAddress } from "@txid/near"
 import { isStellarAccount } from "@txid/stellar"
 import { useState, useEffect, useRef, useCallback } from "react"
 import { useSearchParams } from "next/navigation"
@@ -350,7 +351,10 @@ function isValidWalletFormat(addr: string, chainId?: string | null): boolean {
     // with the route", and a comment is not a mechanism: sharing the
     // implementation is. A widget that accepts what the route rejects 400s
     // every message while the connect UI is hidden, which bricks the panel.
-    (chainId === "stellar" && isStellarAccount(addr))
+    (chainId === "stellar" && isStellarAccount(addr)) ||
+    // NEAR account ids are NAMES, not hex, so nothing else can be mistaken for
+    // one. Shared with the route for the same reason Stellar is.
+    (chainId === "near" && isNearAccount(addr))
   )
 }
 
@@ -897,8 +901,9 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
   const isAptosProject = (config?.chains ?? []).includes("aptos")
   const isSuiProject = (config?.chains ?? []).includes("sui")
   const isStellarProject = (config?.chains ?? []).includes("stellar")
+  const isNearProject = (config?.chains ?? []).includes("near")
   const isHyperliquidProject = (config?.chains ?? []).includes("hyperliquid")
-  const NON_EVM_CHAINS = ["solana", "aptos", "sui", "stellar", "hyperliquid"]
+  const NON_EVM_CHAINS = ["solana", "aptos", "sui", "stellar", "hyperliquid", "near"]
   const hasEvmChain = (config?.chains ?? []).some((c) => !NON_EVM_CHAINS.includes(c))
 
   // Wallet setup flow: prompt → (connected | manual | skipped)
@@ -1250,7 +1255,13 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
     // Stellar is the one CHECKSUMMED address here, so a typo is caught at the
     // box rather than becoming an answer about somebody else's account.
     const isStellarAddr = isStellarProject && isStellarAccount(addr)
-    if (!isEvmAddr && !isMoveAddr && !isStellarAddr) {
+    // A NEAR account id is a NAME the user actually knows ("alice.near"), which
+    // makes pasting the natural path here rather than a fallback. But an EVM
+    // address is ALSO a structurally valid NEAR name, so a wallet address
+    // pasted into a NEAR project is refused at the box instead of becoming a
+    // lookup for an account that was never theirs.
+    const isNearAddr = isNearProject && isNearAccount(addr) && !looksLikeForeignAddress(addr)
+    if (!isEvmAddr && !isMoveAddr && !isStellarAddr && !isNearAddr) {
       setManualError(true)
       return
     }
@@ -1259,14 +1270,16 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
     // unambiguously one of the Move chains.
     const evmCid = (config?.chains ?? []).find((c) => !NON_EVM_CHAINS.includes(c))
     const moveCid = isAptosProject ? "aptos" : isSuiProject ? "sui" : "aptos"
-    const cid = isStellarAddr
-      ? "stellar"
-      : isEvmAddr
-        // A Hyperliquid project takes a plain EVM address and reads HyperCore
-        // with it, so the pasted address is tagged "hyperliquid" rather than
-        // given an EVM chain it was never about.
-        ? (isHyperliquidProject && !evmCid ? "hyperliquid" : (evmCid ?? (isAptosProject || isSuiProject ? moveCid : "0x1")))
-        : moveCid
+    const cid = isNearAddr
+      ? "near"
+      : isStellarAddr
+        ? "stellar"
+        : isEvmAddr
+          // A Hyperliquid project takes a plain EVM address and reads HyperCore
+          // with it, so the pasted address is tagged "hyperliquid" rather than
+          // given an EVM chain it was never about.
+          ? (isHyperliquidProject && !evmCid ? "hyperliquid" : (evmCid ?? (isAptosProject || isSuiProject ? moveCid : "0x1")))
+          : moveCid
     setWalletAddress(addr)
     setChainId(cid)
     setWalletSetup("manual")
@@ -1274,7 +1287,12 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
     setMessages((prev) => [...prev, {
       id: nanoid(),
       role: "assistant",
-      content: `Using ${shortAddr(addr)}. I can look up its balance and transactions now.`,
+      // NEAR HAS NO ACCOUNT-HISTORY ENDPOINT, so the usual sentence would
+      // promise something the next question cannot deliver. Offer what is
+      // actually there: the balance, and any transaction hash they have.
+      content: cid === "near"
+        ? `Using ${shortAddr(addr)}. I can look up its balance now, and diagnose any transaction if you paste its hash.`
+        : `Using ${shortAddr(addr)}. I can look up its balance and transactions now.`,
       local: true,
     }])
     setManualOpen(false)
@@ -1282,7 +1300,7 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
     setManualError(false)
     setTab("chat")
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [manualValue, config, apiKey, isAptosProject, isSuiProject, isStellarProject, isHyperliquidProject])
+  }, [manualValue, config, apiKey, isAptosProject, isSuiProject, isStellarProject, isHyperliquidProject, isNearProject])
 
   // ── Connect wallet ───────────────────────────────────────────────────────
   // ── Embedded wallet bridge ─────────────────────────────────────────────────
@@ -1401,7 +1419,7 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
    */
   const aptosProviderAvailable = hasAptosWallet || (isEmbedded && !!bridgeWallet?.aptos)
   const evmProviderAvailable = hasMetaMask || (isEmbedded && !!bridgeWallet?.evm)
-  const walletTarget: "solana" | "aptos" | "sui" | "stellar" | "hyperliquid" | "evm" = isSolanaProject
+  const walletTarget: "solana" | "aptos" | "sui" | "stellar" | "hyperliquid" | "near" | "evm" = isSolanaProject
     ? "solana"
     : isAptosProject
       ? "aptos"
@@ -1411,7 +1429,9 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
           ? "stellar"
           : isHyperliquidProject
             ? "hyperliquid"
-            : "evm"
+            : isNearProject
+              ? "near"
+              : "evm"
 
   /**
    * HYPERLIQUID CONNECTS LIKE EVM AND IS NOT AN EVM CHAIN.

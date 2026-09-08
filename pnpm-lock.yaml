@@ -59,6 +59,9 @@ importers:
       '@txid/blockchain':
         specifier: workspace:*
         version: link:../../packages/blockchain
+      '@txid/near':
+        specifier: workspace:*
+        version: link:../../packages/near
       '@txid/solana':
         specifier: workspace:*
         version: link:../../packages/solana
@@ -269,6 +272,9 @@ importers:
       '@txid/layerzero':
         specifier: workspace:*
         version: link:../layerzero
+      '@txid/near':
+        specifier: workspace:*
+        version: link:../near
       '@txid/solana':
         specifier: workspace:*
         version: link:../solana
@@ -338,6 +344,19 @@ importers:
         version: 2.1.9(@types/node@20.19.37)(msw@2.12.14(@types/node@20.19.37)(typescript@5.9.3))
 
   packages/layerzero:
+    devDependencies:
+      typescript:
+        specifier: ^5.4.0
+        version: 5.9.3
+      vitest:
+        specifier: ^2
+        version: 2.1.9(@types/node@20.19.37)(msw@2.12.14(@types/node@20.19.37)(typescript@5.9.3))
+
+  packages/near:
+    dependencies:
+      '@txid/shared':
+        specifier: workspace:*
+        version: link:../shared
     devDependencies:
       typescript:
         specifier: ^5.4.0
