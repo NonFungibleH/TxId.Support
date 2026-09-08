@@ -21,6 +21,526 @@ export interface ChainError {
 
 export const CHAIN_ERRORS: ChainError[] = [
   {
+    "slug": "aptos-aptos-governance-ealready-voted",
+    "message": "EALREADY_VOTED",
+    "chain": "aptos",
+    "scope": "aptos_governance",
+    "code": 2,
+    "meaning": "This wallet has already voted on this proposal, and each wallet can vote only once. No action is needed."
+  },
+  {
+    "slug": "aptos-aptos-governance-elock-has-not-expired",
+    "message": "ELOCK_HAS_NOT_EXPIRED",
+    "chain": "aptos",
+    "scope": "aptos_governance",
+    "code": 3,
+    "meaning": "Your governance lock has not expired yet, so the tokens cannot be unlocked. Wait until the lock period ends and try again."
+  },
+  {
+    "slug": "aptos-aptos-governance-eno-tokens-locked",
+    "message": "ENO_TOKENS_LOCKED",
+    "chain": "aptos",
+    "scope": "aptos_governance",
+    "code": 1,
+    "meaning": "This wallet has no tokens locked for Amnis governance, so there is nothing to vote with or unlock. Lock tokens first."
+  },
+  {
+    "slug": "aptos-async-matching-engine-einvalid-stop-price",
+    "message": "EINVALID_STOP_PRICE",
+    "chain": "aptos",
+    "scope": "async_matching_engine",
+    "code": 4,
+    "meaning": "The stop/trigger price on this order is invalid for the current market price, for example a stop that would trigger immediately or on the wrong side. Check the trigger side and price against the market and retry."
+  },
+  {
+    "slug": "aptos-async-matching-engine-einvalid-tp-sl-for-reduce-only",
+    "message": "EINVALID_TP_SL_FOR_REDUCE_ONLY",
+    "chain": "aptos",
+    "scope": "async_matching_engine",
+    "code": 2,
+    "meaning": "A take-profit/stop-loss cannot be attached to a reduce-only order. Place the reduce-only order without TP/SL, or set the TP/SL on the position itself."
+  },
+  {
+    "slug": "aptos-async-matching-engine-einvalid-tp-sl-with-trigger-condition",
+    "message": "EINVALID_TP_SL_WITH_TRIGGER_CONDITION",
+    "chain": "aptos",
+    "scope": "async_matching_engine",
+    "code": 3,
+    "meaning": "A take-profit/stop-loss cannot be combined with a stop/trigger price on the same order. Place the triggered order first, then set TP/SL on the resulting position."
+  },
+  {
+    "slug": "aptos-builder-code-registry-ebuilder-not-registered",
+    "message": "EBUILDER_NOT_REGISTERED",
+    "chain": "aptos",
+    "scope": "builder_code_registry",
+    "code": 2,
+    "meaning": "The builder code attached to this order is not registered with Decibel. This is an integration issue with the app that routed your order, not your account; report it to that app's team or trade from the official interface."
+  },
+  {
+    "slug": "aptos-builder-code-registry-einvalid-amount",
+    "message": "EINVALID_AMOUNT",
+    "chain": "aptos",
+    "scope": "builder_code_registry",
+    "code": 1,
+    "meaning": "The builder fee on this order is zero or negative, which is not valid. This comes from the app that routed your order; retry from the official interface or report it to that app's team."
+  },
+  {
+    "slug": "aptos-builder-code-registry-einvalid-max-fee",
+    "message": "EINVALID_MAX_FEE",
+    "chain": "aptos",
+    "scope": "builder_code_registry",
+    "code": 4,
+    "meaning": "The builder fee on this order exceeds the maximum fee you approved for that app. Review the app's fee settings, or approve a higher maximum builder fee if you trust it."
+  },
+  {
+    "slug": "aptos-bulk-order-utils-eprice-crossing",
+    "message": "EPRICE_CROSSING",
+    "chain": "aptos",
+    "scope": "bulk_order_utils",
+    "code": 1,
+    "meaning": "The bulk order was rejected because its buy and sell prices cross each other: at least one bid was priced at or above one of the asks in the same submission, which would have the order trade against itself. Nothing was placed and only gas was spent. Adjust the ladder so every bid sits strictly below every ask, then resubmit. If you are using automatic repricing, the quotes most likely moved between building the order and submitting it, so rebuild from a fresh mid price."
+  },
+  {
+    "slug": "aptos-clearinghouse-perp-einvalid-argument",
+    "message": "EINVALID_ARGUMENT",
+    "chain": "aptos",
+    "scope": "clearinghouse_perp",
+    "code": 1,
+    "meaning": "An argument in this order was invalid (for bulk orders this usually means the price and size lists do not line up). Rebuild the order in the app and retry; if it keeps happening, report it to the team."
+  },
+  {
+    "slug": "aptos-clearinghouse-perp-einvalid-price-is-too-large",
+    "message": "EINVALID_PRICE_IS_TOO_LARGE",
+    "chain": "aptos",
+    "scope": "clearinghouse_perp",
+    "code": 5,
+    "meaning": "The order price is larger than the exchange can process. Check the price for typos and retry."
+  },
+  {
+    "slug": "aptos-clearinghouse-perp-einvalid-price-is-zero",
+    "message": "EINVALID_PRICE_IS_ZERO",
+    "chain": "aptos",
+    "scope": "clearinghouse_perp",
+    "code": 4,
+    "meaning": "The order price worked out to zero, which is not a valid price. Check the price and retry."
+  },
+  {
+    "slug": "aptos-clearinghouse-perp-einvalid-size-is-too-large",
+    "message": "EINVALID_SIZE_IS_TOO_LARGE",
+    "chain": "aptos",
+    "scope": "clearinghouse_perp",
+    "code": 3,
+    "meaning": "The order size is larger than the exchange can process. Reduce the size and retry."
+  },
+  {
+    "slug": "aptos-clearinghouse-perp-einvalid-size-is-zero",
+    "message": "EINVALID_SIZE_IS_ZERO",
+    "chain": "aptos",
+    "scope": "clearinghouse_perp",
+    "code": 2,
+    "meaning": "The order or settlement size worked out to zero, so there was nothing to execute. Check the size and retry."
+  },
+  {
+    "slug": "aptos-clearinghouse-perp-enot-reduce-only",
+    "message": "ENOT_REDUCE_ONLY",
+    "chain": "aptos",
+    "scope": "clearinghouse_perp",
+    "code": 8,
+    "meaning": "The order was marked reduce-only but would have increased your position instead of reducing it. A reduce-only order can only close or shrink an open position: check the order's side and size against your current position."
+  },
+  {
+    "slug": "aptos-clearinghouse-perp-eself-trade-not-allowed",
+    "message": "ESELF_TRADE_NOT_ALLOWED",
+    "chain": "aptos",
+    "scope": "clearinghouse_perp",
+    "code": 7,
+    "meaning": "The order would have matched against your own resting order on the other side of the book, which Decibel does not allow. Cancel the opposing order first, or adjust the price so it does not cross your own quote."
+  },
+  {
+    "slug": "aptos-delegation-manager-estake-pool-does-not-exist",
+    "message": "ESTAKE_POOL_DOES_NOT_EXIST",
+    "chain": "aptos",
+    "scope": "delegation_manager",
+    "code": 1,
+    "meaning": "The stake pool this operation targets does not exist. This is a protocol configuration issue rather than a user mistake; if you hit this from the Amnis app, report it to the team."
+  },
+  {
+    "slug": "aptos-delegation-manager-estake-pool-not-whitelisted",
+    "message": "ESTAKE_POOL_NOT_WHITELISTED",
+    "chain": "aptos",
+    "scope": "delegation_manager",
+    "code": 2,
+    "meaning": "The target stake pool is not whitelisted by Amnis. This is a protocol configuration issue rather than a user mistake; if you hit this from the Amnis app, report it to the team."
+  },
+  {
+    "slug": "aptos-delegation-manager-eunstake-amount-too-large",
+    "message": "EUNSTAKE_AMOUNT_TOO_LARGE",
+    "chain": "aptos",
+    "scope": "delegation_manager",
+    "code": 4,
+    "meaning": "You tried to unstake more than is currently staked for you in this pool. Check your staked balance and retry with a smaller amount."
+  },
+  {
+    "slug": "aptos-dex-accounts-enot-subaccount-owner-or-lacks-perp-trading-permissions",
+    "message": "ENOT_SUBACCOUNT_OWNER_OR_LACKS_PERP_TRADING_PERMISSIONS",
+    "chain": "aptos",
+    "scope": "dex_accounts",
+    "code": 3,
+    "meaning": "The signing wallet does not own this subaccount and has not been granted trading permission on it. Switch to the wallet that owns the subaccount, or have the owner grant this wallet trading permissions, then retry."
+  },
+  {
+    "slug": "aptos-dex-accounts-esubaccount-is-not-active",
+    "message": "ESUBACCOUNT_IS_NOT_ACTIVE",
+    "chain": "aptos",
+    "scope": "dex_accounts",
+    "code": 8,
+    "meaning": "This subaccount is not active, so it cannot place or cancel orders. In the app, check which subaccount you are trading from and switch to an active one."
+  },
+  {
+    "slug": "aptos-order-placement-utils-einvalid-match-count",
+    "message": "EINVALID_MATCH_COUNT",
+    "chain": "aptos",
+    "scope": "order_placement_utils",
+    "code": 1,
+    "meaning": "The order failed an internal match-count check in the matching engine. This is a protocol-side condition rather than something you did wrong. Retry the order; if it keeps failing, report it to the team."
+  },
+  {
+    "slug": "aptos-pending-order-tracker-e-invalid-reduce-only-order",
+    "message": "E_INVALID_REDUCE_ONLY_ORDER",
+    "chain": "aptos",
+    "scope": "pending_order_tracker",
+    "code": 5,
+    "meaning": "The reduce-only order is invalid against your current position, usually because the position is already closed or smaller than the order size. Refresh the position and adjust the order."
+  },
+  {
+    "slug": "aptos-pending-order-tracker-e-market-not-found",
+    "message": "E_MARKET_NOT_FOUND",
+    "chain": "aptos",
+    "scope": "pending_order_tracker",
+    "code": 2,
+    "meaning": "The cancel request referenced a market where this subaccount has no pending orders. The order may have already filled or been cancelled: refresh your open orders before retrying."
+  },
+  {
+    "slug": "aptos-pending-order-tracker-einvalid-tp-sl-size",
+    "message": "EINVALID_TP_SL_SIZE",
+    "chain": "aptos",
+    "scope": "pending_order_tracker",
+    "code": 10,
+    "meaning": "The take-profit/stop-loss size is invalid for the position (zero, or larger than the position). Adjust the TP/SL size to at most the open position size."
+  },
+  {
+    "slug": "aptos-pending-order-tracker-emax-fixed-sized-pending-reqs-hit",
+    "message": "EMAX_FIXED_SIZED_PENDING_REQS_HIT",
+    "chain": "aptos",
+    "scope": "pending_order_tracker",
+    "code": 8,
+    "meaning": "This subaccount already has the maximum number of pending requests, so new ones are rejected until some settle or are cancelled. Cancel pending orders you no longer need, or wait a moment for the queue to clear."
+  },
+  {
+    "slug": "aptos-perp-engine-emarket-halted",
+    "message": "EMARKET_HALTED",
+    "chain": "aptos",
+    "scope": "perp_engine",
+    "code": 4,
+    "meaning": "This market is currently halted, so orders cannot be placed or cancelled right now. This is an exchange-side pause, not a problem with your account or funds. Wait for trading to resume and retry."
+  },
+  {
+    "slug": "aptos-perp-market-config-einvalid-price",
+    "message": "EINVALID_PRICE",
+    "chain": "aptos",
+    "scope": "perp_market_config",
+    "code": 10,
+    "meaning": "The order price is zero or invalid for this market. Enter a valid price and retry."
+  },
+  {
+    "slug": "aptos-perp-market-config-eorder-size-too-large",
+    "message": "EORDER_SIZE_TOO_LARGE",
+    "chain": "aptos",
+    "scope": "perp_market_config",
+    "code": 12,
+    "meaning": "The order's notional value (price multiplied by size) is larger than this market allows. Reduce the order size and retry."
+  },
+  {
+    "slug": "aptos-perp-market-config-eprice-not-respecting-ticker-size",
+    "message": "EPRICE_NOT_RESPECTING_TICKER_SIZE",
+    "chain": "aptos",
+    "scope": "perp_market_config",
+    "code": 6,
+    "meaning": "The limit price is not a multiple of this market's tick size, so the order was rejected. Round the price to the nearest valid tick and retry."
+  },
+  {
+    "slug": "aptos-perp-market-config-eprice-sizes-length-mismatch",
+    "message": "EPRICE_SIZES_LENGTH_MISMATCH",
+    "chain": "aptos",
+    "scope": "perp_market_config",
+    "code": 13,
+    "meaning": "The bulk order's price list and size list have different lengths. This is an integration bug in the client that built the order, not a user mistake; report it to the team behind that client."
+  },
+  {
+    "slug": "aptos-perp-market-config-esize-not-respecting-min-size",
+    "message": "ESIZE_NOT_RESPECTING_MIN_SIZE",
+    "chain": "aptos",
+    "scope": "perp_market_config",
+    "code": 4,
+    "meaning": "The order size is below this market's minimum order size. Increase the size to at least the market minimum and retry."
+  },
+  {
+    "slug": "aptos-position-tp-sl-einvalid-tp-sl-order-id",
+    "message": "EINVALID_TP_SL_ORDER_ID",
+    "chain": "aptos",
+    "scope": "position_tp_sl",
+    "code": 65552,
+    "meaning": "The take-profit/stop-loss order id in this request does not match any live TP/SL order on the position. The order was most likely already triggered or cancelled, or it belongs to a different position. Refresh the position in the app and check its active TP/SL orders; if the order is gone from the list, there is nothing left to cancel."
+  },
+  {
+    "slug": "aptos-router-e-input-more-than-max",
+    "message": "E_INPUT_MORE_THAN_MAX",
+    "chain": "aptos",
+    "scope": "router",
+    "code": 1,
+    "meaning": "The swap stopped because it would have needed more input tokens than the maximum your slippage setting allows. The price moved against you between quoting and signing. Nothing was swapped. Retry, and raise your slippage tolerance slightly if it keeps happening."
+  },
+  {
+    "slug": "aptos-router-e-insufficient-x-amount",
+    "message": "E_INSUFFICIENT_X_AMOUNT",
+    "chain": "aptos",
+    "scope": "router",
+    "code": 2,
+    "meaning": "Adding liquidity failed because the amount of the first token in the pair would have fallen below the minimum you set. The pool's ratio shifted since the quote. Retry the deposit, or loosen the minimum amounts slightly."
+  },
+  {
+    "slug": "aptos-router-e-insufficient-y-amount",
+    "message": "E_INSUFFICIENT_Y_AMOUNT",
+    "chain": "aptos",
+    "scope": "router",
+    "code": 3,
+    "meaning": "Adding liquidity failed because the amount of the second token in the pair would have fallen below the minimum you set. The pool's ratio shifted since the quote. Retry the deposit, or loosen the minimum amounts slightly."
+  },
+  {
+    "slug": "aptos-router-e-output-less-than-min",
+    "message": "E_OUTPUT_LESS_THAN_MIN",
+    "chain": "aptos",
+    "scope": "router",
+    "code": 0,
+    "meaning": "The swap stopped because the amount you would have received fell below the minimum your slippage setting allows. The price moved between quoting and signing. Nothing was swapped and only gas was spent. Retry the swap; if it keeps happening, raise your slippage tolerance slightly or trade a smaller amount."
+  },
+  {
+    "slug": "aptos-router-e-pair-not-created",
+    "message": "E_PAIR_NOT_CREATED",
+    "chain": "aptos",
+    "scope": "router",
+    "code": 4,
+    "meaning": "No liquidity pool exists for this token pair on PancakeSwap, so the trade has no route. Double-check both tokens are the ones you meant. If the pair genuinely has no pool, it cannot be swapped here."
+  },
+  {
+    "slug": "aptos-router-einsufficient-amount",
+    "message": "EINSUFFICIENT_AMOUNT",
+    "chain": "aptos",
+    "scope": "router",
+    "code": 1,
+    "meaning": "The amount is below the minimum Amnis accepts for this operation, so nothing was staked or moved. Increase the amount and retry."
+  },
+  {
+    "slug": "aptos-router-einsufficient-deposit-amount",
+    "message": "EINSUFFICIENT_DEPOSIT_AMOUNT",
+    "chain": "aptos",
+    "scope": "router",
+    "code": 2,
+    "meaning": "The deposit is below the minimum deposit Amnis accepts. Deposit a slightly larger amount of APT and retry."
+  },
+  {
+    "slug": "aptos-single-order-book-eorder-not-found",
+    "message": "EORDER_NOT_FOUND",
+    "chain": "aptos",
+    "scope": "single_order_book",
+    "code": 2,
+    "meaning": "The order id in this request was not on this market's book when the request reached the chain, so there was nothing to act on. This is normal in fast markets, and applies whether the user was cancelling the order or changing its price or size. State that plainly and stop there: the order had already left the book, the transaction aborted so no position or balance was affected, and it cost gas only. Do NOT tell the user to refresh the app to find out. Do NOT say the order was filled, and do NOT say it was cancelled either: this abort proves only that the order was ABSENT, never why, and asserting either one is a claim about the user's position that nothing here establishes. Do not offer a next step you cannot ground. If the user asks what to do now, explain that it turns on whether the original filled or was cancelled, since re-placing an order that already filled would trade a second time, and that this has to be checked before acting."
+  },
+  {
+    "slug": "aptos-spot-order-public-api-einsufficient-pfs-funds",
+    "message": "EINSUFFICIENT_PFS_FUNDS",
+    "chain": "aptos",
+    "scope": "spot_order_public_api",
+    "code": 1,
+    "meaning": "This spot order was rejected because the wallet's available balance is short on one side of the pair: either not enough of the asset being sold, or not enough of the quote asset to buy with. The check runs before anything is placed, so nothing was traded and only gas was spent. Top up the wallet, or reduce the order size, and retry."
+  },
+  {
+    "slug": "aptos-stable-pool-scripts-err-excessive-input",
+    "message": "ERR_EXCESSIVE_INPUT",
+    "chain": "aptos",
+    "scope": "stable_pool_scripts",
+    "code": 2,
+    "meaning": "The swap was cancelled because it would have needed more input tokens than the maximum your slippage setting allows. The pool price moved against you. Nothing was swapped. Retry, and raise your slippage tolerance slightly if it keeps happening."
+  },
+  {
+    "slug": "aptos-stable-pool-scripts-err-insufficient-output",
+    "message": "ERR_INSUFFICIENT_OUTPUT",
+    "chain": "aptos",
+    "scope": "stable_pool_scripts",
+    "code": 1,
+    "meaning": "The swap was cancelled because the amount you would have received fell below the minimum your slippage setting allows. The pool price moved between quoting and signing. Nothing was swapped and only gas was spent. Retry the swap; if it keeps happening, raise your slippage tolerance slightly or trade a smaller amount."
+  },
+  {
+    "slug": "aptos-swap-error-insufficient-amount",
+    "message": "ERROR_INSUFFICIENT_AMOUNT",
+    "chain": "aptos",
+    "scope": "swap",
+    "code": 6,
+    "meaning": "An amount in this operation was zero or too small for the pool to process. Check the amounts you entered and retry with larger values."
+  },
+  {
+    "slug": "aptos-swap-error-insufficient-input-amount",
+    "message": "ERROR_INSUFFICIENT_INPUT_AMOUNT",
+    "chain": "aptos",
+    "scope": "swap",
+    "code": 14,
+    "meaning": "The swap was given a zero or too-small input amount. Enter a larger amount and retry."
+  },
+  {
+    "slug": "aptos-swap-error-insufficient-liquidity",
+    "message": "ERROR_INSUFFICIENT_LIQUIDITY",
+    "chain": "aptos",
+    "scope": "swap",
+    "code": 7,
+    "meaning": "The pool does not hold enough liquidity for this trade size. Try a smaller amount, or use a pair with deeper liquidity."
+  },
+  {
+    "slug": "aptos-swap-error-insufficient-liquidity-burned",
+    "message": "ERROR_INSUFFICIENT_LIQUIDITY_BURNED",
+    "chain": "aptos",
+    "scope": "swap",
+    "code": 10,
+    "meaning": "The liquidity withdrawal was too small to redeem anything from the pool. Remove a larger share of your position and retry."
+  },
+  {
+    "slug": "aptos-swap-error-insufficient-liquidity-minted",
+    "message": "ERROR_INSUFFICIENT_LIQUIDITY_MINTED",
+    "chain": "aptos",
+    "scope": "swap",
+    "code": 4,
+    "meaning": "The liquidity deposit was too small to mint any LP tokens. Deposit larger amounts of both tokens and retry."
+  },
+  {
+    "slug": "aptos-swap-error-insufficient-output-amount",
+    "message": "ERROR_INSUFFICIENT_OUTPUT_AMOUNT",
+    "chain": "aptos",
+    "scope": "swap",
+    "code": 13,
+    "meaning": "The swap would have produced zero output tokens, usually because the trade size is far too small for this pool. Increase the amount and retry."
+  },
+  {
+    "slug": "aptos-swap-error-invalid-amount",
+    "message": "ERROR_INVALID_AMOUNT",
+    "chain": "aptos",
+    "scope": "swap",
+    "code": 8,
+    "meaning": "The amount requested is more than the pool can pay out. Reduce the amount and retry."
+  },
+  {
+    "slug": "aptos-swap-error-k",
+    "message": "ERROR_K",
+    "chain": "aptos",
+    "scope": "swap",
+    "code": 15,
+    "meaning": "The pool's invariant check failed after the swap. This usually means one of the tokens charges a fee or behaves unusually on transfer. Retry with higher slippage; if it keeps failing, that token is likely incompatible with this pool."
+  },
+  {
+    "slug": "aptos-swap-error-tokens-not-sorted",
+    "message": "ERROR_TOKENS_NOT_SORTED",
+    "chain": "aptos",
+    "scope": "swap",
+    "code": 9,
+    "meaning": "The pair was called with its tokens in the wrong internal order. This is an integration bug in the app that built the transaction, not a user mistake. Report it to the site you used; the official PancakeSwap interface builds this correctly."
+  },
+  {
+    "slug": "aptos-swap-error-x-not-registered",
+    "message": "ERROR_X_NOT_REGISTERED",
+    "chain": "aptos",
+    "scope": "swap",
+    "code": 16,
+    "meaning": "Your wallet has not registered one of the two tokens in this pair, so it cannot hold it yet (PancakeSwap uses the same code for either token). Register the token in your wallet, or use PancakeSwap's register button for that token, then retry."
+  },
+  {
+    "slug": "aptos-swap-utils-error-insufficient-amount",
+    "message": "ERROR_INSUFFICIENT_AMOUNT",
+    "chain": "aptos",
+    "scope": "swap_utils",
+    "code": 2,
+    "meaning": "An amount in this operation was zero or too small for the pool to process. Check the amounts you entered and retry with larger values."
+  },
+  {
+    "slug": "aptos-swap-utils-error-insufficient-input-amount",
+    "message": "ERROR_INSUFFICIENT_INPUT_AMOUNT",
+    "chain": "aptos",
+    "scope": "swap_utils",
+    "code": 0,
+    "meaning": "The swap was given a zero or too-small input amount. Enter a larger amount and retry."
+  },
+  {
+    "slug": "aptos-swap-utils-error-insufficient-liquidity",
+    "message": "ERROR_INSUFFICIENT_LIQUIDITY",
+    "chain": "aptos",
+    "scope": "swap_utils",
+    "code": 1,
+    "meaning": "The pool for this pair has no usable liquidity right now, so a price cannot be computed. Try a smaller amount or a different pair."
+  },
+  {
+    "slug": "aptos-swap-utils-error-insufficient-outpot-amount",
+    "message": "ERROR_INSUFFICIENT_OUTPOT_AMOUNT",
+    "chain": "aptos",
+    "scope": "swap_utils",
+    "code": 3,
+    "meaning": "The swap would have produced zero output tokens, usually because the trade size is far too small for this pool. Increase the amount and retry."
+  },
+  {
+    "slug": "aptos-swap-utils-error-same-coin",
+    "message": "ERROR_SAME_COIN",
+    "chain": "aptos",
+    "scope": "swap_utils",
+    "code": 4,
+    "meaning": "The swap was asked to trade a token for itself. Pick two different tokens and retry."
+  },
+  {
+    "slug": "aptos-tp-sl-utils-einvalid-tp-sl-parameters",
+    "message": "EINVALID_TP_SL_PARAMETERS",
+    "chain": "aptos",
+    "scope": "tp_sl_utils",
+    "code": 1,
+    "meaning": "The take-profit/stop-loss parameters are invalid, usually a TP or SL price on the wrong side of the current price. For a long, take-profit must be above and stop-loss below the price (reversed for a short). Fix the prices and retry."
+  },
+  {
+    "slug": "aptos-weighted-pool-scripts-err-excessive-input",
+    "message": "ERR_EXCESSIVE_INPUT",
+    "chain": "aptos",
+    "scope": "weighted_pool_scripts",
+    "code": 2,
+    "meaning": "The swap was cancelled because it would have needed more input tokens than the maximum your slippage setting allows. The pool price moved against you. Nothing was swapped. Retry, and raise your slippage tolerance slightly if it keeps happening."
+  },
+  {
+    "slug": "aptos-weighted-pool-scripts-err-insufficient-output",
+    "message": "ERR_INSUFFICIENT_OUTPUT",
+    "chain": "aptos",
+    "scope": "weighted_pool_scripts",
+    "code": 1,
+    "meaning": "The swap was cancelled because the amount you would have received fell below the minimum your slippage setting allows. The pool price moved between quoting and signing. Nothing was swapped and only gas was spent. Retry the swap; if it keeps happening, raise your slippage tolerance slightly or trade a smaller amount."
+  },
+  {
+    "slug": "aptos-withdrawal-enot-withdrawal-token-owner",
+    "message": "ENOT_WITHDRAWAL_TOKEN_OWNER",
+    "chain": "aptos",
+    "scope": "withdrawal",
+    "code": 2,
+    "meaning": "The withdrawal ticket you tried to claim belongs to a different wallet. Switch to the wallet that requested the withdrawal and claim from there."
+  },
+  {
+    "slug": "aptos-withdrawal-etoken-lock-not-expired",
+    "message": "ETOKEN_LOCK_NOT_EXPIRED",
+    "chain": "aptos",
+    "scope": "withdrawal",
+    "code": 1,
+    "meaning": "This withdrawal is still inside its unbonding period, so it cannot be claimed yet. Wait until the lockup shown on your withdrawal ticket ends, then claim again."
+  },
+  {
     "slug": "hyperliquid-bad-alo-px-rejected",
     "message": "badAloPxRejected",
     "chain": "hyperliquid",
@@ -99,6 +619,38 @@ export const CHAIN_ERRORS: ChainError[] = [
     "scope": null,
     "code": null,
     "meaning": "A stop or take-profit condition was met, so the order was released onto the book."
+  },
+  {
+    "slug": "near-intents-insufficientbalanceoroverflow",
+    "message": "insufficient balance or overflow",
+    "chain": "near",
+    "scope": "intents.near",
+    "code": null,
+    "meaning": "The account did not hold enough of the token this intent was going to spend, or the amounts involved were too large to process. Nothing was executed."
+  },
+  {
+    "slug": "near-intents-invalidintent",
+    "message": "invalid intent",
+    "chain": "near",
+    "scope": "intents.near",
+    "code": null,
+    "meaning": "The intent this transaction carried was not one the contract would accept, usually because it had already been used, had expired, or was signed for different terms than the ones submitted. Nothing was executed."
+  },
+  {
+    "slug": "near-v2-ref-finance-e68",
+    "message": "E68",
+    "chain": "near",
+    "scope": "v2.ref-finance.near",
+    "code": null,
+    "meaning": "The price moved between the swap being quoted and it reaching the pool, by more than the slippage the swap allowed. Ref refuses rather than filling at a worse rate than agreed. Nothing was traded, only the gas was spent, and trying again with a slightly higher slippage tolerance, or a smaller size, usually goes through."
+  },
+  {
+    "slug": "near-v2-ref-finance-e76",
+    "message": "E76",
+    "chain": "near",
+    "scope": "v2.ref-finance.near",
+    "code": null,
+    "meaning": "The pool did not hold enough of the token being bought to complete this swap at the size requested. A smaller amount, or a different route, will usually go through."
   },
   {
     "slug": "solana-buy-slippage-below-min-base-amount-out",

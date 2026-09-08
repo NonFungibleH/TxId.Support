@@ -1,14 +1,26 @@
 import { describe, it, expect } from "vitest"
 import { writeFileSync, readFileSync, existsSync } from "node:fs"
 import { resolve } from "node:path"
-import { explain, EXPLAINED_CONSTANTS } from "../../../packages/stellar/src/codes"
-import { CODE_NAMES, RESULT_CODE_ENUM_FOR_OP } from "../../../packages/stellar/src/codes.generated"
-import { SUI_ERRMAPS } from "../../../packages/sui/src/errmap"
-import { PROGRAM_ERRMAPS } from "../../../packages/solana/src/errmap"
-import { explainStatus, KNOWN_STATUSES } from "../../../packages/hyperliquid/src/statuses"
+import { explain, EXPLAINED_CONSTANTS } from "../../stellar/src/codes"
+import { CODE_NAMES, RESULT_CODE_ENUM_FOR_OP } from "../../stellar/src/codes.generated"
+import { SUI_ERRMAPS } from "../../sui/src/errmap"
+import { PROGRAM_ERRMAPS } from "../../solana/src/errmap"
+import { explainStatus, KNOWN_STATUSES } from "../../hyperliquid/src/statuses"
+import { PROTOCOL_ERRMAPS as APTOS_ERRMAPS } from "../../aptos/src/errmap"
+import { PROTOCOL_ERRORS as NEAR_ERRORS } from "../../near/src/errmap"
 
 /**
- * Builds AND guards `chain-errors.generated.ts`.
+ * Builds AND guards `apps/web/lib/chain-errors.generated.ts`.
+ *
+ * IT LIVES IN packages/ai, NOT IN apps/web, AND THAT IS THE POINT. This file
+ * imports every chain package, and `next build` type-checks and lints anything
+ * under the app. `packages/aptos` uses BigInt literals, which fail against
+ * apps/web's lower TypeScript target, so the same import that is fine here
+ * broke the web build outright. packages/ai already depends on every chain
+ * package and compiles at the right target.
+ *
+ * apps/web therefore keeps its five dependencies and imports only the
+ * GENERATED file, which is what the boundary was for.
  *
  * WHY THE PAGES USE A GENERATED FILE RATHER THAN IMPORTING THE PACKAGE:
  * apps/web depends on clsx, framer-motion, lucide-react, next and react, and
@@ -182,9 +194,66 @@ function hyperliquidErrors(): ChainError[] {
   return out
 }
 
+/**
+ * Aptos protocol aborts, keyed `address::module`. The address is a 66-character
+ * hex id, so the MODULE carries the slug, the same call as Sui. Codes are
+ * printed in hex because that is how a Move abort presents them and therefore
+ * how somebody searches for one.
+ */
+function aptosErrors(): ChainError[] {
+  const out: ChainError[] = []
+  const seen = new Set<string>()
+  for (const [qualified, codes] of Object.entries(APTOS_ERRMAPS)) {
+    const moduleName = qualified.split("::").pop() ?? qualified
+    for (const [code, entry] of Object.entries(codes)) {
+      const e = entry as { name: string; reason: string }
+      if (!e.reason || e.reason.length < MIN_EXPLANATION) continue
+      const slug = slugify("aptos", `${moduleName}-${e.name}`)
+      if (seen.has(slug)) continue
+      seen.add(slug)
+      out.push({
+        slug,
+        message: e.name,
+        chain: "aptos",
+        scope: moduleName,
+        code: Number(code),
+        meaning: e.reason,
+      })
+    }
+  }
+  return out
+}
+
+/**
+ * NEAR carries the contract's own message rather than a numeric code, so the
+ * "code" here is the protocol's short string (`E68`) and the contract account
+ * is the scope. Both are what a user actually sees.
+ */
+function nearErrors(): ChainError[] {
+  const out: ChainError[] = []
+  for (const [contract, codes] of Object.entries(NEAR_ERRORS)) {
+    for (const [code, reason] of Object.entries(codes)) {
+      if (typeof reason !== "string" || reason.length < MIN_EXPLANATION) continue
+      out.push({
+        // NOT contract.split(".")[0]: that turns "v2.ref-finance.near" into
+        // "v2", which names nothing. Drop the .near suffix and keep the rest.
+        slug: slugify("near", `${contract.replace(/\.near$/, "").replace(/\./g, "-")}-${code}`),
+        message: code,
+        chain: "near",
+        scope: contract,
+        code: null,
+        meaning: reason,
+      })
+    }
+  }
+  return out
+}
+
 function build(): ChainError[] {
-  return [...stellarErrors(), ...suiErrors(), ...solanaErrors(), ...hyperliquidErrors()]
-    .sort((a, b) => a.slug.localeCompare(b.slug))
+  return [
+    ...stellarErrors(), ...suiErrors(), ...solanaErrors(),
+    ...hyperliquidErrors(), ...aptosErrors(), ...nearErrors(),
+  ].sort((a, b) => a.slug.localeCompare(b.slug))
 }
 
 function render(errors: ChainError[]): string {
@@ -213,7 +282,7 @@ export const CHAIN_ERRORS: ChainError[] = ${JSON.stringify(errors, null, 2)}
 `
 }
 
-const TARGET = resolve(__dirname, "chain-errors.generated.ts")
+const TARGET = resolve(__dirname, "../../../apps/web/lib/chain-errors.generated.ts")
 
 describe("the published chain errors come from the decoder, not from a copy", () => {
   const built = build()

@@ -962,8 +962,18 @@ does not carry. Generated entries render a "Where this comes from" block instead
 (chain, operation, signed result code), which is the context a block explorer
 does not give.
 
-**Shipped 2026-09-08: 153 entries across four chains** (Stellar 75, Sui 55,
-Solana 13, Hyperliquid 10), taking `/errors` from 43 to 196.
+**Shipped 2026-09-08: 222 entries across six chains** (Stellar 75, Aptos 65,
+Sui 55, Solana 13, Hyperliquid 10, NEAR 4), taking `/errors` from 43 to 265 and
+the static build from 164 to 397 pages.
+
+> **THE GENERATOR LIVES IN `packages/ai`, NOT IN `apps/web`, AND THAT IS THE
+> POINT.** It imports every chain package, and `next build` type-checks and
+> lints anything under the app. `packages/aptos` uses BigInt literals, which
+> fail against apps/web's lower TypeScript target, so the same import that was
+> fine for four chains broke the web build outright the moment Aptos was added.
+> `packages/ai` already depends on every chain package and compiles at the right
+> target. apps/web keeps its five dependencies and imports only the GENERATED
+> file, which is what the boundary existed for.
 
 > **THE 80-CHARACTER FILTER IS THE INTERESTING NUMBER, NOT THE TOTAL.** Solana's
 > `PROGRAM_ERRMAPS` holds 203 codes and only **13** are page-worthy, because
