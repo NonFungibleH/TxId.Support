@@ -962,10 +962,22 @@ does not carry. Generated entries render a "Where this comes from" block instead
 (chain, operation, signed result code), which is the context a block explorer
 does not give.
 
-**Stellar shipped first (75 entries, 2026-09-08),** filtered to explanations of
-80 characters or more. Still unpublished and worth doing the same way: Solana
-(203 codes across 40 programs), Sui (182 DeepBook constants), Hyperliquid (12
-order statuses, and nothing else on the internet explains `minTradeNtlRejected`).
+**Shipped 2026-09-08: 153 entries across four chains** (Stellar 75, Sui 55,
+Solana 13, Hyperliquid 10), taking `/errors` from 43 to 196.
+
+> **THE 80-CHARACTER FILTER IS THE INTERESTING NUMBER, NOT THE TOTAL.** Solana's
+> `PROGRAM_ERRMAPS` holds 203 codes and only **13** are page-worthy, because
+> most entries are the program's OWN terse Anchor string ("Empty route.",
+> "Invalid calculation."). Those are worth keeping in the product, where the
+> program's own words beat a bare number, and worthless as a page. Sui is 55 of
+> 182 for the same reason. **Do not quote the raw errmap sizes as content
+> inventory**: the publishable figure is roughly a quarter of them.
+
+Solana additionally dedupes by error NAME: Jupiter's 6001 and 6004 are both
+slippage and several programs define the same name, so one page is published
+rather than five near-identical ones. Sui slugs on the MODULE, because the
+package is a 66-character hex id; Solana carries the program as scope, since the
+same code means different things in different programs.
 
 ## Docs (two separate systems — don't conflate)
 

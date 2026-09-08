@@ -21,6 +21,190 @@ export interface ChainError {
 
 export const CHAIN_ERRORS: ChainError[] = [
   {
+    "slug": "hyperliquid-bad-alo-px-rejected",
+    "message": "badAloPxRejected",
+    "chain": "hyperliquid",
+    "scope": null,
+    "code": null,
+    "meaning": "The order was add-liquidity-only, and its price would have crossed the book and taken liquidity instead of adding it. Add-liquidity-only exists to guarantee the maker fee, so rather than filling at taker terms the order is refused. The market moved between the price being chosen and the order arriving."
+  },
+  {
+    "slug": "hyperliquid-canceled",
+    "message": "canceled",
+    "chain": "hyperliquid",
+    "scope": null,
+    "code": null,
+    "meaning": "The order was cancelled. On Hyperliquid this is the trader's own cancellation, so if the user did not cancel it, an app or a bot acting for them did."
+  },
+  {
+    "slug": "hyperliquid-insufficient-spot-balance-rejected",
+    "message": "insufficientSpotBalanceRejected",
+    "chain": "hyperliquid",
+    "scope": null,
+    "code": null,
+    "meaning": "There was not enough of the spot asset to place this order. Spot and perpetual balances are held separately on Hyperliquid, so funds sitting on the perpetuals side do not back a spot order until they are transferred."
+  },
+  {
+    "slug": "hyperliquid-ioc-cancel-rejected",
+    "message": "iocCancelRejected",
+    "chain": "hyperliquid",
+    "scope": null,
+    "code": null,
+    "meaning": "The order was immediate-or-cancel, and there was nothing on the book to fill it at that price, so it was cancelled instead of resting. That is what immediate-or-cancel asks for: fill now or not at all. Nothing was traded."
+  },
+  {
+    "slug": "hyperliquid-min-trade-ntl-rejected",
+    "message": "minTradeNtlRejected",
+    "chain": "hyperliquid",
+    "scope": null,
+    "code": null,
+    "meaning": "The order was below Hyperliquid's minimum trade value. Every market has a floor in dollars rather than in coins, so a small order in a high-priced asset can be under it even when the quantity looks reasonable. Nothing was traded and nothing was charged."
+  },
+  {
+    "slug": "hyperliquid-perp-margin-rejected",
+    "message": "perpMarginRejected",
+    "chain": "hyperliquid",
+    "scope": null,
+    "code": null,
+    "meaning": "There was not enough margin for this perpetual order. Margin is the collateral the position needs, not the account balance, so an account can hold funds and still be unable to open more."
+  },
+  {
+    "slug": "hyperliquid-reduce-only-canceled",
+    "message": "reduceOnlyCanceled",
+    "chain": "hyperliquid",
+    "scope": null,
+    "code": null,
+    "meaning": "The exchange cancelled this resting reduce-only order because the position it was there to reduce is gone. The trader did not cancel it. Nothing was traded."
+  },
+  {
+    "slug": "hyperliquid-reduce-only-rejected",
+    "message": "reduceOnlyRejected",
+    "chain": "hyperliquid",
+    "scope": null,
+    "code": null,
+    "meaning": "The order was marked reduce-only, and there was no position left for it to reduce. That usually means the position had already been closed, or another order closed it first. Nothing was traded."
+  },
+  {
+    "slug": "hyperliquid-rejected",
+    "message": "rejected",
+    "chain": "hyperliquid",
+    "scope": null,
+    "code": null,
+    "meaning": "The exchange refused the order without naming a more specific reason. Nothing was traded."
+  },
+  {
+    "slug": "hyperliquid-triggered",
+    "message": "triggered",
+    "chain": "hyperliquid",
+    "scope": null,
+    "code": null,
+    "meaning": "A stop or take-profit condition was met, so the order was released onto the book."
+  },
+  {
+    "slug": "solana-buy-slippage-below-min-base-amount-out",
+    "message": "BuySlippageBelowMinBaseAmountOut",
+    "chain": "solana",
+    "scope": "pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA",
+    "code": 6040,
+    "meaning": "The price moved between the quote and the transaction landing, so the trade would have returned less than your slippage setting allows. Nothing was swapped and only the fee was spent. Retry, and raise your slippage tolerance slightly if it keeps happening."
+  },
+  {
+    "slug": "solana-buy-slippage-below-min-tokens-out",
+    "message": "BuySlippageBelowMinTokensOut",
+    "chain": "solana",
+    "scope": "6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P",
+    "code": 6042,
+    "meaning": "The price moved between the quote and the transaction landing, so the trade would have returned less than your slippage setting allows. Nothing was swapped and only the fee was spent. Retry, and raise your slippage tolerance slightly if it keeps happening."
+  },
+  {
+    "slug": "solana-coin-creator-migrated-to-sharing-config",
+    "message": "CoinCreatorMigratedToSharingConfig",
+    "chain": "solana",
+    "scope": "pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA",
+    "code": 6047,
+    "meaning": "coin creator has been migrated to sharing config, use pump_fees::reset_fee_sharing_config instead."
+  },
+  {
+    "slug": "solana-creator-vault-migrated-to-sharing-config",
+    "message": "CreatorVaultMigratedToSharingConfig",
+    "chain": "solana",
+    "scope": "pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA",
+    "code": 6048,
+    "meaning": "creator_vault has been migrated to sharing config, use pump:distribute_creator_fees instead."
+  },
+  {
+    "slug": "solana-exceeded-amount-slippage-tolerance",
+    "message": "ExceededAmountSlippageTolerance",
+    "chain": "solana",
+    "scope": "LBUZKhRxPF3XUpBCjp4YzTKgLccjZhTSDM9YuVaPwxo",
+    "code": 6003,
+    "meaning": "The price moved between the quote and the transaction landing, so the trade would have returned less than your slippage setting allows. Nothing was swapped and only the fee was spent. Retry, and raise your slippage tolerance slightly if it keeps happening."
+  },
+  {
+    "slug": "solana-exceeded-slippage",
+    "message": "ExceededSlippage",
+    "chain": "solana",
+    "scope": "pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA",
+    "code": 6004,
+    "meaning": "The price moved between the quote and the transaction landing, so the trade would have returned less than your slippage setting allows. Nothing was swapped and only the fee was spent. Retry, and raise your slippage tolerance slightly if it keeps happening."
+  },
+  {
+    "slug": "solana-invalid-slippage",
+    "message": "InvalidSlippage",
+    "chain": "solana",
+    "scope": "JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4",
+    "code": 6004,
+    "meaning": "The price moved between the quote and the transaction landing, so the trade would have returned less than your slippage setting allows. Nothing was swapped and only the fee was spent. Retry, and raise your slippage tolerance slightly if it keeps happening."
+  },
+  {
+    "slug": "solana-less-than-minimum-amount-out",
+    "message": "LessThanMinimumAmountOut",
+    "chain": "solana",
+    "scope": "T1TANpTeScyeqVzzgNViGDNrkQ6qHz9KrSBS4aNXvGT",
+    "code": 6008,
+    "meaning": "The price moved between the quote and the transaction landing, so the trade would have returned less than your slippage setting allows. Nothing was swapped and only the fee was spent. Retry, and raise your slippage tolerance slightly if it keeps happening."
+  },
+  {
+    "slug": "solana-min-return-not-reached",
+    "message": "MinReturnNotReached",
+    "chain": "solana",
+    "scope": "proVF4pMXVaYqmy4NjniPh4pqKNfMmsihgd4wdkCX3u",
+    "code": 6010,
+    "meaning": "The price moved between the quote and the transaction landing, so the trade would have returned less than your slippage setting allows. Nothing was swapped and only the fee was spent. Retry, and raise your slippage tolerance slightly if it keeps happening."
+  },
+  {
+    "slug": "solana-slippage-limit-exceeded",
+    "message": "SlippageLimitExceeded",
+    "chain": "solana",
+    "scope": "DF1ow4tspfHX9JwWJsAb9epbkA8hmpSEAtxXy1V27QBH",
+    "code": 15001,
+    "meaning": "The price moved between the quote and the transaction landing, so the trade would have returned less than your slippage setting allows. Nothing was swapped and only the fee was spent. Retry, and raise your slippage tolerance slightly if it keeps happening."
+  },
+  {
+    "slug": "solana-slippage-tolerance-exceeded",
+    "message": "SlippageToleranceExceeded",
+    "chain": "solana",
+    "scope": "JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4",
+    "code": 6001,
+    "meaning": "The price moved between the quote and the transaction landing, so the trade would have returned less than your slippage setting allows. Nothing was swapped and only the fee was spent. Retry, and raise your slippage tolerance slightly if it keeps happening."
+  },
+  {
+    "slug": "solana-too-little-sol-received",
+    "message": "TooLittleSolReceived",
+    "chain": "solana",
+    "scope": "6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P",
+    "code": 6003,
+    "meaning": "The price moved between the quote and the transaction landing, so the trade would have returned less than your slippage setting allows. Nothing was swapped and only the fee was spent. Retry, and raise your slippage tolerance slightly if it keeps happening."
+  },
+  {
+    "slug": "solana-too-much-sol-required",
+    "message": "TooMuchSolRequired",
+    "chain": "solana",
+    "scope": "6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P",
+    "code": 6002,
+    "meaning": "The price moved between the quote and the transaction landing, so the trade would have returned less than your slippage setting allows. Nothing was swapped and only the fee was spent. Retry, and raise your slippage tolerance slightly if it keeps happening."
+  },
+  {
     "slug": "stellar-account-merge-dest-full",
     "message": "ACCOUNT_MERGE_DEST_FULL",
     "chain": "stellar",
@@ -619,5 +803,445 @@ export const CHAIN_ERRORS: ChainError[] = [
     "scope": null,
     "code": -3,
     "meaning": "The transaction expired before it was included. Stellar transactions carry a time bound, and this one passed while it was waiting, so it was never applied and nothing moved. Submitting again is safe: the expired one cannot execute later."
+  },
+  {
+    "slug": "sui-balance-manager-ebalance-manager-balance-too-low",
+    "message": "EBalanceManagerBalanceTooLow",
+    "chain": "sui",
+    "scope": "balance_manager",
+    "code": 3,
+    "meaning": "The withdrawal asked for more than the balance manager holds of that coin. Funds in DeepBook sit inside your balance manager rather than in your wallet, and settled trades or open orders can hold part of it, so the amount available to withdraw is not always the amount you deposited."
+  },
+  {
+    "slug": "sui-balance-manager-ecap-not-in-list",
+    "message": "ECapNotInList",
+    "chain": "sui",
+    "scope": "balance_manager",
+    "code": 5,
+    "meaning": "The capability this transaction tried to use or revoke is not registered on this balance manager. It may already have been revoked."
+  },
+  {
+    "slug": "sui-balance-manager-einvalid-owner",
+    "message": "EInvalidOwner",
+    "chain": "sui",
+    "scope": "balance_manager",
+    "code": 0,
+    "meaning": "The balance manager this transaction used is not owned by the address that signed it. A balance manager belongs to one owner, and only that owner can act on it directly."
+  },
+  {
+    "slug": "sui-balance-manager-einvalid-proof",
+    "message": "EInvalidProof",
+    "chain": "sui",
+    "scope": "balance_manager",
+    "code": 2,
+    "meaning": "The trade proof presented with this transaction was not valid for the balance manager it was used against. A proof is generated for one balance manager and one purpose, so this usually means the wrong one was attached."
+  },
+  {
+    "slug": "sui-balance-manager-einvalid-trader",
+    "message": "EInvalidTrader",
+    "chain": "sui",
+    "scope": "balance_manager",
+    "code": 1,
+    "meaning": "The address that signed is not a trader authorised on this balance manager. The owner grants trading rights explicitly, and this address does not currently hold them."
+  },
+  {
+    "slug": "sui-balance-manager-emax-caps-reached",
+    "message": "EMaxCapsReached",
+    "chain": "sui",
+    "scope": "balance_manager",
+    "code": 4,
+    "meaning": "This balance manager already has the maximum number of capabilities issued against it, so another could not be added. An existing one has to be revoked first."
+  },
+  {
+    "slug": "sui-big-vector-ebad-redistribution",
+    "message": "EBadRedistribution",
+    "chain": "sui",
+    "scope": "big_vector",
+    "code": 9,
+    "meaning": "DeepBook stopped on an internal check (a redistribution between orderbook nodes that would have had no effect). This is a condition inside DeepBook's own bookkeeping rather than anything wrong with your order, so retrying the same request is unlikely to change the outcome. Nothing was completed and only the gas was spent."
+  },
+  {
+    "slug": "sui-big-vector-ebad-remove",
+    "message": "EBadRemove",
+    "chain": "sui",
+    "scope": "big_vector",
+    "code": 7,
+    "meaning": "DeepBook stopped on an internal check (an orderbook node in an unexpected state during removal). This is a condition inside DeepBook's own bookkeeping rather than anything wrong with your order, so retrying the same request is unlikely to change the outcome. Nothing was completed and only the gas was spent."
+  },
+  {
+    "slug": "sui-big-vector-eexists",
+    "message": "EExists",
+    "chain": "sui",
+    "scope": "big_vector",
+    "code": 6,
+    "meaning": "DeepBook stopped on an internal check (a key that already existed in the orderbook structure). This is a condition inside DeepBook's own bookkeeping rather than anything wrong with your order, so retrying the same request is unlikely to change the outcome. Nothing was completed and only the gas was spent."
+  },
+  {
+    "slug": "sui-big-vector-efan-out-too-big",
+    "message": "EFanOutTooBig",
+    "chain": "sui",
+    "scope": "big_vector",
+    "code": 3,
+    "meaning": "DeepBook stopped on an internal check (an orderbook fan-out above the allowed maximum). This is a condition inside DeepBook's own bookkeeping rather than anything wrong with your order, so retrying the same request is unlikely to change the outcome. Nothing was completed and only the gas was spent."
+  },
+  {
+    "slug": "sui-big-vector-efan-out-too-small",
+    "message": "EFanOutTooSmall",
+    "chain": "sui",
+    "scope": "big_vector",
+    "code": 2,
+    "meaning": "DeepBook stopped on an internal check (an orderbook fan-out below the allowed minimum). This is a condition inside DeepBook's own bookkeeping rather than anything wrong with your order, so retrying the same request is unlikely to change the outcome. Nothing was completed and only the gas was spent."
+  },
+  {
+    "slug": "sui-big-vector-enot-adjacent",
+    "message": "ENotAdjacent",
+    "chain": "sui",
+    "scope": "big_vector",
+    "code": 8,
+    "meaning": "DeepBook stopped on an internal check (two orderbook nodes whose links did not match up). This is a condition inside DeepBook's own bookkeeping rather than anything wrong with your order, so retrying the same request is unlikely to change the outcome. Nothing was completed and only the gas was spent."
+  },
+  {
+    "slug": "sui-big-vector-enot-empty",
+    "message": "ENotEmpty",
+    "chain": "sui",
+    "scope": "big_vector",
+    "code": 4,
+    "meaning": "DeepBook stopped on an internal check (an orderbook structure expected to be empty and was not). This is a condition inside DeepBook's own bookkeeping rather than anything wrong with your order, so retrying the same request is unlikely to change the outcome. Nothing was completed and only the gas was spent."
+  },
+  {
+    "slug": "sui-big-vector-enot-found",
+    "message": "ENotFound",
+    "chain": "sui",
+    "scope": "big_vector",
+    "code": 5,
+    "meaning": "The order this transaction referred to is no longer on the book. An order that has already been filled, cancelled or expired cannot be modified or cancelled again, and DeepBook has no record of it to act on. Nothing was completed and only the gas was spent."
+  },
+  {
+    "slug": "sui-big-vector-eslice-too-big",
+    "message": "ESliceTooBig",
+    "chain": "sui",
+    "scope": "big_vector",
+    "code": 1,
+    "meaning": "DeepBook stopped on an internal check (an orderbook slice size above the allowed maximum). This is a condition inside DeepBook's own bookkeeping rather than anything wrong with your order, so retrying the same request is unlikely to change the outcome. Nothing was completed and only the gas was spent."
+  },
+  {
+    "slug": "sui-big-vector-eslice-too-small",
+    "message": "ESliceTooSmall",
+    "chain": "sui",
+    "scope": "big_vector",
+    "code": 0,
+    "meaning": "DeepBook stopped on an internal check (an orderbook slice size below the allowed minimum). This is a condition inside DeepBook's own bookkeeping rather than anything wrong with your order, so retrying the same request is unlikely to change the outcome. Nothing was completed and only the gas was spent."
+  },
+  {
+    "slug": "sui-book-eempty-orderbook",
+    "message": "EEmptyOrderbook",
+    "chain": "sui",
+    "scope": "book",
+    "code": 2,
+    "meaning": "There are no resting orders on the side of the book this order needed to match against, so there was nothing to trade with."
+  },
+  {
+    "slug": "sui-book-einvalid-amount-in",
+    "message": "EInvalidAmountIn",
+    "chain": "sui",
+    "scope": "book",
+    "code": 1,
+    "meaning": "The input amount for this swap was not accepted by the pool. A swap has to name a positive quantity of one of the pool's two coins."
+  },
+  {
+    "slug": "sui-book-enew-quantity-must-be-less-than-original",
+    "message": "ENewQuantityMustBeLessThanOriginal",
+    "chain": "sui",
+    "scope": "book",
+    "code": 7,
+    "meaning": "An order can only be modified downwards. Increasing the size means cancelling and placing a new order, which also gives up its place in the queue."
+  },
+  {
+    "slug": "sui-book-eorder-below-minimum-size",
+    "message": "EOrderBelowMinimumSize",
+    "chain": "sui",
+    "scope": "book",
+    "code": 5,
+    "meaning": "The order is smaller than the pool's minimum size. Each pool sets its own floor, and an order under it is rejected rather than rounded up."
+  },
+  {
+    "slug": "sui-book-eorder-invalid-lot-size",
+    "message": "EOrderInvalidLotSize",
+    "chain": "sui",
+    "scope": "book",
+    "code": 6,
+    "meaning": "The order quantity is not a whole number of lots. Every pool has a lot size, and quantities have to be a multiple of it."
+  },
+  {
+    "slug": "sui-constants-ebook-order-mismatch",
+    "message": "EBookOrderMismatch",
+    "chain": "sui",
+    "scope": "constants",
+    "code": 1,
+    "meaning": "DeepBook stopped on an internal check (a book entry that did not match its order record). This is a condition inside DeepBook's own bookkeeping rather than anything wrong with your order, so retrying the same request is unlikely to change the outcome. Nothing was completed and only the gas was spent."
+  },
+  {
+    "slug": "sui-constants-efill-mismatch",
+    "message": "EFillMismatch",
+    "chain": "sui",
+    "scope": "constants",
+    "code": 4,
+    "meaning": "DeepBook stopped on an internal check (a fill that did not reconcile against its order). This is a condition inside DeepBook's own bookkeeping rather than anything wrong with your order, so retrying the same request is unlikely to change the outcome. Nothing was completed and only the gas was spent."
+  },
+  {
+    "slug": "sui-constants-eincorrect-mid-price",
+    "message": "EIncorrectMidPrice",
+    "chain": "sui",
+    "scope": "constants",
+    "code": 2,
+    "meaning": "DeepBook stopped on an internal check (a mid price that failed its consistency check). This is a condition inside DeepBook's own bookkeeping rather than anything wrong with your order, so retrying the same request is unlikely to change the outcome. Nothing was completed and only the gas was spent."
+  },
+  {
+    "slug": "sui-constants-eincorrect-pool-id",
+    "message": "EIncorrectPoolId",
+    "chain": "sui",
+    "scope": "constants",
+    "code": 3,
+    "meaning": "DeepBook stopped on an internal check (a pool id that did not match the one expected). This is a condition inside DeepBook's own bookkeeping rather than anything wrong with your order, so retrying the same request is unlikely to change the outcome. Nothing was completed and only the gas was spent."
+  },
+  {
+    "slug": "sui-constants-eorder-info-mismatch",
+    "message": "EOrderInfoMismatch",
+    "chain": "sui",
+    "scope": "constants",
+    "code": 0,
+    "meaning": "DeepBook stopped on an internal check (an order record that did not match its book entry). This is a condition inside DeepBook's own bookkeeping rather than anything wrong with your order, so retrying the same request is unlikely to change the outcome. Nothing was completed and only the gas was spent."
+  },
+  {
+    "slug": "sui-deep-price-eno-data-points",
+    "message": "ENoDataPoints",
+    "chain": "sui",
+    "scope": "deep_price",
+    "code": 2,
+    "meaning": "There are no DEEP price points recorded for this pool, so a DEEP-denominated fee cannot be priced."
+  },
+  {
+    "slug": "sui-governance-emax-proposals-reached-not-enough-votes",
+    "message": "EMaxProposalsReachedNotEnoughVotes",
+    "chain": "sui",
+    "scope": "governance",
+    "code": 4,
+    "meaning": "The pool already has the maximum number of proposals this epoch, and this one did not have enough votes to displace one of them."
+  },
+  {
+    "slug": "sui-governance-eproposal-does-not-exist",
+    "message": "EProposalDoesNotExist",
+    "chain": "sui",
+    "scope": "governance",
+    "code": 3,
+    "meaning": "The proposal voted on does not exist in the current epoch. Proposals do not carry over between epochs."
+  },
+  {
+    "slug": "sui-math-einvalid-precision",
+    "message": "EInvalidPrecision",
+    "chain": "sui",
+    "scope": "math",
+    "code": 0,
+    "meaning": "DeepBook stopped on an internal check (a precision check in DeepBook's fixed point maths). This is a condition inside DeepBook's own bookkeeping rather than anything wrong with your order, so retrying the same request is unlikely to change the outcome. Nothing was completed and only the gas was spent."
+  },
+  {
+    "slug": "sui-order-einvalid-new-quantity",
+    "message": "EInvalidNewQuantity",
+    "chain": "sui",
+    "scope": "order",
+    "code": 0,
+    "meaning": "The new quantity for this modification was not valid. An order can only be reduced, and not to zero, which is a cancellation instead."
+  },
+  {
+    "slug": "sui-order-eorder-expired",
+    "message": "EOrderExpired",
+    "chain": "sui",
+    "scope": "order",
+    "code": 1,
+    "meaning": "The order had already expired by the time this transaction executed, so there was nothing left to act on."
+  },
+  {
+    "slug": "sui-order-info-efokorder-cannot-be-fully-filled",
+    "message": "EFOKOrderCannotBeFullyFilled",
+    "chain": "sui",
+    "scope": "order_info",
+    "code": 6,
+    "meaning": "This was a fill-or-kill order and there was not enough resting liquidity to fill all of it at your limit price, so none of it was filled. That is the behaviour fill-or-kill asks for: all or nothing."
+  },
+  {
+    "slug": "sui-order-info-einvalid-expire-timestamp",
+    "message": "EInvalidExpireTimestamp",
+    "chain": "sui",
+    "scope": "order_info",
+    "code": 3,
+    "meaning": "The expiry given for this order is already in the past. An order cannot be placed with an expiry that has passed."
+  },
+  {
+    "slug": "sui-order-info-emarket-order-cannot-be-post-only",
+    "message": "EMarketOrderCannotBePostOnly",
+    "chain": "sui",
+    "scope": "order_info",
+    "code": 7,
+    "meaning": "The order was sent as both a market order and post-only, which contradict each other. A market order takes liquidity and post-only refuses to."
+  },
+  {
+    "slug": "sui-order-info-eorder-below-minimum-size",
+    "message": "EOrderBelowMinimumSize",
+    "chain": "sui",
+    "scope": "order_info",
+    "code": 1,
+    "meaning": "The order is smaller than the pool's minimum size. Each pool sets its own floor, and an order under it is rejected rather than rounded up."
+  },
+  {
+    "slug": "sui-order-info-eorder-invalid-lot-size",
+    "message": "EOrderInvalidLotSize",
+    "chain": "sui",
+    "scope": "order_info",
+    "code": 2,
+    "meaning": "The order quantity is not a whole number of lots. Every pool has a lot size, and quantities have to be a multiple of it."
+  },
+  {
+    "slug": "sui-order-info-eorder-invalid-price",
+    "message": "EOrderInvalidPrice",
+    "chain": "sui",
+    "scope": "order_info",
+    "code": 0,
+    "meaning": "The order price sits outside the range the pool accepts, or is not a whole number of ticks. Every DeepBook pool has a tick size, and a price between ticks cannot be placed."
+  },
+  {
+    "slug": "sui-order-info-epostorder-crosses-orderbook",
+    "message": "EPOSTOrderCrossesOrderbook",
+    "chain": "sui",
+    "scope": "order_info",
+    "code": 5,
+    "meaning": "This was a post-only order and it would have matched against an order already resting on the book. Post-only exists to guarantee you add liquidity rather than take it, so instead of filling at a worse price it cancels. The market moved between the price being quoted and the order arriving."
+  },
+  {
+    "slug": "sui-order-info-eself-matching-cancel-taker",
+    "message": "ESelfMatchingCancelTaker",
+    "chain": "sui",
+    "scope": "order_info",
+    "code": 8,
+    "meaning": "This order would have matched against another of your own orders on the book, and the self-match rule chosen cancelled the incoming side. Nothing was traded with yourself."
+  },
+  {
+    "slug": "sui-pool-eineligible-reference-pool",
+    "message": "EIneligibleReferencePool",
+    "chain": "sui",
+    "scope": "pool",
+    "code": 7,
+    "meaning": "The pool named as a price reference is not eligible to be one. DeepBook only accepts certain pools as a source of price."
+  },
+  {
+    "slug": "sui-pool-einvalid-deep-price",
+    "message": "EInvalidDeepPrice",
+    "chain": "sui",
+    "scope": "pool",
+    "code": 20,
+    "meaning": "The DEEP price reference this pool needs was not usable. DeepBook charges fees in DEEP and needs a price for it, and without one the trade cannot be priced."
+  },
+  {
+    "slug": "sui-pool-einvalid-ewmaalpha",
+    "message": "EInvalidEWMAAlpha",
+    "chain": "sui",
+    "scope": "pool",
+    "code": 16,
+    "meaning": "The smoothing parameter given for the pool's moving average is outside the accepted range."
+  },
+  {
+    "slug": "sui-pool-einvalid-fee",
+    "message": "EInvalidFee",
+    "chain": "sui",
+    "scope": "pool",
+    "code": 1,
+    "meaning": "The fee supplied for creating this pool was not the amount the registry requires."
+  },
+  {
+    "slug": "sui-pool-einvalid-order-balance-manager",
+    "message": "EInvalidOrderBalanceManager",
+    "chain": "sui",
+    "scope": "pool",
+    "code": 8,
+    "meaning": "The balance manager presented does not match the one the order was placed with. An order can only be modified or cancelled through the balance manager that created it."
+  },
+  {
+    "slug": "sui-pool-einvalid-quantity-in",
+    "message": "EInvalidQuantityIn",
+    "chain": "sui",
+    "scope": "pool",
+    "code": 6,
+    "meaning": "The quantity sent into this swap was not accepted. It has to be a positive amount of one of the pool's two coins."
+  },
+  {
+    "slug": "sui-pool-eminimum-quantity-out-not-met",
+    "message": "EMinimumQuantityOutNotMet",
+    "chain": "sui",
+    "scope": "pool",
+    "code": 11,
+    "meaning": "The swap would have returned less than the minimum you set, so it was rejected rather than filled at a worse rate. That minimum is your slippage protection doing its job. The price moved between the quote and the transaction arriving."
+  },
+  {
+    "slug": "sui-pool-epackage-version-disabled",
+    "message": "EPackageVersionDisabled",
+    "chain": "sui",
+    "scope": "pool",
+    "code": 10,
+    "meaning": "This transaction went to a version of the DeepBook package that has been turned off. That happens after an upgrade, and it means the app or SDK that built the transaction is pointing at an old address. Updating the app is the fix, and your funds are unaffected."
+  },
+  {
+    "slug": "sui-registry-ecoin-not-whitelisted",
+    "message": "ECoinNotWhitelisted",
+    "chain": "sui",
+    "scope": "registry",
+    "code": 7,
+    "meaning": "This coin is not whitelisted, so it cannot be used where a whitelisted coin is required."
+  },
+  {
+    "slug": "sui-registry-epackage-version-not-enabled",
+    "message": "EPackageVersionNotEnabled",
+    "chain": "sui",
+    "scope": "registry",
+    "code": 3,
+    "meaning": "This transaction went to a version of the DeepBook package that is not enabled. That usually means the app or SDK that built it is pointing at an old package address. Your funds are unaffected."
+  },
+  {
+    "slug": "sui-registry-epool-already-exists",
+    "message": "EPoolAlreadyExists",
+    "chain": "sui",
+    "scope": "registry",
+    "code": 1,
+    "meaning": "A pool for this pair of coins already exists, so a second one cannot be created."
+  },
+  {
+    "slug": "sui-state-ealready-proposed",
+    "message": "EAlreadyProposed",
+    "chain": "sui",
+    "scope": "state",
+    "code": 3,
+    "meaning": "This balance manager has already made a governance proposal in the current epoch."
+  },
+  {
+    "slug": "sui-state-emax-open-orders",
+    "message": "EMaxOpenOrders",
+    "chain": "sui",
+    "scope": "state",
+    "code": 2,
+    "meaning": "This balance manager already has the maximum number of open orders on this pool. Cancelling or letting some fill makes room for another."
+  },
+  {
+    "slug": "sui-vault-ehas-owed-balances",
+    "message": "EHasOwedBalances",
+    "chain": "sui",
+    "scope": "vault",
+    "code": 8,
+    "meaning": "This operation cannot run while the balance manager still owes balances on the pool. Those have to be settled first."
+  },
+  {
+    "slug": "sui-vault-eincorrect-quantity-returned",
+    "message": "EIncorrectQuantityReturned",
+    "chain": "sui",
+    "scope": "vault",
+    "code": 6,
+    "meaning": "The amount returned to close the flash loan did not cover what was borrowed. A flash loan has to be repaid in full inside the same transaction, so the whole transaction is undone."
   }
 ]

@@ -3,6 +3,9 @@ import { writeFileSync, readFileSync, existsSync } from "node:fs"
 import { resolve } from "node:path"
 import { explain, EXPLAINED_CONSTANTS } from "../../../packages/stellar/src/codes"
 import { CODE_NAMES, RESULT_CODE_ENUM_FOR_OP } from "../../../packages/stellar/src/codes.generated"
+import { SUI_ERRMAPS } from "../../../packages/sui/src/errmap"
+import { PROGRAM_ERRMAPS } from "../../../packages/solana/src/errmap"
+import { explainStatus, KNOWN_STATUSES } from "../../../packages/hyperliquid/src/statuses"
 
 /**
  * Builds AND guards `chain-errors.generated.ts`.
@@ -63,13 +66,24 @@ function codeOf(constant: string): number | null {
   return null
 }
 
-function build(): ChainError[] {
+/**
+ * The bar from errors.ts: "an entry we cannot explain properly does not ship:
+ * thin pages hurt every other page here."
+ *
+ * It matters most on Solana, where PROGRAM_ERRMAPS holds the program's OWN
+ * Anchor message alongside our English. "Empty route." and "Invalid
+ * calculation." are what the program says, and they are useless to a user and
+ * would make a page worth nothing. Only entries we have genuinely explained
+ * get published; the rest still work in the product, they just do not earn a
+ * page.
+ */
+const MIN_EXPLANATION = 80
+
+function stellarErrors(): ChainError[] {
   const out: ChainError[] = []
   for (const constant of EXPLAINED_CONSTANTS) {
     const meaning = explain(constant)
-    // The bar set by errors.ts: "an entry we cannot explain properly does not
-    // ship: thin pages hurt every other page here." A stub is exactly that.
-    if (!meaning || meaning.length < 80) continue
+    if (!meaning || meaning.length < MIN_EXPLANATION) continue
     out.push({
       slug: slugify("stellar", constant),
       message: constant,
@@ -79,7 +93,94 @@ function build(): ChainError[] {
       meaning,
     })
   }
-  return out.sort((a, b) => a.slug.localeCompare(b.slug))
+  return out
+}
+
+/**
+ * Sui is keyed `package::module`, and the package is a 66-character hex id that
+ * would make a useless URL. The MODULE is the part a person recognises and the
+ * part that appears in the abort they are looking at, so it carries the slug
+ * and the package is dropped.
+ */
+function suiErrors(): ChainError[] {
+  const out: ChainError[] = []
+  for (const [qualified, codes] of Object.entries(SUI_ERRMAPS)) {
+    const module = qualified.split("::").pop() ?? qualified
+    for (const [code, entry] of Object.entries(codes)) {
+      const e = entry as { name: string; reason: string }
+      if (!e.reason || e.reason.length < MIN_EXPLANATION) continue
+      out.push({
+        slug: slugify("sui", `${module}-${e.name}`),
+        message: e.name,
+        chain: "sui",
+        scope: module,
+        code: Number(code),
+        meaning: e.reason,
+      })
+    }
+  }
+  return out
+}
+
+/**
+ * Solana errors are per PROGRAM, and the same code means different things in
+ * different programs, so the program has to be part of the identity. The
+ * address is 44 characters and unreadable, so the slug uses the error NAME and
+ * the program is carried as scope: two programs defining `SlippageExceeded`
+ * would otherwise collide, which the duplicate-slug test catches.
+ */
+function solanaErrors(): ChainError[] {
+  const out: ChainError[] = []
+  const seen = new Set<string>()
+  for (const [program, codes] of Object.entries(PROGRAM_ERRMAPS)) {
+    for (const [code, entry] of Object.entries(codes)) {
+      const e = entry as { name: string; reason: string }
+      if (!e.reason || e.reason.length < MIN_EXPLANATION) continue
+      const slug = slugify("solana", e.name)
+      // The same explained error genuinely recurs across programs (Jupiter's
+      // 6001 and 6004 are both slippage). One page, not five near-identical
+      // ones, which is the thin-page rule again in a different costume.
+      if (seen.has(slug)) continue
+      seen.add(slug)
+      out.push({
+        slug,
+        message: e.name,
+        chain: "solana",
+        scope: program,
+        code: Number(code),
+        meaning: e.reason,
+      })
+    }
+  }
+  return out
+}
+
+/**
+ * Hyperliquid statuses are already words rather than numbers, which is what
+ * makes them worth publishing: nothing else on the internet explains
+ * `minTradeNtlRejected`, and it was 640 of the 1,122 rejections measured
+ * across 15,069 live orders.
+ */
+function hyperliquidErrors(): ChainError[] {
+  const out: ChainError[] = []
+  for (const status of KNOWN_STATUSES) {
+    const { reason } = explainStatus(status)
+    if (!reason || reason.length < MIN_EXPLANATION) continue
+    out.push({
+      slug: slugify("hyperliquid", status),
+      message: status,
+      chain: "hyperliquid",
+      scope: null,
+      code: null,
+      meaning: reason,
+    })
+  }
+  return out
+}
+
+function build(): ChainError[] {
+  return [...stellarErrors(), ...suiErrors(), ...solanaErrors(), ...hyperliquidErrors()]
+    .sort((a, b) => a.slug.localeCompare(b.slug))
 }
 
 function render(errors: ChainError[]): string {
