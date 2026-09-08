@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest"
+import { describe, it, expect, vi } from "vitest"
 import { fromEvmDiagnosis } from "@/lib/resolution/adapt"
 import { resolve } from "@/lib/resolution/resolve"
 
@@ -62,5 +62,32 @@ describe("a real dropped answer is still dropped", () => {
       H, { observedAt: AT },
     )
     expect(resolve(input).txid_code).toBe("TXID-3008")
+  })
+})
+
+describe("an unexpected throw is not an absence", () => {
+  /**
+   * Bug #72 in the EVM arm, narrower but the same shape.
+   *
+   * The NORMAL unreachable path is fine: diagnoseTransaction returns
+   * cause "lookup_failed" rather than throwing. But `.catch(() => null)`
+   * turned an UNEXPECTED throw into null, which fell past every branch and
+   * resolved to notFound. notFound asserts `onchain: "not_found"`, which
+   * carries a custody claim, and the spec says an integrator draws a Retry
+   * button from custody. The Aptos arm beside it already kept the two apart.
+   */
+  it("resolves a thrown EVM diagnosis to indeterminate, never not_found", async () => {
+    vi.resetModules()
+    vi.doMock("@txid/blockchain", async (orig) => ({
+      ...(await orig<Record<string, unknown>>()),
+      diagnoseTransaction: vi.fn(async () => { throw new Error("unexpected") }),
+    }))
+    const { resolveByHash } = await import("../resolution/gather")
+    const r = await resolveByHash("0x" + "a".repeat(64), { chain: "0x1" })
+    // Custody must not be claimed off a call that blew up.
+    expect(r.status).not.toBe("failed")
+    expect(r.custody).not.toBe("unchanged")
+    expect(r.txid_code).toBe("TXID-9004")
+    vi.doUnmock("@txid/blockchain")
   })
 })
