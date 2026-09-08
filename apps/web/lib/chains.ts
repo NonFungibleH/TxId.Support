@@ -248,7 +248,9 @@ export const CHAINS: ChainInfo[] = [
     family: "evm",
     status: "coming-soon",
     color: "#97FCE4",
-    logo: "/chains/HyperEVM.png",
+    // Hyperliquid and HyperEVM share ONE brand mark, so they share one file.
+    // HyperEVM is Hyperliquid's EVM layer, not a separately branded network.
+    logo: "/chains/Hyperliquid.png",
     explorerName: "HyperEVM Scan",
     tagline: "The EVM chain beside the exchange. Diagnosis is coming.",
     intro:
@@ -384,7 +386,6 @@ export const CHAINS: ChainInfo[] = [
     family: "non-evm",
     status: "live",
     color: "#50D2C1",
-    // No mark supplied yet, so ChainLogo renders a monogram rather than a 404.
     logo: "/chains/Hyperliquid.png",
     explorerName: "Hyperliquid",
     tagline: "Tell a trader why their order was rejected, in the exchange's own words.",
