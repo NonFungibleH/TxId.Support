@@ -83,3 +83,36 @@ describe("recordResolution never breaks its caller", () => {
     expect(row.tx_hash).toBe("0x62505e6a")
   })
 })
+
+describe("the height an answer was true as of reaches its own column", () => {
+  /**
+   * `chain_state_at` is what makes a resolution REPLAYABLE: an integrator can
+   * re-read the chain at that height and check what we said. It has always
+   * been in the API response and inside `evidence` as a `parameter`, where it
+   * is not queryable and cannot be joined on.
+   *
+   * Adding the column without writing to it would have been worse than not
+   * adding it: a column that is permanently NULL reads as "we never know the
+   * height", which is the opposite of true.
+   */
+  it("is written when the resolution carries one", async () => {
+    insert.mockResolvedValue({ error: null })
+    await recordResolution({ ...resolution, chain_state_at: "21984112" }, ctx)
+    const row = insert.mock.calls.at(-1)![0] as Record<string, unknown>
+    expect(row.chain_state_at).toBe("21984112")
+  })
+
+  /**
+   * NULL means NOT READ. The chain state is read AFTER the answer has
+   * streamed, so it costs no latency and can legitimately fail. Nothing may
+   * treat the absence as zero or as genesis.
+   */
+  it("is null, never zero, when the height was not read", async () => {
+    insert.mockResolvedValue({ error: null })
+    await recordResolution(resolution, ctx)
+    const row = insert.mock.calls.at(-1)![0] as Record<string, unknown>
+    expect(row.chain_state_at).toBeNull()
+    expect(row.chain_state_at).not.toBe(0)
+    expect(row.chain_state_at).not.toBe("0")
+  })
+})

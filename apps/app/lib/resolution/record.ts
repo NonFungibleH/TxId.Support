@@ -50,6 +50,13 @@ export async function recordResolution(
       next_action_owner: resolution.next_action_owner,
       retryable: resolution.retryable ?? null,
       basis: resolution.basis,
+      // The height the answer was true as of, which is what makes it
+      // REPLAYABLE: an integrator can re-read the chain there and check what
+      // we said. It has always been in the API response and inside `evidence`
+      // as a parameter, where it is not queryable. NULL means NOT READ, since
+      // the chain state is read after the answer has streamed and the read can
+      // fail; nothing may treat that as zero or as genesis.
+      chain_state_at: resolution.chain_state_at ?? null,
       source: ctx.source,
       raw_status: resolution.raw ?? ctx.rawStatus ?? null,
       evidence: resolution.evidence ?? [],
