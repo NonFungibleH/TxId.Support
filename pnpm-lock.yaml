@@ -263,6 +263,9 @@ importers:
       '@txid/solana':
         specifier: workspace:*
         version: link:../solana
+      '@txid/stellar':
+        specifier: workspace:*
+        version: link:../stellar
       '@txid/sui':
         specifier: workspace:*
         version: link:../sui
@@ -347,6 +350,19 @@ importers:
         version: 2.1.9(@types/node@20.19.37)(msw@2.12.14(@types/node@20.19.37)(typescript@5.9.3))
 
   packages/solana:
+    dependencies:
+      '@txid/shared':
+        specifier: workspace:*
+        version: link:../shared
+    devDependencies:
+      typescript:
+        specifier: ^5.4.0
+        version: 5.9.3
+      vitest:
+        specifier: ^2
+        version: 2.1.9(@types/node@20.19.37)(msw@2.12.14(@types/node@20.19.37)(typescript@5.9.3))
+
+  packages/stellar:
     dependencies:
       '@txid/shared':
         specifier: workspace:*

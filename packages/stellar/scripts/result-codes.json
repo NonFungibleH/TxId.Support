@@ -1,0 +1,439 @@
+{
+  "enums": {
+    "CreateAccountResultCode": {
+      "name": "CreateAccountResultCode",
+      "values": {
+        "0": "CREATE_ACCOUNT_SUCCESS",
+        "-1": "CREATE_ACCOUNT_MALFORMED",
+        "-2": "CREATE_ACCOUNT_UNDERFUNDED",
+        "-3": "CREATE_ACCOUNT_LOW_RESERVE",
+        "-4": "CREATE_ACCOUNT_ALREADY_EXIST"
+      }
+    },
+    "PaymentResultCode": {
+      "name": "PaymentResultCode",
+      "values": {
+        "0": "PAYMENT_SUCCESS",
+        "-1": "PAYMENT_MALFORMED",
+        "-2": "PAYMENT_UNDERFUNDED",
+        "-3": "PAYMENT_SRC_NO_TRUST",
+        "-4": "PAYMENT_SRC_NOT_AUTHORIZED",
+        "-5": "PAYMENT_NO_DESTINATION",
+        "-6": "PAYMENT_NO_TRUST",
+        "-7": "PAYMENT_NOT_AUTHORIZED",
+        "-8": "PAYMENT_LINE_FULL",
+        "-9": "PAYMENT_NO_ISSUER"
+      }
+    },
+    "PathPaymentStrictReceiveResultCode": {
+      "name": "PathPaymentStrictReceiveResultCode",
+      "values": {
+        "0": "PATH_PAYMENT_STRICT_RECEIVE_SUCCESS",
+        "-1": "PATH_PAYMENT_STRICT_RECEIVE_MALFORMED",
+        "-2": "PATH_PAYMENT_STRICT_RECEIVE_UNDERFUNDED",
+        "-3": "PATH_PAYMENT_STRICT_RECEIVE_SRC_NO_TRUST",
+        "-4": "PATH_PAYMENT_STRICT_RECEIVE_SRC_NOT_AUTHORIZED",
+        "-5": "PATH_PAYMENT_STRICT_RECEIVE_NO_DESTINATION",
+        "-6": "PATH_PAYMENT_STRICT_RECEIVE_NO_TRUST",
+        "-7": "PATH_PAYMENT_STRICT_RECEIVE_NOT_AUTHORIZED",
+        "-8": "PATH_PAYMENT_STRICT_RECEIVE_LINE_FULL",
+        "-9": "PATH_PAYMENT_STRICT_RECEIVE_NO_ISSUER",
+        "-10": "PATH_PAYMENT_STRICT_RECEIVE_TOO_FEW_OFFERS",
+        "-11": "PATH_PAYMENT_STRICT_RECEIVE_OFFER_CROSS_SELF",
+        "-12": "PATH_PAYMENT_STRICT_RECEIVE_OVER_SENDMAX"
+      }
+    },
+    "PathPaymentStrictSendResultCode": {
+      "name": "PathPaymentStrictSendResultCode",
+      "values": {
+        "0": "PATH_PAYMENT_STRICT_SEND_SUCCESS",
+        "-1": "PATH_PAYMENT_STRICT_SEND_MALFORMED",
+        "-2": "PATH_PAYMENT_STRICT_SEND_UNDERFUNDED",
+        "-3": "PATH_PAYMENT_STRICT_SEND_SRC_NO_TRUST",
+        "-4": "PATH_PAYMENT_STRICT_SEND_SRC_NOT_AUTHORIZED",
+        "-5": "PATH_PAYMENT_STRICT_SEND_NO_DESTINATION",
+        "-6": "PATH_PAYMENT_STRICT_SEND_NO_TRUST",
+        "-7": "PATH_PAYMENT_STRICT_SEND_NOT_AUTHORIZED",
+        "-8": "PATH_PAYMENT_STRICT_SEND_LINE_FULL",
+        "-9": "PATH_PAYMENT_STRICT_SEND_NO_ISSUER",
+        "-10": "PATH_PAYMENT_STRICT_SEND_TOO_FEW_OFFERS",
+        "-11": "PATH_PAYMENT_STRICT_SEND_OFFER_CROSS_SELF",
+        "-12": "PATH_PAYMENT_STRICT_SEND_UNDER_DESTMIN"
+      }
+    },
+    "ManageSellOfferResultCode": {
+      "name": "ManageSellOfferResultCode",
+      "values": {
+        "0": "MANAGE_SELL_OFFER_SUCCESS",
+        "-1": "MANAGE_SELL_OFFER_MALFORMED",
+        "-2": "MANAGE_SELL_OFFER_SELL_NO_TRUST",
+        "-3": "MANAGE_SELL_OFFER_BUY_NO_TRUST",
+        "-4": "MANAGE_SELL_OFFER_SELL_NOT_AUTHORIZED",
+        "-5": "MANAGE_SELL_OFFER_BUY_NOT_AUTHORIZED",
+        "-6": "MANAGE_SELL_OFFER_LINE_FULL",
+        "-7": "MANAGE_SELL_OFFER_UNDERFUNDED",
+        "-8": "MANAGE_SELL_OFFER_CROSS_SELF",
+        "-9": "MANAGE_SELL_OFFER_SELL_NO_ISSUER",
+        "-10": "MANAGE_SELL_OFFER_BUY_NO_ISSUER",
+        "-11": "MANAGE_SELL_OFFER_NOT_FOUND",
+        "-12": "MANAGE_SELL_OFFER_LOW_RESERVE"
+      }
+    },
+    "ManageBuyOfferResultCode": {
+      "name": "ManageBuyOfferResultCode",
+      "values": {
+        "0": "MANAGE_BUY_OFFER_SUCCESS",
+        "-1": "MANAGE_BUY_OFFER_MALFORMED",
+        "-2": "MANAGE_BUY_OFFER_SELL_NO_TRUST",
+        "-3": "MANAGE_BUY_OFFER_BUY_NO_TRUST",
+        "-4": "MANAGE_BUY_OFFER_SELL_NOT_AUTHORIZED",
+        "-5": "MANAGE_BUY_OFFER_BUY_NOT_AUTHORIZED",
+        "-6": "MANAGE_BUY_OFFER_LINE_FULL",
+        "-7": "MANAGE_BUY_OFFER_UNDERFUNDED",
+        "-8": "MANAGE_BUY_OFFER_CROSS_SELF",
+        "-9": "MANAGE_BUY_OFFER_SELL_NO_ISSUER",
+        "-10": "MANAGE_BUY_OFFER_BUY_NO_ISSUER",
+        "-11": "MANAGE_BUY_OFFER_NOT_FOUND",
+        "-12": "MANAGE_BUY_OFFER_LOW_RESERVE"
+      }
+    },
+    "SetOptionsResultCode": {
+      "name": "SetOptionsResultCode",
+      "values": {
+        "0": "SET_OPTIONS_SUCCESS",
+        "-1": "SET_OPTIONS_LOW_RESERVE",
+        "-2": "SET_OPTIONS_TOO_MANY_SIGNERS",
+        "-3": "SET_OPTIONS_BAD_FLAGS",
+        "-4": "SET_OPTIONS_INVALID_INFLATION",
+        "-5": "SET_OPTIONS_CANT_CHANGE",
+        "-6": "SET_OPTIONS_UNKNOWN_FLAG",
+        "-7": "SET_OPTIONS_THRESHOLD_OUT_OF_RANGE",
+        "-8": "SET_OPTIONS_BAD_SIGNER",
+        "-9": "SET_OPTIONS_INVALID_HOME_DOMAIN",
+        "-10": "SET_OPTIONS_AUTH_REVOCABLE_REQUIRED"
+      }
+    },
+    "ChangeTrustResultCode": {
+      "name": "ChangeTrustResultCode",
+      "values": {
+        "0": "CHANGE_TRUST_SUCCESS",
+        "-1": "CHANGE_TRUST_MALFORMED",
+        "-2": "CHANGE_TRUST_NO_ISSUER",
+        "-3": "CHANGE_TRUST_INVALID_LIMIT",
+        "-4": "CHANGE_TRUST_LOW_RESERVE",
+        "-5": "CHANGE_TRUST_SELF_NOT_ALLOWED",
+        "-6": "CHANGE_TRUST_TRUST_LINE_MISSING",
+        "-7": "CHANGE_TRUST_CANNOT_DELETE",
+        "-8": "CHANGE_TRUST_NOT_AUTH_MAINTAIN_LIABILITIES"
+      }
+    },
+    "AllowTrustResultCode": {
+      "name": "AllowTrustResultCode",
+      "values": {
+        "0": "ALLOW_TRUST_SUCCESS",
+        "-1": "ALLOW_TRUST_MALFORMED",
+        "-2": "ALLOW_TRUST_NO_TRUST_LINE",
+        "-3": "ALLOW_TRUST_TRUST_NOT_REQUIRED",
+        "-4": "ALLOW_TRUST_CANT_REVOKE",
+        "-5": "ALLOW_TRUST_SELF_NOT_ALLOWED",
+        "-6": "ALLOW_TRUST_LOW_RESERVE"
+      }
+    },
+    "AccountMergeResultCode": {
+      "name": "AccountMergeResultCode",
+      "values": {
+        "0": "ACCOUNT_MERGE_SUCCESS",
+        "-1": "ACCOUNT_MERGE_MALFORMED",
+        "-2": "ACCOUNT_MERGE_NO_ACCOUNT",
+        "-3": "ACCOUNT_MERGE_IMMUTABLE_SET",
+        "-4": "ACCOUNT_MERGE_HAS_SUB_ENTRIES",
+        "-5": "ACCOUNT_MERGE_SEQNUM_TOO_FAR",
+        "-6": "ACCOUNT_MERGE_DEST_FULL",
+        "-7": "ACCOUNT_MERGE_IS_SPONSOR"
+      }
+    },
+    "InflationResultCode": {
+      "name": "InflationResultCode",
+      "values": {
+        "0": "INFLATION_SUCCESS",
+        "-1": "INFLATION_NOT_TIME"
+      }
+    },
+    "ManageDataResultCode": {
+      "name": "ManageDataResultCode",
+      "values": {
+        "0": "MANAGE_DATA_SUCCESS",
+        "-1": "MANAGE_DATA_NOT_SUPPORTED_YET",
+        "-2": "MANAGE_DATA_NAME_NOT_FOUND",
+        "-3": "MANAGE_DATA_LOW_RESERVE",
+        "-4": "MANAGE_DATA_INVALID_NAME"
+      }
+    },
+    "BumpSequenceResultCode": {
+      "name": "BumpSequenceResultCode",
+      "values": {
+        "0": "BUMP_SEQUENCE_SUCCESS",
+        "-1": "BUMP_SEQUENCE_BAD_SEQ"
+      }
+    },
+    "CreateClaimableBalanceResultCode": {
+      "name": "CreateClaimableBalanceResultCode",
+      "values": {
+        "0": "CREATE_CLAIMABLE_BALANCE_SUCCESS",
+        "-1": "CREATE_CLAIMABLE_BALANCE_MALFORMED",
+        "-2": "CREATE_CLAIMABLE_BALANCE_LOW_RESERVE",
+        "-3": "CREATE_CLAIMABLE_BALANCE_NO_TRUST",
+        "-4": "CREATE_CLAIMABLE_BALANCE_NOT_AUTHORIZED",
+        "-5": "CREATE_CLAIMABLE_BALANCE_UNDERFUNDED"
+      }
+    },
+    "ClaimClaimableBalanceResultCode": {
+      "name": "ClaimClaimableBalanceResultCode",
+      "values": {
+        "0": "CLAIM_CLAIMABLE_BALANCE_SUCCESS",
+        "-1": "CLAIM_CLAIMABLE_BALANCE_DOES_NOT_EXIST",
+        "-2": "CLAIM_CLAIMABLE_BALANCE_CANNOT_CLAIM",
+        "-3": "CLAIM_CLAIMABLE_BALANCE_LINE_FULL",
+        "-4": "CLAIM_CLAIMABLE_BALANCE_NO_TRUST",
+        "-5": "CLAIM_CLAIMABLE_BALANCE_NOT_AUTHORIZED",
+        "-6": "CLAIM_CLAIMABLE_BALANCE_TRUSTLINE_FROZEN"
+      }
+    },
+    "BeginSponsoringFutureReservesResultCode": {
+      "name": "BeginSponsoringFutureReservesResultCode",
+      "values": {
+        "0": "BEGIN_SPONSORING_FUTURE_RESERVES_SUCCESS",
+        "-1": "BEGIN_SPONSORING_FUTURE_RESERVES_MALFORMED",
+        "-2": "BEGIN_SPONSORING_FUTURE_RESERVES_ALREADY_SPONSORED",
+        "-3": "BEGIN_SPONSORING_FUTURE_RESERVES_RECURSIVE"
+      }
+    },
+    "EndSponsoringFutureReservesResultCode": {
+      "name": "EndSponsoringFutureReservesResultCode",
+      "values": {
+        "0": "END_SPONSORING_FUTURE_RESERVES_SUCCESS",
+        "-1": "END_SPONSORING_FUTURE_RESERVES_NOT_SPONSORED"
+      }
+    },
+    "RevokeSponsorshipResultCode": {
+      "name": "RevokeSponsorshipResultCode",
+      "values": {
+        "0": "REVOKE_SPONSORSHIP_SUCCESS",
+        "-1": "REVOKE_SPONSORSHIP_DOES_NOT_EXIST",
+        "-2": "REVOKE_SPONSORSHIP_NOT_SPONSOR",
+        "-3": "REVOKE_SPONSORSHIP_LOW_RESERVE",
+        "-4": "REVOKE_SPONSORSHIP_ONLY_TRANSFERABLE",
+        "-5": "REVOKE_SPONSORSHIP_MALFORMED"
+      }
+    },
+    "ClawbackResultCode": {
+      "name": "ClawbackResultCode",
+      "values": {
+        "0": "CLAWBACK_SUCCESS",
+        "-1": "CLAWBACK_MALFORMED",
+        "-2": "CLAWBACK_NOT_CLAWBACK_ENABLED",
+        "-3": "CLAWBACK_NO_TRUST",
+        "-4": "CLAWBACK_UNDERFUNDED"
+      }
+    },
+    "ClawbackClaimableBalanceResultCode": {
+      "name": "ClawbackClaimableBalanceResultCode",
+      "values": {
+        "0": "CLAWBACK_CLAIMABLE_BALANCE_SUCCESS",
+        "-1": "CLAWBACK_CLAIMABLE_BALANCE_DOES_NOT_EXIST",
+        "-2": "CLAWBACK_CLAIMABLE_BALANCE_NOT_ISSUER",
+        "-3": "CLAWBACK_CLAIMABLE_BALANCE_NOT_CLAWBACK_ENABLED"
+      }
+    },
+    "SetTrustLineFlagsResultCode": {
+      "name": "SetTrustLineFlagsResultCode",
+      "values": {
+        "0": "SET_TRUST_LINE_FLAGS_SUCCESS",
+        "-1": "SET_TRUST_LINE_FLAGS_MALFORMED",
+        "-2": "SET_TRUST_LINE_FLAGS_NO_TRUST_LINE",
+        "-3": "SET_TRUST_LINE_FLAGS_CANT_REVOKE",
+        "-4": "SET_TRUST_LINE_FLAGS_INVALID_STATE",
+        "-5": "SET_TRUST_LINE_FLAGS_LOW_RESERVE"
+      }
+    },
+    "LiquidityPoolDepositResultCode": {
+      "name": "LiquidityPoolDepositResultCode",
+      "values": {
+        "0": "LIQUIDITY_POOL_DEPOSIT_SUCCESS",
+        "-1": "LIQUIDITY_POOL_DEPOSIT_MALFORMED",
+        "-2": "LIQUIDITY_POOL_DEPOSIT_NO_TRUST",
+        "-3": "LIQUIDITY_POOL_DEPOSIT_NOT_AUTHORIZED",
+        "-4": "LIQUIDITY_POOL_DEPOSIT_UNDERFUNDED",
+        "-5": "LIQUIDITY_POOL_DEPOSIT_LINE_FULL",
+        "-6": "LIQUIDITY_POOL_DEPOSIT_BAD_PRICE",
+        "-7": "LIQUIDITY_POOL_DEPOSIT_POOL_FULL",
+        "-8": "LIQUIDITY_POOL_DEPOSIT_TRUSTLINE_FROZEN"
+      }
+    },
+    "LiquidityPoolWithdrawResultCode": {
+      "name": "LiquidityPoolWithdrawResultCode",
+      "values": {
+        "0": "LIQUIDITY_POOL_WITHDRAW_SUCCESS",
+        "-1": "LIQUIDITY_POOL_WITHDRAW_MALFORMED",
+        "-2": "LIQUIDITY_POOL_WITHDRAW_NO_TRUST",
+        "-3": "LIQUIDITY_POOL_WITHDRAW_UNDERFUNDED",
+        "-4": "LIQUIDITY_POOL_WITHDRAW_LINE_FULL",
+        "-5": "LIQUIDITY_POOL_WITHDRAW_UNDER_MINIMUM",
+        "-6": "LIQUIDITY_POOL_WITHDRAW_TRUSTLINE_FROZEN"
+      }
+    },
+    "InvokeHostFunctionResultCode": {
+      "name": "InvokeHostFunctionResultCode",
+      "values": {
+        "0": "INVOKE_HOST_FUNCTION_SUCCESS",
+        "-1": "INVOKE_HOST_FUNCTION_MALFORMED",
+        "-2": "INVOKE_HOST_FUNCTION_TRAPPED",
+        "-3": "INVOKE_HOST_FUNCTION_RESOURCE_LIMIT_EXCEEDED",
+        "-4": "INVOKE_HOST_FUNCTION_ENTRY_ARCHIVED",
+        "-5": "INVOKE_HOST_FUNCTION_INSUFFICIENT_REFUNDABLE_FEE"
+      }
+    },
+    "ExtendFootprintTTLResultCode": {
+      "name": "ExtendFootprintTTLResultCode",
+      "values": {
+        "0": "EXTEND_FOOTPRINT_TTL_SUCCESS",
+        "-1": "EXTEND_FOOTPRINT_TTL_MALFORMED",
+        "-2": "EXTEND_FOOTPRINT_TTL_RESOURCE_LIMIT_EXCEEDED",
+        "-3": "EXTEND_FOOTPRINT_TTL_INSUFFICIENT_REFUNDABLE_FEE"
+      }
+    },
+    "RestoreFootprintResultCode": {
+      "name": "RestoreFootprintResultCode",
+      "values": {
+        "0": "RESTORE_FOOTPRINT_SUCCESS",
+        "-1": "RESTORE_FOOTPRINT_MALFORMED",
+        "-2": "RESTORE_FOOTPRINT_RESOURCE_LIMIT_EXCEEDED",
+        "-3": "RESTORE_FOOTPRINT_INSUFFICIENT_REFUNDABLE_FEE"
+      }
+    },
+    "OperationResultCode": {
+      "name": "OperationResultCode",
+      "values": {
+        "0": "opINNER",
+        "-1": "opBAD_AUTH",
+        "-2": "opNO_ACCOUNT",
+        "-3": "opNOT_SUPPORTED",
+        "-4": "opTOO_MANY_SUBENTRIES",
+        "-5": "opEXCEEDED_WORK_LIMIT",
+        "-6": "opTOO_MANY_SPONSORING"
+      }
+    },
+    "TransactionResultCode": {
+      "name": "TransactionResultCode",
+      "values": {
+        "0": "txSUCCESS",
+        "1": "txFEE_BUMP_INNER_SUCCESS",
+        "-1": "txFAILED",
+        "-2": "txTOO_EARLY",
+        "-3": "txTOO_LATE",
+        "-4": "txMISSING_OPERATION",
+        "-5": "txBAD_SEQ",
+        "-6": "txBAD_AUTH",
+        "-7": "txINSUFFICIENT_BALANCE",
+        "-8": "txNO_ACCOUNT",
+        "-9": "txINSUFFICIENT_FEE",
+        "-10": "txBAD_AUTH_EXTRA",
+        "-11": "txINTERNAL_ERROR",
+        "-12": "txNOT_SUPPORTED",
+        "-13": "txFEE_BUMP_INNER_FAILED",
+        "-14": "txBAD_SPONSORSHIP",
+        "-15": "txBAD_MIN_SEQ_AGE_OR_GAP",
+        "-16": "txMALFORMED",
+        "-17": "txSOROBAN_INVALID",
+        "-18": "txFROZEN_KEY_ACCESSED"
+      }
+    }
+  },
+  "operationTypes": {
+    "0": "CREATE_ACCOUNT",
+    "1": "PAYMENT",
+    "2": "PATH_PAYMENT_STRICT_RECEIVE",
+    "3": "MANAGE_SELL_OFFER",
+    "4": "CREATE_PASSIVE_SELL_OFFER",
+    "5": "SET_OPTIONS",
+    "6": "CHANGE_TRUST",
+    "7": "ALLOW_TRUST",
+    "8": "ACCOUNT_MERGE",
+    "9": "INFLATION",
+    "10": "MANAGE_DATA",
+    "11": "BUMP_SEQUENCE",
+    "12": "MANAGE_BUY_OFFER",
+    "13": "PATH_PAYMENT_STRICT_SEND",
+    "14": "CREATE_CLAIMABLE_BALANCE",
+    "15": "CLAIM_CLAIMABLE_BALANCE",
+    "16": "BEGIN_SPONSORING_FUTURE_RESERVES",
+    "17": "END_SPONSORING_FUTURE_RESERVES",
+    "18": "REVOKE_SPONSORSHIP",
+    "19": "CLAWBACK",
+    "20": "CLAWBACK_CLAIMABLE_BALANCE",
+    "21": "SET_TRUST_LINE_FLAGS",
+    "22": "LIQUIDITY_POOL_DEPOSIT",
+    "23": "LIQUIDITY_POOL_WITHDRAW",
+    "24": "INVOKE_HOST_FUNCTION",
+    "25": "EXTEND_FOOTPRINT_TTL",
+    "26": "RESTORE_FOOTPRINT"
+  },
+  "resultEnumForOperation": {
+    "CREATE_ACCOUNT": "CreateAccountResultCode",
+    "PAYMENT": "PaymentResultCode",
+    "PATH_PAYMENT_STRICT_RECEIVE": "PathPaymentStrictReceiveResultCode",
+    "MANAGE_SELL_OFFER": "ManageSellOfferResultCode",
+    "CREATE_PASSIVE_SELL_OFFER": "ManageSellOfferResultCode",
+    "SET_OPTIONS": "SetOptionsResultCode",
+    "CHANGE_TRUST": "ChangeTrustResultCode",
+    "ALLOW_TRUST": "AllowTrustResultCode",
+    "ACCOUNT_MERGE": "AccountMergeResultCode",
+    "INFLATION": "InflationResultCode",
+    "MANAGE_DATA": "ManageDataResultCode",
+    "BUMP_SEQUENCE": "BumpSequenceResultCode",
+    "MANAGE_BUY_OFFER": "ManageBuyOfferResultCode",
+    "PATH_PAYMENT_STRICT_SEND": "PathPaymentStrictSendResultCode",
+    "CREATE_CLAIMABLE_BALANCE": "CreateClaimableBalanceResultCode",
+    "CLAIM_CLAIMABLE_BALANCE": "ClaimClaimableBalanceResultCode",
+    "BEGIN_SPONSORING_FUTURE_RESERVES": "BeginSponsoringFutureReservesResultCode",
+    "END_SPONSORING_FUTURE_RESERVES": "EndSponsoringFutureReservesResultCode",
+    "REVOKE_SPONSORSHIP": "RevokeSponsorshipResultCode",
+    "CLAWBACK": "ClawbackResultCode",
+    "CLAWBACK_CLAIMABLE_BALANCE": "ClawbackClaimableBalanceResultCode",
+    "SET_TRUST_LINE_FLAGS": "SetTrustLineFlagsResultCode",
+    "LIQUIDITY_POOL_DEPOSIT": "LiquidityPoolDepositResultCode",
+    "LIQUIDITY_POOL_WITHDRAW": "LiquidityPoolWithdrawResultCode",
+    "INVOKE_HOST_FUNCTION": "InvokeHostFunctionResultCode",
+    "EXTEND_FOOTPRINT_TTL": "ExtendFootprintTTLResultCode",
+    "RESTORE_FOOTPRINT": "RestoreFootprintResultCode"
+  },
+  "successPayloadBytes": {
+    "CREATE_ACCOUNT": 0,
+    "PAYMENT": 0,
+    "PATH_PAYMENT_STRICT_RECEIVE": -1,
+    "MANAGE_SELL_OFFER": -1,
+    "CREATE_PASSIVE_SELL_OFFER": -1,
+    "SET_OPTIONS": 0,
+    "CHANGE_TRUST": 0,
+    "ALLOW_TRUST": 0,
+    "ACCOUNT_MERGE": 8,
+    "INFLATION": -1,
+    "MANAGE_DATA": 0,
+    "BUMP_SEQUENCE": 0,
+    "MANAGE_BUY_OFFER": -1,
+    "PATH_PAYMENT_STRICT_SEND": -1,
+    "CREATE_CLAIMABLE_BALANCE": 36,
+    "CLAIM_CLAIMABLE_BALANCE": 0,
+    "BEGIN_SPONSORING_FUTURE_RESERVES": 0,
+    "END_SPONSORING_FUTURE_RESERVES": 0,
+    "REVOKE_SPONSORSHIP": 0,
+    "CLAWBACK": 0,
+    "CLAWBACK_CLAIMABLE_BALANCE": 0,
+    "SET_TRUST_LINE_FLAGS": 0,
+    "LIQUIDITY_POOL_DEPOSIT": 0,
+    "LIQUIDITY_POOL_WITHDRAW": 0,
+    "INVOKE_HOST_FUNCTION": 32,
+    "EXTEND_FOOTPRINT_TTL": 0,
+    "RESTORE_FOOTPRINT": 0
+  }
+}

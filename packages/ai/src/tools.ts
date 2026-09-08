@@ -59,6 +59,13 @@ import {
   SUI_ERRMAPS,
 } from "@txid/sui"
 import {
+  isStellarChain,
+  getStellarTransaction,
+  getStellarBalance,
+  getStellarRecentTransactions,
+  normalizeStellarTxHash,
+} from "@txid/stellar"
+import {
   isAptosChain,
   isAptosAddress,
   normalizeAptosAddress,
@@ -418,6 +425,7 @@ export async function executeTool(
   const solana = wallet ? isSolanaChain(wallet.chainId) : false
   const aptos = wallet ? isAptosChain(wallet.chainId) : false
   const sui = wallet ? isSuiChain(wallet.chainId) : false
+  const stellar = wallet ? isStellarChain(wallet.chainId) : false
 
   switch (name) {
     case "get_staking_positions": {
@@ -488,6 +496,24 @@ export async function executeTool(
       if (solana) {
         return getSolanaWalletBalance(wallet.address)
       }
+      if (stellar) {
+        const r = await getStellarBalance(wallet.address)
+        if (r.kind === "unavailable") return { lookupFailed: true, note: `Could not read the Stellar account (${r.reason}). Do NOT say the account is empty: this lookup did not complete.` }
+        if (r.kind === "not_found") return { address: wallet.address, note: "Horizon has no such account. On Stellar an account must be created and funded before it exists, so this is a real answer: the address has never been activated." }
+        return {
+          address: r.value.account,
+          xlm: `${r.value.xlm} XLM`,
+          // The reserve is why a Stellar user can see a balance and be unable to
+          // spend it. Null means NOT COMPUTED, never zero.
+          reserveXlm: r.value.reserveXlm,
+          subentryCount: r.value.subentryCount,
+          reserveNote: r.value.reserveXlm
+            ? `Of that XLM, ${r.value.reserveXlm} is locked as the account's minimum reserve (1 XLM base plus 0.5 per subentry, and this account has ${r.value.subentryCount}). Spendable XLM is the balance MINUS the reserve. Say so if the user asks why they cannot send their whole balance.`
+            : "The reserve could not be computed for this account, so do not present the XLM balance as fully spendable.",
+          assets: r.value.balances.filter(b => b.asset !== "native"),
+          assetNote: "Each non-native line is a TRUSTLINE. On Stellar an account has to explicitly trust an asset before it can hold it, and a trustline carries a limit. A payment can fail because the RECIPIENT has no trustline or their limit would be exceeded, which is nothing to do with either party's balance.",
+        }
+      }
       if (sui) {
         const r = await getSuiBalance(wallet.address)
         if (r.kind === "unavailable") return { lookupFailed: true, note: `Could not read the Sui balance (${r.reason}). Do NOT say the wallet is empty: this lookup did not complete.` }
@@ -547,6 +573,16 @@ export async function executeTool(
 
       if (solana) {
         return getSolanaRecentTransactions(wallet.address, programOrContract, limit)
+      }
+      if (stellar) {
+        const r = await getStellarRecentTransactions(wallet.address, limit)
+        if (r.kind === "unavailable") return { lookupFailed: true, note: `Could not read Stellar history (${r.reason}). Do NOT say the account has no activity: this lookup did not complete.` }
+        if (r.kind === "not_found") return { address: wallet.address, transactions: [], note: "Horizon has no such account, so there is no history. That is an answer, not a failed lookup." }
+        return {
+          address: wallet.address,
+          transactions: r.value,
+          note: "Failed transactions ARE included here. Each carries a decoded `reason` written for the user; quote it rather than rephrasing the operation code.",
+        }
       }
       if (sui) {
         // SUI_ERRMAPS is offered on every Sui project, not only DeepBook's. It
@@ -702,6 +738,7 @@ export async function executeTool(
     case "get_wallet_approvals": {
       if (!wallet) throw new Error("Wallet not connected")
       if (solana) return { approvals: [], note: "Approval listing is EVM-only." }
+      if (stellar) return { approvals: [], note: "Stellar has no token approvals: there is no allowance model, so there is nothing standing that could be revoked. The nearest concept is a TRUSTLINE, which is permission to HOLD an asset rather than permission for someone else to spend it, and it is listed under the wallet balance. Say that rather than implying the approvals list is empty." }
       if (sui) return { approvals: [], note: "Sui has no token approvals: coins are owned objects, so there is nothing standing that could be revoked. Say that rather than implying the list is empty." }
       if (aptos) {
         return {
@@ -749,6 +786,27 @@ export async function executeTool(
       // a Solana project would be looked up on the wrong chain and reported as
       // never having existed.
       const looksSuiDigest = /^[1-9A-HJ-NP-Za-km-z]{43,44}$/.test(hash)
+
+      // A STELLAR HASH IS 64 HEX WITH NO PREFIX, so it is an EVM hash with its
+      // 0x removed. That overlap is why this is gated on Stellar being in play
+      // rather than on the shape alone, exactly as the Aptos arm is: the shape
+      // can never decide the chain here.
+      const stellarHash = normalizeStellarTxHash(hash)
+      const stellarInPlay =
+        isStellarChain(providedChain ?? "") ||
+        isStellarChain(wallet?.chainId ?? "") ||
+        watchedContracts.some(c => isStellarChain(c.chain))
+      if (stellarHash && stellarInPlay && !looksEvm) {
+        const r = await getStellarTransaction(stellarHash)
+        if (r.kind === "unavailable") {
+          return { hash: stellarHash, chainId: "stellar", status: "lookup_failed", lookupFailed: true, note: `Could not read Stellar (${r.reason}). Do NOT tell the user this transaction does not exist or that nothing happened: this lookup did not complete. Say the lookup could not be made and offer to try again.` }
+        }
+        if (r.kind === "not_found") {
+          return { hash: stellarHash, chainId: "stellar", status: "not_found", note: "Horizon looked and has no transaction with this hash. That is an answer from Horizon, not a failed lookup: either the hash is wrong, or the transaction was never submitted. Note that a Stellar transaction which expired past its time bound leaves NO record at all, so a wallet can show a hash for something the ledger never saw." }
+        }
+        return { chainId: "stellar", ...r.value }
+      }
+
       const suiInPlay =
         isSuiChain(providedChain ?? "") ||
         isSuiChain(wallet?.chainId ?? "") ||

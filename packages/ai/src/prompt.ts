@@ -15,6 +15,7 @@ const CHAIN_NAMES: Record<string, string> = {
   "0x14a34":  "Base Sepolia (testnet)",
   "solana":   "Solana",
   "sui":      "Sui",
+  "stellar":  "Stellar",
   "aptos":    "Aptos",
   // decimal string variants
   "1":        "Ethereum Mainnet",
@@ -663,7 +664,18 @@ export function buildSystemPrompt(params: StreamChatParams): string {
             `- \`cause: "insufficient_funds"\` → the account could not cover the transfer plus fee and rent. Rent is Solana-specific: an account needs a minimum balance to stay alive, so "I have SOL" and "I have enough SOL" are different.\n` +
             `- \`cause: "program_crashed"\` → the program stopped partway rather than rejecting cleanly. Nothing it was doing took effect.\n` +
             `In every case: a failed Solana transaction still costs the fee, and nothing else moved. Say that, because it is the thing the user is worried about.\n\n` +
-            `**Interpreting failed Sui transactions, decodedAbort field (Sui only):**\n` +
+                        `**Interpreting failed Stellar transactions, reason and decodedResult (Stellar only):**\n` +
+            `A failed Stellar transaction carries a \`reason\` already written for the user, and a \`decodedResult\` with the evidence behind it. Stellar is the most explainable chain we read: its result codes are published, so 98.8% of live failures resolve to a named operation error we hold English for.\n` +
+            `- **Use \`reason\` verbatim.** It is decoded from the transaction result and already names the Stellar concept involved. Do not paraphrase it into generic wording, and do not restate the raw code instead of it.\n` +
+            `- \`decodedResult.failing\` names the operation and its code, for example \`PATH_PAYMENT_STRICT_SEND\` with \`PATH_PAYMENT_STRICT_SEND_UNDER_DESTMIN\`. Quote the operation when there was more than one, so the user knows which step failed.\n` +
+            `- \`decodedResult.incomplete: true\` with no \`failing\` means the result could only be read up to a successful operation whose payload is variable length. Say we could not read past that point. Do NOT guess which later operation failed.\n` +
+            `- \`decodedResult.feeBump: true\` means this was a fee bump and the failure shown is the INNER transaction it paid for. The fee bump did not fail. Do not send the user to look up a second transaction: the inner result is already decoded here.\n` +
+            `**Three Stellar concepts do most of the work, and users do not know them. Name them:**\n` +
+            `- **Trustlines.** An account cannot hold an asset until it has explicitly trusted the issuer, and a trustline carries a limit. A payment can fail because the RECIPIENT has no trustline or would exceed their limit, which is nothing to do with either party having enough money. Never describe a trustline failure as a balance problem.\n` +
+            `- **Reserves.** Every account must keep a minimum XLM balance, 1 XLM plus 0.5 for each trustline, offer and signer. So spendable XLM is the balance MINUS the reserve, and someone can see a balance and be unable to send it. When \`reserveXlm\` is present, use it; when it is null it was NOT computed, so do not present the balance as fully spendable.\n` +
+            `- **Time bounds.** A Stellar transaction expires. \`txTOO_LATE\` means it was never applied and, importantly, it can never be applied later, which is what makes resubmitting safe. Say that plainly, because the fear is a double send.\n` +
+            `A failed Stellar transaction still costs the fee and nothing else moved. Stellar applies a transaction all or nothing, so a failure in one operation rolls back every operation in it.\n\n` +
+`**Interpreting failed Sui transactions, decodedAbort field (Sui only):**\n` +
             `A failed Sui transaction carries a \`decodedAbort\` object. Sui is Move, like Aptos, but it tells you LESS and you must not paper over the difference:\n` +
             `- \`errorName\` present means we hold a definition for that package's code. It is the protocol's own name. Use it, and use \`reason\` as written.\n` +
             `- \`errorName: null\` is the COMMON case and it is honest. Sui aborts carry a bare number: unlike Aptos there is no constant name in the status, no error category packed into the code, and Sui does not expose constants on chain, so a code we have no map for genuinely cannot be interpreted. Give the module, the function and the number, say the package publishes no description, and offer to escalate. Do NOT guess a meaning from the number, and do NOT reason by analogy with a similar-looking code on another chain.\n` +
