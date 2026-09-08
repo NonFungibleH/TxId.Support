@@ -13,6 +13,9 @@ export const ETHERSCAN_CHAIN_IDS: Record<string, number> = {
   // 2026-09-08: Monad Mainnet, id 143, status 1 (ok), explorer monadscan.com.
   "0x8f": 143,
   "0x3e7": 999,
+  "0x82": 130,
+  "0x2611": 9745,
+  "0x1388": 5000,
 }
 
 // Etherscan-compatible fallback explorers (Blockscout / Routescan), used when
@@ -27,6 +30,7 @@ const BLOCKSCOUT_BASES: Record<string, string> = {
   "0xa4b1": "https://arbitrum.blockscout.com",
   "0xa86a": "https://api.routescan.io/v2/network/mainnet/evm/43114/etherscan",
   "0xa729": "https://explorer.etherlink.com",
+  "0x82": "https://unichain.blockscout.com",
 }
 
 export interface ExplorerResponse {

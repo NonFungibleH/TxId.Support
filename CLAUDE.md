@@ -1314,6 +1314,40 @@ stands alone. `nativeSymbol("0x8f")` returns **MON**; before the September audit
 removed every `?? "ETH"` this would have told a Monad user to top up ETH on a
 chain that has none. `monad.test.ts` pins all of it.
 
+**Unichain (`0x82`), Plasma (`0x2611`) and Mantle (`0x1388`), 2026-09-08.** Three
+chains, three different answers to the routing question, and the point of the
+group is that the answer was MEASURED rather than assumed each time.
+
+- **Unichain** has a complete Blockscout v2, so it takes the Etherlink route and
+  gets the full wallet path. Verified live before shipping: `token-balances`
+  returned 20 holdings and `transactions` returned 50 items.
+- **Plasma and Mantle are RPC-only.** Token balances and history are UNAVAILABLE
+  and throw. The failed-transaction path, which is the product, works: a live
+  Plasma failure resolved through `getTransactionByHash` to `state_dependent`
+  with the chain named "Plasma" and no new decoder code at all.
+
+> **A scoping pass recorded a Blockscout for Plasma that does not exist**, because
+> the probe checked `r.ok` and got HTTP 200 without looking at the body:
+> `plasmascan.to` serves an HTML page at `/api/v2/...`, and its own `/api` replies
+> "use api.plasmascan.to", which is Etherscan-family and V2-only. Same shape as
+> the explorer bug in the section above, committed while investigating it. **A
+> 200 is not an answer; read the body.**
+
+**Moralis indexes none of the three**, established from Moralis's own OpenAPI
+chain enum (53 entries) rather than its docs prose. The method is trustworthy
+because it reproduces what we already know: Monad indexed, HyperEVM and Robinhood
+not.
+
+`nativeSymbol` returns **MNT** for Mantle and **XPL** for Plasma. Both are L2s
+with their own gas token, so before the September audit removed every `?? "ETH"`
+each would have told a user to top up ETH on a chain that has none.
+
+**THE ONE PIECE OF WORK THAT WOULD UPGRADE THREE CHAINS AT ONCE:** Plasma, Mantle
+and HyperEVM are all RPC-only AND all listed in Etherscan V2 at status 1. An
+Etherscan-based wallet path on `account/*` would give all three token balances and
+history. It needs `ETHERSCAN_API_KEY`, which is unset in production and is already
+a correctness problem for the reasons in the Operating reality section.
+
 **HyperEVM (`0x3e7`, chain 999, 2026-09-08)** took the RPC-only route. Moralis
 does not list it and there is no reachable Blockscout (both obvious hosts 404),
 which was written up here as needing a FOURTH wallet path on Etherscan V2's

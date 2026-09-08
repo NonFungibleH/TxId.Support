@@ -22,8 +22,16 @@ export interface ChainInfo {
   hidden?: boolean
   /** Brand accent hex, themes the whole page. */
   color: string
-  /** Logo path under /public. Missing files fall back to a monogram. */
-  logo: string
+  /** Logo path under /public.
+   *
+   *  OPTIONAL, and the distinction matters. Omitted means we hold no mark for
+   *  this chain yet and the monogram is deliberate. A path that is SET must
+   *  resolve to a real file, because a declared-but-missing logo falls back to
+   *  the same monogram silently and nobody notices which chain lost its
+   *  branding. `chains.test.ts` enforces exactly that split: it will not let a
+   *  set path go missing, and it will not accept a placeholder standing in for
+   *  a real mark. */
+  logo?: string
   /** Marks that need a white disc behind them to read on dark (matches the homepage hero treatment). */
   logoWhiteBg?: boolean
   /** One-line hero subtitle. */
@@ -239,6 +247,72 @@ export const CHAINS: ChainInfo[] = [
       { title: "A failure that only happened once", detail: "Spots a transaction that fails on chain but succeeds when replayed a block earlier, which means the price or the liquidity moved underneath it rather than anything being broken." },
       { title: "Out of gas", detail: "Separates a gas limit set too low from a wallet that is genuinely short of MON, which need different fixes." },
       { title: "Missing approvals", detail: "Explains when a token was never approved for the contract trying to spend it." },
+    ],
+  },
+  {
+    slug: "unichain",
+    name: "Unichain",
+    ticker: "ETH",
+    family: "evm",
+    status: "live",
+    color: "#FF007A",
+    explorerName: "Uniscan",
+    tagline: "Swap failures on Unichain, explained where your users already are.",
+    intro:
+      "Unichain runs the contracts most people on it are already trading through, so when something does fail it is usually a swap that did not land: a price that moved, an approval that was never given, a router that refused. TxID reads the transaction, decodes the contract's own reason, and answers in plain English inside your product.",
+    metaDescription:
+      "An AI support agent for Unichain apps. TxID reads the failed transaction, decodes the revert and tells your users what to do next.",
+    builtFor:
+      "TxID reads Unichain directly, balances and history included, so a user asking what happened to a swap gets the actual reason rather than a hash to paste into an explorer.",
+    failures: [
+      { title: "Swaps that did not land", detail: "Separates a price that moved mid-transaction from a router that refused outright, which need completely different fixes." },
+      { title: "Custom contract errors", detail: "Decodes a bare error selector against the contract's published interface, so a hex string becomes a sentence." },
+      { title: "Out of gas", detail: "Tells the user it was the gas limit rather than their ETH balance, and what to raise it to." },
+      { title: "Approvals that never landed", detail: "Checks whether the token approval actually went through before anyone blames the contract." },
+    ],
+  },
+  {
+    slug: "plasma",
+    name: "Plasma",
+    ticker: "XPL",
+    family: "evm",
+    status: "live",
+    color: "#00D68F",
+    explorerName: "Plasmascan",
+    tagline: "Stablecoin users do not read reverts. TxID reads them instead.",
+    intro:
+      "Plasma exists to move stablecoins, which means the people using it are the least likely in crypto to know what a revert is. They are moving dollars. When a transfer or a swap fails, TxID replays the transaction, turns the contract's own error into plain English, and says what to do next, without sending anyone to a block explorer.",
+    metaDescription:
+      "An AI support agent for Plasma apps. TxID diagnoses failed XPL and stablecoin transactions and explains the fix in plain English.",
+    builtFor:
+      "TxID reads Plasma straight from the chain's own node, so a failed transfer gets a real answer instead of a status code, for users who never wanted to learn what one is.",
+    failures: [
+      { title: "Reverted transfers and swaps", detail: "Replays the transaction and turns the contract's own revert reason into what went wrong and what to do next." },
+      { title: "Errors that are just a code", detail: "Decodes a bare selector or a terse string like \"AS\" against the contract's interface, so the user sees a sentence rather than a fragment." },
+      { title: "Failures that only happened once", detail: "Spots a transaction that fails on chain but succeeds when replayed a block earlier, which means the price or the balance moved underneath it." },
+      { title: "Out of gas", detail: "Separates a gas limit set too low from a wallet that is genuinely short of XPL, which need different fixes." },
+    ],
+  },
+  {
+    slug: "mantle",
+    name: "Mantle",
+    ticker: "MNT",
+    family: "evm",
+    status: "live",
+    color: "#65B3AE",
+    explorerName: "Mantlescan",
+    tagline: "Failed Mantle transactions, decoded and explained in your own product.",
+    intro:
+      "A failed transaction on Mantle tells the user almost nothing: a status code, a hash, and a gas figure in MNT rather than the ETH they may be expecting. TxID replays it against the chain, decodes the contract's own error, and gives the answer in plain English without the user leaving your app.",
+    metaDescription:
+      "An AI support agent for Mantle apps. TxID replays the failed transaction, decodes the revert and explains the fix in plain English.",
+    builtFor:
+      "TxID reads Mantle directly and knows its gas is MNT, so nobody is told to top up a token the chain does not use.",
+    failures: [
+      { title: "Reverted transactions", detail: "Replays the call against the chain and decodes the contract's own revert reason, custom Solidity errors included." },
+      { title: "Custom contract errors", detail: "Turns a bare error selector into the contract's own named error and what it means for the user." },
+      { title: "Out of gas", detail: "Tells the user it was the gas limit rather than their MNT balance, and names MNT rather than ETH." },
+      { title: "Failures that only happened once", detail: "Spots a transaction that fails on chain but succeeds when replayed a block earlier, which means the state moved underneath it." },
     ],
   },
   {
