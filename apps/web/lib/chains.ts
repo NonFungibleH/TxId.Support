@@ -218,6 +218,30 @@ export const CHAINS: ChainInfo[] = [
   },
 
   {
+    slug: "monad",
+    name: "Monad",
+    ticker: "MON",
+    family: "evm",
+    status: "live",
+    color: "#836EF9",
+    logo: "/chains/Monad.png",
+    explorerName: "MonadScan",
+    tagline: "Diagnose failed Monad transactions without leaving your app.",
+    intro:
+      "Monad runs the EVM, so the failures look familiar and the confusion does not: a user staring at a transaction that did not work still has no idea why, and the reason is sitting on chain in a revert nobody has translated. TxID replays the transaction, finds the real cause, and answers in plain language inside your product.",
+    metaDescription:
+      "Diagnose failed Monad transactions without leaving your app. TxID replays the transaction, decodes the revert, and gives your users the actual next step.",
+    builtFor:
+      "TxID reads Monad directly, so a failed transaction gets a real answer rather than a status code, whether or not the user has ever opened a block explorer.",
+    failures: [
+      { title: "Reverted transactions", detail: "Replays the transaction and turns the contract's own revert reason into what went wrong and what to do next." },
+      { title: "Custom contract errors", detail: "Decodes a bare error selector against the contract's published interface, so a hex string becomes a sentence." },
+      { title: "A failure that only happened once", detail: "Spots a transaction that fails on chain but succeeds when replayed a block earlier, which means the price or the liquidity moved underneath it rather than anything being broken." },
+      { title: "Out of gas", detail: "Separates a gas limit set too low from a wallet that is genuinely short of MON, which need different fixes." },
+      { title: "Missing approvals", detail: "Explains when a token was never approved for the contract trying to spend it." },
+    ],
+  },
+  {
     slug: "robinhood",
     name: "Robinhood Chain",
     ticker: "ETH",
