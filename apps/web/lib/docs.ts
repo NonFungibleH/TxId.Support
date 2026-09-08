@@ -483,6 +483,7 @@ export const DOCS: Doc[] = [
         { title: "Monad", description: "High-throughput EVM L1. The standard EVM engine applies: revert decoding, gas and approval checks, and failures that depended on state changing inside the block." },
         { title: "Aptos", description: "Move-based L1. Reads on-chain modules and decodes Move aborts to diagnose failed transactions in plain English." },
         { title: "Sui", description: "Move-based L1, read through public RPC with no key. Decodes Move aborts against published protocol error definitions, and explains the failures that are not aborts at all." },
+        { title: "Hyperliquid", description: "The perpetuals and spot exchange, not just the chain beside it. Reads a trader's orders and explains the exchange's own rejection reasons, which leave no transaction to look up." },
         { title: "Stellar", description: "Read through Horizon and Soroban RPC. Explains path payments refused on price, missing trustlines, the minimum reserve, and Soroban contract failures." },
         { title: "Etherlink", description: "The Tezos EVM Layer 2. Wallet and transaction lookups run through Blockscout rather than Moralis, which does not index it." },
         { title: "Sepolia (testnet)", description: "Ethereum testnet. Enable during development to test wallet lookup without real assets." },

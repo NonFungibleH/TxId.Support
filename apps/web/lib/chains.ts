@@ -336,6 +336,30 @@ export const CHAINS: ChainInfo[] = [
   },
 
   {
+    slug: "hyperliquid",
+    name: "Hyperliquid",
+    ticker: "HYPE",
+    family: "non-evm",
+    status: "live",
+    color: "#50D2C1",
+    logo: "/chains/Hyperliquid.png",
+    explorerName: "Hyperliquid",
+    tagline: "Tell a trader why their order was rejected, in the exchange's own words.",
+    intro:
+      "A rejected order on Hyperliquid leaves no fill, no transaction and no balance change, so a trader looking for it finds nothing at all. The exchange knows exactly why it refused, and says so in a single word nobody surfaces. TxID reads that and answers in plain language, inside your product.",
+    metaDescription:
+      "Explain rejected Hyperliquid orders inside your app. TxID reads the exchange's own rejection reasons and turns them into answers traders can act on.",
+    builtFor:
+      "TxID reads HyperCore itself, not just the chain beside it, so it can answer the question a perps trader actually asks: not what happened to my transaction, but why did my order not go through.",
+    failures: [
+      { title: "Orders below the minimum", detail: "The commonest rejection by a wide margin. Explains that Hyperliquid's minimum is in dollars rather than in coins, so a small order in a high-priced asset falls under it even when the quantity looks fine." },
+      { title: "Reduce-only with nothing to reduce", detail: "Explains an order refused, or an existing one cancelled by the exchange, because the position it was there to close is already gone." },
+      { title: "Immediate-or-cancel that found nothing", detail: "Explains that the order asked to fill now or not at all, and there was nothing on the book at that price." },
+      { title: "Post-only that would have crossed", detail: "Explains an add-liquidity-only order refused because the market moved and it would have taken liquidity instead of adding it." },
+      { title: "Margin and spot balance confusion", detail: "Separates margin, which is what a position needs, from account balance, and explains that spot and perpetual funds are held separately." },
+    ],
+  },
+  {
     slug: "stellar",
     name: "Stellar",
     ticker: "XLM",
