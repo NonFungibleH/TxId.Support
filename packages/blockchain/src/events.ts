@@ -1,6 +1,6 @@
 import { eventTopic0 } from "./keccak"
 import { getTransactionByHash } from "./wallet"
-import { explorerQuery } from "./blockscout"
+import { explorerRead, explorerQuery } from "./blockscout"
 import { CHAIN_CONFIGS } from "./types"
 
 /** Resolve a block's timestamp via RPC (used when the explorer omits it). */
@@ -142,20 +142,28 @@ async function logsForTopic(
   topic0: string,
   eventLabel: string,
   limit: number,
-): Promise<ContractEvent[]> {
-  const r = await explorerQuery(chainId, {
+): Promise<{ hits: ContractEvent[] } | { unavailable: string }> {
+  const r = await explorerRead(chainId, {
     module: "logs", action: "getLogs", address: contractAddress,
     topic0, fromBlock: "0", toBlock: "latest", page: "1", offset: "1000",
   })
-  if (!r || r.status !== "1" || !Array.isArray(r.result)) return []
+  if (r.kind === "unavailable") return { unavailable: r.reason }
+  if (r.kind === "empty") return { hits: [] }
+  if (!Array.isArray(r.result)) return { unavailable: "the explorer returned logs in an unexpected shape" }
   const rows = r.result as Array<{ transactionHash: string; blockNumber: string; timeStamp: string }>
-  return rows.slice(-limit).reverse().map(row => ({
-    event: eventLabel,
-    timestamp: new Date(parseInt(row.timeStamp, 16) * 1000).toISOString(),
-    blockNumber: String(parseInt(row.blockNumber, 16)),
-    txHash: row.transactionHash,
-  }))
+  return {
+    hits: rows.slice(-limit).reverse().map(row => ({
+      event: eventLabel,
+      timestamp: new Date(parseInt(row.timeStamp, 16) * 1000).toISOString(),
+      blockNumber: String(parseInt(row.blockNumber, 16)),
+      txHash: row.transactionHash,
+    })),
+  }
 }
+
+export type ContractEventsLookup =
+  | { status: "ok"; events: ContractEvent[] }
+  | { status: "unavailable"; reason: string }
 
 /**
  * Read a contract's recent history for a named event (e.g. "FeesChanged").
@@ -169,8 +177,18 @@ async function logsForTopic(
  *     paused" / "when was the fee changed" from what ACTUALLY fired on-chain,
  *     even when the event isn't in the stored ABI (e.g. an un-merged proxy).
  *
- * Returns [] only when the event genuinely never fired (or the chain is
- * unreachable) — never throws.
+ * AN EMPTY RESULT IS ONLY AN ANSWER IF AN EXPLORER ACTUALLY ANSWERED. This
+ * used to return [] for both "the event never fired" and "the explorer was
+ * unreachable", and the doc comment above said so out loud in a parenthetical
+ * while the tool arm reported `count: 0, checked: true`. So "has this contract
+ * ever been paused?" answered "no, never" during an outage, and, because
+ * ETHERSCAN_API_KEY is unset in production and Ethereum has no Blockscout
+ * fallback, on every mainnet call. `checked: true` made it an explicit claim
+ * that we had looked.
+ *
+ * The ABI-missing case was already handled carefully in the tool arm ("do NOT
+ * let the model claim it never fired"). This is the same care for the case
+ * where the explorer, rather than the ABI, is what we did not have.
  */
 export async function getContractEvents(
   contractAddress: string,
@@ -178,7 +196,10 @@ export async function getContractEvents(
   eventName: string,
   abiJson: string | undefined,
   limit = 10,
-): Promise<ContractEvent[]> {
+): Promise<ContractEventsLookup> {
+  // Any explorer read that did not complete poisons an empty result: we cannot
+  // say the event never fired if one of the queries never ran.
+  let failure: string | null = null
   try {
     // ── Path 1: exact topic0 from the ABI ──────────────────────────────────
     let topic0: string | null = null
@@ -195,8 +216,9 @@ export async function getContractEvents(
     }
 
     if (topic0) {
-      const hits = await logsForTopic(contractAddress, chainId, topic0, resolvedName, limit)
-      if (hits.length > 0) return hits
+      const r = await logsForTopic(contractAddress, chainId, topic0, resolvedName, limit)
+      if ("unavailable" in r) failure = r.unavailable
+      else if (r.hits.length > 0) return { status: "ok", events: r.hits }
       // Fall through: 0 hits could be genuine, but also fall back to candidate
       // signatures in case the ABI's arg types produced a different topic0.
     }
@@ -207,13 +229,15 @@ export async function getContractEvents(
     const candidates = COMMON_EVENT_SIGS[eventName.toLowerCase()]
     if (candidates) {
       for (const sig of candidates) {
-        const hits = await logsForTopic(contractAddress, chainId, eventTopic0(sig), eventNameOf(sig), limit)
-        if (hits.length > 0) return hits
+        const r = await logsForTopic(contractAddress, chainId, eventTopic0(sig), eventNameOf(sig), limit)
+        if ("unavailable" in r) failure = r.unavailable
+        else if (r.hits.length > 0) return { status: "ok", events: r.hits }
       }
     }
-    return []
+    if (failure) return { status: "unavailable", reason: failure }
+    return { status: "ok", events: [] }
   } catch {
-    return []
+    return { status: "unavailable", reason: "the event-log lookup did not complete" }
   }
 }
 
@@ -338,34 +362,95 @@ export async function fetchAbiWithProxy(
 // ── Proxy upgrade history (Upgraded(address) events) ────────────────────────
 
 export interface UpgradeEvent {
-  implementation: string
+  /** Null when the log carried no readable address (see upgradedImplementation). */
+  implementation: string | null
   timestamp: string
   txHash: string
 }
 
-/** History of a proxy's implementation upgrades, newest first. */
+const ADDRESS_RE = /^[0-9a-fA-F]{40}$/
+
+/**
+ * The implementation address out of an `Upgraded` log.
+ *
+ * `Upgraded(address)` hashes to the SAME topic0 whether or not its parameter is
+ * indexed, so the argument may arrive in either place and the topic cannot tell
+ * you which. OpenZeppelin's own proxies declare it indexed and put it in
+ * topics[1]; others declare it plain and put it in `data`. Reading topics[1]
+ * alone produced the literal string "0x" for the second kind, which is not an
+ * address, reads like a burn address, and was rendered to the user as the
+ * contract's new implementation. Observed live on USDC on Base, whose logs come
+ * back as `topics: [topic0, null, null, null]` with the address in `data`.
+ *
+ * Returns null rather than a malformed address when neither carries one. The
+ * upgrade still happened, so it is still reported; we just cannot name what it
+ * pointed at, and saying so is the honest floor.
+ */
+function upgradedImplementation(row: { topics?: (string | null)[]; data?: string }): string | null {
+  const fromTopic = (row.topics?.[1] ?? "").replace(/^0x/, "")
+  if (fromTopic.length === 64 && ADDRESS_RE.test(fromTopic.slice(24))) return "0x" + fromTopic.slice(24)
+  const fromData = (row.data ?? "").replace(/^0x/, "")
+  if (fromData.length >= 64 && ADDRESS_RE.test(fromData.slice(24, 64))) return "0x" + fromData.slice(24, 64)
+  return null
+}
+
+/**
+ * History of a proxy's implementation upgrades, newest first, or an honest
+ * statement that we could not find out.
+ *
+ * THE EMPTY ARRAY WAS A LIE, exactly as it was for approvals in #71, and this
+ * one was worse because it was wrong on EVERY call in production rather than
+ * only during an outage. `ETHERSCAN_API_KEY` is unset in prod; Etherscan V2
+ * answers an unkeyed request with HTTP 200 and status "0"; Ethereum has no
+ * Blockscout fallback configured; so the old code returned [] and the tool
+ * reported `count: 0`. Verified live on 2026-09-08 against USDC, a proxy that
+ * has been upgraded several times, which the assistant would have described as
+ * never upgraded.
+ *
+ * "Has this contract been upgraded?" is asked by somebody who thinks the code
+ * changed underneath them, and an all-clear is the answer that stops them
+ * looking. A question we did not manage to ask must never render as a finding
+ * of no upgrades.
+ *
+ * `none` is a real finding. `unavailable` is our failure. The caller has to be
+ * able to tell them apart.
+ */
+export type UpgradeHistoryLookup =
+  | { status: "ok"; upgrades: UpgradeEvent[] }
+  | { status: "unavailable"; reason: string }
+
 export async function getUpgradeHistory(
   contractAddress: string,
   chainId: string,
-): Promise<UpgradeEvent[]> {
+): Promise<UpgradeHistoryLookup> {
   try {
     const topic0 = eventTopic0("Upgraded(address)")
-    const r = await explorerQuery(chainId, {
+    const r = await explorerRead(chainId, {
       module: "logs", action: "getLogs", address: contractAddress,
       topic0, fromBlock: "0", toBlock: "latest", page: "1", offset: "100",
     })
-    if (!r || r.status !== "1" || !Array.isArray(r.result)) return []
-    const rows = r.result as Array<{ topics: string[]; timeStamp: string; transactionHash: string }>
-    return rows
-      .slice()
-      .reverse()
-      .slice(0, 20)
-      .map(row => ({
-        implementation: "0x" + (row.topics[1] ?? "").slice(26),
-        timestamp: new Date(parseInt(row.timeStamp, 16) * 1000).toISOString(),
-        txHash: row.transactionHash,
-      }))
+    if (r.kind === "unavailable") return { status: "unavailable", reason: r.reason }
+    // An explorer that answered and holds no Upgraded(address) logs IS the
+    // finding: this proxy has not been upgraded, or is not a proxy at all.
+    if (r.kind === "empty") return { status: "ok", upgrades: [] }
+    if (!Array.isArray(r.result)) {
+      return { status: "unavailable", reason: "the explorer returned logs in an unexpected shape" }
+    }
+    const rows = r.result as Array<{ topics: (string | null)[]; data?: string; timeStamp: string; transactionHash: string }>
+    return {
+      status: "ok",
+      upgrades: rows
+        .slice()
+        .reverse()
+        .slice(0, 20)
+        .map(row => ({
+          implementation: upgradedImplementation(row),
+          timestamp: new Date(parseInt(row.timeStamp, 16) * 1000).toISOString(),
+          txHash: row.transactionHash,
+        })),
+    }
   } catch {
-    return []
+    // A throw is our failure, and it is not evidence about the contract.
+    return { status: "unavailable", reason: "the upgrade-history lookup did not complete" }
   }
 }

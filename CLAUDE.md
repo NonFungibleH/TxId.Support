@@ -1409,6 +1409,36 @@ read path, and never a chain default such as `?? "eth"` or `?? "0x1"`.
 > session opener stays silent instead of leading with a claim about somebody's
 > own past. Tests: `outage-is-not-absence`, `aptos-outage`.
 
+> **The explorer layer had the same hole and it was wrong on EVERY call, not
+> only during an outage.** `explorerQuery` returns `ExplorerResponse | null`,
+> and Etherscan reports both a genuine miss and an error as a `status` that is
+> not `"1"`, so the two arrived identically. Two readers turned that into
+> findings: `getUpgradeHistory` returned `[]` and its tool arm reported
+> `count: 0`, and `getContractEvents` returned `[]` and its tool arm reported
+> `count: 0, checked: true`, an explicit claim that we had looked. So "has this
+> contract been upgraded?" and "has it ever been paused?" both answered no,
+> for every contract on mainnet, because the key is unset. Both are questions
+> asked by somebody who thinks the code changed underneath them, and an
+> all-clear is the answer that stops them looking. `explorerRead`
+> (`blockscout.ts`) is the tri-state: `ok` / `empty` / `unavailable`, splitting
+> them on Etherscan's own message text, and a definite `empty` from EITHER
+> explorer counts as an answer. `explorerQuery` is unchanged and still fine for
+> optional fields; anything whose answer reaches a user goes through
+> `explorerRead`. **The lesson is the one `aptosGet` already taught: a helper
+> returning `T | null` is where this bug class lives**, because the conflation
+> happens one layer below the code you are reading. Test:
+> `upgrade-history.test.ts`.
+>
+> **A second bug rode along, found only because the fix made the data visible.**
+> `Upgraded(address)` hashes to the SAME topic0 whether or not its parameter is
+> indexed, so the address may sit in `topics[1]` or in `data` and the topic
+> cannot tell you which. Reading `topics[1]` alone produced the literal string
+> `"0x"` as the new implementation, which is not an address and reads like a
+> burn address. Observed live on USDC on Base. `upgradedImplementation()` reads
+> either, and returns **null** rather than a malformed address when neither
+> carries one: the upgrade still happened, we just cannot name what it pointed
+> at.
+
 **2. Three outcomes per read, not two.** Found, absent, or *could not be asked*.
 `getTransactionByHash` throws `LookupUnavailableError` (`errors.ts`) when
 neither the indexer nor the RPC answered, on both the Moralis and the Blockscout
@@ -1483,6 +1513,16 @@ not overlap.
 
 ## Operating reality (verify, do not assume)
 
+- **`ETHERSCAN_API_KEY` IS UNSET IN PRODUCTION, AND THAT IS A CORRECTNESS
+  PROBLEM, NOT A CONVENIENCE ONE.** Etherscan V2 answers an unkeyed request with
+  **HTTP 200** and `{status:"0", message:"NOTOK", result:"Missing/Invalid API
+  Key"}`, which the old `explorerQuery` could not tell from `{status:"0",
+  message:"No records found"}`. Ethereum has no Blockscout fallback in
+  `BLOCKSCOUT_BASES`, so every log query on mainnet returned null and every
+  caller read that as an empty result. Measured 2026-09-08: `getUpgradeHistory`
+  on USDC, a proxy upgraded several times, returned `[]`, and the tool reported
+  "never upgraded". Fixed by `explorerRead` (below), so the failure is now
+  honest, but the key still needs setting for these lookups to WORK at all.
 - **`RPC_URLS` is empty in production**, so every EVM chain reads through a free
   public endpoint with no SLA (`bsc-dataseed`, `publicnode`). Since #68 the RPC
   is the backstop for every indexer failure, which makes it load-bearing. Set at

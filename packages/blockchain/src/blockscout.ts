@@ -74,6 +74,87 @@ export async function explorerQuery(
   return null
 }
 
+/**
+ * An explorer answer that distinguishes NOTHING FOUND from NOBODY ANSWERED.
+ *
+ * `explorerQuery` above returns `ExplorerResponse | null` and cannot tell the
+ * two apart, because both arrive as a `status` that is not "1". That is the
+ * same conflation `aptosGet` had, and it hid the same class of bug one layer
+ * below the code you are reading.
+ *
+ * IT IS NOT THEORETICAL, AND IT IS LIVE. Etherscan V2 answers an unkeyed
+ * request with HTTP 200 and `{status:"0", message:"NOTOK", result:"Missing/
+ * Invalid API Key"}`, which is indistinguishable here from `{status:"0",
+ * message:"No records found"}`. `ETHERSCAN_API_KEY` is unset in production, and
+ * Ethereum has no Blockscout fallback configured, so on 2026-09-08 every log
+ * query on mainnet returned null and every caller read that as an empty
+ * result. Verified against USDC, a proxy upgraded several times, which
+ * `getUpgradeHistory` reported as never upgraded.
+ *
+ * `explorerQuery` is unchanged and still fine for optional fields. Anything
+ * whose answer reaches a user goes through this.
+ */
+export type ExplorerRead =
+  | { kind: "ok"; result: unknown }
+  /** An explorer answered and genuinely holds no such records. A FINDING. */
+  | { kind: "empty" }
+  /** Nobody answered. Never a finding. */
+  | { kind: "unavailable"; reason: string }
+
+/**
+ * Etherscan and Blockscout both report a genuine miss as status "0" with a
+ * "No … found" message, and report errors as status "0" with "NOTOK". The
+ * message is the only thing separating them, so it is read rather than ignored.
+ */
+function classify(r: ExplorerResponse | null, source: string): ExplorerRead {
+  if (!r) return { kind: "unavailable", reason: `${source} could not be reached` }
+  if (r.status === "1") return { kind: "ok", result: r.result }
+  const message = String(r.message ?? "")
+  if (/^no .*(found|records)/i.test(message)) return { kind: "empty" }
+  const detail = typeof r.result === "string" && r.result ? r.result : message || "no reason given"
+  return { kind: "unavailable", reason: `${source} declined the request: ${detail}` }
+}
+
+/**
+ * Query the explorers for a chain, keeping the three outcomes apart.
+ *
+ * A definite answer from EITHER explorer wins, including a definite empty: an
+ * explorer that is working and holds no matching records has answered the
+ * question. `unavailable` is reserved for nobody having answered at all.
+ */
+export async function explorerRead(
+  chainId: string,
+  params: Record<string, string>,
+): Promise<ExplorerRead> {
+  let sawEmpty = false
+  let reason = `no explorer is configured for chain ${chainId}`
+
+  const numericChainId = ETHERSCAN_CHAIN_IDS[chainId]
+  if (numericChainId !== undefined) {
+    const apiKey = process.env.ETHERSCAN_API_KEY ?? ""
+    const qs = new URLSearchParams({
+      chainid: String(numericChainId),
+      ...params,
+      ...(apiKey ? { apikey: apiKey } : {}),
+    })
+    const c = classify(await getJson(`${ETHERSCAN_V2_BASE}?${qs.toString()}`), "Etherscan")
+    if (c.kind === "ok") return c
+    if (c.kind === "empty") sawEmpty = true
+    else reason = c.reason
+  }
+
+  const base = BLOCKSCOUT_BASES[chainId]
+  if (base) {
+    const c = classify(await getJson(`${base}/api?${new URLSearchParams(params).toString()}`), "Blockscout")
+    if (c.kind === "ok") return c
+    if (c.kind === "empty") sawEmpty = true
+    else if (numericChainId === undefined) reason = c.reason
+  }
+
+  if (sawEmpty) return { kind: "empty" }
+  return { kind: "unavailable", reason }
+}
+
 /** Whether we can reach an explorer (Etherscan or Blockscout) for this chain. */
 export function hasExplorer(chainId: string): boolean {
   return ETHERSCAN_CHAIN_IDS[chainId] !== undefined || BLOCKSCOUT_BASES[chainId] !== undefined
