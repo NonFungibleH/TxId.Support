@@ -90,7 +90,9 @@ describe("the chain registry is complete and internally consistent", () => {
    */
   it("keeps the list of chains with no logo explicit", () => {
     const noLogo = VISIBLE_CHAINS.filter(c => c.logo === undefined).map(c => c.name).sort()
-    expect(noLogo).toEqual(["Mantle", "NEAR", "Plasma", "Unichain"])
+    // Every visible chain now has a real mark. Keep this assertion rather than
+    // deleting it: it is what makes adding a logo-less chain a deliberate edit.
+    expect(noLogo).toEqual([])
   })
 
   // No em dashes in anything user-facing, and this file is entirely user-facing.

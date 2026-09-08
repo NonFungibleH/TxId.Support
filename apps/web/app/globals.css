@@ -65,6 +65,31 @@ body::before {
 }
 .animate-msg-in { animation: msg-in 0.35s ease-out both; }
 
+/* Chain marquee (homepage). The track holds the chain list TWICE, so shifting
+   it by exactly half its width lands on an identical frame and the loop has no
+   seam. Duration is set per instance from the chain count, so adding a chain
+   keeps the same scroll SPEED rather than making the strip travel faster. */
+@keyframes chain-marquee {
+  from { transform: translate3d(0, 0, 0); }
+  to   { transform: translate3d(-50%, 0, 0); }
+}
+.chain-marquee-track {
+  display: flex;
+  width: max-content;
+  animation: chain-marquee var(--marquee-duration, 60s) linear infinite;
+}
+.chain-marquee:hover .chain-marquee-track,
+.chain-marquee:focus-within .chain-marquee-track {
+  animation-play-state: paused;
+}
+/* Motion off: the strip must still SHOW every chain, so it becomes an ordinary
+   scrollable row rather than a frozen crop of the first few. */
+@media (prefers-reduced-motion: reduce) {
+  .chain-marquee { overflow-x: auto; }
+  .chain-marquee-track { animation: none; }
+  .chain-marquee-track > :nth-child(2) { display: none; }
+}
+
 @keyframes caret-blink {
   0%, 100% { opacity: 1; }
   50%      { opacity: 0; }

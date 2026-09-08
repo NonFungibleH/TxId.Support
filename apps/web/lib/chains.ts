@@ -256,6 +256,7 @@ export const CHAINS: ChainInfo[] = [
     family: "evm",
     status: "live",
     color: "#FF007A",
+    logo: "/chains/Unichain.jpg",
     explorerName: "Uniscan",
     tagline: "Swap failures on Unichain, explained where your users already are.",
     intro:
@@ -278,6 +279,10 @@ export const CHAINS: ChainInfo[] = [
     family: "evm",
     status: "live",
     color: "#00D68F",
+    logo: "/chains/Plasma.png",
+    // Dark mark on a transparent ground, so it needs the white disc or it
+    // vanishes into the page and reads as a missing image.
+    logoWhiteBg: true,
     explorerName: "Plasmascan",
     tagline: "Stablecoin users do not read reverts. TxID reads them instead.",
     intro:
@@ -300,6 +305,14 @@ export const CHAINS: ChainInfo[] = [
     family: "evm",
     status: "live",
     color: "#65B3AE",
+    logo: "/chains/Mantle.png",
+    // NO logoWhiteBg, deliberately. The source is a black mark on an OPAQUE
+    // white square, so it already supplies its own light ground and fills the
+    // circular badge. Adding the white disc pads an image that is mostly margin
+    // already and shrinks the mark for nothing. Checked side by side against
+    // the disc version before choosing. Plasma above is the opposite case: its
+    // mark is dark on TRANSPARENT, so without the disc it disappears into the
+    // page entirely.
     explorerName: "Mantlescan",
     tagline: "Failed Mantle transactions, decoded and explained in your own product.",
     intro:
@@ -490,6 +503,9 @@ export const CHAINS: ChainInfo[] = [
     family: "non-evm",
     status: "live",
     color: "#00EC97",
+    logo: "/chains/NEAR.png",
+    // No disc, same as Mantle: a black mark on an OPAQUE white square, so it
+    // brings its own light ground and fills the badge without padding.
     explorerName: "NearBlocks",
     tagline: "NEAR contracts say why they failed. Most users still cannot read it.",
     intro:

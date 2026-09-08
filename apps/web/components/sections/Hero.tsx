@@ -3,18 +3,19 @@ import { Button } from "@/components/ui/Button";
 import { FadeIn } from "@/components/ui/FadeIn";
 import { InvestigationMockup } from "./InvestigationMockup";
 import { HeroTxCheck } from "./HeroTxCheck";
-import { VISIBLE_CHAINS } from "@/lib/chains";
+import Link from "next/link";
+import { LIVE_CHAIN_COUNT } from "./ChainMarquee";
 
 /**
- * DERIVED, not a second list. This strip was hand-maintained and was missing
- * Robinhood Chain within the hour of it going live, while /chains had it. One
- * source of truth, non-EVM first because Move is the differentiator, and
- * cross-chain excluded: LayerZero is not somewhere the product is "available
- * on", it is a layer that runs across the rest.
+ * The hero states the NUMBER and the marquee below shows the marks.
+ *
+ * It used to render every logo here. That worked at six chains and stopped
+ * working at twenty: the badges were 20px, wrapped onto three lines, and were
+ * too small to recognise, so the strip read as clutter rather than as the proof
+ * point it was meant to be. The count still comes from the chain registry, so
+ * it cannot drift the way the old hand-maintained list did (that one was
+ * missing Robinhood Chain within an hour of it going live).
  */
-const HERO_CHAINS = VISIBLE_CHAINS
-  .filter((c) => c.status === "live" && c.family !== "cross-chain")
-  .sort((a, b) => (a.family === b.family ? 0 : a.family === "non-evm" ? -1 : 1));
 
 export function Hero() {
   return (
@@ -73,28 +74,15 @@ export function Hero() {
                 <ShieldCheck className="w-3.5 h-3.5 text-accent/70 shrink-0" />
                 Read-only · No custody · Audit-logged · No financial advice
               </p>
-              <div className="flex flex-wrap items-center gap-x-2.5 gap-y-2">
-                <span className="text-xs text-muted/50 font-mono shrink-0">Available on</span>
-                {HERO_CHAINS.map(({ name, logo, logoWhiteBg: whiteBg }) => (
-                  <div
-                    key={name}
-                    title={name}
-                    className={[
-                      "h-5 w-5 shrink-0 rounded-full flex items-center justify-center",
-                      whiteBg
-                        ? "bg-white p-[3px]"          // white circle, no overflow-hidden so square stays square
-                        : "overflow-hidden",           // clip any non-circular logos to circle
-                    ].join(" ")}
-                  >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={logo}
-                      alt={name}
-                      className="w-full h-full object-contain"
-                    />
-                  </div>
-                ))}
-              </div>
+              <p className="text-xs text-muted/50 font-mono">
+                Available on{" "}
+                <Link
+                  href="/chains"
+                  className="text-muted hover:text-accent transition-colors underline decoration-dotted underline-offset-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent rounded"
+                >
+                  {LIVE_CHAIN_COUNT} chains
+                </Link>
+              </p>
             </FadeIn>
 
             <FadeIn delay={0.36}>
