@@ -1589,6 +1589,34 @@ only. The case record's "what did not run" must not depend on phrasing.
 > set the marker; do not rely on how you phrased the sentence.** Test:
 > `failed-reads-recorded`.
 
+> **The same hole was still open in `get_token_info`, found 2026-09-08 by
+> giving `packages/ai` its first tests.** The Aptos arm reported an unreachable
+> indexer under `error` with perfect prose and no marker, and because the legacy
+> phrase fallback only ever inspects a key literally called `note`, the failure
+> reached the model correctly and the case record **not at all**:
+> `failedLookups` came back `[]`. The Stellar balance arm had the quieter
+> version, a PARTIAL failure where the balance read succeeded and the reserve
+> did not compute, which matters because "spendable" is the claim a user acts
+> on; it now sets the marker only when the reserve is missing, so a whole
+> successful balance is never filed as a failed lookup.
+>
+> **`packages/ai` had ZERO tests until then**: 4,327 lines building every prompt
+> and executing all 27 tool arms, the code that decides what a user is actually
+> told. The unrun-tests guard did not catch it, because that guard only fires on
+> a package with test FILES and no script; a package with no tests at all was
+> invisible. `test-scripts-registered.test.ts` now also names the packages that
+> must have tests at all.
+>
+> `evidence.test.ts` tests the record in BOTH directions, which is the part
+> worth copying. A failure carried under `error` or a scoped `somethingNote`
+> must be recorded; a genuine finding must NOT be. Several real finding notes
+> contain the phrase "failed lookup" while explicitly negating it ("That is an
+> answer, not a failed lookup"), and **a first attempt at a broad phrase-matching
+> guard produced thirteen hits, eleven of them correct code.** A guard that
+> cannot tell an assertion from its negation gets switched off, which is worse
+> than not having one, so the source check that shipped is narrow: it flags only
+> a failure carried under a key the legacy fallback cannot see.
+
 **4. Chain-authored text is sanitised before the model sees it.** Token names
 and symbols, revert strings and 4byte signatures pass through
 `sanitizeChainText` (links, invisible and bidi characters, length). The prompt's
