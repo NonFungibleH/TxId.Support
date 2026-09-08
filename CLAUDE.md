@@ -1240,6 +1240,22 @@ The claim is never "it does not hallucinate". It is that the class of error whic
 
 Roadmapped, not built: policy checks as code (`c-policy-code`), intent classification used to RAISE the evidence bar rather than shortcut it (`k-intent-gate`).
 
+> **`grounding: "verified"` was claimable off reads that all failed, found
+> 2026-09-08.** The route computes it as `merged.anyReadSucceeded ? "verified"
+> : …`, and `anyReadSucceeded` keyed on `ok`, which only means the JS call did
+> not throw. An arm that CATCHES a chain outage and honestly returns
+> `{ lookupFailed: true, error }` did not throw, so a conversation in which
+> every chain read failed, each one handled correctly, was recorded as
+> `verified`. **The better-behaved arm produced the wronger record**, which is
+> why it hid: an arm that simply THREW was already correct, because a thrown
+> call is `ok: false`.
+>
+> A read now counts only when it CONTRIBUTED something, a source or a figure. A
+> pure failure report carries neither. A PARTIAL read still counts, because data
+> did come back: the Stellar balance arm marks itself when the reserve cannot be
+> computed while returning the balance, and that answer is genuinely grounded.
+> Same overstatement the external audit flagged on `basis`, in a different field.
+
 ### Provenance: `evidence.sources` and `evidence.grounding`
 Every named thing an answer rested on, as a typed list (`EvidenceSource` in `packages/ai/src/evidence.ts`): `documentation` (with `version` = the `doc_sources` content hash, so "documentation vX" is real and checkable), `contract`, `transaction`, `price`, `position`, `parameter`.
 
