@@ -72,8 +72,10 @@ describe("the chain registry is complete and internally consistent", () => {
     const missing = VISIBLE_CHAINS
       .filter(c => !existsSync(resolve(__dirname, "..", "public", c.logo.replace(/^\//, ""))))
       .map(c => `${c.name} wants ${c.logo}`)
-    // Hyperliquid has no mark supplied yet and renders a monogram on purpose.
-    expect(missing).toEqual(["Hyperliquid wants /chains/Hyperliquid.png"])
+    // No exceptions. Every chain shown has a real mark; a monogram is a
+    // fallback for a missing file, not a design choice, and it went unnoticed
+    // once because the exception below used to name it.
+    expect(missing).toEqual([])
   })
 
   // No em dashes in anything user-facing, and this file is entirely user-facing.
