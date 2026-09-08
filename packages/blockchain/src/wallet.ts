@@ -1,3 +1,4 @@
+import { relativeAge } from "@txid/shared"
 import { CHAIN_CONFIGS, nativeSymbol } from "./types"
 import { sanitizeChainText } from "./text"
 import { LookupUnavailableError } from "./errors"
@@ -376,6 +377,7 @@ export async function getTransactionByHash(
     hash: tx.hash,
     blockNumber: tx.block_number,
     timestamp: tx.block_timestamp,
+    age: relativeAge(tx.block_timestamp),
     from: tx.from_address,
     to: tx.to_address,
     value: `${valueEth} ${symbol}`,
@@ -449,6 +451,7 @@ export async function getContractTransactions(
       hash: tx.hash,
       blockNumber: tx.block_number,
       timestamp: tx.block_timestamp,
+      age: relativeAge(tx.block_timestamp),
       from: tx.from_address,
       to: tx.to_address,
       value: `${valueEth} ${symbol}`,
@@ -517,6 +520,7 @@ export async function getRecentTransactions(
       hash: tx.hash,
       blockNumber: tx.block_number,
       timestamp: tx.block_timestamp,
+      age: relativeAge(tx.block_timestamp),
       from: tx.from_address,
       to: tx.to_address,
       value: `${valueEth} ${symbol}`,

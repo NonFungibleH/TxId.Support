@@ -15,7 +15,12 @@ export interface SolanaTokenBalance {
 
 export interface SolanaTransaction {
   signature: string
-  blockTime: number | null   // unix timestamp
+  blockTime: number | null   // unix timestamp, SECONDS
+  /**
+   * How long ago, computed here so the model never subtracts two clocks. Null
+   * means blockTime was absent or unusable, never "just now".
+   */
+  age: string | null
   slot: number
   status: "success" | "failed"
   fee: number                // lamports

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { relativeAge } from "./fullnode"
+import { relativeAge, relativeAgeFromEpoch, toMillis } from "./time"
 
 /**
  * The observed failure, pinned. Asked "what was my last trade" at 15:19:06
@@ -45,5 +45,38 @@ describe("relativeAge", () => {
   it("returns null for an unparseable timestamp, never a guess", () => {
     expect(relativeAge("", now)).toBeNull()
     expect(relativeAge("not a date", now)).toBeNull()
+  })
+})
+
+describe("epoch sources", () => {
+  const NOW = Date.parse("2026-09-07T15:19:06Z")
+
+  it("reads seconds, which is what EVM and Solana give", () => {
+    // 14:09:47 UTC, the exact fill from the transcript, as a Unix second count.
+    expect(relativeAgeFromEpoch(Math.floor(Date.parse("2026-09-07T14:09:47Z") / 1000), "s", NOW))
+      .toBe("1 hour 9 minutes ago")
+  })
+
+  it("reads milliseconds, which is what Sui gives", () => {
+    expect(relativeAgeFromEpoch(Date.parse("2026-09-07T14:09:47Z"), "ms", NOW)).toBe("1 hour 9 minutes ago")
+  })
+
+  it("reads a numeric string as well as a number", () => {
+    expect(relativeAgeFromEpoch(String(Date.parse("2026-09-07T14:09:47Z")), "ms", NOW)).toBe("1 hour 9 minutes ago")
+  })
+
+  // NOT READ must never render as 1970. Solana's blockTime is null for a
+  // transaction whose block time the node has not recorded.
+  it("returns null rather than a date for a missing or zero timestamp", () => {
+    for (const v of [null, undefined, 0, "", "abc", -1]) {
+      expect(relativeAgeFromEpoch(v as never, "s", NOW)).toBeNull()
+    }
+  })
+
+  it("toMillis converts and rejects on the same terms", () => {
+    expect(toMillis(5, "s")).toBe(5000)
+    expect(toMillis("5", "ms")).toBe(5)
+    expect(toMillis(null)).toBeNull()
+    expect(toMillis(0, "s")).toBeNull()
   })
 })

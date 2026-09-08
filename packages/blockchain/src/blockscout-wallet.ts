@@ -1,3 +1,4 @@
+import { relativeAge } from "@txid/shared"
 // Wallet-data adapter for chains Moralis doesn't index (e.g. Etherlink), using
 // the chain's Blockscout v2 REST API for lists/balances and its RPC for single
 // transactions + revert decoding. Produces the SAME normalised shapes as the
@@ -159,6 +160,7 @@ function mapBsTx(tx: BsTxItem, chainId: string): Transaction {
     hash: tx.hash,
     blockNumber: String(tx.block_number ?? tx.block ?? ""),
     timestamp: tx.timestamp ?? "",
+    age: tx.timestamp ? relativeAge(tx.timestamp) : null,
     from: tx.from?.hash ?? "",
     to,
     value: `${valueFmt} ${symbol}`,
@@ -237,6 +239,7 @@ export async function bsTransactionByHash(
     hash,
     blockNumber,
     timestamp,
+    age: relativeAge(timestamp),
     from: tx.from,
     to: tx.to ?? null,
     value: `${valueFmt} ${symbol}`,

@@ -34,6 +34,7 @@ txid-support/
 │   ├── app/          Next.js 14, port 3001 — B2B dashboard
 │   └── docs/         Next.js 14, port 3002 — docs site
 ├── packages/
+│   ├── shared/       @txid/shared — the few things every chain package needs
 │   ├── ai/           @txid/ai — Claude RAG pipeline, prompt building, streaming
 │   ├── blockchain/   @txid/blockchain — Moralis, block explorers, tx decoder
 │   ├── solana/       @txid/solana — Helius RPC, enhanced txs, IDL registry
@@ -1047,6 +1048,28 @@ the answer with what you believe you changed.
 ### Launch-audit hardening (2026-08-12, all shipped)
 Four-auditor CTO audit; every finding fixed: `/api/chat` rejects non-string message content + pins roles (content-block arrays bypassed the length cap); `safeEnqueue` + persistence moved to `finally` so a disconnect mid-stream loses neither the transcript nor the `token_usage` row (the model loop deliberately runs to completion); `maxDuration` 300; Telegram runs behind `checkSpendBudget` + `TELEGRAM_LIMITS.perChatPerDay` (300); preview sessions excluded from the conversation quota (migration `20260812000001`) and from both usage displays; quota RPC failure falls back to an explicit count (was fail-open); Groq fallback + `completeChatWithUsage` record real token usage (was zero during Anthropic outages); `/api/check` has a global 600/min bucket; widget SSE parsing buffers across chunk boundaries; quota 429 copy is end-user-neutral; `requireCapability("tickets")` on the legacy ticket actions; `app/dashboard/error.tsx` boundary; origin guards on `actions/rebuild` + `ack`.
 
+## packages/shared
+
+`@txid/shared`. Deliberately tiny, and it exists because the chain packages have
+no dependencies on each other by design, so a helper every one of them needs had
+nowhere else to live.
+
+**`relativeAge` / `relativeAgeFromEpoch`.** Elapsed time is COMPUTED HERE so the
+model never subtracts two clocks. Asked at 15:19:06 what their last trade was,
+the assistant answered "about 9 minutes ago at 14:09:47 UTC": it compared the
+minute fields and dropped the hour, and the two halves of its own sentence
+disagreed. #77 fixed that on Aptos and left the rest, so EVM (every live
+customer), Sui and Solana still handed over a bare timestamp. Now every
+`Transaction`, `SuiTransaction` and `SolanaTransaction` carries `age`.
+
+Rules that are not style: hours are always spelled out beside minutes, because a
+dropped hour is the observed failure; a clock-skewed future stamp is LABELLED,
+never rendered as a negative age; **`age: null` means the timestamp was not
+readable, never "just now"**, and the prompt tells the model to say nothing about
+elapsed time rather than fall back to the clock. `relativeAgeFromEpoch` takes the
+unit explicitly because Helius gives SECONDS and Sui gives MILLISECONDS, and
+guessing renders 1970.
+
 ## Engineering rules (from the September 2026 audits)
 
 Four production bugs in one week were one bug: **something we failed to learn
@@ -1097,6 +1120,21 @@ object is a node declining to answer, not answering.
 `mergeToolEvidence` reads the marker into `investigation.failedLookups`; the
 "lookup failed / could not reach / not read" phrase regex is a legacy fallback
 only. The case record's "what did not run" must not depend on phrasing.
+
+> **The Aptos tools broke both halves of this and it took until 2026-09-07 to
+> see.** The regex only ever inspects a key literally called `note`, and those
+> tools report a failure under `error`, or under a scoped name like
+> `holdingsNote` when only part of a result is missing. Neither set the marker.
+> So sixteen failed reads were invisible to `failedLookups`, to the
+> `read_failed` ticket signal and to the export an auditor reads, while the
+> MODEL was correctly told not to treat them as answers: the user got an honest
+> reply and the record of it was wrong. Second bug in the same place: when the
+> marker was set and the sibling key was not `note`, the recorded text was the
+> literal string "lookup failed", so the record said a lookup failed without
+> saying which. `failureText()` in `evidence.ts` now reads `note`, then `error`,
+> then any `somethingNote`. **When you add a tool result that reports a failure,
+> set the marker; do not rely on how you phrased the sentence.** Test:
+> `failed-reads-recorded`.
 
 **4. Chain-authored text is sanitised before the model sees it.** Token names
 and symbols, revert strings and 4byte signatures pass through

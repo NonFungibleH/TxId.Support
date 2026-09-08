@@ -1,5 +1,5 @@
 {
-  "name": "@txid/blockchain",
+  "name": "@txid/shared",
   "version": "0.0.1",
   "private": true,
   "main": "./src/index.ts",
@@ -7,13 +7,8 @@
   "scripts": {
     "lint": "eslint src/",
     "type-check": "tsc --noEmit",
-    "clean": "rm -rf dist",
-    "test": "vitest run"
-  },
-  "dependencies": {
-    "@supabase/supabase-js": "^2.100.0",
-    "moralis": "^2.26.0",
-    "@txid/shared": "workspace:*"
+    "test": "vitest run",
+    "clean": "rm -rf dist"
   },
   "devDependencies": {
     "typescript": "^5.4.0",

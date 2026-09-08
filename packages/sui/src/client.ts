@@ -1,5 +1,6 @@
 import { decodeSuiAbort, type DecodedSuiAbort, type SuiErrmap } from "./abort"
 import { resolveOriginalPackage } from "./package"
+import { relativeAgeFromEpoch } from "@txid/shared"
 import { rpc } from "./rpc"
 import type { SuiBalance, SuiCoinBalance, SuiLookup, SuiTransaction } from "./types"
 
@@ -108,6 +109,7 @@ export async function getSuiTransaction(digest: string, errmap?: SuiErrmap): Pro
   const tx: SuiTransaction = {
     digest: r.digest ?? d,
     timestampMs: r.timestampMs ? Number(r.timestampMs) : null,
+    age: relativeAgeFromEpoch(r.timestampMs ?? null, "ms"),
     checkpoint: r.checkpoint ?? null,
     sender: r.transaction?.data?.sender ?? null,
     status: failed ? "failed" : "success",
@@ -178,6 +180,7 @@ export async function getSuiRecentTransactions(owner: string, limit = 10, errmap
     txs.push({
       digest: r.digest ?? "",
       timestampMs: r.timestampMs ? Number(r.timestampMs) : null,
+      age: relativeAgeFromEpoch(r.timestampMs ?? null, "ms"),
       checkpoint: r.checkpoint ?? null,
       sender: r.transaction?.data?.sender ?? a,
       status: failed ? "failed" : "success",

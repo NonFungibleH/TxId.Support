@@ -1,3 +1,4 @@
+import { relativeAgeFromEpoch } from "@txid/shared"
 import { decodeSolanaError } from "./errors"
 import { SolanaLookupUnavailableError } from "./lookup"
 import type { SolanaBalance, SolanaTokenBalance, SolanaTransaction } from "./types"
@@ -123,6 +124,8 @@ function mapEnrichedTx(tx: HeliusEnrichedTx): SolanaTransaction {
   return {
     signature: tx.signature,
     blockTime: tx.timestamp,
+    // Helius gives seconds, not milliseconds. Getting that wrong renders 1970.
+    age: relativeAgeFromEpoch(tx.timestamp ?? null, "s"),
     slot: tx.slot,
     status: tx.transactionError ? "failed" : "success",
     fee: tx.fee,
