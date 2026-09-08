@@ -18,7 +18,8 @@
     "openai": "^6.34.0",
     "voyageai": "^0.2.1",
     "@txid/layerzero": "workspace:*",
-    "@txid/sui": "workspace:*"
+    "@txid/sui": "workspace:*",
+    "@txid/stellar": "workspace:*"
   },
   "devDependencies": {
     "typescript": "^5.4.0"

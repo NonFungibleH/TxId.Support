@@ -495,6 +495,101 @@ undocumented by design, plus a handful of AMMs whose source would have to be
 found first. `scripts/verify-live.ts` and the census script are the tools for
 deciding whether a given one is worth mapping.
 
+## packages/stellar
+
+Source: `packages/stellar/src/`. Chain id string: `"stellar"`. Not EVM, not Move.
+Keyless on both endpoints it uses, and **the most explainable chain we read**.
+
+### Why it was built first, out of the scoped order
+Census of 1,200 live mainnet transactions, 2026-09-08: **296 failed, 24.7%**, the
+highest rate of any chain we have measured (Sui 10.2%, Solana 9.5%, Monad 4.7%,
+Aptos ~0.5%). And it is not a bot fleet: an earlier window showed **874 distinct
+source accounts across 1,200 transactions**, busiest only four, where Aptos had
+one market maker at 85% and Sui's failures were obfuscated arbitrage packages.
+These are real users failing.
+
+**77% of every failure is one thing: a path payment refused on slippage.**
+`PATH_PAYMENT_STRICT_RECEIVE_OVER_SENDMAX` and `PATH_PAYMENT_STRICT_SEND_UNDER_DESTMIN`.
+Note they share the number -12 and mean OPPOSITE things, so getting the operation
+type wrong tells the user the reverse of what happened.
+
+### Two endpoints, both keyless, and they answer different questions
+- **Horizon** (`horizon.stellar.org`): full history, account balances, a single
+  transaction record. This is the read path.
+- **Soroban RPC** (`mainnet.sorobanrpc.com` + two others, all verified healthy on
+  the same ledger): `getTransactions` returns a whole ledger range with statuses
+  in ONE call, which is what makes the census cheap. Override both with
+  `STELLAR_HORIZON_URLS` / `STELLAR_SOROBAN_URLS`.
+
+> **A GET against a Soroban RPC returns 405 and looks like a dead endpoint.** It
+> is JSON-RPC and wants a POST. That mistake put "no keyless Soroban RPC" in the
+> scoping doc as a blocker and nearly cost Stellar its place in the build order.
+
+### The XDR decoder, by hand and with no dependency
+`@stellar/stellar-base` is a large runtime dependency in a package that otherwise
+only makes HTTP calls, and the part that matters is arithmetic on fixed
+big-endian 4-byte words. Same call already made for Solana's `pubkey.ts`.
+
+**A FAILURE case in Stellar's XDR is always void**, so a failing operation costs
+exactly three words: `opINNER`, the operation type, the code. A SUCCESS case may
+carry a payload that has to be skipped to reach a LATER failing operation, and
+**21 of the 27 operation successes are `void` or a fixed size** (AccountMerge 8,
+InvokeHostFunction 32, CreateClaimableBalance 36), harvested from the XDR rather
+than assumed. The six that are not are the DEX operations, whose success carries
+a variable-length array of every offer crossed; those stop the walk and it says
+so. Adding that skip took coverage from 82% to 98.6%.
+
+**A fee bump carries its inner result inside itself**, so `txFEE_BUMP_INNER_FAILED`
+is decoded through rather than sent to the user as "go look at the other
+transaction". 16% of failures arrive wrapped that way, and several inner results
+are Soroban contract failures, which is the detail the user needs.
+
+**Measured coverage, 2026-09-08:** named the failing operation on **98.8%**, and
+held English for **98.8%**, i.e. everything we name. Re-measure with
+`scripts/census.ts` before quoting a number.
+
+### The code tables are harvested, never typed
+`scripts/harvest-result-codes.ts` reads Stellar's own XDR (`stellar/stellar-xdr`,
+`Stellar-transaction.x`): **208 codes across 28 enums**, 27 operation types, the
+success payload sizes, and the operation-to-enum mapping read out of
+`union OperationResult` rather than derived from names, because the XDR reuses
+`ManageSellOfferResult` for `CREATE_PASSIVE_SELL_OFFER` and spells
+`ExtendFootprintTTLResult` with TTL capitalised. `scripts/build-codes.ts`
+generates `src/codes.generated.ts`; `src/codes.ts` holds OUR English;
+`codes.test.ts` fails if they drift.
+
+> **A harvester bug is a silent mistranslation, so the drift test earns its
+> keep.** The first version required an uppercase first character, which
+> truncated `txFAILED` to `FAILED` and `opINNER` to `INNER`, and that made
+> `txBAD_AUTH` and `opBAD_AUTH` the same key in a flat explanation map. Caught by
+> the test, not by review.
+
+### Three Stellar concepts do the explaining, and users know none of them
+- **Trustlines.** An account cannot hold an asset until it explicitly trusts the
+  issuer, and a trustline carries a limit. A payment can fail because the
+  RECIPIENT has no trustline or would exceed their limit. **Never describe that
+  as a balance problem.**
+- **Reserves.** Every account keeps a minimum XLM balance, 1 plus 0.5 per
+  subentry, so spendable XLM is balance MINUS reserve and someone can see a
+  balance they cannot send. `reserveXlm: null` means NOT COMPUTED, never zero.
+- **Time bounds.** `txTOO_LATE` means the transaction expired and, importantly,
+  **can never be applied later**, which is what makes resubmitting safe. Say it,
+  because the fear is a double send.
+
+### Routing: a Stellar hash is an EVM hash without its 0x
+64 hex, no prefix. So the shape can NEVER decide the chain, and the tx-hash arm
+is gated on Stellar being in play, exactly like Aptos. Addresses are strkeys
+validated with a real CRC16-XModem (`address.ts`), not pattern-matched: a
+one-character typo in a 56-character address still looks like an address, and
+accepting one means telling somebody their account does not exist when we asked
+about an account that was never theirs.
+
+### Paused, and only for the widget
+Same single reason as Sui: `walletTarget` in `WidgetApp.tsx` is
+`"solana" | "aptos" | "evm"`, so a Stellar project falls through to the EVM
+branch and offers MetaMask. Unpause when the widget can connect Freighter and
+accept a pasted G-address. Nothing about the pause is the decoder.
+
 ## packages/layerzero
 
 Source: `packages/layerzero/src/`. **Not a chain, a message layer**, so it has no

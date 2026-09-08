@@ -76,6 +76,7 @@ export const SUPPORTED_CHAINS = [
   { id: "0xa729",   name: "Etherlink",         explorer: "explorer.etherlink.com" },
   { id: "aptos",    name: "Aptos",             explorer: "explorer.aptoslabs.com" },
   { id: "sui",      name: "Sui",               explorer: "suiscan.xyz" },
+  { id: "stellar",  name: "Stellar",           explorer: "stellar.expert" },
   { id: "solana",   name: "Solana",            explorer: "solscan.io" },
   { id: "0xaa36a7", name: "Sepolia (Testnet)",  explorer: "sepolia.etherscan.io" },
 ] as const
@@ -104,6 +105,15 @@ const PAUSED_CHAINS = new Set<string>([
   // discovery already written for Aptos ports across) and accept a pasted Sui
   // address. The read layer, the decoder and the error map are all done.
   "sui",
+  // Stellar reads and decodes better than any non-EVM chain we have (98.8% of
+  // live failures resolve to a named operation error we hold English for), and
+  // it is paused for the SAME reason as Sui and nothing else: the widget has no
+  // Stellar wallet path. `walletTarget` in WidgetApp.tsx is
+  // "solana" | "aptos" | "evm", so a Stellar project would fall through to the
+  // EVM branch and offer the user MetaMask. Unpause when the widget can connect
+  // a Stellar wallet (Freighter, via its injected API) and accept a pasted
+  // G-address. The read layer, the decoder and the code tables are done.
+  "stellar",
 ])
 
 /** Chains offered in chain pickers - SUPPORTED_CHAINS minus paused ones. */
