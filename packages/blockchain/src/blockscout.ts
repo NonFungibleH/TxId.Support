@@ -8,6 +8,10 @@ const ETHERSCAN_V2_BASE = "https://api.etherscan.io/v2/api"
 // Our hex chain IDs → Etherscan V2 numeric chain IDs.
 export const ETHERSCAN_CHAIN_IDS: Record<string, number> = {
   "0x1": 1, "0x2105": 8453, "0x38": 56, "0x89": 137, "0xa4b1": 42161, "0xa": 10, "0xa86a": 43114, "0xaa36a7": 11155111,
+  // Etherscan V2 is ONE key across every chain it covers, so adding a chain here
+  // costs no new credential. Confirmed against its own /v2/chainlist on
+  // 2026-09-08: Monad Mainnet, id 143, status 1 (ok), explorer monadscan.com.
+  "0x8f": 143,
 }
 
 // Etherscan-compatible fallback explorers (Blockscout / Routescan), used when

@@ -1158,6 +1158,40 @@ the answer with what you believe you changed.
 ### Launch-audit hardening (2026-08-12, all shipped)
 Four-auditor CTO audit; every finding fixed: `/api/chat` rejects non-string message content + pins roles (content-block arrays bypassed the length cap); `safeEnqueue` + persistence moved to `finally` so a disconnect mid-stream loses neither the transcript nor the `token_usage` row (the model loop deliberately runs to completion); `maxDuration` 300; Telegram runs behind `checkSpendBudget` + `TELEGRAM_LIMITS.perChatPerDay` (300); preview sessions excluded from the conversation quota (migration `20260812000001`) and from both usage displays; quota RPC failure falls back to an explicit count (was fail-open); Groq fallback + `completeChatWithUsage` record real token usage (was zero during Anthropic outages); `/api/check` has a global 600/min bucket; widget SSE parsing buffers across chunk boundaries; quota 429 copy is end-user-neutral; `requireCapability("tickets")` on the legacy ticket actions; `app/dashboard/error.tsx` boundary; origin guards on `actions/rebuild` + `ack`.
 
+## Adding an EVM chain: which wallet path it gets
+
+Three routes, and WHICH ONE a chain takes is the first thing to establish,
+because getting it wrong shows up as an empty transaction list rather than an
+error. Check the provider's own coverage before writing anything.
+
+| Route | When | What it costs |
+|---|---|---|
+| **Moralis** | the chain is in Moralis's supported-chains table | a `CHAIN_CONFIGS` entry, nothing else |
+| **Blockscout** | no Moralis, but a reachable Blockscout v2 API | `blockscoutApi` + a `BLOCKSCOUT_BASES` line (see Etherlink) |
+| **RPC only** | neither | single-tx, revert decode, native balance and gas work; token balances and history are UNAVAILABLE and must throw, never return empty (see Robinhood Chain) |
+
+**Etherscan V2 is orthogonal to all three and nearly free.** One
+`ETHERSCAN_API_KEY` covers every chain it lists, so ABI fetching, contract
+verification and the error glossary need no new credential: add the numeric id
+to `ETHERSCAN_CHAIN_IDS` in `blockscout.ts` and it works. Confirm coverage
+against `https://api.etherscan.io/v2/chainlist`, which reports a live `status`
+per chain (1 = ok). Registered there as of 2026-09-08: Monad 143, HyperEVM 999.
+
+**Monad (`0x8f`, 2026-09-08)** took the Moralis route: its own table lists 0x8f,
+so it is an ordinary chain with no fallback. Verified against live mainnet
+before shipping: a real failed transaction resolved through
+`diagnoseTransaction` to `out_of_gas` with the gas-limit fix, chain named
+"Monad", **with no Moralis key present**, which also proves the RPC backstop
+stands alone. `nativeSymbol("0x8f")` returns **MON**; before the September audit
+removed every `?? "ETH"` this would have told a Monad user to top up ETH on a
+chain that has none. `monad.test.ts` pins all of it.
+
+**HyperEVM (`0x3e7`, chain 999) is the case none of the three covers.** Moralis
+does not list it, there is no reachable Blockscout (both obvious hosts 404), and
+its explorer is Etherscan-family. So it needs a FOURTH wallet path built on
+Etherscan V2's `account/*` endpoints, which would then serve any
+Etherscan-covered chain Moralis skips. Not built yet.
+
 ## packages/shared
 
 `@txid/shared`. Deliberately tiny, and it exists because the chain packages have

@@ -143,6 +143,16 @@ const DEFAULT_CHAIN_CONFIGS: Record<string, ChainConfig> = {
     moralisChain: "avalanche",
     rpcUrl: "https://api.avax.network/ext/bc/C/rpc",
   },
+  "0x8f": {
+    id: "0x8f",
+    name: "Monad",
+    nativeCurrency: "MON",
+    explorer: "https://monadscan.com",
+    // Moralis indexes Monad (its own supported-chains table lists 0x8f), so
+    // this is an ordinary Moralis chain and needs no fallback wallet path.
+    moralisChain: "0x8f",
+    rpcUrl: "https://rpc.monad.xyz",
+  },
   "0x1237": {
     id: "0x1237",
     name: "Robinhood Chain",
