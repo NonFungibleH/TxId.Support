@@ -90,7 +90,7 @@ describe("the chain registry is complete and internally consistent", () => {
    */
   it("keeps the list of chains with no logo explicit", () => {
     const noLogo = VISIBLE_CHAINS.filter(c => c.logo === undefined).map(c => c.name).sort()
-    expect(noLogo).toEqual(["Mantle", "NEAR", "Plasma", "Unichain"])
+    expect(noLogo).toEqual(["NEAR"])
   })
 
   // No em dashes in anything user-facing, and this file is entirely user-facing.
