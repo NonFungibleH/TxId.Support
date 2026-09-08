@@ -503,6 +503,9 @@ export const CHAINS: ChainInfo[] = [
     family: "non-evm",
     status: "live",
     color: "#00EC97",
+    logo: "/chains/NEAR.png",
+    // No disc, same as Mantle: a black mark on an OPAQUE white square, so it
+    // brings its own light ground and fills the badge without padding.
     explorerName: "NearBlocks",
     tagline: "NEAR contracts say why they failed. Most users still cannot read it.",
     intro:

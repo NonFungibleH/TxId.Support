@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { Hero } from "@/components/sections/Hero";
+import { ChainMarquee } from "@/components/sections/ChainMarquee";
 import { CompanyFlow } from "@/components/sections/CompanyFlow";
 import { ForWho } from "@/components/sections/ForWho";
 import { HowItWorks } from "@/components/sections/HowItWorks";
@@ -30,6 +31,7 @@ export default function HomePage() {
       <Navbar />
       <main>
         <Hero />
+        <ChainMarquee />
         <CompanyFlow />
         <ForWho />
         <HowItWorks />
