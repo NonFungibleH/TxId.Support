@@ -242,7 +242,59 @@ derived from `CHAIN_CONFIGS`. Tests: `lookup-unavailable`, `state-dependent`,
 
 Source: `packages/solana/src/`
 
-Chain ID string: `"solana"` (not a hex value). Added to `SUPPORTED_CHAINS` in `lib/types/config.ts`, but currently PAUSED in the UI: `PAUSED_CHAINS` contains `"solana"` and `SELECTABLE_CHAINS` filters it out of all pickers (config.ts:60-63). The plumbing below remains in place for when it's re-enabled.
+Chain ID string: `"solana"` (not a hex value). **UNPAUSED 2026-09-08**, and
+`PAUSED_CHAINS` is now empty.
+
+**It was paused on a credential, and the note saying so was wrong about why.**
+It read "until `HELIUS_API_KEY` is set in Vercel: without it every Solana read
+fails". True of our code, false of Solana: `getBalance` and
+`getTokenAccountsByOwner` are standard JSON-RPC methods Helius merely proxies,
+and history is `getSignaturesForAddress` plus `getTransaction`. `rpc.ts`
+answers all of them keyless, so the chain no longer waits on anything of
+Howard's. Same shape as the HyperEVM entry below: a note describing a blocker
+outlived the thing that made it one.
+
+### `rpc.ts`: Solana with no key
+`dispatch.ts` picks the path in ONE place and PREFERS Helius wherever the key
+exists (enriched output, one call per page rather than one per transaction).
+It is deliberately NOT a fall-through on error: a Helius outage must surface as
+`unavailable`, not be quietly re-served from a source with different fields.
+
+**What the keyless path gives up:** `description` and `type` are Helius's own
+interpretation and no node produces them, so they are **null**. Assembling a
+description from the instruction list would invent the field a user is most
+likely to quote back.
+
+**What it gains:** raw `getTransaction` carries `meta.logMessages`, and an
+Anchor program prints its own error name and number there. That is the
+AUTHORITATIVE branch of `decodeSolanaError`'s ladder and the enriched path
+carries no logs at all, so a failure read this way decodes at least as well.
+
+> **AN EMPTY HISTORY IS NOT AN ANSWER UNLESS THE NODE IS ARCHIVAL, and this was
+> measured, not reasoned.** `solana-rpc.publicnode.com` returns an EMPTY LIST,
+> HTTP 200, no error, for a wallet whose last activity was 25 days ago, because
+> it keeps about three days of ledger (`getFirstAvailableBlock` 444,703,101
+> against a current slot of 445,356,904). `api.mainnet-beta.solana.com` returns
+> that wallet's five real signatures. On a pruning node "this wallet has no
+> transactions" and "my ledger does not go back that far" are the same
+> response. So `isArchival()` gates every empty result, fails CLOSED when
+> retention cannot be established, and caches the FACT rather than the block
+> number, which goes stale immediately. This is rule 1 arriving from upstream,
+> where no care in our own code would have caught it, and the user it reaches
+> is the one who came back after a month to ask where their money went.
+
+**Set `SOLANA_RPC_URLS` to a keyed archival provider before real traffic.** The
+keyless default is `api.mainnet-beta.solana.com`, which rate-limits hard and is
+not meant for production load. The failure mode under a rate limit is an honest
+`unavailable`, never a wrong answer, which is what makes shipping on it
+acceptable rather than good.
+
+**`packages/solana` had no `test` script**, so `turbo run test` skipped the
+package and `errors.test.ts` and `lookup.test.ts` had never once run in CI.
+They passed when finally run, which is the point: the failure is silent by
+construction and looks exactly like a green board.
+`apps/app/lib/__tests__/test-scripts-registered.test.ts` now fails if any
+workspace holds test files without a `test` script. Solana was the only one.
 
 ### Key exports
 
