@@ -83,6 +83,7 @@ export const SUPPORTED_CHAINS = [
   { id: "aptos",    name: "Aptos",             explorer: "explorer.aptoslabs.com" },
   { id: "sui",      name: "Sui",               explorer: "suiscan.xyz" },
   { id: "stellar",  name: "Stellar",           explorer: "stellar.expert" },
+  { id: "near",     name: "NEAR",              explorer: "nearblocks.io" },
   { id: "hyperliquid", name: "Hyperliquid",   explorer: "app.hyperliquid.xyz" },
   { id: "solana",   name: "Solana",            explorer: "solscan.io" },
   { id: "0xaa36a7", name: "Sepolia (Testnet)",  explorer: "sepolia.etherscan.io" },

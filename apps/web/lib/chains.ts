@@ -484,6 +484,29 @@ export const CHAINS: ChainInfo[] = [
     ],
   },
   {
+    slug: "near",
+    name: "NEAR",
+    ticker: "NEAR",
+    family: "non-evm",
+    status: "live",
+    color: "#00EC97",
+    explorerName: "NearBlocks",
+    tagline: "NEAR contracts say why they failed. Most users still cannot read it.",
+    intro:
+      "A failed NEAR transaction carries the contract's own message, which is more than most chains give. The trouble is what it looks like: \"Smart contract panicked: panicked at 'E68: slippage error', ref-exchange/src/simple_pool.rs:313:9\". TxID takes the source paths out, translates the code, and tells your user the price moved and what to do about it.",
+    metaDescription:
+      "An AI support agent for NEAR apps. TxID turns a Rust panic into a plain-English answer your users can act on.",
+    builtFor:
+      "NEAR is the only chain that hands over the reason a transaction failed in words rather than a number. TxID is built to finish the job: strip the developer noise, translate the protocol's code, and say what the user should do next.",
+    failures: [
+      { title: "Swaps refused on slippage", detail: "Explains that the price moved between quoting the swap and it reaching the pool, rather than showing a code like E68 and a source file." },
+      { title: "Contract errors in plain words", detail: "Takes the Rust panic machinery out of the contract's message so the user sees the reason and not the developer's file layout." },
+      { title: "Not enough gas attached", detail: "Separates a call that ran out of gas, which should be sent again with more, from a contract that refused, which should not." },
+      { title: "Balance you cannot spend", detail: "Explains that NEAR charges an account for the data it stores, so part of a balance is locked and cannot be sent without deleting state." },
+      { title: "Reused or expired transactions", detail: "Says when a transaction expired safely and when one may already have gone through, so nobody sends the same thing twice." },
+    ],
+  },
+  {
     slug: "stellar",
     name: "Stellar",
     ticker: "XLM",

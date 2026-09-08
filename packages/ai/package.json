@@ -20,7 +20,8 @@
     "@txid/layerzero": "workspace:*",
     "@txid/sui": "workspace:*",
     "@txid/stellar": "workspace:*",
-    "@txid/hyperliquid": "workspace:*"
+    "@txid/hyperliquid": "workspace:*",
+    "@txid/near": "workspace:*"
   },
   "devDependencies": {
     "typescript": "^5.4.0"
