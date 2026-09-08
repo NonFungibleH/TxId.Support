@@ -1709,6 +1709,30 @@ dispatching it by hand. Dispatch a workflow by hand before trusting its schedule
 `origin/master` with the open PRs merged in, so new work cannot conflict with
 them; one PR at the end, and it shrinks as the earlier ones merge.
 
+## Identifier collisions (why routing is never done on shape)
+
+`packages/ai/src/identifier-collisions.test.ts` pins the facts that force every
+routing decision in `tools.ts`, because they were asserted in comments across
+six packages and enforced nowhere. To anyone reading one arm in isolation, the
+"which chain is in play" gating looks like needless complexity and the obvious
+simplification is to route on the shape of the identifier.
+
+**Routing on shape means looking a transaction up on the WRONG CHAIN, which
+returns not found.** That is a confident wrong answer about somebody's money.
+
+| collision | consequence |
+|---|---|
+| A NEAR transaction hash IS a Sui digest (both 32 bytes of base58, 43 to 44 chars) | the NEAR arm sits before the Sui arm and is gated on NEAR being in play |
+| A Solana signature is base58 too, but 64 bytes | LENGTH is the one discriminator that genuinely works |
+| A Stellar hash is an EVM hash with its `0x` removed | the Stellar arm carries `&& !looksEvm` |
+| Aptos and Sui addresses are the same shape, and an EVM address is valid Aptos shape | the paste box resolves the chain from the PROJECT, never the string |
+| An EVM address is a structurally VALID NEAR account name (`0x` + hex is lowercase alphanumeric) | `isNearAccount` stays true to the spec; `looksLikeForeignAddress` answers "did the user paste the wrong thing" separately |
+
+**Stellar is the only checksummed identifier we take.** Every other chain accepts
+a one-character typo as a well-formed address and reports back about an account
+that was never the user's; a strkey carries a CRC16, so the mistake is caught at
+the box.
+
 ## Reviewing this codebase: the seven lenses
 
 Each role audits a different contract. Run them as a checklist; the findings do
