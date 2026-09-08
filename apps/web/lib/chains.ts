@@ -291,63 +291,49 @@ export const CHAINS: ChainInfo[] = [
     name: "Sui",
     ticker: "SUI",
     family: "non-evm",
-    status: "coming-soon",
+    status: "live",
     color: "#4DA2FF",
     logo: "/chains/Sui.png",
     explorerName: "SuiScan",
-    tagline: "Transaction diagnosis is coming to Sui.",
+    tagline: "Turn a bare Sui abort code into an answer your users can act on.",
     intro:
-      "Move aborts, gas budgets and contention for shared objects give Sui its own failure language. TxID already decodes Move on Aptos, and is bringing the same plain-English diagnosis to Sui. Talk to us for early access.",
+      "Sui tells a user less than almost any chain when something goes wrong: an abort arrives as a bare number, with no name attached and nothing on chain to look it up against. TxID reads the number, the module and the function, explains what it means where the protocol has published one, and says plainly when it cannot rather than guessing.",
+    metaDescription:
+      "Diagnose failed Sui transactions without leaving your app. TxID decodes Move aborts, DeepBook errors and the failures that are not aborts at all.",
+    builtFor:
+      "TxID is built for Sui rather than adapted to it, so it handles what Sui does differently: an abort that carries no name, a package that changes address every time it upgrades, and the failures that are not aborts at all.",
     failures: [
-      { title: "Move aborts", detail: "Turns a module and an abort code into what actually went wrong, and what to do about it." },
-      { title: "Gas budget too low", detail: "Separates a budget that was set too low from a wallet that is genuinely short of SUI." },
-      { title: "Shared object contention", detail: "Explains when a transaction lost a race for a shared object, and whether retrying will help." },
-      { title: "Objects that no longer exist", detail: "Catches a reference to an object that was transferred, wrapped or deleted before the transaction landed." },
+      { title: "Move aborts", detail: "Turns a module and a bare abort code into what actually went wrong, using the protocol's own published error definitions where they exist." },
+      { title: "DeepBook orders and withdrawals", detail: "Explains why a withdrawal was refused or an order rejected on Sui's central orderbook, including that funds sit in a balance manager rather than the wallet." },
+      { title: "A step that ran short of a coin", detail: "Separates a wallet that was genuinely short from a route where an earlier step returned less than expected, which are different problems with different answers." },
+      { title: "Gas budget too low", detail: "Separates a budget set too low from a wallet that is genuinely short of SUI." },
+      { title: "Orders that are already gone", detail: "Explains an order that cannot be cancelled because it has already filled, expired or been cancelled." },
     ],
   },
 
-  // ── Cross-chain ───────────────────────────────────────────────────────────
-  {
-    slug: "layerzero",
-    name: "LayerZero",
-    ticker: "",
-    family: "cross-chain",
-    status: "live",
-    color: "#E4E4E7",
-    logo: "/chains/LayerZero.png",
-    explorerName: "LayerZero Scan",
-    tagline: "Answers the worst question in crypto: it says it worked, so where is my money?",
-    intro:
-      "A bridge transfer leaves one chain in a transaction the user sent, and arrives on another in a transaction they did not send and cannot see. Every tool reports the same useless fact in between, that the source transaction succeeded. TxID reads the message itself and says where the value actually is.",
-    metaDescription:
-      "Bridged and it has not arrived? TxID reads the LayerZero message and tells your users whether their transfer is in transit, delivered, or needs a human.",
-    builtFor:
-      "TxID follows the transfer across, so a user whose funds have left one chain and not reached the other is told they are in transit rather than left to guess.",
-    failures: [
-      { title: "Sent but not arrived", detail: "Confirms the transfer left the source chain and is still in flight, so the user knows it is in transit rather than lost." },
-      { title: "Bridging twice", detail: "Never tells a user to retry while a transfer is live. The first one is still coming, and a second would go through too." },
-      { title: "Which side to look at", detail: "Names the destination chain and the delivery transaction, so nobody keeps refreshing the chain the funds already left." },
-      { title: "States nobody can read", detail: "When the bridge reports something we cannot interpret, it says so and hands over the message id, rather than inventing a meaning." },
-    ],
-  },
   {
     slug: "stellar",
     name: "Stellar",
     ticker: "XLM",
     family: "non-evm",
-    status: "coming-soon",
-    hidden: true,
-    color: "#3E1BDB",
+    status: "live",
+    color: "#FDDA24",
     logo: "/chains/Stellar.png",
+    logoWhiteBg: true,
     explorerName: "Stellar Expert",
-    tagline: "Plain-English Stellar support is on the roadmap.",
+    tagline: "Explain a failed Stellar payment in the words your users use.",
     intro:
-      "Trustlines, sequence numbers and reserves are where Stellar users get stuck. TxID is bringing Horizon-powered diagnosis to Stellar. Get in touch for early access.",
+      "More Stellar transactions fail than on any chain we measure, and most of them fail for a reason the network states precisely and nobody translates. A payment refused on slippage, a missing trustline, a balance that is not spendable because of the reserve: all of these are exact answers sitting inside a result nobody reads. TxID reads it and answers in plain language.",
+    metaDescription:
+      "Diagnose failed Stellar transactions without leaving your app. TxID explains path payments, trustlines, reserves and Soroban failures in plain language.",
+    builtFor:
+      "TxID is built for Stellar rather than adapted to it, so it explains the three things that trip people up and that no other chain has: trustlines, reserves, and a transaction that quietly expired.",
     failures: [
-      { title: "Missing trustline (op_no_trust)", detail: "Explains that the account has not added a trustline for the asset, and how to add one." },
-      { title: "Sequence number errors (tx_bad_seq)", detail: "Tells the user their sequence number was off and how to resubmit." },
-      { title: "Fee below the network minimum", detail: "Catches tx_insufficient_fee and gives the current minimum to use." },
-      { title: "Reserve and min-balance limits", detail: "Explains underfunded operations against Stellar's base-reserve requirement." },
+      { title: "A swap refused on price", detail: "The commonest failure on Stellar by a wide margin. Explains that the path moved between the quote and the transaction, that the user's own limit refused it, and that nothing was swapped." },
+      { title: "A missing trustline", detail: "Explains that the recipient has not yet trusted the asset, or that their limit would be exceeded, which is nothing to do with either side having enough money." },
+      { title: "A balance that will not send", detail: "Explains the minimum reserve, which rises with every trustline, offer and signer, so a user can see a balance and be unable to spend it." },
+      { title: "A transaction that expired", detail: "Explains that the time bound passed before it was included, that nothing moved, and that submitting again is safe because the expired one can never execute." },
+      { title: "Soroban contract failures", detail: "Explains a contract that rejected the call, including inside a fee bump, where the useful detail is otherwise hidden in a second transaction." },
     ],
   },
   {
