@@ -198,6 +198,49 @@ const DEFAULT_CHAIN_CONFIGS: Record<string, ChainConfig> = {
     // ({"robinhood":"https://robinhood-mainnet.g.alchemy.com/v2/KEY"}); the
     // indexed lists need an Alchemy wallet adapter alongside Moralis/Blockscout.
   },
+  "0x82": {
+    id: "0x82",
+    name: "Unichain",
+    nativeCurrency: "ETH",
+    explorer: "https://uniscan.xyz",
+    rpcUrl: "https://mainnet.unichain.org",
+    // Moralis does not index 130 (checked against Moralis's own chain list), but
+    // Blockscout v2 is live and complete, so this takes the Etherlink route and
+    // gets the FULL wallet path. Verified against a live address: token-balances
+    // returned 20 holdings and transactions returned 50 items.
+    blockscoutApi: "https://unichain.blockscout.com/api",
+  },
+  "0x2611": {
+    id: "0x2611",
+    name: "Plasma",
+    nativeCurrency: "XPL",
+    explorer: "https://plasmascan.to",
+    // RPC-ONLY, like HyperEVM and Robinhood Chain. Moralis does not index 9745,
+    // and there is NO Blockscout: plasmascan.to answers /api/v2/... with HTML,
+    // and its /api tells you to use api.plasmascan.to, which is Etherscan-family
+    // and V2-only. So token balances and transaction history are UNAVAILABLE and
+    // throw rather than reporting an empty wallet. Single-transaction lookup,
+    // revert decoding, native balance, nonce and gas all run on the RPC, which is
+    // the failed-transaction path and the reason anyone opens the assistant.
+    //
+    // WORTH KNOWING: 9745 IS in Etherscan V2 at status 1, so an Etherscan-based
+    // wallet path would light this chain up along with Mantle and HyperEVM. That
+    // is the one piece of work that would upgrade three chains at once.
+    rpcUrl: "https://rpc.plasma.to",
+  },
+  "0x1388": {
+    id: "0x1388",
+    name: "Mantle",
+    nativeCurrency: "MNT",
+    explorer: "https://mantlescan.xyz",
+    // RPC-ONLY. Moralis does not index 5000 and no Blockscout answered at either
+    // obvious host. Same trade as Plasma above, and the same upgrade path via
+    // Etherscan V2, which covers 5000 at status 1.
+    //
+    // nativeCurrency is MNT, not ETH. Mantle is an L2 whose gas token is its own,
+    // so a "top up your ETH" answer here would be wrong on a chain that has none.
+    rpcUrl: "https://rpc.mantle.xyz",
+  },
   "0xa729": {
     id: "0xa729",
     name: "Etherlink",

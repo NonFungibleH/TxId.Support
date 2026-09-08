@@ -4,7 +4,8 @@ import { useState, useRef, useEffect } from "react";
 import { readableText } from "@/lib/chains";
 
 interface ChainLogoProps {
-  src: string;
+  /** Absent means we hold no mark for this chain: render the monogram. */
+  src?: string;
   name: string;
   color: string;
   size?: number;
@@ -22,6 +23,7 @@ interface ChainLogoProps {
  */
 export function ChainLogo({ src, name, color, size = 40, className, whiteBg }: ChainLogoProps) {
   const [failed, setFailed] = useState(false);
+  const missing = !src;
   const ref = useRef<HTMLImageElement>(null);
 
   // The onError event can fire before React hydrates and attaches its handler
@@ -32,7 +34,7 @@ export function ChainLogo({ src, name, color, size = 40, className, whiteBg }: C
     if (img && img.complete && img.naturalWidth === 0) setFailed(true);
   }, []);
 
-  if (failed) {
+  if (failed || missing) {
     return (
       <span
         className={className}

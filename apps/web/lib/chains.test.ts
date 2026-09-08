@@ -57,7 +57,7 @@ describe("the chain registry is complete and internally consistent", () => {
       expect(c.slug, `${c.name} slug`).toMatch(/^[a-z0-9-]+$/)
       expect(c.name.length, `${c.slug} name`).toBeGreaterThan(0)
       expect(c.color, `${c.slug} color`).toMatch(/^#[0-9A-Fa-f]{6}$/)
-      expect(c.logo, `${c.slug} logo`).toMatch(/^\/chains\//)
+      if (c.logo !== undefined) expect(c.logo, `${c.slug} logo`).toMatch(/^\/chains\//)
       expect(c.tagline.length, `${c.slug} tagline`).toBeGreaterThan(10)
       expect(c.intro.length, `${c.slug} intro`).toBeGreaterThan(40)
       expect(c.failures.length, `${c.slug} failures`).toBeGreaterThanOrEqual(3)
@@ -70,12 +70,27 @@ describe("the chain registry is complete and internally consistent", () => {
     const { existsSync } = await import("node:fs")
     const { resolve } = await import("node:path")
     const missing = VISIBLE_CHAINS
+      .filter((c): c is typeof c & { logo: string } => c.logo !== undefined)
       .filter(c => !existsSync(resolve(__dirname, "..", "public", c.logo.replace(/^\//, ""))))
       .map(c => `${c.name} wants ${c.logo}`)
     // No exceptions. Every chain shown has a real mark; a monogram is a
     // fallback for a missing file, not a design choice, and it went unnoticed
     // once because the exception below used to name it.
     expect(missing).toEqual([])
+  })
+
+  /**
+   * Making `logo` optional gave the previous guard an exit: omit the path and
+   * the missing-file check no longer applies. So the chains without a mark are
+   * pinned here by name. Adding one is then a deliberate edit to this list with
+   * a reviewer looking at it, which is the whole point of the guard, rather
+   * than a field quietly left off.
+   *
+   * Take a chain OFF this list the moment its logo lands in /public/chains.
+   */
+  it("keeps the list of chains with no logo explicit", () => {
+    const noLogo = VISIBLE_CHAINS.filter(c => c.logo === undefined).map(c => c.name).sort()
+    expect(noLogo).toEqual(["Mantle", "Plasma", "Unichain"])
   })
 
   // No em dashes in anything user-facing, and this file is entirely user-facing.
