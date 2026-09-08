@@ -44,6 +44,15 @@ describe("which wallet addresses the widget and the route both accept", () => {
     expect(accepted(EVM_ADDR, "stellar")).toBe(true)
   })
 
+  // HyperCore is an exchange rather than a chain, but it shares HyperEVM's
+  // address space, so a plain EVM address IS the Hyperliquid identity. The rule
+  // needs no special case, and this pins that it stays true.
+  it("takes a plain EVM address on Hyperliquid", () => {
+    expect(accepted(EVM_ADDR, "hyperliquid")).toBe(true)
+    expect(accepted(APTOS_ADDR, "hyperliquid")).toBe(false)
+    expect(accepted(STELLAR_ADDR, "hyperliquid")).toBe(false)
+  })
+
   // Sui and Aptos addresses are the SAME SHAPE, so neither is accepted on the
   // strength of the shape alone: the request has to say which chain it is.
   it("takes a 64-hex address only when the chain says Move", () => {

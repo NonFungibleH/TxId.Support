@@ -124,8 +124,8 @@ export default function ChainsPage() {
               <p className="text-sm text-muted mb-6 max-w-2xl">
                 Non-EVM ecosystems get their own native engine, not an EVM adapter. On Aptos and Sui
                 that means Move aborts and subaccounts handled first-class; on Stellar it means
-                trustlines, reserves and path payments explained in the words users actually use.
-                Solana is next.
+                trustlines, reserves and path payments; on Hyperliquid it means reading the exchange
+                itself, where a rejected order leaves no transaction to look up. Solana is next.
               </p>
             </FadeIn>
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">

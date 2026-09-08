@@ -897,7 +897,8 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
   const isAptosProject = (config?.chains ?? []).includes("aptos")
   const isSuiProject = (config?.chains ?? []).includes("sui")
   const isStellarProject = (config?.chains ?? []).includes("stellar")
-  const NON_EVM_CHAINS = ["solana", "aptos", "sui", "stellar"]
+  const isHyperliquidProject = (config?.chains ?? []).includes("hyperliquid")
+  const NON_EVM_CHAINS = ["solana", "aptos", "sui", "stellar", "hyperliquid"]
   const hasEvmChain = (config?.chains ?? []).some((c) => !NON_EVM_CHAINS.includes(c))
 
   // Wallet setup flow: prompt → (connected | manual | skipped)
@@ -1261,7 +1262,10 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
     const cid = isStellarAddr
       ? "stellar"
       : isEvmAddr
-        ? (evmCid ?? (isAptosProject || isSuiProject ? moveCid : "0x1"))
+        // A Hyperliquid project takes a plain EVM address and reads HyperCore
+        // with it, so the pasted address is tagged "hyperliquid" rather than
+        // given an EVM chain it was never about.
+        ? (isHyperliquidProject && !evmCid ? "hyperliquid" : (evmCid ?? (isAptosProject || isSuiProject ? moveCid : "0x1")))
         : moveCid
     setWalletAddress(addr)
     setChainId(cid)
@@ -1278,7 +1282,7 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
     setManualError(false)
     setTab("chat")
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [manualValue, config, apiKey, isAptosProject, isSuiProject, isStellarProject])
+  }, [manualValue, config, apiKey, isAptosProject, isSuiProject, isStellarProject, isHyperliquidProject])
 
   // ── Connect wallet ───────────────────────────────────────────────────────
   // ── Embedded wallet bridge ─────────────────────────────────────────────────
@@ -1397,7 +1401,7 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
    */
   const aptosProviderAvailable = hasAptosWallet || (isEmbedded && !!bridgeWallet?.aptos)
   const evmProviderAvailable = hasMetaMask || (isEmbedded && !!bridgeWallet?.evm)
-  const walletTarget: "solana" | "aptos" | "sui" | "stellar" | "evm" = isSolanaProject
+  const walletTarget: "solana" | "aptos" | "sui" | "stellar" | "hyperliquid" | "evm" = isSolanaProject
     ? "solana"
     : isAptosProject
       ? "aptos"
@@ -1405,7 +1409,23 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
         ? "sui"
         : isStellarProject
           ? "stellar"
-          : "evm"
+          : isHyperliquidProject
+            ? "hyperliquid"
+            : "evm"
+
+  /**
+   * HYPERLIQUID CONNECTS LIKE EVM AND IS NOT AN EVM CHAIN.
+   *
+   * HyperCore is an exchange, not a chain, but it shares HyperEVM's address
+   * space, so the wallet handshake is an ordinary eth_requestAccounts and the
+   * branch below is reached by falling through. What must NOT happen is
+   * reporting the wallet's own chain id: the user's MetaMask may well be on
+   * Ethereum while we are reading their Hyperliquid account, and the ADDRESS is
+   * what identifies them here, not the network the wallet happens to be on.
+   * Passing the wallet's chain would send every read to the wrong place.
+   */
+  const evmConnectChainId = (walletChainId: string) =>
+    walletTarget === "hyperliquid" ? "hyperliquid" : walletChainId
   /**
    * An Aptos project ALWAYS attempts Aptos first, and only falls back to EVM
    * from inside that branch if no Aptos path produced an address.
@@ -1782,7 +1802,7 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
       // first when we are embedded and it reported a wallet.
       if (isEmbedded && bridgeWallet?.evm) {
         const res = await connectViaBridge("evm")
-        if (res) { applyConn(res.address, res.chainId); return }
+        if (res) { applyConn(res.address, evmConnectChainId(res.chainId)); return }
       }
       if ("ethereum" in window) {
         const eth = (window as unknown as { ethereum: { request: (a: { method: string }) => Promise<string[]> } }).ethereum
@@ -1800,9 +1820,9 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
           )),
         ])
         const chain = await eth.request({ method: "eth_chainId" }) as unknown as string
-        if (accounts?.[0]) { applyConn(accounts[0], chain); return }
+        if (accounts?.[0]) { applyConn(accounts[0], evmConnectChainId(chain)); return }
       }
-      if (isEmbedded) { const res = await connectViaBridge("evm"); if (res) { applyConn(res.address, res.chainId); return } }
+      if (isEmbedded) { const res = await connectViaBridge("evm"); if (res) { applyConn(res.address, evmConnectChainId(res.chainId)); return } }
       failConnect("no-evm-provider", "No wallet extension was detected in this page.")
     } catch (err) {
       // NEVER swallow this. A silent catch here made every failure look like

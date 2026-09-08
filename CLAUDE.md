@@ -671,10 +671,15 @@ data:** `0x1111…1111` looks unused and is not, because people have sent it rea
 spot balances, so checking against it would "prove" a bug that is not there.
 `scripts/verify-live.ts` uses a genuinely untouched address.
 
-### Paused
-The widget has no connect path yet. HyperCore shares HyperEVM's address space,
-so the path is an ordinary EVM connect that reports `chainId "hyperliquid"`, a
-small change deliberately not bundled into the package PR.
+### It connects like EVM and it is NOT an EVM chain
+HyperCore shares HyperEVM's address space, so the wallet handshake is an
+ordinary `eth_requestAccounts` and `walletTarget "hyperliquid"` falls through to
+the EVM branch on purpose. **What must not happen is reporting the wallet's own
+chain id.** The user's MetaMask may well be on Ethereum while we read their
+Hyperliquid account, and the ADDRESS identifies them here, not the network the
+wallet happens to be on. `evmConnectChainId()` in `WidgetApp.tsx` is the one
+place that override lives; passing the wallet's chain through would send every
+read to the wrong place. Same for a pasted address on a Hyperliquid project.
 
 ## packages/layerzero
 

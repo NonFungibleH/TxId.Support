@@ -91,11 +91,6 @@ const PAUSED_CHAINS = new Set<string>([
   // Solana stays paused until HELIUS_API_KEY is set in Vercel: without it every
   // Solana read fails, so the chain would be selectable and non-functional.
   "solana",
-  // Hyperliquid reads and explains, but the widget has no connect path for it
-  // yet. HyperCore shares HyperEVM's address space, so the path is an ordinary
-  // EVM connect that reports chainId "hyperliquid", which is a small change and
-  // deliberately not bundled into the package PR.
-  "hyperliquid",
 ])
 
 /**
