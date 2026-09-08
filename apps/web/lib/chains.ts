@@ -242,6 +242,48 @@ export const CHAINS: ChainInfo[] = [
     ],
   },
   {
+    slug: "hyperevm",
+    name: "HyperEVM",
+    ticker: "HYPE",
+    family: "evm",
+    status: "coming-soon",
+    color: "#97FCE4",
+    logo: "/chains/HyperEVM.png",
+    explorerName: "HyperEVM Scan",
+    tagline: "The EVM chain beside the exchange. Diagnosis is coming.",
+    intro:
+      "Hyperliquid is two things: the exchange, which TxID already reads, and HyperEVM, the EVM chain running alongside it. Contracts on HyperEVM fail the way contracts anywhere fail, and our decoder already handles that shape. Reading a HyperEVM wallet's history needs an indexer that covers the chain, which is the piece still being put in place.",
+    metaDescription:
+      "TxID already reads the Hyperliquid exchange. HyperEVM, the chain beside it, is next. Talk to us for early access.",
+    failures: [
+      { title: "Reverted transactions", detail: "Replays the transaction and turns the contract's own revert reason into what went wrong and what to do next." },
+      { title: "Custom contract errors", detail: "Decodes a bare error selector against the contract's published interface, so a hex string becomes a sentence." },
+      { title: "Out of gas", detail: "Separates a gas limit set too low from a wallet that is genuinely short, which need different fixes." },
+      { title: "Failures that only happened once", detail: "Spots a transaction that fails on chain but succeeds when replayed a block earlier, which means the market moved underneath it." },
+    ],
+  },
+  {
+    slug: "arc",
+    name: "Arc",
+    ticker: "USDC",
+    family: "evm",
+    status: "coming-soon",
+    color: "#1E4E8C",
+    logo: "/chains/Arc.jpg",
+    explorerName: "Arc Explorer",
+    tagline: "Circle's stablecoin chain, where the gas is USDC.",
+    intro:
+      "Arc pays for gas in USDC rather than a volatile native token, which quietly changes what a failed transaction means: running out of gas is running out of dollars, and every explanation written for a chain with its own coin gets that wrong. TxID reads Arc's execution directly and says what actually happened. Diagnosis goes live with the network.",
+    metaDescription:
+      "TxID is ready for Arc, Circle's USDC-native L1. Failed transactions explained in plain language, with gas denominated in dollars rather than a volatile token.",
+    failures: [
+      { title: "Reverted transactions", detail: "Replays the transaction and turns the contract's own revert reason into what went wrong and what to do next." },
+      { title: "Gas paid in dollars", detail: "Explains a shortfall in the terms Arc actually uses, so nobody is told to top up a token the chain does not have." },
+      { title: "Custom contract errors", detail: "Decodes a bare error selector against the contract's published interface, so a hex string becomes a sentence." },
+      { title: "Failures that only happened once", detail: "Spots a transaction that fails on chain but succeeds when replayed a block earlier, which means state moved underneath it." },
+    ],
+  },
+  {
     slug: "robinhood",
     name: "Robinhood Chain",
     ticker: "ETH",
@@ -342,6 +384,7 @@ export const CHAINS: ChainInfo[] = [
     family: "non-evm",
     status: "live",
     color: "#50D2C1",
+    // No mark supplied yet, so ChainLogo renders a monogram rather than a 404.
     logo: "/chains/Hyperliquid.png",
     explorerName: "Hyperliquid",
     tagline: "Tell a trader why their order was rejected, in the exchange's own words.",
