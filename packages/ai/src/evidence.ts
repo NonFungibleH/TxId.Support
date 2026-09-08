@@ -184,7 +184,24 @@ export function mergeToolEvidence(items: ToolEvidence[]): {
   const seenSource = new Set<string>()
   let anyReadSucceeded = false
   for (const item of items) {
-    if (item.ok) anyReadSucceeded = true
+    /**
+     * `ok` means the JS call did not throw, which is NOT the same as a read
+     * having succeeded, and the chat route grades an answer `verified` off
+     * this. An arm that CATCHES a chain outage and honestly returns
+     * `{ lookupFailed: true, error }` did not throw, so every read in a
+     * conversation could fail, each handled correctly, and the record would
+     * still say a live read succeeded. The better-behaved arm produced the
+     * wronger record, which is why it hid.
+     *
+     * A read counts when it CONTRIBUTED SOMETHING: a source or a figure. A
+     * pure failure report carries neither. A PARTIAL read still counts, since
+     * data did come back: the Stellar balance arm marks itself when the
+     * reserve cannot be computed while returning the balance, and that answer
+     * is genuinely grounded in a live read.
+     */
+    const reportedFailure = (item.failed?.length ?? 0) > 0
+    const contributed = (item.sources?.length ?? 0) > 0 || (item.numbers?.length ?? 0) > 0
+    if (item.ok && (!reportedFailure || contributed)) anyReadSucceeded = true
     for (const n of item.numbers ?? []) numbers.add(n)
     for (const s of item.sources ?? []) {
       const k = JSON.stringify(s)

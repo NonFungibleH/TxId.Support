@@ -184,3 +184,57 @@ describe("no tool arm hides a failure from the record", () => {
     expect(offenders).toEqual([])
   })
 })
+
+describe("grounding cannot be claimed off a read that failed", () => {
+  /**
+   * `grounding` is computed in the chat route as
+   * `merged.anyReadSucceeded ? "verified" : ...`, and CLAUDE.md defines
+   * "verified" as A LIVE READ SUCCEEDED.
+   *
+   * `anyReadSucceeded` keyed on `ok`, and `ok` is `!errored`, meaning "the JS
+   * call did not throw". An arm that CATCHES a chain outage and honestly
+   * returns `{ lookupFailed: true, error }` did not throw, so it counted as a
+   * successful read. A conversation in which every chain read failed, each one
+   * handled correctly, was therefore recorded as `verified`.
+   *
+   * That is the same overstatement an external auditor already flagged on
+   * `basis`: establishing that something came from a tool is not establishing
+   * that a read succeeded.
+   *
+   * A tool that THREW was already correct here, which is why this hid: the
+   * better-behaved arm produced the wronger record.
+   */
+  it("a caught outage does not count as a successful read", () => {
+    const merged = mergeToolEvidence([
+      ev("get_wallet_balance", {
+        lookupFailed: true,
+        error: "NEAR lookup unavailable: the NEAR nodes could not be reached",
+      }),
+    ])
+    expect(merged.anyReadSucceeded).toBe(false)
+    expect(merged.failedLookups).toHaveLength(1)
+  })
+
+  /**
+   * A PARTIAL read still succeeded. The Stellar balance arm marks itself when
+   * the reserve could not be computed, and the balance itself came back: that
+   * answer IS grounded in a live read and must not be downgraded.
+   */
+  it("a partial read still counts, because data did come back", () => {
+    const merged = mergeToolEvidence([
+      ev("get_wallet_balance", {
+        address: "GA6H",
+        xlm: "412.5 XLM",
+        reserveXlm: null,
+        lookupFailed: true,
+        reserveNote: "The reserve could not be computed for this account.",
+      }),
+    ])
+    expect(merged.anyReadSucceeded).toBe(true)
+    expect(merged.failedLookups).toHaveLength(1)
+  })
+
+  it("an ordinary successful read still counts", () => {
+    expect(mergeToolEvidence([ev("get_wallet_balance", { balance: "2.5", symbol: "ETH" })]).anyReadSucceeded).toBe(true)
+  })
+})
