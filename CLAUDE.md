@@ -927,6 +927,58 @@ API change held until the deck no longer shows it.
 `escalation_deliveries`, due when the notice clears, and delivered by the retry
 worker; they used to be recorded and never delivered.
 
+## Programmatic error pages (`/errors`, `/selector`, `llms-errors.txt`)
+
+`apps/web/lib/errors.ts` drives the pages at `/errors/[slug]`, the AI answer feed
+at `/llms-errors.txt` and the sitemap, all from one array. Its own rule is the
+one to keep: **an entry we cannot explain properly does not ship, because thin
+pages hurt every other page here.**
+
+**The non-EVM half is GENERATED, and that is the load-bearing part.**
+`lib/chain-errors.generated.ts` is written from the chain packages themselves,
+so a published page cannot describe an error differently from the decoder.
+`lib/chain-errors.test.ts` is BOTH the generator and the drift guard: it rebuilds
+in memory and fails if the checked-in file disagrees.
+
+    UPDATE_CHAIN_ERRORS=1 pnpm --filter @txid/web test
+
+> **Why generated and not imported:** `apps/web` depends on clsx, framer-motion,
+> lucide-react, next and react, and nothing else. Importing `@txid/stellar` so a
+> marketing page can render a lookup table would pull a whole chain stack into
+> the public site's bundle.
+>
+> **Why generated and not typed:** the hero chain strip on this site was once a
+> second hand-maintained list and was missing Robinhood Chain within an hour of
+> it going live. Same mistake, avoided by construction.
+
+**`fix` is OPTIONAL on generated entries.** The chain decoders carry one
+explanation which frequently contains the remedy inline ("resubmitting with a
+higher fee is the fix"), and inventing a second paragraph for the ones that do
+not would be padding, which is the thin-page rule broken in a different way. A
+page without a fix says so by omission: the FAQ schema drops that question, the
+LLM feed does not ask it, and **the title says "what it means on Stellar" rather
+than "and how to fix it"**, because a title must not promise a section the page
+does not carry. Generated entries render a "Where this comes from" block instead
+(chain, operation, signed result code), which is the context a block explorer
+does not give.
+
+**Shipped 2026-09-08: 153 entries across four chains** (Stellar 75, Sui 55,
+Solana 13, Hyperliquid 10), taking `/errors` from 43 to 196.
+
+> **THE 80-CHARACTER FILTER IS THE INTERESTING NUMBER, NOT THE TOTAL.** Solana's
+> `PROGRAM_ERRMAPS` holds 203 codes and only **13** are page-worthy, because
+> most entries are the program's OWN terse Anchor string ("Empty route.",
+> "Invalid calculation."). Those are worth keeping in the product, where the
+> program's own words beat a bare number, and worthless as a page. Sui is 55 of
+> 182 for the same reason. **Do not quote the raw errmap sizes as content
+> inventory**: the publishable figure is roughly a quarter of them.
+
+Solana additionally dedupes by error NAME: Jupiter's 6001 and 6004 are both
+slippage and several programs define the same name, so one page is published
+rather than five near-identical ones. Sui slugs on the MODULE, because the
+package is a 66-character hex id; Solana carries the program as scope, since the
+same code means different things in different programs.
+
 ## Docs (two separate systems — don't conflate)
 
 1. **`apps/docs`** — standalone docs site. ⚠️ **NOT DEPLOYED**: `docs.txid.support` does not resolve, so nothing here reaches a user. Verify before writing docs into it. Hardcoded JSX pages: quickstart, dashboard, embed, contracts, api, features. Sidebar: `apps/docs/components/Sidebar.tsx`.

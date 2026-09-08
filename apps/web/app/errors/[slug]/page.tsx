@@ -18,10 +18,18 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const err = getError(params.slug)
   if (!err) return {}
-  const title = `"${err.message}": what it means and how to fix it`
+  // Do not promise a fix on a page that does not carry one. The generated
+  // chain entries name the chain instead, which is also what somebody pasting
+  // a bare constant like "txBAD_SEQ" is most likely to be searching alongside.
+  const chainName = err.chain ? err.chain.charAt(0).toUpperCase() + err.chain.slice(1) : null
+  const title = err.fix
+    ? `"${err.message}": what it means and how to fix it`
+    : `"${err.message}": what it means on ${chainName ?? "chain"}`
   return {
     title: `${title} | TxID`,
-    description: `${err.meaning.split(". ")[0]}. What the error means, why it happens, and the fix.`,
+    description: err.fix
+      ? `${err.meaning.split(". ")[0]}. What the error means, why it happens, and the fix.`
+      : `${err.meaning.split(". ")[0]}. What the ${chainName ?? "chain"} result code means and what happens to the transaction.`,
     alternates: { canonical: `/errors/${err.slug}` },
     openGraph: {
       title,
@@ -62,11 +70,15 @@ export default function ErrorPage({ params }: { params: { slug: string } }) {
         name: `What does "${err.message}" mean?`,
         acceptedAnswer: { "@type": "Answer", text: err.meaning },
       },
-      {
-        "@type": "Question",
-        name: `How do I fix "${err.message}"?`,
-        acceptedAnswer: { "@type": "Answer", text: err.fix },
-      },
+      // Only ask what the page actually answers. A FAQ entry with an empty
+      // answer is a structured-data claim we cannot back.
+      ...(err.fix
+        ? [{
+            "@type": "Question",
+            name: `How do I fix "${err.message}"?`,
+            acceptedAnswer: { "@type": "Answer", text: err.fix },
+          }]
+        : []),
     ],
   }
   const breadcrumb = breadcrumbSchema([
@@ -114,8 +126,43 @@ export default function ErrorPage({ params }: { params: { slug: string } }) {
             <h2 className="font-display text-2xl font-bold text-white mb-4">What it means</h2>
             <p className="text-[var(--text-muted)] leading-relaxed mb-10 text-base">{err.meaning}</p>
 
-            <h2 className="font-display text-2xl font-bold text-white mb-4">How to fix it</h2>
-            <p className="text-[var(--text-muted)] leading-relaxed mb-10 text-base">{err.fix}</p>
+            {err.fix && (
+              <>
+                <h2 className="font-display text-2xl font-bold text-white mb-4">How to fix it</h2>
+                <p className="text-[var(--text-muted)] leading-relaxed mb-10 text-base">{err.fix}</p>
+              </>
+            )}
+
+            {/* Where a chain constant actually comes from. This is the context a
+                block explorer does not give you: the operation it belongs to and
+                the signed number that appears in the raw result. */}
+            {err.chain && (
+              <>
+                <h2 className="font-display text-2xl font-bold text-white mb-4">Where this comes from</h2>
+                <dl className="mb-10 text-base">
+                  <div className="flex gap-3 py-2 border-b border-[var(--border)]">
+                    <dt className="text-muted w-40 shrink-0">Chain</dt>
+                    <dd className="text-[var(--text-muted)]">
+                      <Link href={`/chains/${err.chain}`} className="hover:text-accent transition-colors capitalize">
+                        {err.chain}
+                      </Link>
+                    </dd>
+                  </div>
+                  {err.scope && (
+                    <div className="flex gap-3 py-2 border-b border-[var(--border)]">
+                      <dt className="text-muted w-40 shrink-0">Operation</dt>
+                      <dd className="font-mono text-sm text-[var(--text-muted)]">{err.scope}</dd>
+                    </div>
+                  )}
+                  {err.code !== null && err.code !== undefined && (
+                    <div className="flex gap-3 py-2 border-b border-[var(--border)]">
+                      <dt className="text-muted w-40 shrink-0">Result code</dt>
+                      <dd className="font-mono text-sm text-[var(--text-muted)]">{err.code}</dd>
+                    </div>
+                  )}
+                </dl>
+              </>
+            )}
           </article>
 
           <div className="rounded-xl border border-accent/30 bg-accent/5 p-6 text-center">
