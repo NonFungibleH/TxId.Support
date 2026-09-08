@@ -49,6 +49,7 @@ const CHAIN_NAMES: Record<string, string> = {
   "42793": "Etherlink",  "0xa729":   "Etherlink",
   "143":   "Monad",      "0x8f":     "Monad",
   "999":   "HyperEVM",   "0x3e7":    "HyperEVM",
+  "4663":  "Robinhood Chain", "0x1237": "Robinhood Chain",
   "130":   "Unichain",   "0x82":     "Unichain",
   "9745":  "Plasma",     "0x2611":   "Plasma",
   "5000":  "Mantle",     "0x1388":   "Mantle",
