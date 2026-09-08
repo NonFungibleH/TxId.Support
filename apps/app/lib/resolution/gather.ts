@@ -41,7 +41,15 @@ export async function resolveByHash(hash: string, opts: ResolveByHashOptions = {
 
   const [evm, aptos] = await Promise.all([
     wantsEvm
-      ? diagnoseTransaction(hash, chain && chain !== "aptos" ? chain : undefined).catch(() => null)
+      // `.catch(() => null)` was bug #72 waiting in the EVM arm. The NORMAL
+      // unreachable path is fine: diagnoseTransaction returns cause
+      // "lookup_failed" rather than throwing. But an UNEXPECTED throw became
+      // null, fell past every branch below, and resolved to notFound, which
+      // asserts `onchain: "not_found"` and therefore a custody claim an
+      // integrator draws a button from. The Aptos arm below already keeps the
+      // two apart; this one did not.
+      ? diagnoseTransaction(hash, chain && chain !== "aptos" ? chain : undefined)
+          .catch(() => "threw" as const)
       : Promise.resolve(null),
     wantsAptos
       // `.catch(() => null)` sent an unreachable fullnode down the not_found
@@ -54,18 +62,20 @@ export async function resolveByHash(hash: string, opts: ResolveByHashOptions = {
   ])
   const aptosUnreachable = aptos === "unreachable"
   const aptosTx = aptosUnreachable ? null : aptos
+  const evmThrew = evm === "threw"
+  const evmDiag = evmThrew ? null : evm
 
   // Prefer whichever chain actually has the transaction. A found Aptos tx beats
   // an EVM "not_found", and vice versa; if both somehow hit, EVM wins only when
   // it genuinely mined the transaction.
-  const evmFound = !!evm && evm.status !== "not_found"
-  if (evmFound) return resolve(fromEvmDiagnosis(evm, hash, ctx))
+  const evmFound = !!evmDiag && evmDiag.status !== "not_found"
+  if (evmFound) return resolve(fromEvmDiagnosis(evmDiag, hash, ctx))
   if (aptosTx) return resolve(fromAptosTx(aptosTx, hash, ctx))
-  if (evm) return resolve(fromEvmDiagnosis(evm, hash, ctx))
+  if (evmDiag) return resolve(fromEvmDiagnosis(evmDiag, hash, ctx))
 
   // Nobody could be asked. Custody is unknown, so the answer is indeterminate,
   // never "we looked and it is not there".
-  if (aptosUnreachable) return resolve(lookupFailed(hash, ctx))
+  if (aptosUnreachable || evmThrew) return resolve(lookupFailed(hash, ctx))
 
   return resolve(notFound(hash, ctx))
 }
