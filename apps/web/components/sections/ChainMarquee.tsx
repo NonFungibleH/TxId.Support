@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { VISIBLE_CHAINS } from "@/lib/chains";
+import { readableText, VISIBLE_CHAINS } from "@/lib/chains";
 
 /**
  * Every chain TxID reads, scrolling.
@@ -41,7 +41,12 @@ function Mark({ name, logo, color, whiteBg }: { name: string; logo?: string; col
           // eslint-disable-next-line @next/next/no-img-element
           <img src={logo} alt="" aria-hidden="true" className="w-full h-full object-contain" />
         ) : (
-          <span className="text-[13px] font-semibold text-black/80">{name.charAt(0)}</span>
+          // NOT a hardcoded colour. ChainLogo already learned this: brand
+          // colours run from Robinhood's lime to Base's near-navy, and a fixed
+          // letter colour is invisible on one end or the other.
+          <span className="text-[13px] font-semibold" style={{ color: readableText(color) }}>
+            {name.charAt(0)}
+          </span>
         )}
       </span>
       <span className="text-sm text-muted whitespace-nowrap">{name}</span>
