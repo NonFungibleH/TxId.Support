@@ -79,8 +79,13 @@ export const CHAINS: ChainInfo[] = [
     family: "evm",
     status: "live",
     color: "#0052FF",
-    logo: "/chains/Base.png",
-    logoWhiteBg: true,
+    // NO LOGO ON PURPOSE, until a real mark lands. `Base.png` is a plain blue
+    // rounded square with NOTHING in it: sampled across the interior it holds
+    // exactly ONE colour. It has never been Base's logo, and at badge size it
+    // reads as a blue blob or a broken image, which is how it was spotted.
+    // A "B" monogram on Base blue at least says which chain it is. Replace
+    // this with `logo: "/chains/Base.png"` the moment a file with an actual
+    // mark in it is checked in, and take Base off the list in chains.test.ts.
     explorerName: "BaseScan",
     tagline: "Built for Base transactions, understanding contract failures, fees, and common user issues.",
     intro:
