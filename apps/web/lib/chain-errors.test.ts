@@ -105,15 +105,19 @@ function stellarErrors(): ChainError[] {
 function suiErrors(): ChainError[] {
   const out: ChainError[] = []
   for (const [qualified, codes] of Object.entries(SUI_ERRMAPS)) {
-    const module = qualified.split("::").pop() ?? qualified
+    // NOT named `module`: Next lints files under the app on `next build`, and
+    // @next/next/no-assign-module-variable makes that an ERROR, not a warning.
+    // The unit tests pass either way, so this only shows up as a failed Vercel
+    // deploy, which is the gate CLAUDE.md warns about.
+    const moduleName = qualified.split("::").pop() ?? qualified
     for (const [code, entry] of Object.entries(codes)) {
       const e = entry as { name: string; reason: string }
       if (!e.reason || e.reason.length < MIN_EXPLANATION) continue
       out.push({
-        slug: slugify("sui", `${module}-${e.name}`),
+        slug: slugify("sui", `${moduleName}-${e.name}`),
         message: e.name,
         chain: "sui",
-        scope: module,
+        scope: moduleName,
         code: Number(code),
         meaning: e.reason,
       })
