@@ -480,6 +480,7 @@ export const DOCS: Doc[] = [
         { title: "Arbitrum One", description: "Ethereum L2 rollup. Enable for Arbitrum-deployed protocols." },
         { title: "Optimism", description: "Ethereum L2 rollup. Enable for OP-based protocols." },
         { title: "Avalanche C-Chain", description: "Avalanche's EVM chain. Enable for Avalanche-deployed protocols." },
+        { title: "Robinhood Chain", description: "Read directly over RPC. Single transactions, revert decoding, native balance and gas all work; token balances and history need an indexer and are reported as unavailable rather than empty." },
         { title: "Monad", description: "High-throughput EVM L1. The standard EVM engine applies: revert decoding, gas and approval checks, and failures that depended on state changing inside the block." },
         { title: "Aptos", description: "Move-based L1. Reads on-chain modules and decodes Move aborts to diagnose failed transactions in plain English." },
         { title: "Sui", description: "Move-based L1, read through public RPC with no key. Decodes Move aborts against published protocol error definitions, and explains the failures that are not aborts at all." },

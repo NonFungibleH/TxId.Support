@@ -64,6 +64,18 @@ describe("the chain registry is complete and internally consistent", () => {
     }
   })
 
+  // Every logo a page points at must EXIST, or the mark silently falls back to
+  // a monogram and nobody notices which chains lost their branding.
+  it("points every chain at a logo file that exists", async () => {
+    const { existsSync } = await import("node:fs")
+    const { resolve } = await import("node:path")
+    const missing = VISIBLE_CHAINS
+      .filter(c => !existsSync(resolve(__dirname, "..", "public", c.logo.replace(/^\//, ""))))
+      .map(c => `${c.name} wants ${c.logo}`)
+    // Hyperliquid has no mark supplied yet and renders a monogram on purpose.
+    expect(missing).toEqual(["Hyperliquid wants /chains/Hyperliquid.png"])
+  })
+
   // No em dashes in anything user-facing, and this file is entirely user-facing.
   it("uses no em dashes", () => {
     const text = VISIBLE_CHAINS.flatMap(c => [
