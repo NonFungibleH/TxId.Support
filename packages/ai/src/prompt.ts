@@ -10,6 +10,7 @@ const CHAIN_NAMES: Record<string, string> = {
   "0xa86a":   "Avalanche",
   "0xa729":   "Etherlink",
   "0x8f":     "Monad",
+  "0x3e7":    "HyperEVM",
   "0xe708":   "Linea",
   "0xaa36a7": "Sepolia (testnet)",
   "0x13881":  "Mumbai (testnet)",
@@ -21,6 +22,7 @@ const CHAIN_NAMES: Record<string, string> = {
   "aptos":    "Aptos",
   // decimal string variants
   "143":      "Monad",
+  "999":      "HyperEVM",
   "1":        "Ethereum Mainnet",
   "56":       "BNB Chain",
   "137":      "Polygon",

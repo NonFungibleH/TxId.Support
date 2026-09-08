@@ -1244,7 +1244,7 @@ error. Check the provider's own coverage before writing anything.
 |---|---|---|
 | **Moralis** | the chain is in Moralis's supported-chains table | a `CHAIN_CONFIGS` entry, nothing else |
 | **Blockscout** | no Moralis, but a reachable Blockscout v2 API | `blockscoutApi` + a `BLOCKSCOUT_BASES` line (see Etherlink) |
-| **RPC only** | neither | single-tx, revert decode, native balance and gas work; token balances and history are UNAVAILABLE and must throw, never return empty (see Robinhood Chain) |
+| **RPC only** | neither | single-tx, revert decode, native balance and gas work; token balances and history are UNAVAILABLE and must throw, never return empty (see Robinhood Chain, HyperEVM) |
 
 **Etherscan V2 is orthogonal to all three and nearly free.** One
 `ETHERSCAN_API_KEY` covers every chain it lists, so ABI fetching, contract
@@ -1262,11 +1262,39 @@ stands alone. `nativeSymbol("0x8f")` returns **MON**; before the September audit
 removed every `?? "ETH"` this would have told a Monad user to top up ETH on a
 chain that has none. `monad.test.ts` pins all of it.
 
-**HyperEVM (`0x3e7`, chain 999) is the case none of the three covers.** Moralis
-does not list it, there is no reachable Blockscout (both obvious hosts 404), and
-its explorer is Etherscan-family. So it needs a FOURTH wallet path built on
-Etherscan V2's `account/*` endpoints, which would then serve any
-Etherscan-covered chain Moralis skips. Not built yet.
+**HyperEVM (`0x3e7`, chain 999, 2026-09-08)** took the RPC-only route. Moralis
+does not list it and there is no reachable Blockscout (both obvious hosts 404),
+which was written up here as needing a FOURTH wallet path on Etherscan V2's
+`account/*` endpoints, and therefore as blocked on a key. **That was wrong, and
+the way it was wrong is the useful part:** the RPC-only route already existed,
+Robinhood Chain already shipped on it, and the chain was recorded as blocked for
+a week because the note describing it was believed over the code.
+
+**The read that made it look blocked was a real bug, on every RPC-only chain.**
+`getNativeBalance` threw "No indexer configured" whenever a chain had neither
+Moralis nor Blockscout, while `eth_getBalance` is the one balance that needs no
+index at all: token holdings must be enumerated and history must be indexed, but
+this is a single call every EVM node answers. Robinhood Chain's own
+`CHAIN_CONFIGS` comment asserted "native balance, nonce and gas all run on the
+RPC and work normally" and had done since the chain shipped. It did not.
+**A claim in a comment is not a test**, which is why
+`rpc-native-balance.test.ts` now pins the behaviour for both chains.
+
+The same fix gives every Moralis chain the RPC backstop on the native balance
+that #68 gave the rest of the read paths: a Moralis outage used to throw here
+rather than fall through, so the one chain-agnostic balance was the least
+available one.
+
+Verified against live mainnet before shipping: `getNativeBalance` returned
+37.340495 HYPE through the public RPC with no indexer and no key,
+`getTokenBalances` threw as it must, `nativeSymbol("0x3e7")` returned **HYPE**,
+and a real failed transaction resolved through `diagnoseTransaction` with the
+chain named "HyperEVM".
+
+> **chainid.network still lists 999 as a legacy "Wanchain Testnet"**, so a
+> lookup there will contradict this entry. Etherscan V2's own chainlist reports
+> HyperEVM Mainnet and the node answers `eth_chainId` with `0x3e7`. Trust the
+> chain.
 
 ## packages/shared
 

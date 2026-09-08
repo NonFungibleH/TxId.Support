@@ -153,6 +153,28 @@ const DEFAULT_CHAIN_CONFIGS: Record<string, ChainConfig> = {
     moralisChain: "0x8f",
     rpcUrl: "https://rpc.monad.xyz",
   },
+  "0x3e7": {
+    id: "0x3e7",
+    name: "HyperEVM",
+    nativeCurrency: "HYPE",
+    explorer: "https://hyperevmscan.io",
+    // RPC-ONLY, like Robinhood Chain. Moralis does not list 999 in its own
+    // supported-chains table, and there is no reachable Blockscout (both
+    // obvious hosts 404). Etherscan V2 covers the chain for ABI and contract
+    // verification, which needs no wallet path at all.
+    //
+    // What that costs, and it is the same trade Robinhood takes: token balances
+    // and transaction history need an index, so they are UNAVAILABLE and throw
+    // rather than reporting an empty wallet. Single-transaction lookup, revert
+    // decoding, native balance, nonce and gas all run on the RPC, which is the
+    // failed-transaction path and the reason anyone opens the assistant.
+    //
+    // NOTE ON THE CHAIN ID: chainid.network still lists 999 as a legacy
+    // "Wanchain Testnet". That registration is stale. Etherscan V2's own
+    // chainlist reports 999 as HyperEVM Mainnet with explorer hyperevmscan.io,
+    // and the RPC below returns 0x3e7. Do not "correct" this against that list.
+    rpcUrl: "https://rpc.hyperliquid.xyz/evm",
+  },
   "0x1237": {
     id: "0x1237",
     name: "Robinhood Chain",

@@ -12,6 +12,7 @@ export const ETHERSCAN_CHAIN_IDS: Record<string, number> = {
   // costs no new credential. Confirmed against its own /v2/chainlist on
   // 2026-09-08: Monad Mainnet, id 143, status 1 (ok), explorer monadscan.com.
   "0x8f": 143,
+  "0x3e7": 999,
 }
 
 // Etherscan-compatible fallback explorers (Blockscout / Routescan), used when

@@ -76,6 +76,7 @@ export const SUPPORTED_CHAINS = [
   { id: "0xa729",   name: "Etherlink",         explorer: "explorer.etherlink.com" },
   { id: "0x8f",     name: "Monad",            explorer: "monadscan.com" },
   { id: "0x1237",   name: "Robinhood Chain",  explorer: "robinhoodchain.blockscout.com" },
+  { id: "0x3e7",    name: "HyperEVM",         explorer: "hyperevmscan.io" },
   { id: "aptos",    name: "Aptos",             explorer: "explorer.aptoslabs.com" },
   { id: "sui",      name: "Sui",               explorer: "suiscan.xyz" },
   { id: "stellar",  name: "Stellar",           explorer: "stellar.expert" },

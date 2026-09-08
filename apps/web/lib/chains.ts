@@ -246,17 +246,19 @@ export const CHAINS: ChainInfo[] = [
     name: "HyperEVM",
     ticker: "HYPE",
     family: "evm",
-    status: "coming-soon",
+    status: "live",
     color: "#97FCE4",
     // Hyperliquid and HyperEVM share ONE brand mark, so they share one file.
     // HyperEVM is Hyperliquid's EVM layer, not a separately branded network.
     logo: "/chains/Hyperliquid.png",
     explorerName: "HyperEVM Scan",
-    tagline: "The EVM chain beside the exchange. Diagnosis is coming.",
+    tagline: "The EVM chain beside the exchange, read directly over its own node.",
     intro:
-      "Hyperliquid is two things: the exchange, which TxID already reads, and HyperEVM, the EVM chain running alongside it. Contracts on HyperEVM fail the way contracts anywhere fail, and our decoder already handles that shape. Reading a HyperEVM wallet's history needs an indexer that covers the chain, which is the piece still being put in place.",
+      "Hyperliquid is two things, and TxID reads both: the exchange, where a rejected order leaves no transaction at all, and HyperEVM, the chain running alongside it. On HyperEVM a failed contract call gets the same treatment as anywhere else, replayed and explained in plain language, without the user leaving your product.",
     metaDescription:
-      "TxID already reads the Hyperliquid exchange. HyperEVM, the chain beside it, is next. Talk to us for early access.",
+      "Diagnose failed HyperEVM transactions without leaving your app. TxID replays the transaction, decodes the revert, and gives your users the actual next step.",
+    builtFor:
+      "TxID reads HyperEVM straight from the chain's own node, and reads the Hyperliquid exchange beside it, so a user gets an answer whichever half of Hyperliquid they were using.",
     failures: [
       { title: "Reverted transactions", detail: "Replays the transaction and turns the contract's own revert reason into what went wrong and what to do next." },
       { title: "Custom contract errors", detail: "Decodes a bare error selector against the contract's published interface, so a hex string becomes a sentence." },
