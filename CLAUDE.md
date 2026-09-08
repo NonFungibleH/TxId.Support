@@ -605,6 +605,77 @@ account.
 **Any change to `widget.js` runs the embed smoke** (`pnpm --filter @txid/app run
 smoke:embed`) and carries the `widget` label.
 
+## packages/hyperliquid
+
+Source: `packages/hyperliquid/src/`. Chain id string: `"hyperliquid"`.
+
+**Hyperliquid is TWO systems sharing one address space**, and the distinction is
+the whole integration. **HyperEVM** (chain 999) is an ordinary EVM chain and
+belongs in `CHAIN_CONFIGS`. **HyperCore** is the perpetuals and spot exchange,
+where the product actually is: its own state, its own order lifecycle, its own
+vocabulary for why something did not happen, and none of it reachable through an
+EVM RPC. This package is HyperCore. One keyless endpoint,
+`api.hyperliquid.xyz/info`, overridable with `HYPERLIQUID_API`.
+
+### Why it is the best product fit of the chains we scoped
+Every other chain makes us work backwards from a number: a Move abort code, a
+Solidity selector, a signed XDR result. **Hyperliquid hands us the reason
+already NAMED**, per user, per order, keyless, with no protocol integration to
+negotiate.
+
+Measured 2026-09-08 across **15,069 orders from 16 live traders**: 1,122 orders,
+**7.4%**, did not stand for a reason the exchange states outright and no support
+tool surfaces. `minTradeNtlRejected` alone is 640 of them, and it is a plain user
+mistake with a plain fix.
+
+### The read that matters is ORDERS, not fills
+A rejected order leaves **no fill, no transaction and no balance change**, so it
+is invisible everywhere a user might look. `get_recent_transactions` therefore
+returns orders on this chain, which is why the tool arm looks different here.
+
+### Statuses are only those observed live
+`open`, `filled`, `canceled`, `triggered`, `minTradeNtlRejected`,
+`reduceOnlyCanceled`, `reduceOnlyRejected`, `iocCancelRejected`,
+`badAloPxRejected`, `perpMarginRejected`, `insufficientSpotBalanceRejected`,
+`rejected`. Hyperliquid documents more. An unseen status takes the honest floor:
+`kind: "unknown"`, `reason: null`, and **`isFailure` returns FALSE for it**,
+because "Rejected" appearing in a string we have never seen is not evidence.
+`statuses.test.ts` asserts in BOTH directions: wording for everything observed,
+and nothing invented for anything else.
+
+**`reduceOnlyCanceled` and `reduceOnlyRejected` differ by WHO ended the order**,
+which is not recoverable from the name. Telling a trader they cancelled their own
+order when the exchange did is a different conversation entirely, so
+`exchange_cancelled` is its own kind.
+
+### No scaling, and that is verified rather than assumed
+Decibel on Aptos returns fixed-point integers with no units and the model
+invented a scale and stated a confidently wrong price. **Hyperliquid does not**:
+`entryPx` arrives as `"78857.7"` and `szi` as `"-0.42673"`, already human,
+already decimal strings. Everything is passed through untouched, and the test
+pins it. Introducing arithmetic here would invent precision the exchange never
+gave.
+
+**A position size is SIGNED: negative is SHORT.** `direction` is derived from it
+once, in the client, so the model never has to.
+
+**Spot and perpetual balances are held separately**, so funds on the perpetuals
+side do not back a spot order until transferred. That is the usual cause of a
+balance that looks sufficient and is not. `withdrawable` is lower than account
+value whenever margin is in use; they answer different questions.
+
+### An address that has never traded answers cleanly
+The exchange responds for ANY address with a zeroed state rather than an error,
+so `neverTraded` is computed and reported as a real finding. **Watch the test
+data:** `0x1111…1111` looks unused and is not, because people have sent it real
+spot balances, so checking against it would "prove" a bug that is not there.
+`scripts/verify-live.ts` uses a genuinely untouched address.
+
+### Paused
+The widget has no connect path yet. HyperCore shares HyperEVM's address space,
+so the path is an ordinary EVM connect that reports `chainId "hyperliquid"`, a
+small change deliberately not bundled into the package PR.
+
 ## packages/layerzero
 
 Source: `packages/layerzero/src/`. **Not a chain, a message layer**, so it has no

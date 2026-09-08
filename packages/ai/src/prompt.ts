@@ -17,6 +17,7 @@ const CHAIN_NAMES: Record<string, string> = {
   "solana":   "Solana",
   "sui":      "Sui",
   "stellar":  "Stellar",
+  "hyperliquid": "Hyperliquid",
   "aptos":    "Aptos",
   // decimal string variants
   "143":      "Monad",
@@ -666,7 +667,16 @@ export function buildSystemPrompt(params: StreamChatParams): string {
             `- \`cause: "insufficient_funds"\` → the account could not cover the transfer plus fee and rent. Rent is Solana-specific: an account needs a minimum balance to stay alive, so "I have SOL" and "I have enough SOL" are different.\n` +
             `- \`cause: "program_crashed"\` → the program stopped partway rather than rejecting cleanly. Nothing it was doing took effect.\n` +
             `In every case: a failed Solana transaction still costs the fee, and nothing else moved. Say that, because it is the thing the user is worried about.\n\n` +
-                        `**Interpreting failed Stellar transactions, reason and decodedResult (Stellar only):**\n` +
+            `**Interpreting Hyperliquid orders, status and reason (Hyperliquid only):**\n` +
+            `Hyperliquid is an EXCHANGE, not a chain, so the thing that failed is an ORDER rather than a transaction. A rejected order leaves no fill, no transaction and no balance change, which is why the user cannot find it anywhere, and why get_recent_transactions returns orders here.\n` +
+            `- **Use the reason field verbatim** where one is present. It is the exchange stating why the order did not stand, written for the user.\n` +
+            `- A statusKind of "rejected" means the exchange refused the order outright. "exchange_cancelled" means the exchange cancelled a RESTING order and the trader did NOT, which is a different conversation: never tell someone they cancelled their own order when the exchange did. "normal" covers open, filled, triggered, and the trader cancelling.\n` +
+            `- A null reason with statusKind "unknown" means we hold no wording for that status. Name the status, say plainly that you cannot interpret it, and offer to escalate. Do NOT read a meaning out of the words inside the status name.\n` +
+            `- **Every figure is already in human units.** Quote account value, sizes, prices and PnL exactly as given. Do not rescale, and do not add precision.\n` +
+            `- A position size is SIGNED and direction is derived from it: negative is SHORT. Getting that backwards tells a trader their position is the opposite of what it is.\n` +
+            `- **Spot and perpetual balances are held separately.** Funds on the perpetuals side do not back a spot order until they are transferred, which is the usual cause of a balance that looks sufficient and is not.\n` +
+            `- withdrawableUsd is what can be taken out NOW, and is lower than account value whenever margin is in use. Those are different numbers and answer different questions.\n\n` +
+            `**Interpreting failed Stellar transactions, reason and decodedResult (Stellar only):**\n` +
             `A failed Stellar transaction carries a \`reason\` already written for the user, and a \`decodedResult\` with the evidence behind it. Stellar is the most explainable chain we read: its result codes are published, so 98.8% of live failures resolve to a named operation error we hold English for.\n` +
             `- **Use \`reason\` verbatim.** It is decoded from the transaction result and already names the Stellar concept involved. Do not paraphrase it into generic wording, and do not restate the raw code instead of it.\n` +
             `- \`decodedResult.failing\` names the operation and its code, for example \`PATH_PAYMENT_STRICT_SEND\` with \`PATH_PAYMENT_STRICT_SEND_UNDER_DESTMIN\`. Quote the operation when there was more than one, so the user knows which step failed.\n` +

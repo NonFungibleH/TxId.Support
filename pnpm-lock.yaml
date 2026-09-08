@@ -260,6 +260,9 @@ importers:
       '@txid/blockchain':
         specifier: workspace:*
         version: link:../blockchain
+      '@txid/hyperliquid':
+        specifier: workspace:*
+        version: link:../hyperliquid
       '@txid/layerzero':
         specifier: workspace:*
         version: link:../layerzero
@@ -310,6 +313,19 @@ importers:
       moralis:
         specifier: ^2.26.0
         version: 2.27.2
+    devDependencies:
+      typescript:
+        specifier: ^5.4.0
+        version: 5.9.3
+      vitest:
+        specifier: ^2
+        version: 2.1.9(@types/node@20.19.37)(msw@2.12.14(@types/node@20.19.37)(typescript@5.9.3))
+
+  packages/hyperliquid:
+    dependencies:
+      '@txid/shared':
+        specifier: workspace:*
+        version: link:../shared
     devDependencies:
       typescript:
         specifier: ^5.4.0

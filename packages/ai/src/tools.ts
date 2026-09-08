@@ -66,6 +66,12 @@ import {
   normalizeStellarTxHash,
 } from "@txid/stellar"
 import {
+  isHyperliquidChain,
+  getHyperliquidAccount,
+  getHyperliquidOrders,
+  getHyperliquidFills,
+} from "@txid/hyperliquid"
+import {
   isAptosChain,
   isAptosAddress,
   normalizeAptosAddress,
@@ -426,6 +432,7 @@ export async function executeTool(
   const aptos = wallet ? isAptosChain(wallet.chainId) : false
   const sui = wallet ? isSuiChain(wallet.chainId) : false
   const stellar = wallet ? isStellarChain(wallet.chainId) : false
+  const hyperliquid = wallet ? isHyperliquidChain(wallet.chainId) : false
 
   switch (name) {
     case "get_staking_positions": {
@@ -495,6 +502,23 @@ export async function executeTool(
       if (!wallet) throw new Error("Wallet not connected")
       if (solana) {
         return getSolanaWalletBalance(wallet.address)
+      }
+      if (hyperliquid) {
+        const r = await getHyperliquidAccount(wallet.address)
+        if (r.kind === "unavailable") return { lookupFailed: true, note: `Could not read the Hyperliquid account (${r.reason}). Do NOT say the account is empty: this lookup did not complete.` }
+        if (r.kind === "not_found") return { address: wallet.address, note: "Hyperliquid has no account for this address." }
+        if (r.value.neverTraded) {
+          return { address: wallet.address, neverTraded: true, note: "The exchange answered and this address has no positions, no spot balance and no account value. That is a real answer, not a failed lookup: it has never traded here." }
+        }
+        return {
+          address: r.value.address,
+          accountValueUsd: r.value.accountValue,
+          withdrawableUsd: r.value.withdrawable,
+          marginUsedUsd: r.value.totalMarginUsed,
+          positions: r.value.positions,
+          spotBalances: r.value.spot,
+          note: "Figures are ALREADY in human units as the exchange states them, so quote them as given and do not rescale anything. A position's `size` is signed and `direction` is derived from it: negative is SHORT. Perpetual collateral and spot balances are held SEPARATELY, so funds on one side do not back an order on the other. `withdrawableUsd` is what can be taken out now, which is lower than the account value whenever margin is in use.",
+        }
       }
       if (stellar) {
         const r = await getStellarBalance(wallet.address)
@@ -573,6 +597,23 @@ export async function executeTool(
 
       if (solana) {
         return getSolanaRecentTransactions(wallet.address, programOrContract, limit)
+      }
+      if (hyperliquid) {
+        // ORDERS, not fills, are the answer to "why did nothing happen": a
+        // rejected order leaves no fill, no transaction and no balance change,
+        // so it is invisible everywhere else a user might look.
+        const [orders, fills] = await Promise.all([
+          getHyperliquidOrders(wallet.address, limit),
+          getHyperliquidFills(wallet.address, Math.min(limit, 10)),
+        ])
+        if (orders.kind === "unavailable") return { lookupFailed: true, note: `Could not read Hyperliquid orders (${orders.reason}). Do NOT say the account has no activity: this lookup did not complete.` }
+        if (orders.kind === "not_found") return { address: wallet.address, orders: [], note: "The exchange has no order history for this address. That is an answer, not a failed lookup." }
+        return {
+          address: wallet.address,
+          orders: orders.value,
+          ...(fills.kind === "ok" ? { recentFills: fills.value } : { fillsNote: "Recent fills could not be read; the orders above are unaffected.", lookupFailed: true }),
+          note: "Each order carries the exchange's own `status` and, where we hold wording for it, a `reason` written for the user: quote that rather than the raw status. `statusKind` says what KIND of outcome it was: `rejected` means the exchange refused it, `exchange_cancelled` means the exchange cancelled a resting order and the trader did NOT, `normal` covers open, filled, triggered and the trader's own cancellation. A `reason` of null means we hold no wording for that status: name the status, say we cannot interpret it, and offer to escalate rather than guessing from the words in it.",
+        }
       }
       if (stellar) {
         const r = await getStellarRecentTransactions(wallet.address, limit)
@@ -738,6 +779,7 @@ export async function executeTool(
     case "get_wallet_approvals": {
       if (!wallet) throw new Error("Wallet not connected")
       if (solana) return { approvals: [], note: "Approval listing is EVM-only." }
+      if (hyperliquid) return { approvals: [], note: "Hyperliquid has no token approvals: HyperCore is an exchange rather than a set of contracts a user grants spending rights to, so there is nothing standing that could be revoked. Say that rather than implying the list is empty." }
       if (stellar) return { approvals: [], note: "Stellar has no token approvals: there is no allowance model, so there is nothing standing that could be revoked. The nearest concept is a TRUSTLINE, which is permission to HOLD an asset rather than permission for someone else to spend it, and it is listed under the wallet balance. Say that rather than implying the approvals list is empty." }
       if (sui) return { approvals: [], note: "Sui has no token approvals: coins are owned objects, so there is nothing standing that could be revoked. Say that rather than implying the list is empty." }
       if (aptos) {
