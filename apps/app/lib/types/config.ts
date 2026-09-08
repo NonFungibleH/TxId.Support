@@ -89,11 +89,28 @@ export type ChainId = (typeof SUPPORTED_CHAINS)[number]["id"]
 
 // Chains kept in the integration but temporarily hidden from pickers
 // (existing configs keep working; new selections are EVM-only for now).
-const PAUSED_CHAINS = new Set<string>([
-  // Solana stays paused until HELIUS_API_KEY is set in Vercel: without it every
-  // Solana read fails, so the chain would be selectable and non-functional.
-  "solana",
-])
+const PAUSED_CHAINS = new Set<string>([])
+
+/**
+ * SOLANA WAS UNPAUSED on 2026-09-08, and it is worth recording why it was
+ * paused for so long. The note here said it stayed paused "until
+ * HELIUS_API_KEY is set in Vercel: without it every Solana read fails". The
+ * first half was true and the second was a fact about our own code, not about
+ * Solana: `getBalance` and `getTokenAccountsByOwner` are standard JSON-RPC
+ * methods that Helius merely proxies, and history is `getSignaturesForAddress`
+ * plus `getTransaction`. `packages/solana/src/rpc.ts` answers all of them with
+ * no key, so the chain no longer waits on a credential.
+ *
+ * Helius stays PREFERRED wherever the key exists (see dispatch.ts). Without it
+ * the cost is `description` and `type`, which are Helius's own interpretation
+ * and are null rather than invented.
+ *
+ * SET `SOLANA_RPC_URLS` TO A KEYED PROVIDER BEFORE REAL TRAFFIC. The keyless
+ * default is api.mainnet-beta.solana.com, which rate-limits hard and is not
+ * intended for production load. The failure mode under a rate limit is an
+ * honest "unavailable", never a wrong answer, which is what makes shipping on
+ * it acceptable rather than good.
+ */
 
 /**
  * SUI AND STELLAR WERE UNPAUSED once the widget could actually connect a wallet

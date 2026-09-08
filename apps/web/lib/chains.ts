@@ -342,18 +342,22 @@ export const CHAINS: ChainInfo[] = [
     name: "Solana",
     ticker: "SOL",
     family: "non-evm",
-    status: "coming-soon",
+    status: "live",
     color: "#9945FF",
     logo: "/chains/Solana.svg",
     explorerName: "Solscan",
-    tagline: "Transaction diagnosis is coming to Solana.",
+    tagline: "Plain-English answers on the chain that gives users the least to go on.",
     intro:
-      "Compute budgets, expired blockhashes and failures that surface as nothing but \"custom program error: 0x1771\" make Solana support its own language. TxID is bringing the same plain-English diagnosis to Solana. Talk to us for early access.",
+      "A Solana failure often reaches the user as nothing but \"custom program error: 0x1771\", and the error does not even say which program produced it. TxID identifies the program that actually failed on every failure it reads, decodes the error where the program publishes one, and says plainly when the meaning is the program's to define rather than guessing at it.",
+    metaDescription:
+      "An AI support agent for Solana apps. TxID names the program that failed, decodes the error, and tells your users what to do next.",
+    builtFor:
+      "Solana errors are bare numbers with no program attached. TxID reads the transaction logs to name the program that actually failed, which is the first thing anyone needs and the thing an explorer does not tell them.",
     failures: [
-      { title: "Custom program errors", detail: "Turns a bare code like 0x1771 into the program that rejected it and what the user should do." },
-      { title: "Compute-unit limit exceeded", detail: "Explains when a transaction ran out of compute budget and how to raise it." },
-      { title: "Blockhash expired", detail: "Catches the classic 'transaction expired' and tells the user to simply retry." },
-      { title: "Not enough SOL for fees or rent", detail: "Distinguishes a fee shortfall from a rent-exemption shortfall, which need different fixes." },
+      { title: "Custom program errors", detail: "Names the program that rejected the transaction, and decodes its meaning where the program publishes one. Where it does not, says so rather than inventing a reason." },
+      { title: "Slippage on a swap", detail: "Recognises the aggregator error behind a failed swap and explains that the price moved, rather than leaving a hex code on screen." },
+      { title: "Compute-unit limits", detail: "Separates a transaction that ran out of compute budget from one the program refused, which need different fixes." },
+      { title: "Expired transactions", detail: "Explains a blockhash that aged out before the transaction landed, and that nothing was charged and nothing moved." },
     ],
   },
   {
