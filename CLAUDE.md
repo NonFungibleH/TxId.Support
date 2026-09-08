@@ -1555,6 +1555,29 @@ elapsed time rather than fall back to the clock. `relativeAgeFromEpoch` takes th
 unit explicitly because Helius gives SECONDS and Sui gives MILLISECONDS, and
 guessing renders 1970.
 
+## The live-verification scripts (and why they did not run)
+
+Six scripts gather the evidence this codebase's claims rest on:
+
+    packages/stellar/scripts/census.ts          coverage, measured
+    packages/stellar/scripts/harvest-result-codes.ts
+    packages/aptos/scripts/failure-census.ts
+    packages/sui/scripts/verify-live.ts         real aborts through the real decoder
+    packages/hyperliquid/scripts/verify-live.ts
+    packages/solana/... (harvesters)
+
+**Every one of them is documented as `npx tsx <path>` and NONE of them could
+run**, because `tsx` was never a dependency. Sui's own header says "Run it
+before trusting anything in this package", which was impossible. Added as a root
+devDependency 2026-09-08.
+
+**Re-measure before quoting a number, because the numbers move.** The Stellar
+census on 600 live transactions returned 11.5% failed and 97.1% named-and-
+explained, against the 24.7% and 98.8% recorded elsewhere in this file from
+earlier windows. Both are real; Stellar's failure rate swings hard by hour
+(12.5% to 47.9% across one day). The script exists so a claim can be re-checked
+rather than inherited.
+
 ## Engineering rules (from the September 2026 audits)
 
 Four production bugs in one week were one bug: **something we failed to learn
