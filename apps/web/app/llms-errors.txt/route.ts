@@ -25,9 +25,22 @@ export function GET() {
     push("")
     push(err.meaning)
     push("")
-    push(`### How do I fix "${err.message}"?`)
-    push("")
-    push(err.fix)
+    // The generated chain entries carry the decoder's own explanation, which
+    // often contains the remedy inline, and no separate `fix` paragraph. Ask a
+    // question this feed cannot answer and an AI crawler gets an empty section,
+    // which is worse than not asking it.
+    if (err.fix) {
+      push(`### How do I fix "${err.message}"?`)
+      push("")
+      push(err.fix)
+    }
+    if (err.chain) {
+      push("")
+      const bits = [`Chain: ${err.chain}.`]
+      if (err.scope) bits.push(`Operation: ${err.scope}.`)
+      if (err.code !== null && err.code !== undefined) bits.push(`Result code: ${err.code}.`)
+      push(bits.join(" "))
+    }
     if (err.aka?.length) {
       push("")
       push(`Also appears as: ${err.aka.map((a) => `"${a}"`).join(", ")}. Category: ${ERROR_CATEGORIES[err.category].label}.`)

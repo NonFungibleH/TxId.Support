@@ -9,7 +9,7 @@
 //   explain properly does not ship: thin pages hurt every other page here.
 // - No em dashes in any user-facing string (site-wide rule).
 
-export type ErrorCategory = "gas" | "nonce" | "revert" | "panic" | "wallet"
+export type ErrorCategory = "gas" | "nonce" | "revert" | "panic" | "wallet" | "chain"
 
 export const ERROR_CATEGORIES: Record<ErrorCategory, { label: string; blurb: string }> = {
   gas: {
@@ -32,6 +32,10 @@ export const ERROR_CATEGORIES: Record<ErrorCategory, { label: string; blurb: str
     label: "Wallet and RPC errors",
     blurb: "Warnings and failures from the wallet or the node, often before anything is signed.",
   },
+  chain: {
+    label: "Non-EVM chains",
+    blurb: "Result codes from chains that do not use the EVM, where the failure arrives as a named constant or a bare number rather than a revert string.",
+  },
 }
 
 export interface TxError {
@@ -43,11 +47,47 @@ export interface TxError {
   category: ErrorCategory
   /** What happened, in plain English. Two to four sentences. */
   meaning: string
-  /** What to actually do. Specific, not "contact support". */
-  fix: string
+  /**
+   * What to actually do. Specific, not "contact support".
+   *
+   * OPTIONAL, and only for the non-EVM entries generated from the chain
+   * packages. Those carry the decoder's own explanation, which frequently
+   * contains the remedy inline ("resubmitting with a higher fee is the fix"),
+   * and inventing a separate paragraph for the ones that do not would be
+   * padding. The bar in this file is that an entry we cannot explain properly
+   * does not ship; it is not that every entry must have two headings.
+   */
+  fix?: string
+  /** Set on generated entries: which chain the constant belongs to. */
+  chain?: string
+  /** The operation or module the constant is scoped to, when it has one. */
+  scope?: string | null
+  /** Its signed number within its enum, which is what raw payloads carry. */
+  code?: number | null
 }
 
-export const TX_ERRORS: TxError[] = [
+import { CHAIN_ERRORS } from "./chain-errors.generated"
+
+/**
+ * The non-EVM entries, adapted from the chain packages.
+ *
+ * DERIVED, never a second list. `chain-errors.generated.ts` is written by
+ * `chain-errors.test.ts` straight from the decoders, and that test fails if the
+ * checked-in file and a fresh generation disagree. The hero chain strip on this
+ * site was once hand-maintained and was missing a live chain within the hour;
+ * this is the same mistake, avoided by construction.
+ */
+const GENERATED: TxError[] = CHAIN_ERRORS.map(e => ({
+  slug: e.slug,
+  message: e.message,
+  category: "chain" as const,
+  meaning: e.meaning,
+  chain: e.chain,
+  scope: e.scope,
+  code: e.code,
+}))
+
+const EVM_ERRORS: TxError[] = [
   // ── Gas and fees ──────────────────────────────────────────────────────────
   {
     slug: "intrinsic-gas-too-low",
@@ -423,6 +463,9 @@ export const TX_ERRORS: TxError[] = [
     fix: "Retry after a few seconds. If it recurs, switch the network's RPC endpoint in the wallet settings to a healthier provider.",
   },
 ]
+
+/** Everything published at /errors: the hand-written EVM set plus the generated chain set. */
+export const TX_ERRORS: TxError[] = [...EVM_ERRORS, ...GENERATED]
 
 export function getError(slug: string): TxError | undefined {
   return TX_ERRORS.find((e) => e.slug === slug)
