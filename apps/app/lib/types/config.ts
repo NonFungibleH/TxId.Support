@@ -86,35 +86,24 @@ export type ChainId = (typeof SUPPORTED_CHAINS)[number]["id"]
 // Chains kept in the integration but temporarily hidden from pickers
 // (existing configs keep working; new selections are EVM-only for now).
 const PAUSED_CHAINS = new Set<string>([
+  // Solana stays paused until HELIUS_API_KEY is set in Vercel: without it every
+  // Solana read fails, so the chain would be selectable and non-functional.
   "solana",
-  // Sui's WRITTEN pause condition is now met: "it stays out of the pickers
-  // until at least one real protocol is mapped". DeepBook v3 is mapped, 91
-  // constants harvested from Mysten's published source, keyed on the original
-  // package id so it survives an upgrade, verified against live mainnet.
-  //
-  // IT STAYS PAUSED ANYWAY, because there is a SECOND prerequisite nobody had
-  // written down and the first one hid: THE WIDGET HAS NO SUI PATH AT ALL.
-  // `walletTarget` in WidgetApp.tsx is "solana" | "aptos" | "evm", and the
-  // address check at line 340 accepts a 0x+64hex address only when the chain
-  // is "aptos". So a Sui project today falls through to the EVM branch, offers
-  // the user MetaMask, and takes an Ethereum address on a Sui project. That is
-  // the same silent dead end the Aptos work fixed for Solana, and unpausing
-  // now would ship it rather than fix it.
-  //
-  // Unpause when the widget can connect a Sui wallet (the Wallet Standard
-  // discovery already written for Aptos ports across) and accept a pasted Sui
-  // address. The read layer, the decoder and the error map are all done.
-  "sui",
-  // Stellar reads and decodes better than any non-EVM chain we have (98.8% of
-  // live failures resolve to a named operation error we hold English for), and
-  // it is paused for the SAME reason as Sui and nothing else: the widget has no
-  // Stellar wallet path. `walletTarget` in WidgetApp.tsx is
-  // "solana" | "aptos" | "evm", so a Stellar project would fall through to the
-  // EVM branch and offer the user MetaMask. Unpause when the widget can connect
-  // a Stellar wallet (Freighter, via its injected API) and accept a pasted
-  // G-address. The read layer, the decoder and the code tables are done.
-  "stellar",
 ])
+
+/**
+ * SUI AND STELLAR WERE UNPAUSED once the widget could actually connect a wallet
+ * for them. Both packages had been finished for days behind that single
+ * blocker: `walletTarget` in WidgetApp.tsx was "solana" | "aptos" | "evm", so
+ * either project fell through to the EVM branch and offered the user MetaMask.
+ * That is the same silent dead end the Aptos work fixed for Solana.
+ *
+ * The lesson worth keeping is that a chain is not shippable when its DECODER is
+ * done. It is shippable when a user can connect. Sui went through Wallet
+ * Standard discovery (the same registry Aptos uses) and Stellar through
+ * Freighter, plus the host-page bridge in widget.js for both, plus an address
+ * paste fallback, plus the chat route accepting their address formats.
+ */
 
 /** Chains offered in chain pickers - SUPPORTED_CHAINS minus paused ones. */
 export const SELECTABLE_CHAINS = SUPPORTED_CHAINS.filter(c => !PAUSED_CHAINS.has(c.id))

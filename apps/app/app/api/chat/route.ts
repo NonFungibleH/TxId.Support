@@ -1,3 +1,4 @@
+import { isStellarAccount } from "@txid/stellar"
 import { waitUntil } from "@vercel/functions"
 import { originAllowed } from "@/lib/origin-guard"
 import { createServiceClient } from "@/lib/supabase/server"
@@ -214,11 +215,20 @@ export async function POST(request: Request) {
     const EVM_ADDR = /^0x[0-9a-fA-F]{40}$/
     const SOL_ADDR = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/
     const APTOS_ADDR = /^0x[0-9a-fA-F]{1,64}$/
+    // Sui addresses are 0x + 64 hex, the same shape as Aptos, so like Aptos
+    // they are only accepted when the request says so.
+    const SUI_ADDR = /^0x[0-9a-fA-F]{1,64}$/
     const validWalletFormat =
       !walletAddress ||
       EVM_ADDR.test(walletAddress) ||
       SOL_ADDR.test(walletAddress) ||
-      (chainId === "aptos" && APTOS_ADDR.test(walletAddress))
+      (chainId === "aptos" && APTOS_ADDR.test(walletAddress)) ||
+      (chainId === "sui" && SUI_ADDR.test(walletAddress)) ||
+      // Stellar is the one address here that is CHECKSUMMED, so it is validated
+      // rather than pattern-matched: a one-character typo in a 56-character
+      // strkey still looks exactly like an address, and accepting one means
+      // answering about an account that was never the user's.
+      (chainId === "stellar" && isStellarAccount(walletAddress))
     if (!validWalletFormat) {
       return new Response(JSON.stringify({ error: "Invalid wallet address" }), {
         status: 400,
