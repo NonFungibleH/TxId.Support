@@ -151,6 +151,57 @@ async function isArchival(endpoint: string): Promise<boolean> {
   }
 }
 
+/**
+ * Retention as an ANSWER rather than a gate.
+ *
+ * `isArchival` is deliberately two-valued and fails closed, because for the
+ * guard "this node prunes" and "this node did not reply" are the same fact: an
+ * empty list is not an answer. For an operator they are opposite problems. One
+ * is a plan that does not include archival history; the other is a URL, a key
+ * or a quota. Collapsing them sends someone to fix the wrong thing.
+ *
+ * So this returns the three states the caller can actually act on, and it does
+ * NOT use the archival cache: the cache stores a boolean and the whole point
+ * here is the case that boolean loses.
+ */
+export type SolanaRetention =
+  | { kind: "archival"; endpoint: string }
+  | { kind: "pruning"; endpoint: string; firstAvailableBlock: number }
+  | { kind: "unavailable"; endpoint: string; reason: string }
+
+export async function solanaRetention(): Promise<SolanaRetention> {
+  const endpoint = endpoints()[0] ?? DEFAULT_ENDPOINTS[0]!
+  try {
+    const res = await fetch(endpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "getFirstAvailableBlock", params: [] }),
+      signal: AbortSignal.timeout(8000),
+    })
+    if (!res.ok) {
+      return { kind: "unavailable", endpoint, reason: `node replied HTTP ${res.status}` }
+    }
+    const body = (await res.json()) as { result?: unknown; error?: { message?: string } }
+    if (body.error) {
+      return { kind: "unavailable", endpoint, reason: body.error.message ?? "node declined the request" }
+    }
+    if (typeof body.result !== "number") {
+      // A node that answers something other than a number is not reporting a
+      // shallow ledger, it is not answering the question asked.
+      return { kind: "unavailable", endpoint, reason: "node did not return a block number" }
+    }
+    return body.result === 0
+      ? { kind: "archival", endpoint }
+      : { kind: "pruning", endpoint, firstAvailableBlock: body.result }
+  } catch (err) {
+    return {
+      kind: "unavailable",
+      endpoint,
+      reason: err instanceof Error ? err.message : "could not reach the node",
+    }
+  }
+}
+
 // ── Balances ────────────────────────────────────────────────────────────────
 
 const TOKEN_PROGRAM = "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
