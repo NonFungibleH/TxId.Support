@@ -803,6 +803,26 @@ existed". `rpc.ts` puts archival FIRST, and a miss from a list containing no
 archival node is `unavailable`, never a finding. `UNKNOWN_BLOCK` is always
 unavailable; `UNKNOWN_TRANSACTION` and `UNKNOWN_ACCOUNT` are findings.
 
+> **NEAR NEVER REPORTS A TRANSACTION AS MISSING. IT TIMES OUT.** Measured
+> 2026-09-09 against a well-formed hash with one character changed: both
+> `archival-rpc.mainnet.near.org` and `free.rpc.fastnear.com` search for 13 to
+> 33 seconds and return HTTP 408 with cause `TIMEOUT_ERROR`. Neither ever sends
+> `UNKNOWN_TRANSACTION`, so the `missing` branch is not the one a wrong hash
+> actually takes; `UNKNOWN_ACCOUNT` is the cause NEAR does send, and it is what
+> lets a nonexistent ACCOUNT be reported as the finding it is.
+>
+> A node giving up on its own search is not a transport failure, so trying the
+> next endpoint pays the same 13 to 33 seconds again. With three endpoints
+> configured, a user pasting a wrong hash waited up to **45 seconds** to be told
+> we could not check. `TIMEOUT_ERROR` now stops the fan-out. It stays
+> `unavailable`, because a search that timed out is not evidence of absence: it
+> simply stops costing the user the same wait three times over.
+>
+> The practical consequence for the product: on NEAR a wrong hash reaches the
+> user as "we could not check this" rather than "no such transaction", and it
+> takes over ten seconds to say so. That is honest and it is slow, and it is a
+> property of the chain rather than of this code.
+
 ### Three facts that shape every read
 - **NEAR HAS NO ACCOUNT-HISTORY ENDPOINT.** Not a gap in our code, a fact about
   the RPC: listing an account's past transactions needs a separate indexer, and

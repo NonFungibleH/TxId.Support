@@ -215,3 +215,47 @@ describe("an account that does not exist is a finding, not a failure", () => {
     expect(notFound.accountId).toBe("nobody.near")
   })
 })
+
+describe("a node that gave up searching is not asked again", () => {
+  /**
+   * Measured against live NEAR on 2026-09-09: a well-formed hash with one
+   * character changed is never answered with UNKNOWN_TRANSACTION. Both
+   * archival-rpc.mainnet.near.org and free.rpc.fastnear.com search for 13 to
+   * 33 seconds and return HTTP 408 with cause TIMEOUT_ERROR.
+   *
+   * That is the node giving up on its own search, not a transport failure, so
+   * moving to the next endpoint pays the same wait again. With three endpoints
+   * configured a user pasting a wrong hash waited up to 45 seconds to be told
+   * we could not check.
+   */
+  it("stops at the first TIMEOUT_ERROR instead of paying it per endpoint", async () => {
+    vi.stubEnv("NEAR_RPC_URLS", "https://a.test,https://b.test,https://c.test")
+    const f = vi.fn(async () => err("TIMEOUT_ERROR"))
+    vi.stubGlobal("fetch", f)
+    const r = await nearRpc("EXPERIMENTAL_tx_status", ["h", "a.near"])
+    expect(r.kind).toBe("unavailable")
+    // One endpoint tried, not three.
+    expect(f).toHaveBeenCalledTimes(1)
+  })
+
+  // A search that timed out is not evidence of absence, however long it took.
+  it("still refuses to call it a miss", async () => {
+    vi.stubEnv("NEAR_RPC_URLS", "https://a.test")
+    vi.stubGlobal("fetch", vi.fn(async () => err("TIMEOUT_ERROR")))
+    const r = await nearRpc("EXPERIMENTAL_tx_status", ["h", "a.near"])
+    expect(r.kind).not.toBe("missing")
+    if (r.kind === "unavailable") expect(r.reason).toMatch(/not a statement that it does not exist/)
+  })
+
+  /**
+   * A transport-level failure IS worth retrying elsewhere: that is one node
+   * being unreachable, not every node giving up on the same search.
+   */
+  it("still fans out when a node is simply unreachable", async () => {
+    vi.stubEnv("NEAR_RPC_URLS", "https://a.test,https://b.test")
+    const f = vi.fn(async () => { throw new Error("socket hang up") })
+    vi.stubGlobal("fetch", f)
+    await nearRpc("status", [])
+    expect(f).toHaveBeenCalledTimes(2)
+  })
+})
