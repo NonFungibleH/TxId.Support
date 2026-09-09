@@ -1547,8 +1547,9 @@ each would have told a user to top up ETH on a chain that has none.
 **THE ONE PIECE OF WORK THAT WOULD UPGRADE THREE CHAINS AT ONCE:** Plasma, Mantle
 and HyperEVM are all RPC-only AND all listed in Etherscan V2 at status 1. An
 Etherscan-based wallet path on `account/*` would give all three token balances and
-history. It needs `ETHERSCAN_API_KEY`, which is unset in production and is already
-a correctness problem for the reasons in the Operating reality section.
+history. It needs `ETHERSCAN_API_KEY`. Whether that is present in production is
+NOT recorded here on purpose: see the Operating reality section, where asserting
+it from this file went wrong. Check with `/admin/eval`.
 
 **HyperEVM (`0x3e7`, chain 999, 2026-09-08)** took the RPC-only route. Moralis
 does not list it and there is no reachable Blockscout (both obvious hosts 404),
@@ -1824,8 +1825,22 @@ not overlap.
 
 ## Operating reality (verify, do not assume)
 
-- **`ETHERSCAN_API_KEY` IS UNSET IN PRODUCTION, AND THAT IS A CORRECTNESS
-  PROBLEM, NOT A CONVENIENCE ONE.** Etherscan V2 answers an unkeyed request with
+- **`ETHERSCAN_API_KEY`: DO NOT ASSERT ITS PRODUCTION STATE FROM THIS FILE.**
+  It was recorded here as unset in production, that claim was repeated and
+  sharpened across several sessions, and on 2026-09-09 Vercel reported the
+  variable already existed for preview and production. Nobody had checked; the
+  note had simply outlived whatever made it true. That is the exact trap this
+  file warns about elsewhere, a recorded blocker surviving its cause, and it
+  cost a real piece of work being described as blocked.
+
+  **The way to settle it is `/admin/eval`**, which exercises the key directly:
+  `abi_fetch (USDC)` expects an ABI over 100 characters and
+  `deployment (USDC has deployer)` expects a 42-character address. Both fail
+  with "no ABI returned" and `deployer=undefined` when the key is missing or
+  rejected. Run it rather than reading a claim.
+
+  What remains true regardless, and is why the tri-state below matters:
+  Etherscan V2 answers an unkeyed request with
   **HTTP 200** and `{status:"0", message:"NOTOK", result:"Missing/Invalid API
   Key"}`, which the old `explorerQuery` could not tell from `{status:"0",
   message:"No records found"}`. Ethereum has no Blockscout fallback in
