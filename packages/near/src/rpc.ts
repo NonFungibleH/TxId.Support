@@ -84,6 +84,13 @@ export type RpcResult<T> = RpcOk<T> | RpcMissing | RpcUnavailable
  * means "outside what I keep", and there is no way to tell that from a height
  * that never existed without knowing the node's retention.
  */
+/**
+ * UNKNOWN_ACCOUNT is the one of these NEAR actually sends, and it is what makes
+ * `getNearWalletBalance` able to report an account that does not exist as the
+ * finding it is. UNKNOWN_TRANSACTION is kept because the RPC documents it, but
+ * see the TIMEOUT_ERROR note below: for transactions NEAR times out instead, so
+ * that branch is not the one a wrong hash actually takes.
+ */
 const MISSING_CAUSES = new Set(["UNKNOWN_TRANSACTION", "UNKNOWN_ACCOUNT", "UNKNOWN_RECEIPT", "UNKNOWN_ACCESS_KEY"])
 
 export async function nearRpc<T>(method: string, params: unknown, timeoutMs = 15000): Promise<RpcResult<T>> {
@@ -119,6 +126,28 @@ export async function nearRpc<T>(method: string, params: unknown, timeoutMs = 15
       }
       if (body.error) {
         const cause = body.error.cause?.name ?? body.error.name ?? ""
+        /**
+         * NEAR NEVER ANSWERS "UNKNOWN_TRANSACTION" FOR A HASH THAT DOES NOT
+         * EXIST. Measured 2026-09-09 against a well-formed hash with one
+         * character changed: both archival-rpc.mainnet.near.org and
+         * free.rpc.fastnear.com search for 13 to 33 seconds and then return
+         * HTTP 408 with cause TIMEOUT_ERROR. Neither ever reports the miss.
+         *
+         * That is the NODE giving up on its own search, not a transport
+         * failure, so trying the next endpoint just pays the same 13 to 33
+         * seconds again. With three endpoints configured a user pasting a
+         * wrong hash waited up to 45 seconds to be told we could not check.
+         *
+         * It stays UNAVAILABLE, because a search that timed out is not
+         * evidence the transaction does not exist. It simply stops costing the
+         * user the same wait three times over.
+         */
+        if (cause === "TIMEOUT_ERROR") {
+          return {
+            kind: "unavailable",
+            reason: "the NEAR node searched for this transaction and did not finish in time, which is not a statement that it does not exist. If the hash was copied by hand it is worth checking it.",
+          }
+        }
         if (MISSING_CAUSES.has(cause)) {
           // A definite miss. Remember it, but keep trying the other endpoints:
           // a node that has pruned the record can report the same thing.
