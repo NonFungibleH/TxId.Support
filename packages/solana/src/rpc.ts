@@ -61,32 +61,49 @@ type RpcResult<T> = RpcOk<T> | RpcUnavailable
  * `unavailable` and never an empty result. This is the same rule the EVM side
  * learned in #68 and the Aptos side in `aptosRead`.
  */
+async function callOne<T>(
+  url: string,
+  method: string,
+  params: unknown[],
+  timeoutMs = 10000,
+): Promise<RpcResult<T>> {
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }),
+      signal: AbortSignal.timeout(timeoutMs),
+    })
+    if (!res.ok) return { kind: "unavailable", reason: `a Solana node returned ${res.status}` }
+    let body: { result?: T; error?: { message?: string } }
+    try {
+      body = (await res.json()) as typeof body
+    } catch {
+      return { kind: "unavailable", reason: "a Solana node returned unreadable JSON" }
+    }
+    if (body.error) {
+      return { kind: "unavailable", reason: `a Solana node declined the request: ${body.error.message ?? "no reason given"}` }
+    }
+    if (body.result === undefined || body.result === null) {
+      return { kind: "unavailable", reason: "a Solana node returned no result" }
+    }
+    return { kind: "ok", value: body.result, endpoint: url }
+  } catch (e) {
+    return {
+      kind: "unavailable",
+      reason: e instanceof Error && e.name === "TimeoutError"
+        ? "a Solana node did not respond in time"
+        : "a Solana node could not be reached",
+    }
+  }
+}
+
 async function call<T>(method: string, params: unknown[], timeoutMs = 10000): Promise<RpcResult<T>> {
   let lastReason = "no Solana endpoint is configured"
   for (const url of endpoints()) {
-    try {
-      const res = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }),
-        signal: AbortSignal.timeout(timeoutMs),
-      })
-      if (!res.ok) { lastReason = `a Solana node returned ${res.status}`; continue }
-      let body: { result?: T; error?: { message?: string } }
-      try {
-        body = (await res.json()) as typeof body
-      } catch {
-        lastReason = "a Solana node returned unreadable JSON"
-        continue
-      }
-      if (body.error) { lastReason = `a Solana node declined the request: ${body.error.message ?? "no reason given"}`; continue }
-      if (body.result === undefined || body.result === null) { lastReason = "a Solana node returned no result"; continue }
-      return { kind: "ok", value: body.result, endpoint: url }
-    } catch (e) {
-      lastReason = e instanceof Error && e.name === "TimeoutError"
-        ? "a Solana node did not respond in time"
-        : "a Solana node could not be reached"
-    }
+    const r = await callOne<T>(url, method, params, timeoutMs)
+    if (r.kind === "ok") return r
+    lastReason = r.reason
   }
   return { kind: "unavailable", reason: lastReason }
 }
@@ -200,6 +217,43 @@ export async function solanaRetention(): Promise<SolanaRetention> {
       reason: err instanceof Error ? err.message : "could not reach the node",
     }
   }
+}
+
+/**
+ * Re-ask a query on an endpoint that keeps the full ledger.
+ *
+ * Only for the empty-result case. The fan-out in `call` moves on when a node
+ * FAILS, and a pruning node does not fail: it returns 200 and nothing, which
+ * ends the loop as a success. So the one situation where a second opinion is
+ * worth having is the one situation the fan-out never reaches.
+ *
+ * Endpoints are checked for retention before being asked, so this costs one
+ * cached probe rather than a duplicate of every query.
+ */
+async function retryOnArchival<T>(
+  method: string,
+  params: unknown[],
+  exclude: string,
+): Promise<RpcResult<T>> {
+  // The public node is included as a LAST RESORT, and only here. Providers are
+  // configured one URL at a time, so the realistic shape of this problem is a
+  // single fast endpoint with no second opinion available at all. The public
+  // node is free and archival, which makes it worth asking once for a query
+  // that would otherwise be refused.
+  //
+  // It is deliberately NOT added to the ordinary fan-out. Doing that would let
+  // a misconfigured endpoint keep working quietly, and the admin console would
+  // have nothing to report about a chain that is one credential from dark.
+  const candidates = [...endpoints(), ...DEFAULT_ENDPOINTS]
+  const seen = new Set<string>([exclude])
+  for (const url of candidates) {
+    if (seen.has(url)) continue
+    seen.add(url)
+    if (!(await isArchival(url))) continue
+    const r = await callOne<T>(url, method, params)
+    if (r.kind === "ok") return r
+  }
+  return { kind: "unavailable", reason: "no archival Solana endpoint could be reached" }
 }
 
 // ── Balances ────────────────────────────────────────────────────────────────
@@ -459,16 +513,38 @@ export async function getSolanaRecentTransactionsRpc(
   ])
   if (sigs.kind === "unavailable") throw new SolanaLookupUnavailableError(sigs.reason)
 
-  const list = Array.isArray(sigs.value) ? sigs.value : []
+  let list = Array.isArray(sigs.value) ? sigs.value : []
+  /** Set only when the signatures came from somewhere other than the fan-out. */
+  let hydrateFrom: string | null = null
   if (list.length === 0) {
     // THE MEASURED CASE. An empty list from a pruning node means "not in the
     // part of the ledger I keep", which is not "this wallet has no history".
     if (!(await isArchival(sigs.endpoint))) {
-      throw new SolanaLookupUnavailableError(
-        "the Solana node reached keeps only recent history, so an empty result cannot be reported as no transactions",
+      // Refusing was the whole point of the guard, but refusing is not the best
+      // available outcome when another configured endpoint keeps the ledger.
+      // The node that pruned answered 200, so the ordinary fan-out counted it a
+      // success and never asked anyone else. Ask, explicitly, for this case.
+      const retried = await retryOnArchival<Array<{ signature: string }>>(
+        "getSignaturesForAddress",
+        [address, { limit: Math.min(limit * 2, 40) }],
+        sigs.endpoint,
       )
+      if (retried.kind === "unavailable") {
+        throw new SolanaLookupUnavailableError(
+          "the Solana node reached keeps only recent history, so an empty result cannot be reported as no transactions",
+        )
+      }
+      // An archival node agreeing it is empty IS the answer.
+      list = Array.isArray(retried.value) ? retried.value : []
+      if (list.length === 0) return []
+      // And the details must be read from the node that HAS them. Hydrating
+      // through the ordinary fan-out would go straight back to the endpoint
+      // that just told us it does not keep this history, which turns a
+      // recovered list into "signatures but no transaction details".
+      hydrateFrom = retried.endpoint
+    } else {
+      return []
     }
-    return []
   }
 
   // Sequential rather than parallel: the public endpoint rate-limits hard, and
@@ -478,7 +554,9 @@ export async function getSolanaRecentTransactionsRpc(
   let unread = 0
   for (const s of list) {
     if (out.length >= limit) break
-    const r = await call<RawTx | null>("getTransaction", [s.signature, TX_CONFIG])
+    const r = hydrateFrom
+      ? await callOne<RawTx | null>(hydrateFrom, "getTransaction", [s.signature, TX_CONFIG])
+      : await call<RawTx | null>("getTransaction", [s.signature, TX_CONFIG])
     if (r.kind === "unavailable") { unread++; continue }
     const tx = mapRawTx(r.value as RawTx)
     if (programAddress && !tx.programIds.includes(programAddress)) continue
