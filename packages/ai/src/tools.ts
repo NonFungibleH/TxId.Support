@@ -58,7 +58,7 @@ import {
   getSuiRecentTransactions,
   SUI_ERRMAPS,
 } from "@txid/sui"
-import { getNearTransaction, getNearWalletBalance, isNearChain, isNearTxHash, NearLookupUnavailableError } from "@txid/near"
+import { getNearTransaction, getNearWalletBalance, isNearChain, isNearTxHash, NearAccountNotFoundError, NearLookupUnavailableError } from "@txid/near"
 import {
   isStellarChain,
   getStellarTransaction,
@@ -526,6 +526,12 @@ export async function executeTool(
               : "NEAR amounts are in NEAR, already converted from yoctoNEAR. spendableNear is the balance minus what the account stakes for its own storage; the difference cannot be sent without deleting data. Token amounts are RAW integers and their decimals live on each token's own contract, so do not convert them yourself.",
           }
         } catch (e) {
+          // An account that is not on chain is a FINDING and must not be
+          // dressed up as a failed lookup: on NEAR an account has to be
+          // created before it can hold anything, so this is the answer.
+          if (e instanceof NearAccountNotFoundError) {
+            return { account: wallet.address, exists: false, note: `An archival NEAR node looked and there is no account called ${wallet.address}. On NEAR an account must be created before it can hold anything, so this is not an empty wallet: it is an account that does not exist. Check the spelling with the user before saying so.` }
+          }
           if (e instanceof NearLookupUnavailableError) {
             return { lookupFailed: true, error: `Could not read this NEAR account (${e.message}). Do NOT say the account is empty or does not exist: this lookup did not complete.` }
           }
