@@ -6,8 +6,10 @@ import {
   getNetworkStatus,
   getContractDeployment,
   fetchAbiFromExplorer,
+  fetchAbiWithProxy,
   enrichTransaction,
   getWalletApprovals,
+  getTokenBalances,
   checkSanctioned,
 } from "@txid/blockchain"
 
@@ -32,6 +34,10 @@ export interface EvalResult {
 const USDC = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48" // Ethereum USDC - symbol USDC, decimals 6
 const ETH = "0x1"
 const ZERO = "0x0000000000000000000000000000000000000000"
+// The same well-known, permanently active wallet the approvals check uses, so
+// the two Moralis checks are asking about the same account and a difference
+// between them is about the ENDPOINT rather than about the address.
+const ACTIVE_WALLET = "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045"
 
 async function check(name: string, fn: () => Promise<{ pass: boolean; detail: string }>): Promise<EvalCheck> {
   try {
@@ -49,8 +55,19 @@ async function check(name: string, fn: () => Promise<{ pass: boolean; detail: st
 export async function runEval(opts?: { tx?: string; txChain?: string }): Promise<EvalResult> {
   const checks: EvalCheck[] = []
 
-  // 1. ABI auto-fetch (Etherscan → Blockscout) returns a parseable ABI for USDC.
-  const usdcAbi = await fetchAbiFromExplorer(USDC, ETH).catch(() => null)
+  // 1. ABI auto-fetch returns a parseable ABI for USDC.
+  //
+  // fetchAbiWithProxy, NOT fetchAbiFromExplorer, because that is what production
+  // uses: refreshContractAbi stores the MERGED abi. USDC is a proxy, and a
+  // proxy's own ABI is upgrade plumbing (admin, upgradeTo, implementation) with
+  // no decimals() and no allowance() in it. Testing with the raw fetch made
+  // checks 3 and 4 fail against an ABI no customer's contract would ever have,
+  // reporting a product failure that did not exist while testing nothing real.
+  //
+  // Using the merged fetch also puts the proxy walk itself under test, which is
+  // the more valuable check: it is the difference between reading a token's real
+  // getters and reading its upgrade plumbing.
+  const usdcAbi = await fetchAbiWithProxy(USDC, ETH, fetchAbiFromExplorer).catch(() => null)
   checks.push(await check("abi_fetch (USDC)", async () => ({
     pass: !!usdcAbi && usdcAbi.length > 100,
     detail: usdcAbi ? `ABI length ${usdcAbi.length}` : "no ABI returned",
@@ -101,6 +118,27 @@ export async function runEval(opts?: { tx?: string; txChain?: string }): Promise
   checks.push(await check("deployment (USDC has deployer)", async () => {
     const dep = await getContractDeployment(USDC, ETH)
     return { pass: !!dep?.deployer && dep.deployer.length === 42, detail: `deployer=${dep?.deployer} ts=${dep?.timestamp}` }
+  }))
+
+  // 7b. A CORE Moralis read, so an approvals failure can be told apart from
+  // Moralis being unusable.
+  //
+  // Until this existed the eval had exactly ONE Moralis check, approvals, and
+  // that endpoint is tier-gated on some plans. So "the approvals endpoint is
+  // not on this plan" and "the key is missing, and every EVM token balance and
+  // transaction list is therefore broken" produced an identical red line. Those
+  // want very different reactions.
+  //
+  // getTokenBalances is the right probe because it does NOT fall back to the
+  // RPC: token holdings must be enumerated, so this fails when Moralis does.
+  // getNativeBalance would pass on the RPC backstop and prove nothing.
+  checks.push(await check("moralis_core (token balances readable)", async () => {
+    try {
+      const bal = await getTokenBalances(ACTIVE_WALLET, ETH)
+      return { pass: bal.length > 0, detail: `${bal.length} token balances` }
+    } catch (e) {
+      return { pass: false, detail: `Moralis unusable: ${e instanceof Error ? e.message.slice(0, 90) : "unknown"}` }
+    }
   }))
 
   // 8. Wallet approvals (Moralis): a highly-active wallet must have >0 approvals,
