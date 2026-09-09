@@ -134,7 +134,12 @@ async function get<T>(path: string, cacheKey?: string): Promise<T | null> {
   const headers = HAS_KEY ? { Authorization: `Bearer ${process.env.APTOS_API_KEY}` } : undefined
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
-      const res = await fetch(`${BASE}${path}`, { headers, signal: AbortSignal.timeout(30_000) })
+      // Conditional spread, not `{ headers }`: exactOptionalPropertyTypes
+      // rejects an explicit undefined, which is the house rule.
+      const res = await fetch(`${BASE}${path}`, {
+        ...(headers ? { headers } : {}),
+        signal: AbortSignal.timeout(30_000),
+      })
       if (res.status === 429) {
         if (attempt === 0) { await sleep(3000); continue }
         stoppedEarly = "rate limited (429)"

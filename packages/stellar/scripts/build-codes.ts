@@ -14,6 +14,14 @@ interface Harvest {
   enums: Record<string, { name: string; values: Record<string, string> }>
   operationTypes: Record<string, string>
   resultEnumForOperation: Record<string, string>
+  /**
+   * Byte length of each operation's SUCCESS payload, -1 when it is variable
+   * and the walk has to stop. The harvester has always written this and the
+   * generator has always read it; the interface simply did not declare it, so
+   * the type lied about the shape of the file. Nothing broke because scripts
+   * were outside the tsconfig, which is the reason this survived.
+   */
+  successPayloadBytes: Record<string, number>
 }
 
 const here = join(__dirname)
