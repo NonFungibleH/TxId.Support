@@ -10,6 +10,19 @@ import {
 import { diagnoseAptosWallet, getAptosRecentTransactions, getAptosWalletBalance } from "../src/indexer"
 
 let failed = false
+/**
+ * Checks that did not run, and WHY it matters that they are counted.
+ *
+ * This script printed "RESULT: PASS" while both indexer checks were SKIPPED,
+ * and one of them was carrying a TypeError: getAptosRecentTransactions had
+ * changed to return { transactions, unread } and the caller still treated it
+ * as an array. Nobody saw it, because the step that would have thrown never
+ * ran and the summary said PASS anyway.
+ *
+ * A verification script whose headline hides how much it verified is worse
+ * than no script, because it is trusted. PASS now says what it skipped.
+ */
+const skipped: string[] = []
 
 function report(name: string, ok: boolean, detail: string): void {
   const status = ok ? "PASS" : "FAIL"
@@ -19,6 +32,7 @@ function report(name: string, ok: boolean, detail: string): void {
 
 function skip(name: string, detail: string): void {
   console.log(`SKIP  ${name} — ${detail}`)
+  skipped.push(name)
 }
 
 function pause(ms = 400): Promise<void> {
@@ -246,6 +260,15 @@ async function main(): Promise<void> {
   if (failed) {
     console.log("\nRESULT: FAIL")
     process.exit(1)
+  }
+  if (skipped.length > 0) {
+    // Deliberately not "PASS". Every check that did run passed, and that is a
+    // different claim from "this package is verified".
+    console.log(`\nRESULT: PASS, ${skipped.length} NOT CHECKED`)
+    console.log(`  not checked: ${skipped.join(", ")}`)
+    console.log("  These paths are unverified by this run. The indexer steps need")
+    console.log("  APTOS_API_KEY; without it they rate-limit and skip.")
+    return
   }
   console.log("\nRESULT: PASS")
 }
