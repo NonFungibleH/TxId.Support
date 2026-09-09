@@ -5,7 +5,7 @@
 // differently from the product. The test that wrote this file fails if the two
 // ever disagree.
 //
-// Regenerate: UPDATE_CHAIN_ERRORS=1 pnpm --filter @txid/web test
+// Regenerate: UPDATE_CHAIN_ERRORS=1 pnpm --filter @txid/ai test
 
 export interface ChainError {
   slug: string
