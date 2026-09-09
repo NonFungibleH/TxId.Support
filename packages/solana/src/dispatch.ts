@@ -36,14 +36,43 @@ export function getSolanaWalletBalance(address: string): Promise<SolanaBalance> 
   return heliusConfigured() ? heliusBalance(address) : getSolanaWalletBalanceRpc(address)
 }
 
-export function getSolanaRecentTransactions(
+/**
+ * THE TWO PATHS DID NOT ENFORCE THE SAME RULE, and the better-resourced
+ * deployment got the weaker answer.
+ *
+ * `rpc.ts` refuses to report an empty history until a node that keeps the
+ * ledger agrees it is empty, because a pruning node answers 200 with `[]` for
+ * history it does not hold. The enriched Helius endpoint has no equivalent
+ * check anywhere: whatever array comes back is mapped and returned. So setting
+ * a key swapped a guarded path for an unguarded one, silently, and the wallet
+ * it misinforms is the one that came back after a month to ask where the money
+ * went.
+ *
+ * An empty list is therefore CHECKED rather than trusted, and the check runs
+ * only for that answer, because it is the only answer that cannot be told
+ * apart from a failure to produce one.
+ *
+ * This is not the fall-through on error rejected above, and that rejection
+ * stands. An outage re-served from another source with different fields
+ * teaches a caller to read a missing `description` as a fact about the
+ * transaction. An empty list is a different thing: a positive claim about the
+ * wallet, made without the evidence to support it.
+ */
+export async function getSolanaRecentTransactions(
   address: string,
   programAddress?: string,
   limit = 10,
 ): Promise<SolanaTransaction[]> {
-  return heliusConfigured()
-    ? heliusRecent(address, programAddress, limit)
-    : getSolanaRecentTransactionsRpc(address, programAddress, limit)
+  if (!heliusConfigured()) return getSolanaRecentTransactionsRpc(address, programAddress, limit)
+
+  const enriched = await heliusRecent(address, programAddress, limit)
+  if (enriched.length > 0) return enriched
+
+  // The RPC path answers all three ways correctly on its own: it returns the
+  // transactions if an archival node has them, `[]` if an archival node agrees
+  // there are none, and throws if nothing can settle it. Deferring to it is
+  // deferring to the guard, rather than reimplementing it here.
+  return getSolanaRecentTransactionsRpc(address, programAddress, limit)
 }
 
 export function getSolanaTransactionBySignature(signature: string): Promise<SolanaTransaction | null> {
