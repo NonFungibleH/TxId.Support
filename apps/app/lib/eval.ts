@@ -12,6 +12,7 @@ import {
   getTokenBalances,
   checkSanctioned,
 } from "@txid/blockchain"
+import { solanaRetention, getSolanaRecentTransactions, heliusConfigured } from "@txid/solana"
 
 // A fixed set of on-chain checks with KNOWN-correct answers, so regressions in
 // the diagnostic tools (wrong chain, wrong decode, wrong price, a dead API) are
@@ -38,6 +39,15 @@ const ZERO = "0x0000000000000000000000000000000000000000"
 // the two Moralis checks are asking about the same account and a difference
 // between them is about the ENDPOINT rather than about the address.
 const ACTIVE_WALLET = "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045"
+
+/** Endpoint host only: the configured URL usually carries an API key. */
+function host(url: string): string {
+  try {
+    return new URL(url).host
+  } catch {
+    return "configured endpoint"
+  }
+}
 
 async function check(name: string, fn: () => Promise<{ pass: boolean; detail: string }>): Promise<EvalCheck> {
   try {
@@ -156,6 +166,40 @@ export async function runEval(opts?: { tx?: string; txChain?: string }): Promise
     return {
       pass: lookup.approvals.length > 0,
       detail: `${lookup.approvals.length} approvals returned`,
+    }
+  }))
+
+  // 8b/8c. Solana, because until now the whole suite was EVM and a non-EVM chain
+  // could be completely dead while the console stayed green.
+  //
+  // The retention check is the one that earns its place. Solana history is
+  // gated on the node keeping the ledger, and a node that prunes returns an
+  // EMPTY LIST rather than an error, so the guard turns every quiet wallet into
+  // "unavailable". Nothing about that is visible from the outside: the chain
+  // looks configured, the balance reads work, and only history is silently off.
+  checks.push(await check("solana_retention (endpoint keeps full history)", async () => {
+    const r = await solanaRetention()
+    if (r.kind === "archival") return { pass: true, detail: `archival: ${host(r.endpoint)}` }
+    if (r.kind === "pruning") {
+      return {
+        pass: false,
+        detail: `${host(r.endpoint)} prunes (first block ${r.firstAvailableBlock}) - history older than its window reports unavailable. Needs an archival endpoint.`,
+      }
+    }
+    return { pass: false, detail: `${host(r.endpoint)} unreachable: ${r.reason}` }
+  }))
+
+  // A read all the way through the dispatch, so a broken URL or a rejected key
+  // fails here rather than at a customer. Jupiter's aggregator is chosen because
+  // it is continuously active: an empty list from it is never a real answer.
+  checks.push(await check("solana_history (active program has signatures)", async () => {
+    const JUPITER = "JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4"
+    try {
+      const txs = await getSolanaRecentTransactions(JUPITER, undefined, 3)
+      const path = heliusConfigured() ? "helius" : "keyless rpc"
+      return { pass: txs.length > 0, detail: `${txs.length} transactions via ${path}` }
+    } catch (e) {
+      return { pass: false, detail: `lookup did not complete: ${e instanceof Error ? e.message.slice(0, 90) : "unknown"}` }
     }
   }))
 

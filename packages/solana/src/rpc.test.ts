@@ -4,6 +4,7 @@ import {
   getSolanaRecentTransactionsRpc,
   getSolanaTransactionBySignatureRpc,
   getSolanaWalletBalanceRpc,
+  solanaRetention,
 } from "./rpc"
 
 /**
@@ -215,5 +216,52 @@ describe("balances", () => {
     expect(b.solRaw).toBe(2_500_000_000)
     expect(b.sol).toBe("2.5")
     expect(b.tokens.map(t => t.mint)).toEqual(["MintA", "MintA"])
+  })
+})
+
+// ── Retention as a diagnostic, not just a gate ──────────────────────────────
+
+/**
+ * `isArchival` answers a yes/no question and deliberately fails CLOSED: a node
+ * that prunes and a node that cannot be reached both return false, because for
+ * the guard they mean the same thing, which is "an empty list is not an answer".
+ *
+ * For an operator reading the admin console they mean opposite things. One says
+ * the plan is wrong, the other says the URL or the key is wrong, and those have
+ * no fix in common. So the diagnostic is a THIRD state rather than a second
+ * caller of the boolean.
+ */
+describe("solanaRetention", () => {
+  it("reports archival when the node keeps the full ledger", async () => {
+    useNode({ getFirstAvailableBlock: ARCHIVAL })
+    const r = await solanaRetention()
+    expect(r.kind).toBe("archival")
+  })
+
+  it("reports pruning WITH the block, so the gap is visible", async () => {
+    useNode({ getFirstAvailableBlock: PRUNING })
+    const r = await solanaRetention()
+    expect(r.kind).toBe("pruning")
+    if (r.kind !== "pruning") throw new Error("narrowing")
+    expect(r.firstAvailableBlock).toBe(444703101)
+  })
+
+  it("separates a node that cannot be reached from one that prunes", async () => {
+    vi.stubEnv("SOLANA_RPC_URLS", nextEndpoint())
+    vi.stubGlobal("fetch", vi.fn(async () => { throw new Error("ECONNREFUSED") }))
+    const r = await solanaRetention()
+    expect(r.kind).toBe("unavailable")
+  })
+
+  it("treats a rejected key as unavailable, never as pruning", async () => {
+    // The failure mode for a keyed provider URL that is wrong or out of credit.
+    // Calling that "pruning" would send the operator to upgrade a plan that is
+    // not the problem.
+    vi.stubEnv("SOLANA_RPC_URLS", nextEndpoint())
+    vi.stubGlobal("fetch", vi.fn(async () => json({ error: "unauthorized" }, 401)))
+    const r = await solanaRetention()
+    expect(r.kind).toBe("unavailable")
+    if (r.kind !== "unavailable") throw new Error("narrowing")
+    expect(r.reason).toContain("401")
   })
 })
