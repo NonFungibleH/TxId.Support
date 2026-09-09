@@ -23,43 +23,38 @@ jobs:
           node-version: 20
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - name: Unit tests
-        run: pnpm --filter @txid/app exec vitest run
+      # EVERY package's tests, derived from the workspace rather than listed.
+      #
+      # This step used to hand-list the packages, and that list was forgotten
+      # THREE times: the packages were not covered at all; then Sui, Solana and
+      # LayerZero were added and left out, 75 tests that never ran; then
+      # @txid/ai and @txid/near, another 92, including the drift guard for the
+      # generated error table, so the published pages could have diverged from
+      # the decoders with CI green.
+      #
+      # A comment saying "every package with tests belongs on this list" did not
+      # stop it happening twice more, because the list is a SECOND registry and
+      # a second registry always drifts. `turbo run test` reads the workspace,
+      # and apps/app/lib/__tests__/test-scripts-registered.test.ts fails if a
+      # package holds tests without a `test` script. Together those close the
+      # loop: nothing can have tests that CI does not run.
+      - name: All unit tests
+        run: pnpm test
 
       # The two build-time gates that need no runtime keys. Until 2026-09-03
       # this check ran neither, so a commit could be green here and fail the
       # Vercel Preview: next build lints test files too, and an `as any` in a
       # test took the build down. Static page generation needs Clerk keys and
       # stays Vercel's job; a full `next build` here would fail on env alone.
-      # apps/web had no tests at all until 2026-09-08. The gap cost a real
-      # regression: the LayerZero card silently vanished from /chains and the
-      # section it lived in simply stopped rendering.
-      - name: Web unit tests
-        run: pnpm --filter @txid/web exec vitest run
-
+      #
+      # Still earning their keep: on 2026-09-08 a variable named `module` in a
+      # test under apps/web passed every unit test and failed the web deploy,
+      # because @next/next/no-assign-module-variable is an ERROR not a warning.
       - name: Lint (what next build runs first)
         run: pnpm --filter @txid/app exec next lint
       - name: Typecheck
         run: pnpm --filter @txid/app exec tsc --noEmit
-      # The packages were never covered. abort.test.ts guarded the Move abort
-      # decoder and had not run once in CI; decoder.test.ts guards the revert
-      # replay. Both are core and both are pure, so there is no reason they
-      # were not here.
-      #
-      # Sui, Solana and LayerZero were added later and were left out, which is
-      # the same omission again: 75 tests that had never run in CI, guarding
-      # the read paths written specifically to stop an outage reaching a user
-      # as a finding. Every package with tests belongs on this list.
-      - name: Package unit tests
-        run: |
-          pnpm --filter @txid/shared exec vitest run
-          pnpm --filter @txid/blockchain exec vitest run
-          pnpm --filter @txid/aptos exec vitest run
-          pnpm --filter @txid/solana exec vitest run
-          pnpm --filter @txid/sui exec vitest run
-          pnpm --filter @txid/stellar exec vitest run
-          pnpm --filter @txid/hyperliquid exec vitest run
-          pnpm --filter @txid/layerzero exec vitest run
+
       - name: Install Chromium
         run: pnpm --filter @txid/app exec playwright install --with-deps chromium
       - name: Embed smoke (spotlight choreography)
