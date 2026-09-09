@@ -22,9 +22,19 @@ const json = (body: unknown, status = 200) =>
 const rpcOk = (result: unknown) => json({ jsonrpc: "2.0", id: 1, result })
 const rpcErr = (message: string) => json({ jsonrpc: "2.0", id: 1, error: { code: -32602, message } })
 
-/** Routes by JSON-RPC method so a test states only what it cares about. */
-function nodeReturning(handlers: Record<string, () => Response>) {
-  return vi.fn(async (_url: string, init?: { body?: string }) => {
+/**
+ * Routes by JSON-RPC method so a test states only what it cares about, and by
+ * URL so it states only which NODE it cares about.
+ *
+ * The URL check is load-bearing rather than tidiness. Retention is cached at
+ * module level on purpose, so a mock that answers for every host writes an
+ * answer for hosts the test never mentioned, and the next test inherits it.
+ * Refusing an unknown host makes the probe throw, which `isArchival` treats as
+ * unknown and does not cache.
+ */
+function nodeReturning(url: string, handlers: Record<string, () => Response>) {
+  return vi.fn(async (asked: string, init?: { body?: string }) => {
+    if (asked !== url) throw new Error(`unexpected url ${asked}`)
     const method = JSON.parse(init?.body ?? "{}").method as string
     const h = handlers[method]
     if (!h) throw new Error(`unexpected method ${method}`)
@@ -39,8 +49,9 @@ const PRUNING = () => rpcOk(444703101)
 afterEach(() => { vi.unstubAllGlobals(); vi.unstubAllEnvs() })
 
 const useNode = (handlers: Record<string, () => Response>) => {
-  vi.stubEnv("SOLANA_RPC_URLS", nextEndpoint())
-  vi.stubGlobal("fetch", nodeReturning(handlers))
+  const url = nextEndpoint()
+  vi.stubEnv("SOLANA_RPC_URLS", url)
+  vi.stubGlobal("fetch", nodeReturning(url, handlers))
 }
 
 // ── The finding that shaped the file ────────────────────────────────────────
@@ -263,5 +274,135 @@ describe("solanaRetention", () => {
     expect(r.kind).toBe("unavailable")
     if (r.kind !== "unavailable") throw new Error("narrowing")
     expect(r.reason).toContain("401")
+  })
+})
+
+// ── Recovering from a pruning endpoint instead of only reporting it ─────────
+
+/** Routes by URL first, then by method, so a test can give two nodes different ledgers. */
+function nodesReturning(byUrl: Record<string, Record<string, () => Response>>) {
+  return vi.fn(async (url: string, init?: { body?: string }) => {
+    const method = JSON.parse(init?.body ?? "{}").method as string
+    const handlers = byUrl[url]
+    if (!handlers) throw new Error(`unexpected url ${url}`)
+    const h = handlers[method]
+    if (!h) throw new Error(`unexpected method ${method} on ${url}`)
+    return h()
+  })
+}
+
+describe("an empty list from a pruning endpoint", () => {
+  const SIGS = [{ signature: "sig-1" }]
+  const RAW_TX = {
+    slot: 1, blockTime: 1757000000, transaction: { signatures: ["sig-1"], message: { accountKeys: [], instructions: [] } },
+    meta: { err: null, fee: 5000, preBalances: [], postBalances: [], logMessages: [] },
+  }
+
+  it("is retried against an archival endpoint rather than reported as unavailable", async () => {
+    // The measured case in miniature: the fast provider prunes and answers 200
+    // with nothing, the archival node holds the wallet's real history. Only the
+    // second answer is a finding, and today it is never asked for.
+    const pruning = nextEndpoint()
+    const archival = nextEndpoint()
+    vi.stubEnv("SOLANA_RPC_URLS", `${pruning},${archival}`)
+    vi.stubGlobal("fetch", nodesReturning({
+      // getTransaction is registered ONLY on the archival node, and that is the
+      // assertion: recovering the signature list from a node that keeps the
+      // ledger, then hydrating from the node that just said it does not, turns
+      // a recovered history into "signatures but no transaction details". Do
+      // not add a getTransaction handler here to make a future test pass.
+      [pruning]: { getFirstAvailableBlock: PRUNING, getSignaturesForAddress: () => rpcOk([]) },
+      [archival]: {
+        getFirstAvailableBlock: ARCHIVAL,
+        getSignaturesForAddress: () => rpcOk(SIGS),
+        getTransaction: () => rpcOk(RAW_TX),
+      },
+    }))
+
+    const txs = await getSolanaRecentTransactionsRpc("wallet", undefined, 5)
+    expect(txs).toHaveLength(1)
+  })
+
+  it("is a real answer once an archival endpoint agrees it is empty", async () => {
+    const pruning = nextEndpoint()
+    const archival = nextEndpoint()
+    vi.stubEnv("SOLANA_RPC_URLS", `${pruning},${archival}`)
+    vi.stubGlobal("fetch", nodesReturning({
+      [pruning]: { getFirstAvailableBlock: PRUNING, getSignaturesForAddress: () => rpcOk([]) },
+      [archival]: { getFirstAvailableBlock: ARCHIVAL, getSignaturesForAddress: () => rpcOk([]) },
+    }))
+
+    await expect(getSolanaRecentTransactionsRpc("wallet", undefined, 5)).resolves.toEqual([])
+  })
+
+  it("still refuses when no archival endpoint can be reached", async () => {
+    // The guard is the floor. Failover is an attempt to do better, never a
+    // reason to soften what happens when it does not work.
+    const pruning = nextEndpoint()
+    const dead = nextEndpoint()
+    vi.stubEnv("SOLANA_RPC_URLS", `${pruning},${dead}`)
+    vi.stubGlobal("fetch", nodesReturning({
+      [pruning]: { getFirstAvailableBlock: PRUNING, getSignaturesForAddress: () => rpcOk([]) },
+      [dead]: { getFirstAvailableBlock: () => json({}, 503), getSignaturesForAddress: () => json({}, 503) },
+    }))
+
+    await expect(getSolanaRecentTransactionsRpc("wallet", undefined, 5))
+      .rejects.toBeInstanceOf(SolanaLookupUnavailableError)
+  })
+
+  it("does not retry when the answering endpoint is already archival", async () => {
+    const archival = nextEndpoint()
+    const other = nextEndpoint()
+    vi.stubEnv("SOLANA_RPC_URLS", `${archival},${other}`)
+    const fetchMock = nodesReturning({
+      [archival]: { getFirstAvailableBlock: ARCHIVAL, getSignaturesForAddress: () => rpcOk([]) },
+      [other]: { getFirstAvailableBlock: ARCHIVAL, getSignaturesForAddress: () => rpcOk(SIGS) },
+    })
+    vi.stubGlobal("fetch", fetchMock)
+
+    await expect(getSolanaRecentTransactionsRpc("wallet", undefined, 5)).resolves.toEqual([])
+    const asked = fetchMock.mock.calls.map(c => c[0])
+    expect(asked).not.toContain(other)
+  })
+})
+
+describe("a single configured endpoint that prunes", () => {
+  it("falls back to the public archival node, which is the whole configuration a operator is likely to have", async () => {
+    // Providers are configured one URL at a time, so the realistic shape of
+    // this problem is ONE fast endpoint and no second opinion available. The
+    // public node is free and archival (first block 0, measured 2026-09-09),
+    // which makes it a usable last resort for exactly this query.
+    const pruning = nextEndpoint()
+    vi.stubEnv("SOLANA_RPC_URLS", pruning)
+    vi.stubGlobal("fetch", nodesReturning({
+      [pruning]: { getFirstAvailableBlock: PRUNING, getSignaturesForAddress: () => rpcOk([]) },
+      "https://api.mainnet-beta.solana.com": {
+        getFirstAvailableBlock: ARCHIVAL,
+        getSignaturesForAddress: () => rpcOk([{ signature: "sig-1" }]),
+        getTransaction: () => rpcOk({
+          slot: 1, blockTime: 1757000000,
+          transaction: { signatures: ["sig-1"], message: { accountKeys: [], instructions: [] } },
+          meta: { err: null, fee: 5000, preBalances: [], postBalances: [], logMessages: [] },
+        }),
+      },
+    }))
+
+    const txs = await getSolanaRecentTransactionsRpc("wallet", undefined, 5)
+    expect(txs).toHaveLength(1)
+  })
+
+  it("does not route ordinary queries to the public node behind the operator's back", async () => {
+    // The backstop is for the empty-and-pruning case only. Widening it to the
+    // normal fan-out would mean a misconfigured endpoint quietly still works,
+    // and the admin console would have nothing to report.
+    const configured = nextEndpoint()
+    const fetchMock = nodesReturning({
+      [configured]: { getBalance: () => json({}, 503), getTokenAccountsByOwner: () => json({}, 503) },
+    })
+    vi.stubEnv("SOLANA_RPC_URLS", configured)
+    vi.stubGlobal("fetch", fetchMock)
+
+    await expect(getSolanaWalletBalanceRpc("wallet")).rejects.toBeInstanceOf(SolanaLookupUnavailableError)
+    expect(fetchMock.mock.calls.map(c => c[0])).not.toContain("https://api.mainnet-beta.solana.com")
   })
 })
