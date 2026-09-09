@@ -132,14 +132,41 @@ export async function getSuiBalance(owner: string): Promise<SuiLookup<SuiBalance
   if (!Array.isArray(rows)) return { kind: "unavailable", reason: "unexpected response shape" }
 
   let suiRaw = 0n
+/**
+ * Whether a coin type is the REAL SUI, rather than something calling itself so.
+ *
+ * This used to accept anything ending `::sui::SUI`, which is a type ANY package
+ * can publish: `0xdeadbeef::sui::SUI` passed. Combined with assignment rather
+ * than accumulation, a spoofed coin listed after the genuine one REPLACED the
+ * user's real SUI balance with the scam coin's. A wrong balance, on the one
+ * number a user is most likely to act on, and trivially mintable by anyone.
+ *
+ * Native SUI is defined by its package being 0x2, and the node may return that
+ * address either short or zero-padded to 32 bytes, which is presumably why the
+ * loose check existed. So the ADDRESS is normalised and compared, and the rest
+ * of the type must match exactly.
+ */
+function isNativeSui(coinType: string): boolean {
+  const parts = coinType.split("::")
+  if (parts.length !== 3) return false
+  const [addr, mod, name] = parts
+  if (mod !== "sui" || name !== "SUI") return false
+  // Strip 0x and leading zeros: "0x2", "0x02" and the padded 64-hex form are
+  // all the same package, and nothing else is.
+  const normalised = (addr ?? "").replace(/^0x/, "").replace(/^0+/, "")
+  return normalised === "2"
+}
+
   const coins: SuiCoinBalance[] = []
   for (const row of rows) {
     const type = row.coinType ?? ""
     let raw = 0n
     try { raw = BigInt(row.totalBalance ?? "0") } catch { continue }
     if (raw === 0n) continue
-    if (type === "0x2::sui::SUI" || type.endsWith("::sui::SUI")) {
-      suiRaw = raw
+    if (isNativeSui(type)) {
+      // ACCUMULATE. The node can return more than one row for a coin type,
+      // and assigning meant the last row won rather than the total.
+      suiRaw += raw
       continue
     }
     coins.push({

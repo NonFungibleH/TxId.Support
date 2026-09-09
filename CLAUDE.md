@@ -955,7 +955,7 @@ so a published page cannot describe an error differently from the decoder.
 `lib/chain-errors.test.ts` is BOTH the generator and the drift guard: it rebuilds
 in memory and fails if the checked-in file disagrees.
 
-    UPDATE_CHAIN_ERRORS=1 pnpm --filter @txid/web test
+    UPDATE_CHAIN_ERRORS=1 pnpm --filter @txid/ai test
 
 > **Why generated and not imported:** `apps/web` depends on clsx, framer-motion,
 > lucide-react, next and react, and nothing else. Importing `@txid/stellar` so a

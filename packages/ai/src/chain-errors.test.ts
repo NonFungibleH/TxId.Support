@@ -35,7 +35,7 @@ import { PROTOCOL_ERRORS as NEAR_ERRORS } from "../../near/src/errmap"
  * This test is also the generator, because the repo has no TypeScript runner
  * installed and adding one to publish a table would be a poor trade:
  *
- *     UPDATE_CHAIN_ERRORS=1 pnpm --filter @txid/web test
+ *     UPDATE_CHAIN_ERRORS=1 pnpm --filter @txid/ai test
  *
  * Without that variable it regenerates in memory and fails if the checked-in
  * file disagrees, which is what makes "single source of truth" a mechanism
@@ -264,7 +264,7 @@ function render(errors: ChainError[]): string {
 // differently from the product. The test that wrote this file fails if the two
 // ever disagree.
 //
-// Regenerate: UPDATE_CHAIN_ERRORS=1 pnpm --filter @txid/web test
+// Regenerate: UPDATE_CHAIN_ERRORS=1 pnpm --filter @txid/ai test
 
 export interface ChainError {
   slug: string

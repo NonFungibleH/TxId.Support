@@ -179,3 +179,49 @@ describe("elapsed time is computed here, not by the model", () => {
     expect(r.kind === "ok" && r.value.age).toBeNull()
   })
 })
+
+describe("a coin calling itself SUI is not SUI", () => {
+  /**
+   * Native SUI was matched with `type.endsWith("::sui::SUI")`, which ANY
+   * package can satisfy: `0xdeadbeef::sui::SUI` passed. Combined with
+   * assignment rather than accumulation, a spoofed coin listed AFTER the
+   * genuine one replaced the user's real SUI balance with the scam coin's.
+   *
+   * A wrong balance, on the number a user is most likely to act on, and
+   * trivially mintable by anyone. Native SUI is defined by its package being
+   * 0x2, which the node may return short or zero-padded, so the address is
+   * normalised and compared rather than pattern-matched.
+   */
+  const withBalances = (rows: Array<{ coinType: string; totalBalance: string }>) =>
+    vi.stubGlobal("fetch", vi.fn(async () => jsonRes({ jsonrpc: "2.0", id: 1, result: rows })))
+
+  it("a spoofed ::sui::SUI does not overwrite the real balance", async () => {
+    withBalances([
+      { coinType: "0x2::sui::SUI", totalBalance: "5000000000" },
+      { coinType: "0xdeadbeef::sui::SUI", totalBalance: "999999999999" },
+    ])
+    const r = await getSuiBalance(ADDR)
+    expect(r.kind).toBe("ok")
+    if (r.kind !== "ok") return
+    expect(r.value.suiRaw).toBe("5000000000")
+    // The impostor is still listed, as an ordinary coin the user holds.
+    expect(r.value.coins.some(c => c.coinType === "0xdeadbeef::sui::SUI")).toBe(true)
+  })
+
+  it("accepts the zero-padded form of 0x2, which the node also returns", async () => {
+    withBalances([{ coinType: `0x${"0".repeat(63)}2::sui::SUI`, totalBalance: "1230000000" }])
+    const r = await getSuiBalance(ADDR)
+    if (r.kind !== "ok") throw new Error("expected ok")
+    expect(r.value.suiRaw).toBe("1230000000")
+  })
+
+  it("accumulates rather than overwrites when a type appears twice", async () => {
+    withBalances([
+      { coinType: "0x2::sui::SUI", totalBalance: "1000000000" },
+      { coinType: "0x2::sui::SUI", totalBalance: "2000000000" },
+    ])
+    const r = await getSuiBalance(ADDR)
+    if (r.kind !== "ok") throw new Error("expected ok")
+    expect(r.value.suiRaw).toBe("3000000000")
+  })
+})
