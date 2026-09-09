@@ -16,6 +16,38 @@ import { NearLookupUnavailableError } from "./lookup"
  * archival is `unavailable`, never a finding.
  */
 const ARCHIVAL = "https://archival-rpc.mainnet.near.org"
+
+/**
+ * Whether a node keeps the whole chain, asked OF THAT NODE rather than matched
+ * against a hostname. `genesis_config` reports the height its data starts from;
+ * an archival node starts at genesis. Cached per endpoint for the process,
+ * because it does not change, and it FAILS CLOSED: a node we could not ask is
+ * not treated as archival, so its miss stays `unavailable`.
+ */
+const archivalCache = new Map<string, boolean>()
+
+async function isArchival(url: string): Promise<boolean> {
+  const cached = archivalCache.get(url)
+  if (cached !== undefined) return cached
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ jsonrpc: "2.0", id: "txid", method: "block", params: { block_id: 1 } }),
+      signal: AbortSignal.timeout(8000),
+    })
+    if (!res.ok) return false
+    const body = (await res.json()) as { result?: unknown; error?: { cause?: { name?: string } } }
+    // A node holding block 1 holds everything. UNKNOWN_BLOCK there means it
+    // has pruned, which is exactly what we need to know.
+    const archival = body.result !== undefined && body.result !== null
+    if (archivalCache.size > 20) archivalCache.clear()
+    archivalCache.set(url, archival)
+    return archival
+  } catch {
+    return false
+  }
+}
 const STANDARD = ["https://free.rpc.fastnear.com", "https://rpc.mainnet.near.org"]
 
 /** `NEAR_RPC_URLS`, JSON array or comma-separated. Archival endpoints first. */
@@ -57,6 +89,17 @@ const MISSING_CAUSES = new Set(["UNKNOWN_TRANSACTION", "UNKNOWN_ACCOUNT", "UNKNO
 export async function nearRpc<T>(method: string, params: unknown, timeoutMs = 15000): Promise<RpcResult<T>> {
   let lastReason = "no NEAR endpoint is configured"
   let missing: RpcMissing | null = null
+  /**
+   * WHICH endpoint reported the miss, not merely whether an archival one was
+   * configured. Checking the list was the bug: with archival listed but DOWN, a
+   * two-day-retention node's UNKNOWN_TRANSACTION was returned as a definite
+   * finding and rendered as "an archival NEAR node looked and has no
+   * transaction with this hash", which is a claim about evidence that does not
+   * exist. The mirror case was just as wrong in the other direction: a custom
+   * NEAR_RPC_URLS pointing at an archival provider that is not this exact
+   * hostname downgraded every genuine miss to unavailable.
+   */
+  let missingFrom: string | null = null
 
   for (const url of endpoints()) {
     try {
@@ -80,6 +123,7 @@ export async function nearRpc<T>(method: string, params: unknown, timeoutMs = 15
           // A definite miss. Remember it, but keep trying the other endpoints:
           // a node that has pruned the record can report the same thing.
           missing = { kind: "missing", name: cause }
+          missingFrom = url
           continue
         }
         lastReason = `a NEAR node declined the request: ${cause || body.error.message || "no reason given"}`
@@ -94,13 +138,13 @@ export async function nearRpc<T>(method: string, params: unknown, timeoutMs = 15
     }
   }
 
-  // A miss is only a FINDING if it came from a node that keeps the whole chain.
-  // Otherwise it is "not in the part I hold", which is a different sentence.
-  if (missing && endpoints().some(u => u === ARCHIVAL)) return missing
+  // A miss is only a FINDING if the node that reported it keeps the whole
+  // chain. Otherwise it is "not in the part I hold", a different sentence.
+  if (missing && missingFrom && (await isArchival(missingFrom))) return missing
   if (missing) {
     return {
       kind: "unavailable",
-      reason: "the NEAR nodes reached keep only recent history, so a missing record cannot be reported as one that never existed",
+      reason: "the NEAR node that answered keeps only recent history, so a missing record cannot be reported as one that never existed",
     }
   }
   return { kind: "unavailable", reason: lastReason }

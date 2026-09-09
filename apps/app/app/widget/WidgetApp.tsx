@@ -1419,6 +1419,16 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
    */
   const aptosProviderAvailable = hasAptosWallet || (isEmbedded && !!bridgeWallet?.aptos)
   const evmProviderAvailable = hasMetaMask || (isEmbedded && !!bridgeWallet?.evm)
+  // Stellar has no wallet-standard registry yet, so Freighter is a window
+  // global. Detected HERE as well as inside the connect branch, because
+  // `hasWallet` decides whether the connect button is offered at all: without
+  // this, a visitor with Freighter and no MetaMask was shown "Enter address"
+  // and the Stellar connect path was unreachable, which is the blocker that
+  // kept the chain paused in the first place.
+  const hasFreighter = typeof window !== "undefined" && "freighterApi" in window
+  // Sui wallets register through the same wallet-standard handshake Aptos uses,
+  // so the same discovery answers for both.
+  const hasSuiWallet = hasAptosWallet || (typeof window !== "undefined" && "suiWallet" in window)
   const walletTarget: "solana" | "aptos" | "sui" | "stellar" | "hyperliquid" | "near" | "evm" = isSolanaProject
     ? "solana"
     : isAptosProject
@@ -2578,19 +2588,45 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
   const isTokenMode = config.mode === "token"
   // Move-chain wording (module, .apt) for Aptos-only projects.
   const aptosWording = isAptosProject && !hasEvmChain
+  /**
+   * Whether to offer a CONNECT button at all, or fall back to "Enter address".
+   *
+   * This special-cased only solana and aptos, so sui, stellar, near and
+   * hyperliquid all fell through to `evmProviderAvailable` and the button was
+   * gated on MetaMask. Two different bugs came out of that. A Suiet-only or
+   * Freighter-only visitor was shown the paste box and never reached the
+   * connect path built for their chain. And NEAR was offered an EVM connect,
+   * which is worse than a degraded path because it SUCCEEDS: it attaches an
+   * Ethereum address, tagged with an EVM chain id, to a NEAR project.
+   *
+   * NEAR is deliberately false. Its account ids are human-readable names the
+   * user knows, so pasting is the natural path rather than a fallback, and
+   * there is no NEAR branch in connectWallet to send them to.
+   *
+   * Hyperliquid stays on the EVM check on purpose: HyperCore shares HyperEVM's
+   * address space, so an ordinary eth_requestAccounts is the correct handshake.
+   */
   const hasWallet =
     walletTarget === "solana"
       ? hasPhantom || (isEmbedded && !!bridgeWallet?.solana)
       : walletTarget === "aptos"
         ? aptosProviderAvailable || evmProviderAvailable
-        : evmProviderAvailable
+        : walletTarget === "sui"
+          ? hasSuiWallet || evmProviderAvailable
+          : walletTarget === "stellar"
+            ? hasFreighter
+            : walletTarget === "near"
+              ? false
+              : evmProviderAvailable
   // Name the wallet we will actually open, derived from the same target.
   const connectLabel =
     walletTarget === "solana"
       ? "Connect Phantom"
       : walletTarget === "aptos"
         ? (hasMartian && !hasPetraLike ? "Connect Martian" : "Connect Petra")
-        : "Connect wallet"
+        : walletTarget === "stellar"
+          ? "Connect Freighter"
+          : "Connect wallet"
 
   // Ensure text always contrasts with the background regardless of branding config
   const bgIsLight = getBgLuminance(b.backgroundColor) > 0.5

@@ -1,4 +1,4 @@
-import { NearLookupUnavailableError } from "./lookup"
+import { NearAccountNotFoundError, NearLookupUnavailableError } from "./lookup"
 import { nearRpc } from "./rpc"
 import type { NearBalance, NearTokenBalance } from "./types"
 
@@ -61,7 +61,20 @@ export async function getNearWalletBalance(accountId: string): Promise<NearBalan
   })
   if (acc.kind === "unavailable") throw new NearLookupUnavailableError(acc.reason)
   if (acc.kind === "missing") {
-    throw new NearLookupUnavailableError(`there is no NEAR account called ${accountId}`)
+    /**
+     * An account that does not exist is a FINDING, not a failed lookup, and
+     * throwing Unavailable for it produced a contradiction: the tool arm
+     * catches this and tells the model "do NOT say the account does not
+     * exist", while the reason string it carries says exactly that. The model
+     * is handed both halves and one of them is wrong.
+     *
+     * rpc.ts has already refused to call a pruning node's miss a finding, so
+     * reaching here means an archival node answered and the account genuinely
+     * is not on chain. That is worth saying plainly: on NEAR an account has to
+     * be created before it can hold anything, so "no such account" and "an
+     * empty account" are different situations with different fixes.
+     */
+    throw new NearAccountNotFoundError(accountId)
   }
 
   const yocto = BigInt(acc.value.amount || "0")
