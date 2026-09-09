@@ -217,11 +217,21 @@ async function main(): Promise<void> {
     let historyOk = false
     let historyDetail = "no candidate sender returned history with functionId"
     for (const sender of candidates.slice(0, 3)) {
-      const history = (await getAptosRecentTransactions(sender, undefined, 10)) ?? []
-      const withFunction = history.find(tx => tx.functionId !== null)
-      if (history.length >= 1 && withFunction) {
+      // getAptosRecentTransactions returns { transactions, unread }, not an
+      // array. This still called .find on it, so the check would have thrown
+      // the moment the indexer answered. It did not, because the indexer was
+      // rate-limited and the step SKIPPED, so the script reported PASS while
+      // carrying a crash on the one path it exists to verify.
+      const history = await getAptosRecentTransactions(sender, undefined, 10)
+      const txs = history?.transactions ?? []
+      const withFunction = txs.find(tx => tx.functionId !== null)
+      if (txs.length >= 1 && withFunction) {
         historyOk = true
-        historyDetail = `sender=${sender.slice(0, 12)}… txs=${history.length} functionId=${withFunction.functionId}`
+        // `unread` is versions the fullnode could not be asked about, NOT
+        // versions that are absent. A run that hydrated only some of what it
+        // found should say so rather than report a clean count.
+        const unread = history?.unread ?? 0
+        historyDetail = `sender=${sender.slice(0, 12)}… txs=${txs.length}${unread ? ` (${unread} unread)` : ""} functionId=${withFunction.functionId}`
         break
       }
       await pause(300)

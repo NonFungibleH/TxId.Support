@@ -33,12 +33,38 @@ export type IdlLookup =
   | { kind: "not_published" }
   | { kind: "unavailable"; reason: string }
 
-const RPC = process.env.SOLANA_RPC ?? "https://api.mainnet-beta.solana.com"
+/**
+ * The SAME variable the rest of the package reads.
+ *
+ * This was `SOLANA_RPC`, which nothing sets and nothing documents: the wired,
+ * documented variable is `SOLANA_RPC_URLS`. So `fetchIdl`, which
+ * `refreshContractAbi` calls in production, always hit the rate-limited public
+ * node no matter what was configured. Silent, because the public node answers
+ * most of the time.
+ *
+ * `SOLANA_RPC_URLS` may hold several endpoints; the first is used here, since
+ * an IDL read is a single account fetch rather than a fan-out.
+ */
+function idlRpc(): string {
+  const raw = process.env.SOLANA_RPC_URLS?.trim()
+  if (!raw) return "https://api.mainnet-beta.solana.com"
+  try {
+    const parsed: unknown = JSON.parse(raw)
+    if (Array.isArray(parsed)) {
+      const first = parsed.find((u): u is string => typeof u === "string" && u.startsWith("http"))
+      if (first) return first
+    }
+  } catch {
+    // Not JSON; fall through to the comma-separated form.
+  }
+  const first = raw.split(",").map(s => s.trim()).find(u => u.startsWith("http"))
+  return first ?? "https://api.mainnet-beta.solana.com"
+}
 
 async function getAccountData(address: string, timeoutMs: number): Promise<Uint8Array | null | "unavailable"> {
   let res: Response
   try {
-    res = await fetch(RPC, {
+    res = await fetch(idlRpc(), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "getAccountInfo", params: [address, { encoding: "base64" }] }),

@@ -52,8 +52,15 @@ jobs:
       # because @next/next/no-assign-module-variable is an ERROR not a warning.
       - name: Lint (what next build runs first)
         run: pnpm --filter @txid/app exec next lint
+      # EVERY package, derived from the workspace, for the same reason the test
+      # step is. This ran only apps/app, so @txid/stellar had a failing
+      # `tsc --noEmit` in its own test file and nobody knew. The chain packages
+      # also excluded `scripts` from their tsconfigs, which is how a caller of
+      # getAptosRecentTransactions went stale after its return type changed:
+      # the script reported PASS because the indexer was rate-limited and the
+      # step SKIPPED, while carrying a TypeError on the one path it verifies.
       - name: Typecheck
-        run: pnpm --filter @txid/app exec tsc --noEmit
+        run: pnpm type-check
 
       - name: Install Chromium
         run: pnpm --filter @txid/app exec playwright install --with-deps chromium

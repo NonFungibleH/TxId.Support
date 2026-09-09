@@ -100,7 +100,9 @@ describe("history", () => {
   // Horizon omits failed transactions by DEFAULT. Without include_failed the
   // one product built to explain failures would never see one.
   it("asks Horizon for failed transactions too", async () => {
-    const f = vi.fn(async () => res(200, { _embedded: { records: [] } }))
+    // Typed with the argument it is actually called with, or `mock.calls[0][0]`
+    // is indexing a zero-length tuple and tsc rejects it.
+    const f = vi.fn(async (_url: string) => res(200, { _embedded: { records: [] } }))
     vi.stubGlobal("fetch", f)
     await getStellarRecentTransactions(ACCOUNT, 5)
     expect(String(f.mock.calls[0]?.[0])).toContain("include_failed=true")
