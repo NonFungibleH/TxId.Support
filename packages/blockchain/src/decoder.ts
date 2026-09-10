@@ -1,7 +1,8 @@
 import { CHAIN_CONFIGS } from "./types"
 import { sanitizeChainText } from "./text"
 import type { DecodedRevert } from "./types"
-import { explorerQuery } from "./blockscout"
+import { explorerQuery, explorerRead } from "./blockscout"
+import { functionSelector } from "./keccak"
 
 const ERROR_SELECTOR = "08c379a0" // Error(string)
 const PANIC_SELECTOR = "4e487b71" // Panic(uint256)
@@ -137,10 +138,38 @@ export async function fetchAbiFromExplorer(address: string, chainId: string): Pr
 }
 
 /** Fetch error entries from a block explorer's ABI endpoint. */
-async function fetchContractErrors(address: string, chainId: string): Promise<AbiErrorEntry[]> {
-  const abiJson = await fetchAbiFromExplorer(address, chainId)
-  return abiJson ? parseAbiErrors(abiJson) : []
+/**
+ * The contract's own error definitions, as a THREE-valued answer.
+ *
+ * An empty list and a failed lookup are not the same claim. One says the
+ * contract does not define this error; the other says nobody asked it. Once
+ * the ABI is authoritative for naming an error, telling a user the error is
+ * "unrecognized" on the strength of a lookup that never completed asserts a
+ * check that did not happen.
+ */
+type AbiErrorLookup =
+  | { kind: "ok"; errors: AbiErrorEntry[] }
+  | { kind: "unavailable" }
+
+async function fetchContractErrors(address: string, chainId: string): Promise<AbiErrorLookup> {
+  // explorerRead, NOT fetchAbiFromExplorer, because that returns null for both
+  // "not verified" and "could not be reached". Collapsing them here would put
+  // the distinction back one level down, where it is invisible.
+  const read = await explorerRead(chainId, { module: "contract", action: "getabi", address })
+  if (read.kind === "unavailable") return { kind: "unavailable" }
+  // An explorer saying the source is not verified IS an answer about the
+  // contract, so an empty error list is a finding rather than a gap.
+  if (read.kind === "empty" || typeof read.result !== "string") return { kind: "ok", errors: [] }
+  return { kind: "ok", errors: parseAbiErrors(read.result) }
 }
+
+/** The 4-byte selector a custom error is raised with, derived from its ABI entry. */
+function abiErrorSelector(e: AbiErrorEntry): string {
+  return functionSelector(`${e.name}(${e.inputs.map((i) => i.type).join(",")})`).replace(/^0x/, "").toLowerCase()
+}
+
+const abiErrorSignature = (e: AbiErrorEntry): string =>
+  `${e.name}(${e.inputs.map((i) => i.type).join(",")})`
 
 /** Decode ABI-encoded Error(string) — strips 4-byte selector, reads string value. */
 function decodeErrorString(revertHex: string): string | null {
@@ -254,35 +283,66 @@ export async function decodeTxRevert(params: {
     }
   }
 
-  // Custom error — use preloaded ABI first, otherwise fetch in parallel with 4byte
-  const preloadedErrors = preloadedAbi ? parseAbiErrors(preloadedAbi) : null
-  const [sig4byte, explorerErrors] = await Promise.all([
+  // Custom error. The contract's own ABI is asked FIRST and matched on the
+  // selector, not on a name borrowed from 4byte.
+  //
+  // The previous order made the ABI useless exactly where it was needed. It
+  // was fetched, parsed, then consulted only to refine a 4byte hit, so a
+  // selector 4byte had never seen was reported as unrecognized while the
+  // verified ABI naming it sat in memory. Measured on Avalanche: Trader Joe's
+  // DLMMRouter reverts with 0xd0a4f13b, absent from 4byte, and its ABI calls
+  // it LBRouter__WrongNativeLiquidityParameters.
+  //
+  // ABI over 4byte is also the right precedence on authority. 4byte is a
+  // public registry anyone may write any text into; a verified contract is the
+  // authority on its own errors.
+  const preloadedErrors: AbiErrorLookup | null = preloadedAbi ? { kind: "ok", errors: parseAbiErrors(preloadedAbi) } : null
+  const [sig4byte, abiLookup] = await Promise.all([
     lookup4Byte(selector),
-    preloadedErrors !== null ? Promise.resolve(preloadedErrors) : fetchContractErrors(to, chainId),
+    preloadedErrors ?? fetchContractErrors(to, chainId),
   ])
 
-  // Match by name from ABI (if we got the ABI and the 4byte sig)
-  const errorName = sig4byte?.split("(")[0]
-  const abiMatch = errorName
-    ? explorerErrors.find((e) => e.name === errorName)
+  const abiMatch = abiLookup.kind === "ok"
+    ? abiLookup.errors.find((e) => abiErrorSelector(e) === selector)
     : undefined
 
-  if (sig4byte) {
-    const fullSig = abiMatch
-      ? `${abiMatch.name}(${abiMatch.inputs.map((i) => i.type).join(",")})`
-      : sig4byte
-    const resolvedName = abiMatch?.name ?? errorName
+  if (abiMatch) {
+    const fullSig = abiErrorSignature(abiMatch)
     return {
       cause: "custom_error",
       reason: fullSig,
-      ...(resolvedName ? { errorName: resolvedName } : {}),
+      errorName: abiMatch.name,
       errorSignature: fullSig,
       rawHex: revertHex,
       gasInfo,
     }
   }
 
-  // Completely unknown
+  if (sig4byte) {
+    const errorName = sig4byte.split("(")[0]
+    return {
+      cause: "custom_error",
+      reason: sig4byte,
+      ...(errorName ? { errorName } : {}),
+      errorSignature: sig4byte,
+      rawHex: revertHex,
+      gasInfo,
+    }
+  }
+
+  // Nothing resolved it. WHY nothing resolved it changes what may be said: a
+  // contract that was read and does not define this error is unrecognized; a
+  // contract that could not be read has not been checked at all.
+  if (abiLookup.kind === "unavailable") {
+    return {
+      cause: "unknown_revert",
+      reason:
+        "The contract reverted with an error we could not name: the contract's ABI could not be read, so its own definitions were never checked. This is a limit of our lookup, NOT a statement that the error is unknown to the contract.",
+      rawHex: revertHex,
+      gasInfo,
+    }
+  }
+
   return {
     cause: "unknown_revert",
     reason: "The contract reverted with an unrecognized error.",
