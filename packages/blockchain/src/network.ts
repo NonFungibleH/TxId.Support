@@ -61,7 +61,45 @@ export interface NetworkStatus {
  * Uses the chain's public RPC. Returns null if the chain is unknown or the RPC
  * is unreachable.
  */
+/**
+ * Three outcomes, because null was two facts wearing the same clothes.
+ *
+ * A chain with no CHAIN_CONFIGS entry and a configured chain whose RPC went
+ * down both returned null, and the caller rendered that as
+ * `responsive: false, "the chain may be having issues"`. That is a claim about
+ * the CHAIN produced by a gap in OUR config. Sepolia is selectable in the
+ * dashboard and has no entry, so asking about it reported a healthy network as
+ * unhealthy.
+ *
+ * `unsupported` is a fact about us. `unavailable` is a fact about the attempt.
+ * Neither is a fact about the chain, and only `ok` carries one.
+ */
+export type NetworkStatusRead =
+  | { kind: "ok"; status: NetworkStatus }
+  | { kind: "unsupported"; reason: string }
+  | { kind: "unavailable"; reason: string }
+
+export async function readNetworkStatus(chainId: string): Promise<NetworkStatusRead> {
+  const cfg = CHAIN_CONFIGS[chainId]
+  if (!cfg?.rpcUrl) {
+    return { kind: "unsupported", reason: `no RPC is configured for chain ${chainId}, so its status was never checked` }
+  }
+  const s = await networkStatusOrNull(chainId)
+  return s ? { kind: "ok", status: s } : { kind: "unavailable", reason: `the RPC for chain ${chainId} did not respond` }
+}
+
+/**
+ * @deprecated Use readNetworkStatus. This collapses "not configured" and "did
+ * not answer" into one null, which is what the tri-state above exists to keep
+ * apart. Kept only so a caller that genuinely wants the status object can get
+ * it without unwrapping.
+ */
 export async function getNetworkStatus(chainId: string): Promise<NetworkStatus | null> {
+  const r = await readNetworkStatus(chainId)
+  return r.kind === "ok" ? r.status : null
+}
+
+async function networkStatusOrNull(chainId: string): Promise<NetworkStatus | null> {
   const cfg = CHAIN_CONFIGS[chainId]
   if (!cfg?.rpcUrl) return null
   const rpcUrl = cfg.rpcUrl

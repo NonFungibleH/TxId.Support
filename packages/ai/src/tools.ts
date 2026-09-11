@@ -32,7 +32,7 @@ import {
   getTokenPrice,
   getNativeTokenPrice,
   getWalletApprovals,
-  getNetworkStatus,
+  readNetworkStatus,
   diagnoseWalletRpc,
   CHAIN_CONFIGS,
   checkSanctioned,
@@ -1753,8 +1753,17 @@ export async function executeTool(
             : { note: "The Aptos fullnode did not respond or is lagging, the network (or this fullnode) may be having issues." }),
         }
       }
-      const status = await getNetworkStatus(chainId)
-      return status ?? { chainId, responsive: false, note: "The network RPC did not respond, the chain may be having issues." }
+      // `responsive: false` is a claim about the chain, so it may only be made
+      // when a configured RPC was actually asked and did not answer. A chain
+      // we never configured says nothing about the chain's health.
+      const read = await readNetworkStatus(chainId)
+      if (read.kind === "unsupported") {
+        return { chainId, lookupFailed: true, note: `TxID has no RPC configured for this chain, so its status was NOT checked. Do not say the chain is down or having issues: nothing was measured. (${read.reason})` }
+      }
+      if (read.kind === "unavailable") {
+        return { chainId, responsive: false, note: "The network RPC did not respond, the chain may be having issues." }
+      }
+      return read.status
     }
 
     case "diagnose_wallet": {

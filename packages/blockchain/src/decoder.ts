@@ -231,9 +231,31 @@ export async function decodeTxRevert(params: {
     }
   }
 
-  // No target contract or no RPC configured
-  if (!to || !chain?.rpcUrl) {
-    return { cause: "unknown_revert", reason: "Reverted by the smart contract.", gasInfo }
+  // No target contract, or no RPC configured for this chain.
+  //
+  // "Reverted by the smart contract." is a FINDING, and nothing was read to
+  // support it. The branch directly below has said since #76 that a replay
+  // which could not run is a limit of our lookup rather than a silent
+  // contract; this branch is the same situation one step earlier, where we do
+  // not even have a node to ask. Sepolia is selectable in the dashboard and
+  // has no CHAIN_CONFIGS entry, so every Sepolia revert took this path.
+  if (!to) {
+    return {
+      cause: "unknown_revert",
+      replayUnavailable: true,
+      reason:
+        "This transaction has no target contract, so there is no contract error to read. The failure was not diagnosed here.",
+      gasInfo,
+    }
+  }
+  if (!chain?.rpcUrl) {
+    return {
+      cause: "unknown_revert",
+      replayUnavailable: true,
+      reason:
+        `The revert reason could not be READ: no RPC is configured for chain ${chainId}, so the transaction was never replayed and the contract's own error was never retrieved. This is a limit of our lookup, NOT a statement that the contract failed silently.`,
+      gasInfo,
+    }
   }
 
   // Replay via eth_call to get the encoded revert reason

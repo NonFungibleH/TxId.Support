@@ -1,5 +1,7 @@
 import { describe, it, expect, vi, afterEach, beforeEach } from "vitest"
 import { getWalletApprovals, getTransactionByHash } from "./wallet"
+import { readNetworkStatus } from "./network"
+import { decodeTxRevert } from "./decoder"
 
 /**
  * One bug, wearing different clothes.
@@ -119,5 +121,73 @@ describe("transactions: a failed read is not a missing transaction", () => {
     }))
     const tx = await getTransactionByHash(HASH, BNB)
     expect(tx, "the chain itself denying the hash IS a real answer").toBeNull()
+  })
+})
+
+// ── A chain we never configured is not a chain that is down ────────────────
+
+/**
+ * Found auditing the chain work, 2026-09-11.
+ *
+ * `getNetworkStatus` returned null for two different things: a chain with no
+ * CHAIN_CONFIGS entry, and a configured chain whose RPC did not answer. The
+ * caller in tools.ts turned that single null into
+ *
+ *   { responsive: false, note: "The network RPC did not respond, the chain
+ *     may be having issues." }
+ *
+ * which is a statement about the CHAIN, produced by a gap in OUR config.
+ * `responsive: false` is a finding. Sepolia is selectable in the dashboard and
+ * has no entry, so asking about it reported a healthy network as unhealthy.
+ *
+ * The same shape sits one branch above the replay guard in decodeTxRevert: with
+ * no rpcUrl it answered "Reverted by the smart contract.", a claim about the
+ * contract made without reading anything, while the branch directly below it
+ * has said "could not be READ ... NOT a statement that the contract failed
+ * silently" since #76.
+ */
+/**
+ * An id nothing will ever configure. Sepolia was used here first and then
+ * given a config in the same change, which is the right outcome for Sepolia
+ * and makes it useless as this fixture: the case being pinned is any chain
+ * we do not have a node for, not one particular chain.
+ */
+const UNCONFIGURED = "0xdeadbeef"
+
+describe("a chain with no RPC configured", () => {
+  it("is not reported as a network that failed to respond", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => { throw new Error("nothing should be fetched") }))
+    const r = await readNetworkStatus(UNCONFIGURED)
+    expect(r.kind).toBe("unsupported")
+    if (r.kind !== "unsupported") throw new Error("narrowing")
+    expect(r.reason).toMatch(/not configured|no RPC|do not support/i)
+  })
+
+  it("is told apart from a configured chain whose RPC is down", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => { throw new Error("ECONNREFUSED") }))
+    const r = await readNetworkStatus("0x1")
+    expect(r.kind).toBe("unavailable")
+  })
+
+  it("still reports a healthy chain as ok", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => ({
+      ok: true, status: 200,
+      json: async () => ({ jsonrpc: "2.0", id: 1, result: "0x3b9aca00" }),
+    }) as unknown as Response))
+    const r = await readNetworkStatus("0x1")
+    expect(r.kind).toBe("ok")
+  })
+
+  it("does not tell the user an unread contract reverted silently", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => { throw new Error("nothing should be fetched") }))
+    const d = await decodeTxRevert({
+      from: "0x0000000000000000000000000000000000000001",
+      to: "0x0000000000000000000000000000000000000002",
+      value: "0", input: "0x", blockNumber: "1",
+      chainId: UNCONFIGURED, gasUsed: "21000", gasLimit: "300000",
+    })
+    expect(d.replayUnavailable).toBe(true)
+    expect(d.reason).not.toMatch(/^Reverted by the smart contract\.$/)
+    expect(d.reason).toMatch(/could not|not configured/i)
   })
 })

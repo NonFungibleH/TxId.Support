@@ -135,6 +135,21 @@ const DEFAULT_CHAIN_CONFIGS: Record<string, ChainConfig> = {
     moralisChain: "optimism",
     rpcUrl: "https://mainnet.optimism.io",
   },
+  "0xaa36a7": {
+    id: "0xaa36a7",
+    name: "Sepolia (Testnet)",
+    nativeCurrency: "ETH",
+    explorer: "https://sepolia.etherscan.io",
+    // No moralisChain ON PURPOSE: Moralis testnet coverage is not verified
+    // here, and naming a chain it may not serve would turn an unsupported
+    // read into a confident wrong one. Without it, getNativeBalance takes the
+    // RPC fallback and getTokenBalances THROWS "no indexer configured", which
+    // is the honest degradation. Add it only with a response to point at.
+    //
+    // rpc.sepolia.org answers HTTP 200 with HTML, so it is not used: a 200 is
+    // not an answer.
+    rpcUrl: "https://ethereum-sepolia-rpc.publicnode.com",
+  },
   "0xa86a": {
     id: "0xa86a",
     name: "Avalanche",
