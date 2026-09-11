@@ -70,6 +70,28 @@ describe("every EVM chain we can read is registered everywhere it has to be", ()
   })
 })
 
+describe("every EVM chain the dashboard offers can actually be read", () => {
+  /**
+   * The check above is CHAIN_CONFIGS then SUPPORTED_CHAINS. This is the other
+   * direction, and it was missing: a chain a user can select that has no
+   * config is a chain we offer and cannot read.
+   *
+   * Sepolia was exactly this. It sat in SUPPORTED_CHAINS with an entry in the
+   * explorer map and none in CHAIN_CONFIGS, so `getNetworkStatus` reported a
+   * healthy testnet as one that "may be having issues" and every Sepolia
+   * revert came back "Reverted by the smart contract." without anything being
+   * read. Nothing failed; there was simply no node to ask.
+   */
+  it("has an entry in CHAIN_CONFIGS with an rpcUrl", () => {
+    const configs = CHAIN_CONFIGS as Record<string, { rpcUrl?: string } | undefined>
+    const broken = SUPPORTED_CHAINS
+      .map(c => String(c.id))
+      .filter(id => id.startsWith("0x"))
+      .filter(id => !configs[id]?.rpcUrl)
+    expect(broken).toEqual([])
+  })
+})
+
 describe("every chain the dashboard offers has a public page", () => {
   /**
    * A chain a customer can select but that has no page on the marketing site
@@ -100,7 +122,20 @@ describe("the non-EVM chains are registered too", () => {
    * derived, because there is no single registry that contains them: that IS
    * the shape of the problem this file guards.
    */
-  const NON_EVM = ["solana", "aptos", "sui", "stellar", "near", "hyperliquid"]
+  /**
+   * DERIVED, not a second list. This was hand-written, and a hand-written list
+   * of the chains that a hand-written list might miss is the same bug one
+   * level up: adding a non-EVM chain and forgetting to add it here would leave
+   * it unchecked by every test in this file.
+   *
+   * An id that is not hex is not an EVM chain id, so this is the whole set by
+   * construction.
+   */
+  const NON_EVM = SUPPORTED_CHAINS.map(c => String(c.id)).filter(id => !id.startsWith("0x"))
+
+  it("is a set this file actually derived, so it cannot pass vacuously", () => {
+    expect(NON_EVM.length).toBeGreaterThan(3)
+  })
 
   it("each is offered, named in both maps, and has a page", () => {
     const supported = new Set<string>(SUPPORTED_CHAINS.map(c => c.id as string))
