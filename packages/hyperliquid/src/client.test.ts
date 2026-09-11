@@ -147,3 +147,61 @@ describe("fills", () => {
     expect(r.value[0]?.side).toBe("sell")
   })
 })
+
+// ── The spot leg was the one read whose failure was not carried ─────────────
+
+/**
+ * `clearinghouseState` (perps) and `spotClearinghouseState` (spot) are fetched
+ * together, and only the perp result was guarded. A failing spot read became
+ * `[]`, which then fed `neverTraded`.
+ *
+ * So a spot-only account, read during a spot outage, came back holding nothing
+ * AND flagged as never having traded. Both are claims about the user, produced
+ * by a request that did not complete. This file already states the rule in
+ * `getHyperliquidOrders`: an empty array is an answer only when the exchange
+ * actually looked.
+ */
+const EMPTY_PERP = { marginSummary: { accountValue: "0.0" }, withdrawable: "0.0", assetPositions: [] }
+
+describe("a spot read that did not complete", () => {
+  it("does not present the spot holdings as complete", async () => {
+    // Perps answered and carry real positions, so the account is still worth
+    // returning. What must not happen is an empty spot list rendered as a fact.
+    vi.stubGlobal("fetch", endpoint({ clearinghouseState: PERP, spotClearinghouseState: "DOWN" }))
+    const r = await getHyperliquidAccount(USER)
+    expect(r.kind).toBe("ok")
+    if (r.kind !== "ok") throw new Error("narrowing")
+    expect(r.value.spotUnavailable).toBe(true)
+    expect(r.value.neverTraded).toBe(false)
+  })
+
+  it("above all is not reported as an account that never traded", async () => {
+    // The dangerous combination: no perps, and the spot leg is the one that
+    // failed. Every input to `neverTraded` reads as zero and none was measured,
+    // so there is nothing here worth returning at all.
+    vi.stubGlobal("fetch", endpoint({ clearinghouseState: EMPTY_PERP, spotClearinghouseState: "DOWN" }))
+    const r = await getHyperliquidAccount(USER)
+    expect(r.kind).toBe("unavailable")
+  })
+
+  it("still reports a genuinely empty spot balance as the answer it is", async () => {
+    // The exchange answering with no balances IS a finding, and must stay one.
+    vi.stubGlobal("fetch", endpoint({ clearinghouseState: EMPTY_PERP, spotClearinghouseState: { balances: [] } }))
+    const r = await getHyperliquidAccount(USER)
+    expect(r.kind).toBe("ok")
+    if (r.kind !== "ok") throw new Error("narrowing")
+    expect(r.value.neverTraded).toBe(true)
+    expect(r.value.spotUnavailable).toBe(false)
+    expect(r.value.spot).toEqual([])
+  })
+
+  it("still returns the account when both legs answer", async () => {
+    vi.stubGlobal("fetch", endpoint({ clearinghouseState: PERP, spotClearinghouseState: SPOT }))
+    const r = await getHyperliquidAccount(USER)
+    expect(r.kind).toBe("ok")
+    if (r.kind !== "ok") throw new Error("narrowing")
+    expect(r.value.spot).toEqual([{ coin: "USDC", total: "4.8765" }])
+    expect(r.value.spotUnavailable).toBe(false)
+    expect(r.value.neverTraded).toBe(false)
+  })
+})
