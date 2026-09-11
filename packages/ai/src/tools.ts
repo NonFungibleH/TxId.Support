@@ -551,7 +551,11 @@ export async function executeTool(
           withdrawableUsd: r.value.withdrawable,
           marginUsedUsd: r.value.totalMarginUsed,
           positions: r.value.positions,
-          spotBalances: r.value.spot,
+          // Omitted rather than sent as [] when unread: an empty array here is
+          // read as "no spot balances", which is the claim we cannot make.
+          ...(r.value.spotUnavailable
+            ? { spotBalancesUnavailable: true, spotBalancesNote: "The spot balance request did not complete, so spot holdings are UNKNOWN. Do NOT say this address holds no spot balances, and do not include spot in any total." }
+            : { spotBalances: r.value.spot }),
           note: "Figures are ALREADY in human units as the exchange states them, so quote them as given and do not rescale anything. A position's `size` is signed and `direction` is derived from it: negative is SHORT. Perpetual collateral and spot balances are held SEPARATELY, so funds on one side do not back an order on the other. `withdrawableUsd` is what can be taken out now, which is lower than the account value whenever margin is in use.",
         }
       }

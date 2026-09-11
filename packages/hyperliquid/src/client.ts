@@ -62,6 +62,10 @@ export async function getHyperliquidAccount(address: string): Promise<Hyperliqui
     })
   }
 
+  // The two legs fail independently, and only the perp one was ever guarded.
+  // A spot outage turned into `[]`, which is indistinguishable from an account
+  // holding no spot, and then fed `neverTraded`.
+  const spotUnavailable = !spot.ok
   const spotRows = spot.ok
     ? ((spot.result as { balances?: { coin?: string; total?: string }[] } | null)?.balances ?? [])
     : []
@@ -70,7 +74,17 @@ export async function getHyperliquidAccount(address: string): Promise<Hyperliqui
   // The exchange answers for ANY address: an account that has never traded
   // comes back zeroed rather than missing. That is a real answer and the same
   // fact, so it is reported as one rather than as an absence.
-  const neverTraded = (accountValue === null || Number(accountValue) === 0) && positions.length === 0 && spotRows.length === 0
+  //
+  // It is only a real answer when BOTH legs were read. With spot unread there
+  // is no evidence about spot, so the claim cannot be made.
+  const nothingOnPerps = (accountValue === null || Number(accountValue) === 0) && positions.length === 0
+  const neverTraded = !spotUnavailable && nothingOnPerps && spotRows.length === 0
+
+  // Perps empty AND spot unread is nothing measured at all. Returning an
+  // account here would be handing back a shape with no evidence in it.
+  if (spotUnavailable && nothingOnPerps) {
+    return { kind: "unavailable", reason: spot.ok ? "the spot balance could not be read" : spot.reason }
+  }
 
   return {
     kind: "ok",
@@ -81,6 +95,7 @@ export async function getHyperliquidAccount(address: string): Promise<Hyperliqui
       totalMarginUsed: str(p.marginSummary?.totalMarginUsed),
       positions,
       spot: spotRows.filter(b => str(b.total) !== null).map(b => ({ coin: b.coin ?? "?", total: b.total! })),
+      spotUnavailable,
       neverTraded,
     },
   }

@@ -23,6 +23,12 @@ export interface HyperliquidAccount {
   /** Spot balances, held SEPARATELY from perpetual collateral on Hyperliquid. */
   spot: { coin: string; total: string }[]
   /** True when this address has no HyperCore account at all, which is a real answer. */
+  /**
+   * The spot leg is fetched alongside the perp leg and can fail on its own.
+   * When it does, `spot` is not a holdings list, it is an unread one, and
+   * `neverTraded` cannot be asserted at all.
+   */
+  spotUnavailable: boolean
   neverTraded: boolean
 }
 
