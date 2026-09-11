@@ -113,7 +113,26 @@ import {
 } from "@txid/aptos"
 import type { WatchedContractSnapshot } from "./types"
 
-const isNonEvm = (chainId: string): boolean => isSolanaChain(chainId) || isAptosChain(chainId)
+/**
+ * DERIVED, not a list. This was `isSolanaChain(id) || isAptosChain(id)`, which
+ * is two of the six non-EVM chains that are live, so Sui, Stellar, NEAR and
+ * Hyperliquid were pushed into the EVM transaction fan-out. None has a
+ * CHAIN_CONFIGS entry, so each threw and was recorded as an UNREACHABLE CHAIN
+ * in the list handed to the model: a Stellar project looking up a hash was
+ * told Stellar could not be reached, when that fan-out was never able to ask
+ * Stellar in the first place.
+ *
+ * The exact question this filter needs is "can an EVM lookup be performed for
+ * this id", and CHAIN_CONFIGS answers it by construction. An id nothing knows
+ * fails closed for the same reason: it is not something to throw an EVM lookup
+ * at either.
+ *
+ * Exported so a test can hold it to every chain rather than to the two it was
+ * written for.
+ */
+export const isNonEvmChainId = (chainId: string): boolean => !CHAIN_CONFIGS[chainId]
+
+const isNonEvm = isNonEvmChainId
 
 /**
  * Name the markets an Aptos transaction's arguments refer to, when a watched
