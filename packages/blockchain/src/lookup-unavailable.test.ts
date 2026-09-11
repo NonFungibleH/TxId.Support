@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach, beforeEach } from "vitest"
-import { getTransactionByHash, LookupUnavailableError } from "./wallet"
+import { getTransactionByHash, getNativeBalance, LookupUnavailableError } from "./wallet"
 import { diagnoseTransaction } from "./diagnose"
 
 /**
@@ -88,5 +88,60 @@ describe("diagnoseTransaction, when no chain can be asked", () => {
     vi.stubGlobal("fetch", vi.fn(async () => { throw new Error("ECONNRESET") }))
     const d = await diagnoseTransaction(HASH)
     expect(d.unreachableChains).toContain("0xa729")
+  })
+})
+
+// ── The error takes a chain id, and was being handed whole sentences ────────
+
+/**
+ * Found auditing the chain work, 2026-09-11, after Robinhood Chain's node
+ * answered HTTP 200 with the plain text "upstream connect error" under load.
+ *
+ * The constructor takes a chainId and builds
+ * `Could not reach ${name} to look up the transaction` around it. Three call
+ * sites in wallet.ts pass a whole sentence instead, so the user gets:
+ *
+ *   "Could not reach could not read the Robinhood Chain balance: Unexpected
+ *    token u to look up the transaction"
+ *
+ * and `error.chainId`, which the test above relies on being a chain id, holds
+ * a sentence. A reason is a real thing to want here; it just needs its own
+ * parameter rather than the one that is already spoken for.
+ */
+describe("the message a user actually reads", () => {
+  const garbled = /Could not reach (could not|the .* node|No indexer)/
+
+  it("is a sentence when no reason is given", () => {
+    const e = new LookupUnavailableError(BNB)
+    expect(e.message).toBe("Could not reach BNB Chain to look up the transaction")
+    expect(e.chainId).toBe(BNB)
+  })
+
+  it("is the reason itself when one is given, not a reason wrapped in a sentence", () => {
+    const e = new LookupUnavailableError(BNB, "the BNB Chain node did not return a balance")
+    expect(e.message).toBe("the BNB Chain node did not return a balance")
+    expect(e.message).not.toMatch(garbled)
+  })
+
+  it("keeps chainId a chain id even when a reason is given", () => {
+    const e = new LookupUnavailableError(BNB, "anything at all")
+    expect(e.chainId).toBe(BNB)
+  })
+
+  it("produces no garbled message from the balance path", async () => {
+    // The live shape: a 200 whose body is prose.
+    vi.stubGlobal("fetch", vi.fn(async () => ({
+      ok: true, status: 200,
+      json: async () => { throw new SyntaxError("Unexpected token 'u'") },
+    }) as unknown as Response))
+    try {
+      await getNativeBalance("0x0000000000000000000000000000000000000001", BNB)
+      throw new Error("expected it to throw")
+    } catch (e) {
+      expect(e).toBeInstanceOf(LookupUnavailableError)
+      const err = e as InstanceType<typeof LookupUnavailableError>
+      expect(err.message).not.toMatch(garbled)
+      expect(err.chainId).toBe(BNB)
+    }
   })
 })

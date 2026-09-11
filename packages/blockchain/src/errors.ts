@@ -14,8 +14,18 @@ import { CHAIN_CONFIGS } from "./types"
  * it too, and wallet.ts imports blockscout-wallet.ts.
  */
 export class LookupUnavailableError extends Error {
-  constructor(public readonly chainId: string) {
-    super(`Could not reach ${CHAIN_CONFIGS[chainId]?.name ?? chainId} to look up the transaction`)
+  /**
+   * `chainId` is a chain id, and callers were passing sentences to it. The
+   * constructor wraps its argument in "Could not reach … to look up the
+   * transaction", so a sentence came out as "Could not reach could not read
+   * the Robinhood Chain balance: Unexpected token u to look up the
+   * transaction", and `chainId` held prose for anything that read it.
+   *
+   * A specific reason is worth having. It gets its own parameter, and replaces
+   * the default sentence rather than being embedded in one.
+   */
+  constructor(public readonly chainId: string, reason?: string) {
+    super(reason ?? `Could not reach ${CHAIN_CONFIGS[chainId]?.name ?? chainId} to look up the transaction`)
     this.name = "LookupUnavailableError"
   }
 }
