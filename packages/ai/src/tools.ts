@@ -19,7 +19,7 @@ import {
   canCheckEvent,
   eventNamesFromAbi,
   getContractDeployment,
-  getContractState,
+  readContractState,
   viewGetterNames,
   getContractData,
   viewFunctionsWithArgs,
@@ -1439,10 +1439,14 @@ export async function executeTool(
           ? { contract: target.name, function: fnId, result }
           : { contract: target.name, function: fnId, note: "The view call failed, the function may not exist, may require arguments or type arguments, or the Aptos fullnode did not respond." }
       }
-      const state = await getContractState(target.address, target.chain, functionName, target.abi ?? undefined)
-      return state
-        ? { contract: target.name, ...state }
-        : { contract: target.name, function: functionName, note: "That value is not a readable no-argument getter on this contract, or the read failed." }
+      // "not a getter, OR the read failed" made the model choose, and the
+      // choice a user hears is the claim about their contract.
+      const state = await readContractState(target.address, target.chain, functionName, target.abi ?? undefined)
+      if (state.kind === "ok") return { contract: target.name, ...state.state }
+      if (state.kind === "not_a_getter") {
+        return { contract: target.name, function: functionName, note: "The contract's ABI was read and defines no no-argument view getter by that name. That is a real answer about the contract." }
+      }
+      return { contract: target.name, function: functionName, lookupFailed: true, note: `That value could NOT be read (${state.reason}). Do not say the contract lacks this getter: it was never determined.` }
     }
 
     case "get_contract_data": {
