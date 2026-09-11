@@ -180,7 +180,7 @@ export async function getNativeBalance(
   }
 
   const rpcUrl = CHAIN_CONFIGS[chainId]?.rpcUrl
-  if (!rpcUrl) throw new LookupUnavailableError(`No indexer or RPC configured for chain ${chainId}`)
+  if (!rpcUrl) throw new LookupUnavailableError(chainId, `No indexer or RPC is configured for chain ${chainId}, so the balance was never read`)
   try {
     const res = await fetch(rpcUrl, {
       method: "POST",
@@ -193,12 +193,12 @@ export async function getNativeBalance(
     // A JSON-RPC error object is a node DECLINING to answer, not an answer of
     // zero. Reporting it as a balance would tell somebody their wallet is empty.
     if (body.error || typeof body.result !== "string") {
-      throw new LookupUnavailableError(`the ${CHAIN_CONFIGS[chainId]?.name ?? chainId} node did not return a balance`)
+      throw new LookupUnavailableError(chainId, `the ${CHAIN_CONFIGS[chainId]?.name ?? chainId} node did not return a balance`)
     }
     return formatNative(BigInt(body.result), chainId)
   } catch (e) {
     if (e instanceof LookupUnavailableError) throw e
-    throw new LookupUnavailableError(`could not read the ${CHAIN_CONFIGS[chainId]?.name ?? chainId} balance: ${e instanceof Error ? e.message : "network error"}`)
+    throw new LookupUnavailableError(chainId, `could not read the ${CHAIN_CONFIGS[chainId]?.name ?? chainId} balance: ${e instanceof Error ? e.message : "network error"}`)
   }
 }
 
