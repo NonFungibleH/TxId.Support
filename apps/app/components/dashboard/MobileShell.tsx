@@ -9,17 +9,18 @@ interface MobileShellProps {
   orgName: string
   /** Which product's nav to show. Shell, header, footer and theme are shared. */
   product?: "support" | "console" | "console-demo"
+  consoleVisible?: boolean
   mode: string
   beta?: boolean
   caps?: Capability[]
 }
 
-export function MobileShell({ orgName, product, mode, beta = false, caps }: MobileShellProps) {
+export function MobileShell({ orgName, product, consoleVisible, mode, beta = false, caps }: MobileShellProps) {
   const [open, setOpen] = useState(false)
 
   return (
     <>
-      <Sidebar product={product} mode={mode} beta={beta} caps={caps} isOpen={open} onClose={() => setOpen(false)} />
+      <Sidebar product={product} consoleVisible={consoleVisible} mode={mode} beta={beta} caps={caps} isOpen={open} onClose={() => setOpen(false)} />
       <DashboardHeader orgName={orgName} onMenuToggle={() => setOpen((o) => !o)} />
       {open && (
         <div

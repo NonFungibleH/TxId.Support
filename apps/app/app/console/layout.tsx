@@ -29,6 +29,13 @@ export default async function ConsoleLayout({ children }: { children: React.Reac
   const { org, project } = await getProject()
 
   if (!project) redirect("/onboarding")
+  // OPERATOR-ONLY, FOR NOW. Two things have to land before a customer sees
+  // this: the three migrations behind it, and resolutions recorded from the
+  // agent path, without which a widget-only customer opens an empty product.
+  // Until then the Console is reachable by platform operators (ADMIN_EMAILS)
+  // so it can be reviewed against live data, and nobody else. Removing this
+  // redirect is the launch switch, and it should be removed on purpose.
+  if (!(await isCurrentUserAdmin())) redirect("/dashboard")
   await ensureCurrentUserRole()
 
   const actor = await currentActor()

@@ -162,6 +162,12 @@ interface SidebarProps {
    * products that happen to share a login.
    */
   product?: "support" | "console" | "console-demo"
+  /**
+   * Show the link across to the Console. Off by default: the Console is
+   * operator-only until its migrations are applied and the agent path records
+   * resolutions, and a link to an empty product is worse than no link.
+   */
+  consoleVisible?: boolean
   mode?: string
   /** A beta programme is configured. Reveals its tab; hidden otherwise. */
   beta?: boolean
@@ -172,7 +178,7 @@ interface SidebarProps {
   onClose?: () => void
 }
 
-export function Sidebar({ product = "support", mode = "support", beta = false, caps, isOpen = false, onClose }: SidebarProps) {
+export function Sidebar({ product = "support", consoleVisible = false, mode = "support", beta = false, caps, isOpen = false, onClose }: SidebarProps) {
   const pathname = usePathname()
   // The Beta programme tab appears only once one is set up, so the menu is not
   // carrying a feature most protocols will never use. It is NOT how you turn
@@ -186,9 +192,10 @@ export function Sidebar({ product = "support", mode = "support", beta = false, c
         : mode === "token"
           ? TOKEN_GROUPS
           : SUPPORT_GROUPS
-  const betaFiltered = beta
+  const betaFiltered = (beta
     ? base
     : base.map(g => ({ ...g, items: g.items.filter(i => i.href !== "/dashboard/beta") }))
+  ).map(g => ({ ...g, items: g.items.filter(i => consoleVisible || i.href !== "/console") }))
   // Hide destinations the viewer's role cannot use, then drop any now-empty
   // group. Undefined caps = no filtering (backwards compatible).
   const GROUPS = (caps

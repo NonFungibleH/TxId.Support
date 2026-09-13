@@ -47,7 +47,7 @@ export default async function DashboardLayout({
   return (
     <div className="flex min-h-screen flex-col bg-background">
       <OrgSyncGuard serverOrgId={orgId ?? null} />
-      <MobileShell orgName={org.name} mode={mode} beta={beta} caps={caps} />
+      <MobileShell orgName={org.name} mode={mode} beta={beta} caps={caps} consoleVisible={isAdmin} />
       <main className="mt-14 flex-1 p-4 pb-20 md:ml-60 md:p-6 md:pb-20">
         <div className="mx-auto max-w-4xl">{children}</div>
       </main>
