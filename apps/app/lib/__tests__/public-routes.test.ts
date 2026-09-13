@@ -28,12 +28,21 @@ const block = middleware.slice(
 // passed on a comment that merely mentioned a route, which is a test that
 // cannot fail: exactly the kind that lets the bug through twice.
 const entries = [...block.matchAll(/"([^"]+)"/g)].map(m => m[1]!)
-const isPublic = (route: string) => entries.some(e => e.startsWith(route))
+// Modelled on the matcher, not on string prefixes. "/console-demo(.*)" starts
+// with "/console", and a prefix test therefore reported the authenticated
+// Console as public. The real matcher anchors each pattern, so "/console" is
+// public only if an entry is "/console" itself or a parent path of it.
+const bases = entries.map(e => e.replace(/\(\.\*\)$/, ""))
+const isPublic = (route: string) => bases.some(b => route === b || route.startsWith(`${b}/`))
 
 describe("middleware public routes", () => {
   it.each([
     ["/api/v1/diagnose", "secret key bearer token"],
     ["/api/v1/resolve", "secret key bearer token"],
+    ["/api/v1/identity", "secret key bearer token"],
+    // Fixtures only, 404s in production, reads no database. Public because the
+    // Preview environment runs production Clerk keys locked to txid.support.
+    ["/console-demo", "fixtures-only review copy, no data access"],
     ["/api/v1/status", "secret key bearer token"],
     ["/api/chat", "publishable key plus origin guard"],
     ["/api/telegram", "Telegram secret-token header"],
@@ -44,6 +53,8 @@ describe("middleware public routes", () => {
 
   it.each([
     ["/api/conversations", "dashboard-only, must stay behind Clerk"],
+    ["/api/console/audit", "writes the access log as the signed-in actor"],
+    ["/console", "the authenticated Console, never the demo's public rule"],
   ])("%s stays protected (%s)", route => {
     expect(isPublic(route)).toBe(false)
   })
