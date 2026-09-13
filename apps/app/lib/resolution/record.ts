@@ -25,6 +25,9 @@ export async function recordResolution(
     protocolAddress?: string | null
     entryFunction?: string | null
     rawStatus?: string | null
+    /** The customer as the protocol knows them, when the wallet resolves. */
+    customerRef?: string | null
+    wallet?: string | null
   },
 ): Promise<void> {
   try {
@@ -59,6 +62,13 @@ export async function recordResolution(
       chain_state_at: resolution.chain_state_at ?? null,
       source: ctx.source,
       raw_status: resolution.raw ?? ctx.rawStatus ?? null,
+      // Stored as a column, not left in jsonb: the Console's case list renders
+      // it for every row and cannot afford to unpack a document per row.
+      summary: resolution.summary ?? null,
+      // NULL means "no mapping held", which is an ordinary state. Never the
+      // empty string, which would read as a customer with a blank reference.
+      customer_ref: ctx.customerRef ?? null,
+      wallet: ctx.wallet ?? null,
       evidence: resolution.evidence ?? [],
     })
     if (error) {

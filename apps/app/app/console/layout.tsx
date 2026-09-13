@@ -3,6 +3,7 @@ import { resolveOrg } from "@/lib/clerk-org"
 import { OrgSyncGuard } from "@/components/dashboard/OrgSyncGuard"
 import { MobileShell } from "@/components/dashboard/MobileShell"
 import { DashboardFooter } from "@/components/dashboard/DashboardFooter"
+import { ConsoleSearch } from "@/components/console/ConsoleSearch"
 import { getProject } from "@/lib/actions/project"
 import { isCurrentUserAdmin } from "@/lib/admin-auth"
 import { ensureCurrentUserRole, currentActor } from "@/lib/roles-server"
@@ -10,46 +11,49 @@ import { capabilitiesOf } from "@/lib/roles"
 import { publicHost } from "@/lib/public-host"
 import type { ProjectConfig } from "@/lib/types/config"
 
-// Never serve this layout from a cache: which company you are looking at
-// comes from the session, and a cached shell is a shell belonging to whichever
-// company rendered it first.
+// Same reason as the dashboard: which company you are looking at comes from the
+// session, so a cached shell is somebody else's shell.
 export const dynamic = "force-dynamic"
 
-export default async function DashboardLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+/**
+ * The Console runs inside the SAME shell as the rest of the product: same
+ * header, same sidebar component, same footer, same theme tokens, same
+ * primitives. Only the nav groups differ.
+ *
+ * A customer with Support and Console should feel they are in one product with
+ * two sections, not two products that share a login, and anything forked here
+ * is something that drifts later.
+ */
+export default async function ConsoleLayout({ children }: { children: React.ReactNode }) {
   const { orgId } = await resolveOrg()
   const { org, project } = await getProject()
 
   if (!project) redirect("/onboarding")
-
-  // Apply an invited member's real role before any page or action runs, so a
-  // fresh invitee is never briefly treated as the default admin.
+  // OPERATOR-ONLY, FOR NOW. Two things have to land before a customer sees
+  // this: the three migrations behind it, and resolutions recorded from the
+  // agent path, without which a widget-only customer opens an empty product.
+  // Until then the Console is reachable by platform operators (ADMIN_EMAILS)
+  // so it can be reviewed against live data, and nobody else. Removing this
+  // redirect is the launch switch, and it should be removed on purpose.
+  if (!(await isCurrentUserAdmin())) redirect("/dashboard")
   await ensureCurrentUserRole()
 
-  // The viewer's capabilities drive which nav items the sidebar shows: a Support
-  // user should not see Setup / Launch / Team pages they cannot change.
   const actor = await currentActor()
   const caps = actor ? capabilitiesOf(actor.role) : undefined
-
   const typedProject = project as unknown as { mode?: string; config?: ProjectConfig }
-  const mode = typedProject.mode ?? "support"
   const plan = (typedProject.config as ProjectConfig | undefined)?.plan ?? "free"
-  // Keyed on `enabled`, NOT on activeBeta: a programme that has run its end
-  // date must still be reachable, or the results vanish the day it finishes.
-  const beta = (typedProject.config as ProjectConfig | undefined)?.beta?.enabled === true
   const isAdmin = await isCurrentUserAdmin()
-
   const webUrl = publicHost(process.env.NEXT_PUBLIC_WEB_URL, "https://txid.support")
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
       <OrgSyncGuard serverOrgId={orgId ?? null} />
-      <MobileShell orgName={org.name} mode={mode} beta={beta} caps={caps} consoleVisible={isAdmin} />
+      <MobileShell orgName={org.name} product="console" mode="support" caps={caps} />
       <main className="mt-14 flex-1 p-4 pb-20 md:ml-60 md:p-6 md:pb-20">
-        <div className="mx-auto max-w-4xl">{children}</div>
+        <div className="mx-auto max-w-5xl">
+          <ConsoleSearch base="/console" />
+          {children}
+        </div>
       </main>
       <DashboardFooter plan={plan} isAdmin={isAdmin} orgName={org.name} webUrl={webUrl} />
     </div>

@@ -116,3 +116,38 @@ describe("the height an answer was true as of reaches its own column", () => {
     expect(row.chain_state_at).not.toBe("0")
   })
 })
+
+describe("the Console's list columns reach the row", () => {
+  /**
+   * The case list renders `summary` for every row and groups by the customer
+   * the wallet resolves to. Both were in the object and the identity table
+   * respectively and reached the stored row as nothing: `summary` sat inside
+   * `evidence`-adjacent prose only, and no caller passed a customer at all. A
+   * list that has to unpack a document per row, or that shows every case under
+   * an address nobody recognises, is not a case list.
+   */
+  it("writes summary as its own column", async () => {
+    insert.mockResolvedValue({ error: null })
+    await recordResolution(resolution, ctx)
+    const row = insert.mock.calls.at(-1)![0] as Record<string, unknown>
+    expect(row.summary).toBe("That order had already left the book.")
+  })
+
+  it("writes the resolved customer and wallet when the caller supplies them", async () => {
+    insert.mockResolvedValue({ error: null })
+    await recordResolution(resolution, { ...ctx, customerRef: "acct_8812", wallet: "0x8cf0" })
+    const row = insert.mock.calls.at(-1)![0] as Record<string, unknown>
+    expect(row.customer_ref).toBe("acct_8812")
+    expect(row.wallet).toBe("0x8cf0")
+  })
+
+  it("writes null, not undefined or empty string, when no customer is known", async () => {
+    // An unmapped wallet is an ordinary state. It must read as "not mapped",
+    // never as a customer whose reference is the empty string.
+    insert.mockResolvedValue({ error: null })
+    await recordResolution(resolution, ctx)
+    const row = insert.mock.calls.at(-1)![0] as Record<string, unknown>
+    expect(row.customer_ref).toBeNull()
+    expect(row.wallet).toBeNull()
+  })
+})

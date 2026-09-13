@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation"
 import {
   LayoutDashboard, Paintbrush, FileCode2, BookOpen,
   LayoutList, Code2, BarChart3, Globe, MessageSquare, MessageCircle, Eye, Ticket, MessagesSquare,
-  Send, Wallet, Users, FlaskConical,
+  Send, Wallet, Users, FlaskConical, Inbox as InboxIcon, Settings as SettingsIcon,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { Capability } from "@/lib/roles"
@@ -35,6 +35,13 @@ const NAV_CAPABILITY: Record<string, Capability> = {
   "/dashboard/analytics": "records",
   "/dashboard/team": "team",
   "/dashboard/actions": "settings",
+  // The Console reads case records, so it needs what Conversations needs. Its
+  // settings change project configuration, so they need what Setup needs.
+  "/console": "records",
+  "/console/inbox": "records",
+  "/console/customers": "records",
+  "/console/analytics": "records",
+  "/console/settings": "settings",
 }
 
 const SUPPORT_GROUPS: NavGroup[] = [
@@ -69,6 +76,9 @@ const SUPPORT_GROUPS: NavGroup[] = [
       { href: "/dashboard/findings",      label: "Bugs & Feedback", icon: FlaskConical },
       { href: "/dashboard/tickets",       label: "Tickets",       icon: Ticket },
       { href: "/dashboard/analytics",     label: "Analytics",     icon: BarChart3 },
+      // The way across to the second product. A customer with both should not
+      // need a URL from an email to find it.
+      { href: "/console",                 label: "Console",       icon: InboxIcon },
     ],
   },
   {
@@ -115,7 +125,49 @@ const TOKEN_GROUPS: NavGroup[] = [
 ]
 
 
+/**
+ * The Console's navigation. Mirrors the support product's grouping (Overview,
+ * then Work, then Monitor, then Account) so a customer with both moves between
+ * them without relearning where anything is. Derived from a base path so the
+ * unauthenticated review copy at /console-demo cannot drift from the real one.
+ */
+const consoleGroups = (base: string): NavGroup[] => [
+  { items: [{ href: base, label: "Overview", icon: LayoutDashboard }] },
+  {
+    label: "Work",
+    items: [
+      { href: `${base}/inbox`, label: "Inbox", icon: InboxIcon },
+      { href: `${base}/customers`, label: "Customers", icon: Users },
+    ],
+  },
+  {
+    label: "Monitor",
+    items: [{ href: `${base}/analytics`, label: "Analytics", icon: BarChart3 }],
+  },
+  {
+    label: "Account",
+    items: [
+      { href: `${base}/settings`, label: "Settings", icon: SettingsIcon },
+      { href: "/dashboard/team", label: "Team & access", icon: Users },
+      { href: "/dashboard", label: "Support assistant", icon: MessagesSquare },
+    ],
+  },
+]
+
 interface SidebarProps {
+  /**
+   * Which product's navigation to render. The shell, header, footer, theme and
+   * every primitive are shared: only the nav groups differ, because a customer
+   * with both should feel they are in one product with two sections, not two
+   * products that happen to share a login.
+   */
+  product?: "support" | "console" | "console-demo"
+  /**
+   * Show the link across to the Console. Off by default: the Console is
+   * operator-only until its migrations are applied and the agent path records
+   * resolutions, and a link to an empty product is worse than no link.
+   */
+  consoleVisible?: boolean
   mode?: string
   /** A beta programme is configured. Reveals its tab; hidden otherwise. */
   beta?: boolean
@@ -126,16 +178,24 @@ interface SidebarProps {
   onClose?: () => void
 }
 
-export function Sidebar({ mode = "support", beta = false, caps, isOpen = false, onClose }: SidebarProps) {
+export function Sidebar({ product = "support", consoleVisible = false, mode = "support", beta = false, caps, isOpen = false, onClose }: SidebarProps) {
   const pathname = usePathname()
   // The Beta programme tab appears only once one is set up, so the menu is not
   // carrying a feature most protocols will never use. It is NOT how you turn
   // it on: that would be a switch you can only reach after flipping it. The
   // choice lives on Overview, which every project sees.
-  const base = mode === "token" ? TOKEN_GROUPS : SUPPORT_GROUPS
-  const betaFiltered = beta
+  const base =
+    product === "console"
+      ? consoleGroups("/console")
+      : product === "console-demo"
+        ? consoleGroups("/console-demo")
+        : mode === "token"
+          ? TOKEN_GROUPS
+          : SUPPORT_GROUPS
+  const betaFiltered = (beta
     ? base
     : base.map(g => ({ ...g, items: g.items.filter(i => i.href !== "/dashboard/beta") }))
+  ).map(g => ({ ...g, items: g.items.filter(i => consoleVisible || i.href !== "/console") }))
   // Hide destinations the viewer's role cannot use, then drop any now-empty
   // group. Undefined caps = no filtering (backwards compatible).
   const GROUPS = (caps
@@ -171,8 +231,8 @@ export function Sidebar({ mode = "support", beta = false, caps, isOpen = false, 
               </p>
             )}
             {group.items.map(({ href, label, icon: Icon, beta }) => {
-              const isActive = href === "/dashboard"
-                ? pathname === "/dashboard"
+              const isActive = href === "/dashboard" || href === "/console" || href === "/console-demo"
+                ? pathname === href
                 : (pathname ?? "").startsWith(href)
 
               return (
