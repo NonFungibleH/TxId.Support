@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { FadeIn } from "@/components/ui/FadeIn";
@@ -17,6 +18,7 @@ export const metadata: Metadata = {
     "stuck transaction",
   ],
   alternates: { canonical: "/tx" },
+  robots: { index: false, follow: false },
   openGraph: {
     title: "Transaction Checker: Why Did It Fail? | TxID",
     description:
@@ -27,7 +29,19 @@ export const metadata: Metadata = {
   },
 };
 
+/**
+ * PULLED 2026-09-18. The checker behind this page reads EVM chains only, so a
+ * hash from Aptos (identical in format) or any other supported chain came back
+ * as "dropped on Ethereum" with advice to resubmit at a higher fee: a claim
+ * about the user's transaction built from not having looked, and advice that
+ * could make someone send a successful transaction twice. It stays down until
+ * it reads every chain the site lists and never advises resubmitting on a
+ * hash it could not find. The component is kept so restoring it is one line.
+ */
+const CHECKER_LIVE = false
+
 export default function TxPage() {
+  if (!CHECKER_LIVE) notFound()
   return (
     <>
       <Navbar />

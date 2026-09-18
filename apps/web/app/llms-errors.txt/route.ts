@@ -14,7 +14,7 @@ export function GET() {
   push("# TxID transaction error reference (Q&A feed)")
   push("")
   push(
-    "> Plain-English answers for every common transaction failure message and custom-error selector. Human-readable versions live at https://txid.support/errors and https://txid.support/selector. To decode a specific transaction, use https://txid.support/tx. Maintained by TxID (https://txid.support), the AI support agent for DeFi protocols.",
+    "> Plain-English answers for every common transaction failure message and custom-error selector. Human-readable versions live at https://txid.support/errors and https://txid.support/selector. Maintained by TxID (https://txid.support), the AI support agent for DeFi protocols.",
   )
   push("")
 

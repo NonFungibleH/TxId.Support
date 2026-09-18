@@ -265,7 +265,7 @@ export const POSTS: Post[] = [
       {
         type: "callout",
         label: "Run the test yourself",
-        text: "You can run the evidence test on TxID right now, no sales call: paste any transaction hash into the free checker at txid.support/tx and see the verdict and evidence it builds, or try the live agent on real protocols at txid.support/check. It is built for exactly the questions above: it reads the transaction, replays it against live chain state, answers with the sources attached, and records every conversation as a reviewable trail.",
+        text: "You can run the evidence test on TxID right now, no sales call: try the live agent on real protocols at txid.support/check. It is built for exactly the questions above: it reads the transaction, replays it against live chain state, answers with the sources attached, and records every conversation as a reviewable trail.",
       },
     ],
   },
@@ -445,7 +445,7 @@ export const POSTS: Post[] = [
       {
         type: "callout",
         label: "See it investigate",
-        text: "The fastest way to understand agentic support is to watch an investigation. Paste any transaction hash into TxID's free checker at txid.support/tx and see the verdict it builds, or try the live agent on real protocols at txid.support/check.",
+        text: "The fastest way to understand agentic support is to watch an investigation: try the live agent on real protocols at txid.support/check.",
       },
     ],
   },
