@@ -51,7 +51,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${BASE}/api`,      lastModified: new Date(), changeFrequency: "monthly", priority: 0.8 },
     { url: `${BASE}/chains`,   lastModified: new Date(), changeFrequency: "weekly",  priority: 0.8 },
     { url: `${BASE}/check`,    lastModified: new Date(), changeFrequency: "monthly", priority: 0.7 },
-    { url: `${BASE}/tx`,       lastModified: new Date(), changeFrequency: "weekly",  priority: 0.8 },
     { url: `${BASE}/teamfinance`, lastModified: new Date(), changeFrequency: "monthly", priority: 0.6 },
     { url: `${BASE}/how-it-works`, lastModified: new Date(), changeFrequency: "monthly", priority: 0.8 },
     { url: `${BASE}/solutions`, lastModified: new Date(), changeFrequency: "monthly", priority: 0.8 },

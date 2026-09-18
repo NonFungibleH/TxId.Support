@@ -119,21 +119,6 @@ export default function SelectorPage({ params }: { params: { hex: string } }) {
             <p className="text-[var(--text-muted)] leading-relaxed mb-10 text-base">{sel.fix}</p>
           </article>
 
-          <div className="rounded-xl border border-accent/30 bg-accent/5 p-6 text-center">
-            <p className="font-display font-semibold text-white mb-2">Want the exact answer for your transaction?</p>
-            <p className="text-sm text-muted mb-5">
-              Paste the hash and we decode the revert against the contract itself, including the values inside
-              the error, free.
-            </p>
-            <Link
-              href="/tx"
-              className="inline-flex items-center gap-2 rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-white hover:opacity-90 transition-opacity"
-            >
-              Decode my transaction
-              <ArrowRight className="size-4" />
-            </Link>
-          </div>
-
           {related.length > 0 && (
             <div className="mt-12">
               <p className="font-mono text-xs text-muted uppercase tracking-wider mb-4">

@@ -165,20 +165,6 @@ export default function ErrorPage({ params }: { params: { slug: string } }) {
             )}
           </article>
 
-          <div className="rounded-xl border border-accent/30 bg-accent/5 p-6 text-center">
-            <p className="font-display font-semibold text-white mb-2">Still stuck?</p>
-            <p className="text-sm text-muted mb-5">
-              Paste your transaction hash and get the exact decoded reason for your failure, free.
-            </p>
-            <Link
-              href="/tx"
-              className="inline-flex items-center gap-2 rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-white hover:opacity-90 transition-opacity"
-            >
-              Decode my transaction
-              <ArrowRight className="size-4" />
-            </Link>
-          </div>
-
           {related.length > 0 && (
             <div className="mt-12">
               <p className="font-mono text-xs text-muted uppercase tracking-wider mb-4">

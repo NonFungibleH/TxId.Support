@@ -45,21 +45,6 @@ export default function ErrorsIndexPage() {
             </p>
           </FadeIn>
 
-          <FadeIn delay={0.08}>
-            <div className="mt-8 rounded-xl border border-accent/30 bg-accent/5 p-5 flex flex-wrap items-center justify-between gap-4">
-              <p className="text-sm text-white">
-                Have a failed transaction right now? Skip the list: paste the hash and get the decoded reason.
-              </p>
-              <Link
-                href="/tx"
-                className="inline-flex items-center gap-2 rounded-full bg-accent px-4 py-2 text-sm font-semibold text-white hover:opacity-90 transition-opacity shrink-0"
-              >
-                Decode a transaction
-                <ArrowRight className="size-4" />
-              </Link>
-            </div>
-          </FadeIn>
-
           {groups.map((group, gi) => (
             <FadeIn key={group.key} delay={0.1 + gi * 0.05}>
               <section className="mt-12">
