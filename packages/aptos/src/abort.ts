@@ -168,14 +168,22 @@ export function decodeAbort(vmStatus: string, errmap?: AbortErrmap): DecodedAbor
     if (errmap) {
       for (const [k, codes] of Object.entries(errmap)) {
         if (normalizeModuleKey(k) === modKey) {
-          mapped = codes[code] ?? null
-          // Name fallback: fullnodes embed the error constant NAME in vm_status
-          // (e.g. "EMARKET_HALTED(0x30004)") while modules may wrap the raw
-          // constant with a 0x1::error category. Errmap entries keyed by the
-          // raw constant still match via the name.
-          if (!mapped && parsedName) {
-            mapped = Object.values(codes).find(e => e.name === parsedName) ?? null
-          }
+          // THE CHAIN'S NAME WINS. Fullnodes embed the error constant NAME in
+          // vm_status (e.g. "EINVALID_TRIGGER_PRICE(0x5)"), and that name is the
+          // chain's own statement of what happened. Our map may supply a better
+          // EXPLANATION for that name; it may never replace it with a different
+          // one. The number was matched first until 2026-09-18, and a real
+          // Decibel failure whose code our map held under a different name was
+          // explained to a trader as the wrong error, with the chain's name
+          // overwritten by ours.
+          //
+          // Matching by name also covers modules that wrap the raw constant in
+          // a 0x1::error category (0x30004), where the number alone misses.
+          const byName = parsedName ? Object.values(codes).find(e => e.name === parsedName) ?? null : null
+          const byCode = codes[code] ?? null
+          mapped = parsedName
+            ? byName ?? (byCode && byCode.name === parsedName ? byCode : null)
+            : byCode
           break
         }
       }
