@@ -119,3 +119,57 @@ describe("decodeAbort", () => {
     }
   })
 })
+
+// ── The chain names the error. A number in our map must never overrule it. ──
+
+/**
+ * A real Decibel failure, mainnet 2026-09-18, tx
+ * 0x8f76e4cc2c44c12fb1b960c234d08dbdb4d41c6185222dbbd6eff2753bdf4454
+ * (dex_accounts_entry::place_tp_sl_order_for_position).
+ *
+ * The fullnode reported EINVALID_TRIGGER_PRICE(0x5). Our errmap held code 5 in
+ * that module as E_INVALID_REDUCE_ONLY_ORDER, a number that disagreed with both
+ * Decibel's docs and the chain, and the decoder matched the NUMBER first. So a
+ * trader setting a take-profit was told their reduce-only order was invalid,
+ * and the error name the chain itself supplied was overwritten with ours.
+ *
+ * When the vm_status carries a name, that name is the chain's own statement of
+ * what happened. Our map may supply a better explanation for that name; it may
+ * never replace the name with a different one.
+ */
+describe("the name the chain reports outranks a number in our map", () => {
+  const MODULE = "0x50ead22afd6ffd9769e3b3d6e0e64a2a350d68e8b102c4e72e33d0b8cfdfdb06::pending_order_tracker"
+  const REAL = `Move abort in 0x50ead22afd6ffd9769e3b3d6e0e64a2a350d68e8b102c4e72e33d0b8cfdfdb06::pending_order_tracker: EINVALID_TRIGGER_PRICE(0x5): `
+  // A map whose code 5 names a DIFFERENT error, which is the shape of the bug.
+  const wrongNumber = {
+    [MODULE]: {
+      5: { name: "E_INVALID_REDUCE_ONLY_ORDER", reason: "The reduce-only order is invalid against your current position." },
+    },
+  }
+
+  it("keeps the chain's error name", () => {
+    const d = decodeAbort(REAL, wrongNumber)
+    expect(d.errorName).toBe("EINVALID_TRIGGER_PRICE")
+  })
+
+  it("does not give the explanation that belongs to a different error", () => {
+    const d = decodeAbort(REAL, wrongNumber)
+    expect(d.reason).not.toMatch(/reduce-only/i)
+  })
+
+  it("still uses our explanation when the names agree", () => {
+    const agreeing = { [MODULE]: { 5: { name: "EINVALID_TRIGGER_PRICE", reason: "The trigger price is on the wrong side of the market." } } }
+    const d = decodeAbort(REAL, agreeing)
+    expect(d.reason).toBe("The trigger price is on the wrong side of the market.")
+  })
+
+  it("still matches by name when the map holds that name under another number", () => {
+    const byName = { [MODULE]: { 99: { name: "EINVALID_TRIGGER_PRICE", reason: "Matched by name." } } }
+    expect(decodeAbort(REAL, byName).reason).toBe("Matched by name.")
+  })
+
+  it("still matches by number when the chain gives no name", () => {
+    const bare = `Move abort in ${MODULE}: 0x5`
+    expect(decodeAbort(bare, wrongNumber).errorName).toBe("E_INVALID_REDUCE_ONLY_ORDER")
+  })
+})

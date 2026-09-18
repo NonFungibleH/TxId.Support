@@ -3,7 +3,8 @@ import Link from "next/link"
 import { Navbar } from "@/components/layout/Navbar"
 import { Footer } from "@/components/layout/Footer"
 import { FadeIn } from "@/components/ui/FadeIn"
-import { errorsByCategory, TX_ERRORS } from "@/lib/errors"
+import { errorsByCategory, TX_ERRORS, type TxError } from "@/lib/errors"
+import { VISIBLE_CHAINS } from "@/lib/chains"
 import { breadcrumbSchema } from "@/lib/seo"
 import { ArrowRight } from "lucide-react"
 
@@ -19,6 +20,38 @@ export const metadata: Metadata = {
     type: "website",
     url: "/errors",
   },
+}
+
+function chainName(slug: string): string {
+  return VISIBLE_CHAINS.find(c => c.slug === slug)?.name ?? slug
+}
+
+/** Group the generated entries by chain, keeping the order they arrive in. */
+function byChain(errors: TxError[]): { chain: string; errors: TxError[] }[] {
+  const out: { chain: string; errors: TxError[] }[] = []
+  for (const e of errors) {
+    const chain = e.chain ?? "other"
+    const last = out.find(g => g.chain === chain)
+    if (last) last.errors.push(e)
+    else out.push({ chain, errors: [e] })
+  }
+  return out
+}
+
+function errorRow(e: TxError) {
+  return (
+    <Link
+      key={e.slug}
+      href={`/errors/${e.slug}`}
+      className="group flex items-start justify-between gap-4 rounded-xl border border-[var(--border)] bg-[var(--bg-surface)] p-4 hover:border-[var(--border-accent)] transition-colors"
+    >
+      <div className="min-w-0">
+        <p className="font-mono text-sm text-white group-hover:text-accent transition-colors">{e.message}</p>
+        <p className="text-xs text-muted mt-1 line-clamp-1">{e.meaning}</p>
+      </div>
+      <ArrowRight className="size-4 text-muted shrink-0 mt-0.5 group-hover:text-accent transition-colors" />
+    </Link>
+  )
 }
 
 export default function ErrorsIndexPage() {
@@ -50,6 +83,18 @@ export default function ErrorsIndexPage() {
               <section className="mt-12">
                 <h2 className="font-display text-2xl font-bold text-white mb-1">{group.label}</h2>
                 <p className="text-sm text-muted mb-5">{group.blurb}</p>
+                {group.key === "chain" ? (
+                  // One heading per chain, each with an anchor, so a link can
+                  // land on exactly one chain's codes (txid.support/errors#aptos)
+                  // instead of a single list mixing six chains. Names come from
+                  // the chain registry, not a list kept here.
+                  byChain(group.errors).map(({ chain, errors }) => (
+                    <div key={chain} id={chain} className="scroll-mt-28 mt-8 first:mt-0">
+                      <h3 className="font-display text-lg font-semibold text-white mb-3">{chainName(chain)}</h3>
+                      <div className="flex flex-col gap-2">{errors.map(errorRow)}</div>
+                    </div>
+                  ))
+                ) : (
                 <div className="flex flex-col gap-2">
                   {group.errors.map((e) => (
                     <Link
@@ -67,6 +112,7 @@ export default function ErrorsIndexPage() {
                     </Link>
                   ))}
                 </div>
+                )}
               </section>
             </FadeIn>
           ))}

@@ -101,43 +101,19 @@ export const CHAIN_ERRORS: ChainError[] = [
     "meaning": "The bulk order was rejected because its buy and sell prices cross each other: at least one bid was priced at or above one of the asks in the same submission, which would have the order trade against itself. Nothing was placed and only gas was spent. Adjust the ladder so every bid sits strictly below every ask, then resubmit. If you are using automatic repricing, the quotes most likely moved between building the order and submitting it, so rebuild from a fresh mid price."
   },
   {
-    "slug": "aptos-clearinghouse-perp-einvalid-argument",
-    "message": "EINVALID_ARGUMENT",
-    "chain": "aptos",
-    "scope": "clearinghouse_perp",
-    "code": 1,
-    "meaning": "An argument in this order was invalid (for bulk orders this usually means the price and size lists do not line up). Rebuild the order in the app and retry; if it keeps happening, report it to the team."
-  },
-  {
-    "slug": "aptos-clearinghouse-perp-einvalid-price-is-too-large",
-    "message": "EINVALID_PRICE_IS_TOO_LARGE",
-    "chain": "aptos",
-    "scope": "clearinghouse_perp",
-    "code": 5,
-    "meaning": "The order price is larger than the exchange can process. Check the price for typos and retry."
-  },
-  {
     "slug": "aptos-clearinghouse-perp-einvalid-price-is-zero",
     "message": "EINVALID_PRICE_IS_ZERO",
     "chain": "aptos",
     "scope": "clearinghouse_perp",
-    "code": 4,
+    "code": 2,
     "meaning": "The order price worked out to zero, which is not a valid price. Check the price and retry."
-  },
-  {
-    "slug": "aptos-clearinghouse-perp-einvalid-size-is-too-large",
-    "message": "EINVALID_SIZE_IS_TOO_LARGE",
-    "chain": "aptos",
-    "scope": "clearinghouse_perp",
-    "code": 3,
-    "meaning": "The order size is larger than the exchange can process. Reduce the size and retry."
   },
   {
     "slug": "aptos-clearinghouse-perp-einvalid-size-is-zero",
     "message": "EINVALID_SIZE_IS_ZERO",
     "chain": "aptos",
     "scope": "clearinghouse_perp",
-    "code": 2,
+    "code": 1,
     "meaning": "The order or settlement size worked out to zero, so there was nothing to execute. Check the size and retry."
   },
   {
@@ -145,7 +121,7 @@ export const CHAIN_ERRORS: ChainError[] = [
     "message": "ENOT_REDUCE_ONLY",
     "chain": "aptos",
     "scope": "clearinghouse_perp",
-    "code": 8,
+    "code": 5,
     "meaning": "The order was marked reduce-only but would have increased your position instead of reducing it. A reduce-only order can only close or shrink an open position: check the order's side and size against your current position."
   },
   {
@@ -153,7 +129,7 @@ export const CHAIN_ERRORS: ChainError[] = [
     "message": "ESELF_TRADE_NOT_ALLOWED",
     "chain": "aptos",
     "scope": "clearinghouse_perp",
-    "code": 7,
+    "code": 4,
     "meaning": "The order would have matched against your own resting order on the other side of the book, which Decibel does not allow. Cancel the opposing order first, or adjust the price so it does not cross your own quote."
   },
   {
@@ -178,7 +154,7 @@ export const CHAIN_ERRORS: ChainError[] = [
     "chain": "aptos",
     "scope": "delegation_manager",
     "code": 4,
-    "meaning": "You tried to unstake more than is currently staked for you in this pool. Check your staked balance and retry with a smaller amount."
+    "meaning": "Amnis unstakes each withdrawal from a single validator pool, and none of its pools currently has enough active stake to cover this amount on its own. Nothing was unstaked and only gas was spent. Try a smaller amount, or split the withdrawal into several smaller ones."
   },
   {
     "slug": "aptos-dex-accounts-enot-subaccount-owner-or-lacks-perp-trading-permissions",
@@ -209,7 +185,7 @@ export const CHAIN_ERRORS: ChainError[] = [
     "message": "E_INVALID_REDUCE_ONLY_ORDER",
     "chain": "aptos",
     "scope": "pending_order_tracker",
-    "code": 5,
+    "code": 4,
     "meaning": "The reduce-only order is invalid against your current position, usually because the position is already closed or smaller than the order size. Refresh the position and adjust the order."
   },
   {
@@ -225,7 +201,7 @@ export const CHAIN_ERRORS: ChainError[] = [
     "message": "EINVALID_TP_SL_SIZE",
     "chain": "aptos",
     "scope": "pending_order_tracker",
-    "code": 10,
+    "code": 7,
     "meaning": "The take-profit/stop-loss size is invalid for the position (zero, or larger than the position). Adjust the TP/SL size to at most the open position size."
   },
   {
@@ -233,7 +209,7 @@ export const CHAIN_ERRORS: ChainError[] = [
     "message": "EMAX_FIXED_SIZED_PENDING_REQS_HIT",
     "chain": "aptos",
     "scope": "pending_order_tracker",
-    "code": 8,
+    "code": 6,
     "meaning": "This subaccount already has the maximum number of pending requests, so new ones are rejected until some settle or are cancelled. Cancel pending orders you no longer need, or wait a moment for the queue to clear."
   },
   {
@@ -249,7 +225,7 @@ export const CHAIN_ERRORS: ChainError[] = [
     "message": "EINVALID_PRICE",
     "chain": "aptos",
     "scope": "perp_market_config",
-    "code": 10,
+    "code": 8,
     "meaning": "The order price is zero or invalid for this market. Enter a valid price and retry."
   },
   {
@@ -257,7 +233,7 @@ export const CHAIN_ERRORS: ChainError[] = [
     "message": "EORDER_SIZE_TOO_LARGE",
     "chain": "aptos",
     "scope": "perp_market_config",
-    "code": 12,
+    "code": 10,
     "meaning": "The order's notional value (price multiplied by size) is larger than this market allows. Reduce the order size and retry."
   },
   {
@@ -273,7 +249,7 @@ export const CHAIN_ERRORS: ChainError[] = [
     "message": "EPRICE_SIZES_LENGTH_MISMATCH",
     "chain": "aptos",
     "scope": "perp_market_config",
-    "code": 13,
+    "code": 11,
     "meaning": "The bulk order's price list and size list have different lengths. This is an integration bug in the client that built the order, not a user mistake; report it to the team behind that client."
   },
   {
@@ -365,14 +341,6 @@ export const CHAIN_ERRORS: ChainError[] = [
     "meaning": "This spot order was rejected because the wallet's available balance is short on one side of the pair: either not enough of the asset being sold, or not enough of the quote asset to buy with. The check runs before anything is placed, so nothing was traded and only gas was spent. Top up the wallet, or reduce the order size, and retry."
   },
   {
-    "slug": "aptos-stable-pool-scripts-err-excessive-input",
-    "message": "ERR_EXCESSIVE_INPUT",
-    "chain": "aptos",
-    "scope": "stable_pool_scripts",
-    "code": 2,
-    "meaning": "The swap was cancelled because it would have needed more input tokens than the maximum your slippage setting allows. The pool price moved against you. Nothing was swapped. Retry, and raise your slippage tolerance slightly if it keeps happening."
-  },
-  {
     "slug": "aptos-stable-pool-scripts-err-insufficient-output",
     "message": "ERR_INSUFFICIENT_OUTPUT",
     "chain": "aptos",
@@ -386,7 +354,7 @@ export const CHAIN_ERRORS: ChainError[] = [
     "chain": "aptos",
     "scope": "swap",
     "code": 6,
-    "meaning": "An amount in this operation was zero or too small for the pool to process. Check the amounts you entered and retry with larger values."
+    "meaning": "The pool does not hold enough of one of its tokens to pay out the amount this operation asked for, so it stopped before anything moved. Nothing was swapped or withdrawn and only gas was spent. Try a smaller amount."
   },
   {
     "slug": "aptos-swap-error-insufficient-input-amount",
@@ -434,7 +402,7 @@ export const CHAIN_ERRORS: ChainError[] = [
     "chain": "aptos",
     "scope": "swap",
     "code": 8,
-    "meaning": "The amount requested is more than the pool can pay out. Reduce the amount and retry."
+    "meaning": "Adding liquidity failed because the two amounts don't match the pool's current price ratio: covering the second token would need more of the first token than you supplied. Nothing was added and only gas was spent. Refresh the amounts in the app so they match the pool's current ratio, then retry."
   },
   {
     "slug": "aptos-swap-error-k",
@@ -442,23 +410,7 @@ export const CHAIN_ERRORS: ChainError[] = [
     "chain": "aptos",
     "scope": "swap",
     "code": 15,
-    "meaning": "The pool's invariant check failed after the swap. This usually means one of the tokens charges a fee or behaves unusually on transfer. Retry with higher slippage; if it keeps failing, that token is likely incompatible with this pool."
-  },
-  {
-    "slug": "aptos-swap-error-tokens-not-sorted",
-    "message": "ERROR_TOKENS_NOT_SORTED",
-    "chain": "aptos",
-    "scope": "swap",
-    "code": 9,
-    "meaning": "The pair was called with its tokens in the wrong internal order. This is an integration bug in the app that built the transaction, not a user mistake. Report it to the site you used; the official PancakeSwap interface builds this correctly."
-  },
-  {
-    "slug": "aptos-swap-error-x-not-registered",
-    "message": "ERROR_X_NOT_REGISTERED",
-    "chain": "aptos",
-    "scope": "swap",
-    "code": 16,
-    "meaning": "Your wallet has not registered one of the two tokens in this pair, so it cannot hold it yet (PancakeSwap uses the same code for either token). Register the token in your wallet, or use PancakeSwap's register button for that token, then retry."
+    "meaning": "The pool's final safety check failed: after the trade, its reserves would have broken the rule that keeps its pricing sound, so the whole swap was undone. Nothing was swapped and only gas was spent. This is rare and not caused by anything in your wallet. Retry, and if it keeps happening, report it to PancakeSwap."
   },
   {
     "slug": "aptos-swap-utils-error-insufficient-amount",
@@ -507,14 +459,6 @@ export const CHAIN_ERRORS: ChainError[] = [
     "scope": "tp_sl_utils",
     "code": 1,
     "meaning": "The take-profit/stop-loss parameters are invalid, usually a TP or SL price on the wrong side of the current price. For a long, take-profit must be above and stop-loss below the price (reversed for a short). Fix the prices and retry."
-  },
-  {
-    "slug": "aptos-weighted-pool-scripts-err-excessive-input",
-    "message": "ERR_EXCESSIVE_INPUT",
-    "chain": "aptos",
-    "scope": "weighted_pool_scripts",
-    "code": 2,
-    "meaning": "The swap was cancelled because it would have needed more input tokens than the maximum your slippage setting allows. The pool price moved against you. Nothing was swapped. Retry, and raise your slippage tolerance slightly if it keeps happening."
   },
   {
     "slug": "aptos-weighted-pool-scripts-err-insufficient-output",

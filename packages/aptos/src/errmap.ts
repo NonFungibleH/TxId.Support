@@ -2,8 +2,20 @@ import type { AbortErrmap } from "./abort"
 import { normalizeAptosAddress } from "./address"
 
 /**
- * Per-protocol abort errmaps for the demo protocols: Decibel, Thala,
- * Aries Markets, Amnis Finance and PancakeSwap-Aptos.
+ * Per-protocol abort errmaps: Decibel, Thala, Amnis Finance and
+ * PancakeSwap-Aptos. (Aries has a slot below and no entries: nothing about its
+ * codes could be verified.)
+ *
+ * EVERY ENTRY MUST TRACE TO A SOURCE, and this is checked, not assumed. An
+ * audit on 2026-09-18 found 11 Decibel codes whose numbers disagreed with
+ * Decibel's own docs, 3 Decibel and 2 Thala entries with no source at all, two
+ * PancakeSwap constants that are declared but never raised, and four
+ * explanations that did not match how the contract uses the error. The pages
+ * at txid.support/errors are generated from this file, so a wrong entry here is
+ * a wrong claim published under our name about someone else's protocol. A
+ * mainnet failure (EINVALID_TRIGGER_PRICE, decoded as a different error because
+ * our number was wrong) showed it reaching users too; decodeAbort now lets the
+ * chain's reported name outrank a number match.
  *
  * Provenance:
  * - PancakeSwap + Amnis publish their Move source on-chain (0x1::code::PackageRegistry),
@@ -62,7 +74,7 @@ const PANCAKE_ERRMAPS: AbortErrmap = {
     6: {
       name: "ERROR_INSUFFICIENT_AMOUNT",
       reason:
-        "An amount in this operation was zero or too small for the pool to process. Check the amounts you entered and retry with larger values.",
+        "The pool does not hold enough of one of its tokens to pay out the amount this operation asked for, so it stopped before anything moved. Nothing was swapped or withdrawn and only gas was spent. Try a smaller amount.",
     },
     7: {
       name: "ERROR_INSUFFICIENT_LIQUIDITY",
@@ -72,12 +84,7 @@ const PANCAKE_ERRMAPS: AbortErrmap = {
     8: {
       name: "ERROR_INVALID_AMOUNT",
       reason:
-        "The amount requested is more than the pool can pay out. Reduce the amount and retry.",
-    },
-    9: {
-      name: "ERROR_TOKENS_NOT_SORTED",
-      reason:
-        "The pair was called with its tokens in the wrong internal order. This is an integration bug in the app that built the transaction, not a user mistake. Report it to the site you used; the official PancakeSwap interface builds this correctly.",
+        "Adding liquidity failed because the two amounts don't match the pool's current price ratio: covering the second token would need more of the first token than you supplied. Nothing was added and only gas was spent. Refresh the amounts in the app so they match the pool's current ratio, then retry.",
     },
     10: {
       name: "ERROR_INSUFFICIENT_LIQUIDITY_BURNED",
@@ -97,14 +104,7 @@ const PANCAKE_ERRMAPS: AbortErrmap = {
     15: {
       name: "ERROR_K",
       reason:
-        "The pool's invariant check failed after the swap. This usually means one of the tokens charges a fee or behaves unusually on transfer. Retry with higher slippage; if it keeps failing, that token is likely incompatible with this pool.",
-    },
-    // The published source assigns code 16 to BOTH ERROR_X_NOT_REGISTERED and
-    // ERROR_Y_NOT_REGISTERED, so code 16 cannot say which side it was.
-    16: {
-      name: "ERROR_X_NOT_REGISTERED",
-      reason:
-        "Your wallet has not registered one of the two tokens in this pair, so it cannot hold it yet (PancakeSwap uses the same code for either token). Register the token in your wallet, or use PancakeSwap's register button for that token, then retry.",
+        "The pool's final safety check failed: after the trade, its reserves would have broken the rule that keeps its pricing sound, so the whole swap was undone. Nothing was swapped and only gas was spent. This is rare and not caused by anything in your wallet. Retry, and if it keeps happening, report it to PancakeSwap.",
     },
   },
   [`${PANCAKE}::swap_utils`]: {
@@ -177,7 +177,7 @@ const AMNIS_ERRMAPS: AbortErrmap = {
     4: {
       name: "EUNSTAKE_AMOUNT_TOO_LARGE",
       reason:
-        "You tried to unstake more than is currently staked for you in this pool. Check your staked balance and retry with a smaller amount.",
+        "Amnis unstakes each withdrawal from a single validator pool, and none of its pools currently has enough active stake to cover this amount on its own. Nothing was unstaked and only gas was spent. Try a smaller amount, or split the withdrawal into several smaller ones.",
     },
   },
   [`${AMNIS}::aptos_governance`]: {
@@ -216,22 +216,12 @@ const THALA_ERRMAPS: AbortErrmap = {
       reason:
         "The swap was cancelled because the amount you would have received fell below the minimum your slippage setting allows. The pool price moved between quoting and signing. Nothing was swapped and only gas was spent. Retry the swap; if it keeps happening, raise your slippage tolerance slightly or trade a smaller amount.",
     },
-    2: {
-      name: "ERR_EXCESSIVE_INPUT",
-      reason:
-        "The swap was cancelled because it would have needed more input tokens than the maximum your slippage setting allows. The pool price moved against you. Nothing was swapped. Retry, and raise your slippage tolerance slightly if it keeps happening.",
-    },
   },
   [`${THALA_V1}::stable_pool_scripts`]: {
     1: {
       name: "ERR_INSUFFICIENT_OUTPUT",
       reason:
         "The swap was cancelled because the amount you would have received fell below the minimum your slippage setting allows. The pool price moved between quoting and signing. Nothing was swapped and only gas was spent. Retry the swap; if it keeps happening, raise your slippage tolerance slightly or trade a smaller amount.",
-    },
-    2: {
-      name: "ERR_EXCESSIVE_INPUT",
-      reason:
-        "The swap was cancelled because it would have needed more input tokens than the maximum your slippage setting allows. The pool price moved against you. Nothing was swapped. Retry, and raise your slippage tolerance slightly if it keeps happening.",
     },
   },
 }
@@ -246,6 +236,10 @@ const ARIES_ERRMAPS: AbortErrmap = {}
 // come from Decibel's official SDK error reference
 // (docs.decibel.trade/typescript-sdk/error-responses) plus observed mainnet
 // failures; reasons use perp trading vocabulary (positions, TP/SL, margin).
+// Numbers re-aligned to that reference on 2026-09-18; mainnet agreed where it
+// could be checked (pending_order_tracker 0x5 is EINVALID_TRIGGER_PRICE, which
+// the old numbering had given to a different error). Entries not in the docs
+// are kept only where a real mainnet failure named them.
 const DECIBEL_ERRMAPS: AbortErrmap = {
   [`${DECIBEL}::position_tp_sl`]: {
     // 0x10010 observed on mainnet: EINVALID_TP_SL_ORDER_ID (invalid argument, constant 16)
@@ -315,20 +309,20 @@ const DECIBEL_ERRMAPS: AbortErrmap = {
       reason:
         "The limit price is not a multiple of this market's tick size, so the order was rejected. Round the price to the nearest valid tick and retry.",
     },
-    10: {
+    8: {
       name: "EINVALID_PRICE",
       reason: "The order price is zero or invalid for this market. Enter a valid price and retry.",
     },
-    11: {
+    9: {
       name: "EINVALID_SIZE",
       reason: "The order size is zero. Enter a valid size and retry.",
     },
-    12: {
+    10: {
       name: "EORDER_SIZE_TOO_LARGE",
       reason:
         "The order's notional value (price multiplied by size) is larger than this market allows. Reduce the order size and retry.",
     },
-    13: {
+    11: {
       name: "EPRICE_SIZES_LENGTH_MISMATCH",
       reason:
         "The bulk order's price list and size list have different lengths. This is an integration bug in the client that built the order, not a user mistake; report it to the team behind that client.",
@@ -336,32 +330,19 @@ const DECIBEL_ERRMAPS: AbortErrmap = {
   },
   [`${DECIBEL}::clearinghouse_perp`]: {
     1: {
-      name: "EINVALID_ARGUMENT",
-      reason:
-        "An argument in this order was invalid (for bulk orders this usually means the price and size lists do not line up). Rebuild the order in the app and retry; if it keeps happening, report it to the team.",
-    },
-    2: {
       name: "EINVALID_SIZE_IS_ZERO",
       reason: "The order or settlement size worked out to zero, so there was nothing to execute. Check the size and retry.",
     },
-    3: {
-      name: "EINVALID_SIZE_IS_TOO_LARGE",
-      reason: "The order size is larger than the exchange can process. Reduce the size and retry.",
-    },
-    4: {
+    2: {
       name: "EINVALID_PRICE_IS_ZERO",
       reason: "The order price worked out to zero, which is not a valid price. Check the price and retry.",
     },
-    5: {
-      name: "EINVALID_PRICE_IS_TOO_LARGE",
-      reason: "The order price is larger than the exchange can process. Check the price for typos and retry.",
-    },
-    7: {
+    4: {
       name: "ESELF_TRADE_NOT_ALLOWED",
       reason:
         "The order would have matched against your own resting order on the other side of the book, which Decibel does not allow. Cancel the opposing order first, or adjust the price so it does not cross your own quote.",
     },
-    8: {
+    5: {
       name: "ENOT_REDUCE_ONLY",
       reason:
         "The order was marked reduce-only but would have increased your position instead of reducing it. A reduce-only order can only close or shrink an open position: check the order's side and size against your current position.",
@@ -390,17 +371,17 @@ const DECIBEL_ERRMAPS: AbortErrmap = {
       reason:
         "The cancel request referenced a market where this subaccount has no pending orders. The order may have already filled or been cancelled: refresh your open orders before retrying.",
     },
-    5: {
+    4: {
       name: "E_INVALID_REDUCE_ONLY_ORDER",
       reason:
         "The reduce-only order is invalid against your current position, usually because the position is already closed or smaller than the order size. Refresh the position and adjust the order.",
     },
-    8: {
+    6: {
       name: "EMAX_FIXED_SIZED_PENDING_REQS_HIT",
       reason:
         "This subaccount already has the maximum number of pending requests, so new ones are rejected until some settle or are cancelled. Cancel pending orders you no longer need, or wait a moment for the queue to clear.",
     },
-    10: {
+    7: {
       name: "EINVALID_TP_SL_SIZE",
       reason:
         "The take-profit/stop-loss size is invalid for the position (zero, or larger than the position). Adjust the TP/SL size to at most the open position size.",
