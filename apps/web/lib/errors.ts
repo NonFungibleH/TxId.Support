@@ -64,6 +64,8 @@ export interface TxError {
   scope?: string | null
   /** Its signed number within its enum, which is what raw payloads carry. */
   code?: number | null
+  /** The protocol the code belongs to, where a chain's codes are per-protocol. */
+  protocol?: string
 }
 
 import { CHAIN_ERRORS } from "./chain-errors.generated"
@@ -85,6 +87,7 @@ const GENERATED: TxError[] = CHAIN_ERRORS.map(e => ({
   chain: e.chain,
   scope: e.scope,
   code: e.code,
+  ...(e.protocol ? { protocol: e.protocol } : {}),
 }))
 
 const EVM_ERRORS: TxError[] = [

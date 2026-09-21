@@ -38,6 +38,18 @@ function byChain(errors: TxError[]): { chain: string; errors: TxError[] }[] {
   return out
 }
 
+/** Group by protocol, largest first, so the protocol with the most coverage leads. */
+function byProtocol(errors: TxError[]): { protocol: string; errors: TxError[] }[] {
+  const groups = new Map<string, TxError[]>()
+  for (const e of errors) {
+    const key = e.protocol ?? "Other"
+    groups.set(key, [...(groups.get(key) ?? []), e])
+  }
+  return Array.from(groups.entries())
+    .map(([protocol, rows]) => ({ protocol, errors: rows }))
+    .sort((a, b) => b.errors.length - a.errors.length || a.protocol.localeCompare(b.protocol))
+}
+
 function errorRow(e: TxError) {
   return (
     <Link
@@ -91,7 +103,21 @@ export default function ErrorsIndexPage() {
                   byChain(group.errors).map(({ chain, errors }) => (
                     <div key={chain} id={chain} className="scroll-mt-28 mt-8 first:mt-0">
                       <h3 className="font-display text-lg font-semibold text-white mb-3">{chainName(chain)}</h3>
-                      <div className="flex flex-col gap-2">{errors.map(errorRow)}</div>
+                      {errors.some(e => e.protocol) ? (
+                        // Codes that belong to a protocol are shown under it: a
+                        // module name alone does not say whose it is (Amnis ships
+                        // one called aptos_governance).
+                        byProtocol(errors).map(({ protocol, errors: rows }) => (
+                          <div key={protocol} id={`${chain}-${protocol.toLowerCase()}`} className="scroll-mt-28 mt-6 first:mt-0">
+                            <h4 className="text-sm font-semibold text-white mb-2">
+                              {protocol} <span className="font-normal text-muted">· {rows.length}</span>
+                            </h4>
+                            <div className="flex flex-col gap-2">{rows.map(errorRow)}</div>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="flex flex-col gap-2">{errors.map(errorRow)}</div>
+                      )}
                     </div>
                   ))
                 ) : (

@@ -17,6 +17,8 @@ export interface ChainError {
   /** Its signed number within its enum, which is what raw XDR carries. */
   code: number | null
   meaning: string
+  /** The protocol the code belongs to, where a chain's codes are per-protocol (Aptos). */
+  protocol?: string
 }
 
 export const CHAIN_ERRORS: ChainError[] = [
@@ -26,7 +28,8 @@ export const CHAIN_ERRORS: ChainError[] = [
     "chain": "aptos",
     "scope": "aptos_governance",
     "code": 2,
-    "meaning": "This wallet has already voted on this proposal, and each wallet can vote only once. No action is needed."
+    "meaning": "This wallet has already voted on this proposal, and each wallet can vote only once. No action is needed.",
+    "protocol": "Amnis"
   },
   {
     "slug": "aptos-aptos-governance-elock-has-not-expired",
@@ -34,7 +37,8 @@ export const CHAIN_ERRORS: ChainError[] = [
     "chain": "aptos",
     "scope": "aptos_governance",
     "code": 3,
-    "meaning": "Your governance lock has not expired yet, so the tokens cannot be unlocked. Wait until the lock period ends and try again."
+    "meaning": "Your governance lock has not expired yet, so the tokens cannot be unlocked. Wait until the lock period ends and try again.",
+    "protocol": "Amnis"
   },
   {
     "slug": "aptos-aptos-governance-eno-tokens-locked",
@@ -42,7 +46,8 @@ export const CHAIN_ERRORS: ChainError[] = [
     "chain": "aptos",
     "scope": "aptos_governance",
     "code": 1,
-    "meaning": "This wallet has no tokens locked for Amnis governance, so there is nothing to vote with or unlock. Lock tokens first."
+    "meaning": "This wallet has no tokens locked for Amnis governance, so there is nothing to vote with or unlock. Lock tokens first.",
+    "protocol": "Amnis"
   },
   {
     "slug": "aptos-async-matching-engine-einvalid-stop-price",
@@ -50,7 +55,8 @@ export const CHAIN_ERRORS: ChainError[] = [
     "chain": "aptos",
     "scope": "async_matching_engine",
     "code": 4,
-    "meaning": "The stop/trigger price on this order is invalid for the current market price, for example a stop that would trigger immediately or on the wrong side. Check the trigger side and price against the market and retry."
+    "meaning": "The stop/trigger price on this order is invalid for the current market price, for example a stop that would trigger immediately or on the wrong side. Check the trigger side and price against the market and retry.",
+    "protocol": "Decibel"
   },
   {
     "slug": "aptos-async-matching-engine-einvalid-tp-sl-for-reduce-only",
@@ -58,7 +64,8 @@ export const CHAIN_ERRORS: ChainError[] = [
     "chain": "aptos",
     "scope": "async_matching_engine",
     "code": 2,
-    "meaning": "A take-profit/stop-loss cannot be attached to a reduce-only order. Place the reduce-only order without TP/SL, or set the TP/SL on the position itself."
+    "meaning": "A take-profit/stop-loss cannot be attached to a reduce-only order. Place the reduce-only order without TP/SL, or set the TP/SL on the position itself.",
+    "protocol": "Decibel"
   },
   {
     "slug": "aptos-async-matching-engine-einvalid-tp-sl-with-trigger-condition",
@@ -66,7 +73,8 @@ export const CHAIN_ERRORS: ChainError[] = [
     "chain": "aptos",
     "scope": "async_matching_engine",
     "code": 3,
-    "meaning": "A take-profit/stop-loss cannot be combined with a stop/trigger price on the same order. Place the triggered order first, then set TP/SL on the resulting position."
+    "meaning": "A take-profit/stop-loss cannot be combined with a stop/trigger price on the same order. Place the triggered order first, then set TP/SL on the resulting position.",
+    "protocol": "Decibel"
   },
   {
     "slug": "aptos-builder-code-registry-ebuilder-not-registered",
@@ -74,7 +82,8 @@ export const CHAIN_ERRORS: ChainError[] = [
     "chain": "aptos",
     "scope": "builder_code_registry",
     "code": 2,
-    "meaning": "The builder code attached to this order is not registered with Decibel. This is an integration issue with the app that routed your order, not your account; report it to that app's team or trade from the official interface."
+    "meaning": "The builder code attached to this order is not registered with Decibel. This is an integration issue with the app that routed your order, not your account; report it to that app's team or trade from the official interface.",
+    "protocol": "Decibel"
   },
   {
     "slug": "aptos-builder-code-registry-einvalid-amount",
@@ -82,7 +91,8 @@ export const CHAIN_ERRORS: ChainError[] = [
     "chain": "aptos",
     "scope": "builder_code_registry",
     "code": 1,
-    "meaning": "The builder fee on this order is zero or negative, which is not valid. This comes from the app that routed your order; retry from the official interface or report it to that app's team."
+    "meaning": "The builder fee on this order is zero or negative, which is not valid. This comes from the app that routed your order; retry from the official interface or report it to that app's team.",
+    "protocol": "Decibel"
   },
   {
     "slug": "aptos-builder-code-registry-einvalid-max-fee",
@@ -90,7 +100,8 @@ export const CHAIN_ERRORS: ChainError[] = [
     "chain": "aptos",
     "scope": "builder_code_registry",
     "code": 4,
-    "meaning": "The builder fee on this order exceeds the maximum fee you approved for that app. Review the app's fee settings, or approve a higher maximum builder fee if you trust it."
+    "meaning": "The builder fee on this order exceeds the maximum fee you approved for that app. Review the app's fee settings, or approve a higher maximum builder fee if you trust it.",
+    "protocol": "Decibel"
   },
   {
     "slug": "aptos-bulk-order-utils-eprice-crossing",
@@ -98,7 +109,8 @@ export const CHAIN_ERRORS: ChainError[] = [
     "chain": "aptos",
     "scope": "bulk_order_utils",
     "code": 1,
-    "meaning": "The bulk order was rejected because its buy and sell prices cross each other: at least one bid was priced at or above one of the asks in the same submission, which would have the order trade against itself. Nothing was placed and only gas was spent. Adjust the ladder so every bid sits strictly below every ask, then resubmit. If you are using automatic repricing, the quotes most likely moved between building the order and submitting it, so rebuild from a fresh mid price."
+    "meaning": "The bulk order was rejected because its buy and sell prices cross each other: at least one bid was priced at or above one of the asks in the same submission, which would have the order trade against itself. Nothing was placed and only gas was spent. Adjust the ladder so every bid sits strictly below every ask, then resubmit. If you are using automatic repricing, the quotes most likely moved between building the order and submitting it, so rebuild from a fresh mid price.",
+    "protocol": "Decibel"
   },
   {
     "slug": "aptos-clearinghouse-perp-einvalid-price-is-zero",
@@ -106,7 +118,8 @@ export const CHAIN_ERRORS: ChainError[] = [
     "chain": "aptos",
     "scope": "clearinghouse_perp",
     "code": 2,
-    "meaning": "The order price worked out to zero, which is not a valid price. Check the price and retry."
+    "meaning": "The order price worked out to zero, which is not a valid price. Check the price and retry.",
+    "protocol": "Decibel"
   },
   {
     "slug": "aptos-clearinghouse-perp-einvalid-size-is-zero",
@@ -114,7 +127,8 @@ export const CHAIN_ERRORS: ChainError[] = [
     "chain": "aptos",
     "scope": "clearinghouse_perp",
     "code": 1,
-    "meaning": "The order or settlement size worked out to zero, so there was nothing to execute. Check the size and retry."
+    "meaning": "The order or settlement size worked out to zero, so there was nothing to execute. Check the size and retry.",
+    "protocol": "Decibel"
   },
   {
     "slug": "aptos-clearinghouse-perp-enot-reduce-only",
@@ -122,7 +136,8 @@ export const CHAIN_ERRORS: ChainError[] = [
     "chain": "aptos",
     "scope": "clearinghouse_perp",
     "code": 5,
-    "meaning": "The order was marked reduce-only but would have increased your position instead of reducing it. A reduce-only order can only close or shrink an open position: check the order's side and size against your current position."
+    "meaning": "The order was marked reduce-only but would have increased your position instead of reducing it. A reduce-only order can only close or shrink an open position: check the order's side and size against your current position.",
+    "protocol": "Decibel"
   },
   {
     "slug": "aptos-clearinghouse-perp-eself-trade-not-allowed",
@@ -130,7 +145,8 @@ export const CHAIN_ERRORS: ChainError[] = [
     "chain": "aptos",
     "scope": "clearinghouse_perp",
     "code": 4,
-    "meaning": "The order would have matched against your own resting order on the other side of the book, which Decibel does not allow. Cancel the opposing order first, or adjust the price so it does not cross your own quote."
+    "meaning": "The order would have matched against your own resting order on the other side of the book, which Decibel does not allow. Cancel the opposing order first, or adjust the price so it does not cross your own quote.",
+    "protocol": "Decibel"
   },
   {
     "slug": "aptos-delegation-manager-estake-pool-does-not-exist",
@@ -138,7 +154,8 @@ export const CHAIN_ERRORS: ChainError[] = [
     "chain": "aptos",
     "scope": "delegation_manager",
     "code": 1,
-    "meaning": "The stake pool this operation targets does not exist. This is a protocol configuration issue rather than a user mistake; if you hit this from the Amnis app, report it to the team."
+    "meaning": "The stake pool this operation targets does not exist. This is a protocol configuration issue rather than a user mistake; if you hit this from the Amnis app, report it to the team.",
+    "protocol": "Amnis"
   },
   {
     "slug": "aptos-delegation-manager-estake-pool-not-whitelisted",
@@ -146,7 +163,8 @@ export const CHAIN_ERRORS: ChainError[] = [
     "chain": "aptos",
     "scope": "delegation_manager",
     "code": 2,
-    "meaning": "The target stake pool is not whitelisted by Amnis. This is a protocol configuration issue rather than a user mistake; if you hit this from the Amnis app, report it to the team."
+    "meaning": "The target stake pool is not whitelisted by Amnis. This is a protocol configuration issue rather than a user mistake; if you hit this from the Amnis app, report it to the team.",
+    "protocol": "Amnis"
   },
   {
     "slug": "aptos-delegation-manager-eunstake-amount-too-large",
@@ -154,7 +172,8 @@ export const CHAIN_ERRORS: ChainError[] = [
     "chain": "aptos",
     "scope": "delegation_manager",
     "code": 4,
-    "meaning": "Amnis unstakes each withdrawal from a single validator pool, and none of its pools currently has enough active stake to cover this amount on its own. Nothing was unstaked and only gas was spent. Try a smaller amount, or split the withdrawal into several smaller ones."
+    "meaning": "Amnis unstakes each withdrawal from a single validator pool, and none of its pools currently has enough active stake to cover this amount on its own. Nothing was unstaked and only gas was spent. Try a smaller amount, or split the withdrawal into several smaller ones.",
+    "protocol": "Amnis"
   },
   {
     "slug": "aptos-dex-accounts-enot-subaccount-owner-or-lacks-perp-trading-permissions",
@@ -162,7 +181,8 @@ export const CHAIN_ERRORS: ChainError[] = [
     "chain": "aptos",
     "scope": "dex_accounts",
     "code": 3,
-    "meaning": "The signing wallet does not own this subaccount and has not been granted trading permission on it. Switch to the wallet that owns the subaccount, or have the owner grant this wallet trading permissions, then retry."
+    "meaning": "The signing wallet does not own this subaccount and has not been granted trading permission on it. Switch to the wallet that owns the subaccount, or have the owner grant this wallet trading permissions, then retry.",
+    "protocol": "Decibel"
   },
   {
     "slug": "aptos-dex-accounts-esubaccount-is-not-active",
@@ -170,7 +190,8 @@ export const CHAIN_ERRORS: ChainError[] = [
     "chain": "aptos",
     "scope": "dex_accounts",
     "code": 8,
-    "meaning": "This subaccount is not active, so it cannot place or cancel orders. In the app, check which subaccount you are trading from and switch to an active one."
+    "meaning": "This subaccount is not active, so it cannot place or cancel orders. In the app, check which subaccount you are trading from and switch to an active one.",
+    "protocol": "Decibel"
   },
   {
     "slug": "aptos-order-placement-utils-einvalid-match-count",
@@ -178,7 +199,8 @@ export const CHAIN_ERRORS: ChainError[] = [
     "chain": "aptos",
     "scope": "order_placement_utils",
     "code": 1,
-    "meaning": "The order failed an internal match-count check in the matching engine. This is a protocol-side condition rather than something you did wrong. Retry the order; if it keeps failing, report it to the team."
+    "meaning": "The order failed an internal match-count check in the matching engine. This is a protocol-side condition rather than something you did wrong. Retry the order; if it keeps failing, report it to the team.",
+    "protocol": "Decibel"
   },
   {
     "slug": "aptos-pending-order-tracker-e-invalid-reduce-only-order",
@@ -186,7 +208,8 @@ export const CHAIN_ERRORS: ChainError[] = [
     "chain": "aptos",
     "scope": "pending_order_tracker",
     "code": 4,
-    "meaning": "The reduce-only order is invalid against your current position, usually because the position is already closed or smaller than the order size. Refresh the position and adjust the order."
+    "meaning": "The reduce-only order is invalid against your current position, usually because the position is already closed or smaller than the order size. Refresh the position and adjust the order.",
+    "protocol": "Decibel"
   },
   {
     "slug": "aptos-pending-order-tracker-e-market-not-found",
@@ -194,7 +217,8 @@ export const CHAIN_ERRORS: ChainError[] = [
     "chain": "aptos",
     "scope": "pending_order_tracker",
     "code": 2,
-    "meaning": "The cancel request referenced a market where this subaccount has no pending orders. The order may have already filled or been cancelled: refresh your open orders before retrying."
+    "meaning": "The cancel request referenced a market where this subaccount has no pending orders. The order may have already filled or been cancelled: refresh your open orders before retrying.",
+    "protocol": "Decibel"
   },
   {
     "slug": "aptos-pending-order-tracker-einvalid-tp-sl-size",
@@ -202,7 +226,8 @@ export const CHAIN_ERRORS: ChainError[] = [
     "chain": "aptos",
     "scope": "pending_order_tracker",
     "code": 7,
-    "meaning": "The take-profit/stop-loss size is invalid for the position (zero, or larger than the position). Adjust the TP/SL size to at most the open position size."
+    "meaning": "The take-profit/stop-loss size is invalid for the position (zero, or larger than the position). Adjust the TP/SL size to at most the open position size.",
+    "protocol": "Decibel"
   },
   {
     "slug": "aptos-pending-order-tracker-emax-fixed-sized-pending-reqs-hit",
@@ -210,7 +235,8 @@ export const CHAIN_ERRORS: ChainError[] = [
     "chain": "aptos",
     "scope": "pending_order_tracker",
     "code": 6,
-    "meaning": "This subaccount already has the maximum number of pending requests, so new ones are rejected until some settle or are cancelled. Cancel pending orders you no longer need, or wait a moment for the queue to clear."
+    "meaning": "This subaccount already has the maximum number of pending requests, so new ones are rejected until some settle or are cancelled. Cancel pending orders you no longer need, or wait a moment for the queue to clear.",
+    "protocol": "Decibel"
   },
   {
     "slug": "aptos-perp-engine-emarket-halted",
@@ -218,7 +244,8 @@ export const CHAIN_ERRORS: ChainError[] = [
     "chain": "aptos",
     "scope": "perp_engine",
     "code": 4,
-    "meaning": "This market is currently halted, so orders cannot be placed or cancelled right now. This is an exchange-side pause, not a problem with your account or funds. Wait for trading to resume and retry."
+    "meaning": "This market is currently halted, so orders cannot be placed or cancelled right now. This is an exchange-side pause, not a problem with your account or funds. Wait for trading to resume and retry.",
+    "protocol": "Decibel"
   },
   {
     "slug": "aptos-perp-market-config-einvalid-price",
@@ -226,7 +253,8 @@ export const CHAIN_ERRORS: ChainError[] = [
     "chain": "aptos",
     "scope": "perp_market_config",
     "code": 8,
-    "meaning": "The order price is zero or invalid for this market. Enter a valid price and retry."
+    "meaning": "The order price is zero or invalid for this market. Enter a valid price and retry.",
+    "protocol": "Decibel"
   },
   {
     "slug": "aptos-perp-market-config-eorder-size-too-large",
@@ -234,7 +262,8 @@ export const CHAIN_ERRORS: ChainError[] = [
     "chain": "aptos",
     "scope": "perp_market_config",
     "code": 10,
-    "meaning": "The order's notional value (price multiplied by size) is larger than this market allows. Reduce the order size and retry."
+    "meaning": "The order's notional value (price multiplied by size) is larger than this market allows. Reduce the order size and retry.",
+    "protocol": "Decibel"
   },
   {
     "slug": "aptos-perp-market-config-eprice-not-respecting-ticker-size",
@@ -242,7 +271,8 @@ export const CHAIN_ERRORS: ChainError[] = [
     "chain": "aptos",
     "scope": "perp_market_config",
     "code": 6,
-    "meaning": "The limit price is not a multiple of this market's tick size, so the order was rejected. Round the price to the nearest valid tick and retry."
+    "meaning": "The limit price is not a multiple of this market's tick size, so the order was rejected. Round the price to the nearest valid tick and retry.",
+    "protocol": "Decibel"
   },
   {
     "slug": "aptos-perp-market-config-eprice-sizes-length-mismatch",
@@ -250,7 +280,8 @@ export const CHAIN_ERRORS: ChainError[] = [
     "chain": "aptos",
     "scope": "perp_market_config",
     "code": 11,
-    "meaning": "The bulk order's price list and size list have different lengths. This is an integration bug in the client that built the order, not a user mistake; report it to the team behind that client."
+    "meaning": "The bulk order's price list and size list have different lengths. This is an integration bug in the client that built the order, not a user mistake; report it to the team behind that client.",
+    "protocol": "Decibel"
   },
   {
     "slug": "aptos-perp-market-config-esize-not-respecting-min-size",
@@ -258,7 +289,8 @@ export const CHAIN_ERRORS: ChainError[] = [
     "chain": "aptos",
     "scope": "perp_market_config",
     "code": 4,
-    "meaning": "The order size is below this market's minimum order size. Increase the size to at least the market minimum and retry."
+    "meaning": "The order size is below this market's minimum order size. Increase the size to at least the market minimum and retry.",
+    "protocol": "Decibel"
   },
   {
     "slug": "aptos-position-tp-sl-einvalid-tp-sl-order-id",
@@ -266,7 +298,8 @@ export const CHAIN_ERRORS: ChainError[] = [
     "chain": "aptos",
     "scope": "position_tp_sl",
     "code": 65552,
-    "meaning": "The take-profit/stop-loss order id in this request does not match any live TP/SL order on the position. The order was most likely already triggered or cancelled, or it belongs to a different position. Refresh the position in the app and check its active TP/SL orders; if the order is gone from the list, there is nothing left to cancel."
+    "meaning": "The take-profit/stop-loss order id in this request does not match any live TP/SL order on the position. The order was most likely already triggered or cancelled, or it belongs to a different position. Refresh the position in the app and check its active TP/SL orders; if the order is gone from the list, there is nothing left to cancel.",
+    "protocol": "Decibel"
   },
   {
     "slug": "aptos-router-e-input-more-than-max",
@@ -274,7 +307,8 @@ export const CHAIN_ERRORS: ChainError[] = [
     "chain": "aptos",
     "scope": "router",
     "code": 1,
-    "meaning": "The swap stopped because it would have needed more input tokens than the maximum your slippage setting allows. The price moved against you between quoting and signing. Nothing was swapped. Retry, and raise your slippage tolerance slightly if it keeps happening."
+    "meaning": "The swap stopped because it would have needed more input tokens than the maximum your slippage setting allows. The price moved against you between quoting and signing. Nothing was swapped. Retry, and raise your slippage tolerance slightly if it keeps happening.",
+    "protocol": "PancakeSwap"
   },
   {
     "slug": "aptos-router-e-insufficient-x-amount",
@@ -282,7 +316,8 @@ export const CHAIN_ERRORS: ChainError[] = [
     "chain": "aptos",
     "scope": "router",
     "code": 2,
-    "meaning": "Adding liquidity failed because the amount of the first token in the pair would have fallen below the minimum you set. The pool's ratio shifted since the quote. Retry the deposit, or loosen the minimum amounts slightly."
+    "meaning": "Adding liquidity failed because the amount of the first token in the pair would have fallen below the minimum you set. The pool's ratio shifted since the quote. Retry the deposit, or loosen the minimum amounts slightly.",
+    "protocol": "PancakeSwap"
   },
   {
     "slug": "aptos-router-e-insufficient-y-amount",
@@ -290,7 +325,8 @@ export const CHAIN_ERRORS: ChainError[] = [
     "chain": "aptos",
     "scope": "router",
     "code": 3,
-    "meaning": "Adding liquidity failed because the amount of the second token in the pair would have fallen below the minimum you set. The pool's ratio shifted since the quote. Retry the deposit, or loosen the minimum amounts slightly."
+    "meaning": "Adding liquidity failed because the amount of the second token in the pair would have fallen below the minimum you set. The pool's ratio shifted since the quote. Retry the deposit, or loosen the minimum amounts slightly.",
+    "protocol": "PancakeSwap"
   },
   {
     "slug": "aptos-router-e-output-less-than-min",
@@ -298,7 +334,8 @@ export const CHAIN_ERRORS: ChainError[] = [
     "chain": "aptos",
     "scope": "router",
     "code": 0,
-    "meaning": "The swap stopped because the amount you would have received fell below the minimum your slippage setting allows. The price moved between quoting and signing. Nothing was swapped and only gas was spent. Retry the swap; if it keeps happening, raise your slippage tolerance slightly or trade a smaller amount."
+    "meaning": "The swap stopped because the amount you would have received fell below the minimum your slippage setting allows. The price moved between quoting and signing. Nothing was swapped and only gas was spent. Retry the swap; if it keeps happening, raise your slippage tolerance slightly or trade a smaller amount.",
+    "protocol": "PancakeSwap"
   },
   {
     "slug": "aptos-router-e-pair-not-created",
@@ -306,7 +343,8 @@ export const CHAIN_ERRORS: ChainError[] = [
     "chain": "aptos",
     "scope": "router",
     "code": 4,
-    "meaning": "No liquidity pool exists for this token pair on PancakeSwap, so the trade has no route. Double-check both tokens are the ones you meant. If the pair genuinely has no pool, it cannot be swapped here."
+    "meaning": "No liquidity pool exists for this token pair on PancakeSwap, so the trade has no route. Double-check both tokens are the ones you meant. If the pair genuinely has no pool, it cannot be swapped here.",
+    "protocol": "PancakeSwap"
   },
   {
     "slug": "aptos-router-einsufficient-amount",
@@ -314,7 +352,8 @@ export const CHAIN_ERRORS: ChainError[] = [
     "chain": "aptos",
     "scope": "router",
     "code": 1,
-    "meaning": "The amount is below the minimum Amnis accepts for this operation, so nothing was staked or moved. Increase the amount and retry."
+    "meaning": "The amount is below the minimum Amnis accepts for this operation, so nothing was staked or moved. Increase the amount and retry.",
+    "protocol": "Amnis"
   },
   {
     "slug": "aptos-router-einsufficient-deposit-amount",
@@ -322,7 +361,8 @@ export const CHAIN_ERRORS: ChainError[] = [
     "chain": "aptos",
     "scope": "router",
     "code": 2,
-    "meaning": "The deposit is below the minimum deposit Amnis accepts. Deposit a slightly larger amount of APT and retry."
+    "meaning": "The deposit is below the minimum deposit Amnis accepts. Deposit a slightly larger amount of APT and retry.",
+    "protocol": "Amnis"
   },
   {
     "slug": "aptos-single-order-book-eorder-not-found",
@@ -330,7 +370,8 @@ export const CHAIN_ERRORS: ChainError[] = [
     "chain": "aptos",
     "scope": "single_order_book",
     "code": 2,
-    "meaning": "The order in this request was no longer on the market's order book when it reached the chain, so there was nothing to change or cancel. This is common in fast markets. The transaction stopped there, so no position or balance was affected and only gas was spent. This error does not say whether the original order filled or was cancelled, so check that before placing it again: re-placing an order that already filled would trade a second time."
+    "meaning": "The order in this request was no longer on the market's order book when it reached the chain, so there was nothing to change or cancel. This is common in fast markets. The transaction stopped there, so no position or balance was affected and only gas was spent. This error does not say whether the original order filled or was cancelled, so check that before placing it again: re-placing an order that already filled would trade a second time.",
+    "protocol": "Decibel"
   },
   {
     "slug": "aptos-spot-order-public-api-einsufficient-pfs-funds",
@@ -338,7 +379,8 @@ export const CHAIN_ERRORS: ChainError[] = [
     "chain": "aptos",
     "scope": "spot_order_public_api",
     "code": 1,
-    "meaning": "This spot order was rejected because the wallet's available balance is short on one side of the pair: either not enough of the asset being sold, or not enough of the quote asset to buy with. The check runs before anything is placed, so nothing was traded and only gas was spent. Top up the wallet, or reduce the order size, and retry."
+    "meaning": "This spot order was rejected because the wallet's available balance is short on one side of the pair: either not enough of the asset being sold, or not enough of the quote asset to buy with. The check runs before anything is placed, so nothing was traded and only gas was spent. Top up the wallet, or reduce the order size, and retry.",
+    "protocol": "Decibel"
   },
   {
     "slug": "aptos-stable-pool-scripts-err-insufficient-output",
@@ -346,7 +388,8 @@ export const CHAIN_ERRORS: ChainError[] = [
     "chain": "aptos",
     "scope": "stable_pool_scripts",
     "code": 1,
-    "meaning": "The swap was cancelled because the amount you would have received fell below the minimum your slippage setting allows. The pool price moved between quoting and signing. Nothing was swapped and only gas was spent. Retry the swap; if it keeps happening, raise your slippage tolerance slightly or trade a smaller amount."
+    "meaning": "The swap was cancelled because the amount you would have received fell below the minimum your slippage setting allows. The pool price moved between quoting and signing. Nothing was swapped and only gas was spent. Retry the swap; if it keeps happening, raise your slippage tolerance slightly or trade a smaller amount.",
+    "protocol": "Thala"
   },
   {
     "slug": "aptos-swap-error-insufficient-amount",
@@ -354,7 +397,8 @@ export const CHAIN_ERRORS: ChainError[] = [
     "chain": "aptos",
     "scope": "swap",
     "code": 6,
-    "meaning": "The pool does not hold enough of one of its tokens to pay out the amount this operation asked for, so it stopped before anything moved. Nothing was swapped or withdrawn and only gas was spent. Try a smaller amount."
+    "meaning": "The pool does not hold enough of one of its tokens to pay out the amount this operation asked for, so it stopped before anything moved. Nothing was swapped or withdrawn and only gas was spent. Try a smaller amount.",
+    "protocol": "PancakeSwap"
   },
   {
     "slug": "aptos-swap-error-insufficient-input-amount",
@@ -362,7 +406,8 @@ export const CHAIN_ERRORS: ChainError[] = [
     "chain": "aptos",
     "scope": "swap",
     "code": 14,
-    "meaning": "The swap was given a zero or too-small input amount. Enter a larger amount and retry."
+    "meaning": "The swap was given a zero or too-small input amount. Enter a larger amount and retry.",
+    "protocol": "PancakeSwap"
   },
   {
     "slug": "aptos-swap-error-insufficient-liquidity",
@@ -370,7 +415,8 @@ export const CHAIN_ERRORS: ChainError[] = [
     "chain": "aptos",
     "scope": "swap",
     "code": 7,
-    "meaning": "The pool does not hold enough liquidity for this trade size. Try a smaller amount, or use a pair with deeper liquidity."
+    "meaning": "The pool does not hold enough liquidity for this trade size. Try a smaller amount, or use a pair with deeper liquidity.",
+    "protocol": "PancakeSwap"
   },
   {
     "slug": "aptos-swap-error-insufficient-liquidity-burned",
@@ -378,7 +424,8 @@ export const CHAIN_ERRORS: ChainError[] = [
     "chain": "aptos",
     "scope": "swap",
     "code": 10,
-    "meaning": "The liquidity withdrawal was too small to redeem anything from the pool. Remove a larger share of your position and retry."
+    "meaning": "The liquidity withdrawal was too small to redeem anything from the pool. Remove a larger share of your position and retry.",
+    "protocol": "PancakeSwap"
   },
   {
     "slug": "aptos-swap-error-insufficient-liquidity-minted",
@@ -386,7 +433,8 @@ export const CHAIN_ERRORS: ChainError[] = [
     "chain": "aptos",
     "scope": "swap",
     "code": 4,
-    "meaning": "The liquidity deposit was too small to mint any LP tokens. Deposit larger amounts of both tokens and retry."
+    "meaning": "The liquidity deposit was too small to mint any LP tokens. Deposit larger amounts of both tokens and retry.",
+    "protocol": "PancakeSwap"
   },
   {
     "slug": "aptos-swap-error-insufficient-output-amount",
@@ -394,7 +442,8 @@ export const CHAIN_ERRORS: ChainError[] = [
     "chain": "aptos",
     "scope": "swap",
     "code": 13,
-    "meaning": "The swap would have produced zero output tokens, usually because the trade size is far too small for this pool. Increase the amount and retry."
+    "meaning": "The swap would have produced zero output tokens, usually because the trade size is far too small for this pool. Increase the amount and retry.",
+    "protocol": "PancakeSwap"
   },
   {
     "slug": "aptos-swap-error-invalid-amount",
@@ -402,7 +451,8 @@ export const CHAIN_ERRORS: ChainError[] = [
     "chain": "aptos",
     "scope": "swap",
     "code": 8,
-    "meaning": "Adding liquidity failed because the two amounts don't match the pool's current price ratio: covering the second token would need more of the first token than you supplied. Nothing was added and only gas was spent. Refresh the amounts in the app so they match the pool's current ratio, then retry."
+    "meaning": "Adding liquidity failed because the two amounts don't match the pool's current price ratio: covering the second token would need more of the first token than you supplied. Nothing was added and only gas was spent. Refresh the amounts in the app so they match the pool's current ratio, then retry.",
+    "protocol": "PancakeSwap"
   },
   {
     "slug": "aptos-swap-error-k",
@@ -410,7 +460,8 @@ export const CHAIN_ERRORS: ChainError[] = [
     "chain": "aptos",
     "scope": "swap",
     "code": 15,
-    "meaning": "The pool's final safety check failed: after the trade, its reserves would have broken the rule that keeps its pricing sound, so the whole swap was undone. Nothing was swapped and only gas was spent. This is rare and not caused by anything in your wallet. Retry, and if it keeps happening, report it to PancakeSwap."
+    "meaning": "The pool's final safety check failed: after the trade, its reserves would have broken the rule that keeps its pricing sound, so the whole swap was undone. Nothing was swapped and only gas was spent. This is rare and not caused by anything in your wallet. Retry, and if it keeps happening, report it to PancakeSwap.",
+    "protocol": "PancakeSwap"
   },
   {
     "slug": "aptos-swap-utils-error-insufficient-amount",
@@ -418,7 +469,8 @@ export const CHAIN_ERRORS: ChainError[] = [
     "chain": "aptos",
     "scope": "swap_utils",
     "code": 2,
-    "meaning": "An amount in this operation was zero or too small for the pool to process. Check the amounts you entered and retry with larger values."
+    "meaning": "An amount in this operation was zero or too small for the pool to process. Check the amounts you entered and retry with larger values.",
+    "protocol": "PancakeSwap"
   },
   {
     "slug": "aptos-swap-utils-error-insufficient-input-amount",
@@ -426,7 +478,8 @@ export const CHAIN_ERRORS: ChainError[] = [
     "chain": "aptos",
     "scope": "swap_utils",
     "code": 0,
-    "meaning": "The swap was given a zero or too-small input amount. Enter a larger amount and retry."
+    "meaning": "The swap was given a zero or too-small input amount. Enter a larger amount and retry.",
+    "protocol": "PancakeSwap"
   },
   {
     "slug": "aptos-swap-utils-error-insufficient-liquidity",
@@ -434,7 +487,8 @@ export const CHAIN_ERRORS: ChainError[] = [
     "chain": "aptos",
     "scope": "swap_utils",
     "code": 1,
-    "meaning": "The pool for this pair has no usable liquidity right now, so a price cannot be computed. Try a smaller amount or a different pair."
+    "meaning": "The pool for this pair has no usable liquidity right now, so a price cannot be computed. Try a smaller amount or a different pair.",
+    "protocol": "PancakeSwap"
   },
   {
     "slug": "aptos-swap-utils-error-insufficient-outpot-amount",
@@ -442,7 +496,8 @@ export const CHAIN_ERRORS: ChainError[] = [
     "chain": "aptos",
     "scope": "swap_utils",
     "code": 3,
-    "meaning": "The swap would have produced zero output tokens, usually because the trade size is far too small for this pool. Increase the amount and retry."
+    "meaning": "The swap would have produced zero output tokens, usually because the trade size is far too small for this pool. Increase the amount and retry.",
+    "protocol": "PancakeSwap"
   },
   {
     "slug": "aptos-swap-utils-error-same-coin",
@@ -450,7 +505,8 @@ export const CHAIN_ERRORS: ChainError[] = [
     "chain": "aptos",
     "scope": "swap_utils",
     "code": 4,
-    "meaning": "The swap was asked to trade a token for itself. Pick two different tokens and retry."
+    "meaning": "The swap was asked to trade a token for itself. Pick two different tokens and retry.",
+    "protocol": "PancakeSwap"
   },
   {
     "slug": "aptos-tp-sl-utils-einvalid-tp-sl-parameters",
@@ -458,7 +514,8 @@ export const CHAIN_ERRORS: ChainError[] = [
     "chain": "aptos",
     "scope": "tp_sl_utils",
     "code": 1,
-    "meaning": "The take-profit/stop-loss parameters are invalid, usually a TP or SL price on the wrong side of the current price. For a long, take-profit must be above and stop-loss below the price (reversed for a short). Fix the prices and retry."
+    "meaning": "The take-profit/stop-loss parameters are invalid, usually a TP or SL price on the wrong side of the current price. For a long, take-profit must be above and stop-loss below the price (reversed for a short). Fix the prices and retry.",
+    "protocol": "Decibel"
   },
   {
     "slug": "aptos-weighted-pool-scripts-err-insufficient-output",
@@ -466,7 +523,8 @@ export const CHAIN_ERRORS: ChainError[] = [
     "chain": "aptos",
     "scope": "weighted_pool_scripts",
     "code": 1,
-    "meaning": "The swap was cancelled because the amount you would have received fell below the minimum your slippage setting allows. The pool price moved between quoting and signing. Nothing was swapped and only gas was spent. Retry the swap; if it keeps happening, raise your slippage tolerance slightly or trade a smaller amount."
+    "meaning": "The swap was cancelled because the amount you would have received fell below the minimum your slippage setting allows. The pool price moved between quoting and signing. Nothing was swapped and only gas was spent. Retry the swap; if it keeps happening, raise your slippage tolerance slightly or trade a smaller amount.",
+    "protocol": "Thala"
   },
   {
     "slug": "aptos-withdrawal-enot-withdrawal-token-owner",
@@ -474,7 +532,8 @@ export const CHAIN_ERRORS: ChainError[] = [
     "chain": "aptos",
     "scope": "withdrawal",
     "code": 2,
-    "meaning": "The withdrawal ticket you tried to claim belongs to a different wallet. Switch to the wallet that requested the withdrawal and claim from there."
+    "meaning": "The withdrawal ticket you tried to claim belongs to a different wallet. Switch to the wallet that requested the withdrawal and claim from there.",
+    "protocol": "Amnis"
   },
   {
     "slug": "aptos-withdrawal-etoken-lock-not-expired",
@@ -482,7 +541,8 @@ export const CHAIN_ERRORS: ChainError[] = [
     "chain": "aptos",
     "scope": "withdrawal",
     "code": 1,
-    "meaning": "This withdrawal is still inside its unbonding period, so it cannot be claimed yet. Wait until the lockup shown on your withdrawal ticket ends, then claim again."
+    "meaning": "This withdrawal is still inside its unbonding period, so it cannot be claimed yet. Wait until the lockup shown on your withdrawal ticket ends, then claim again.",
+    "protocol": "Amnis"
   },
   {
     "slug": "hyperliquid-bad-alo-px-rejected",

@@ -424,6 +424,27 @@ const DECIBEL_ERRMAPS: AbortErrmap = {
   },
 }
 
+/**
+ * The protocol each errmap address belongs to, for anything that shows an
+ * error to a reader. Keyed by the same constants the maps use, so an address
+ * cannot be named here without being the one its entries are keyed on.
+ */
+const PROTOCOL_NAMES: Record<string, string> = {
+  [normalizeAptosAddress(DECIBEL)]: "Decibel",
+  [normalizeAptosAddress(THALA_V1)]: "Thala",
+  [normalizeAptosAddress(THALA_V2)]: "Thala",
+  [normalizeAptosAddress(ARIES)]: "Aries",
+  [normalizeAptosAddress(AMNIS)]: "Amnis",
+  [normalizeAptosAddress(PANCAKE)]: "PancakeSwap",
+}
+
+/** The protocol behind an `address::module` errmap key, or null if unknown. */
+export function protocolForErrmapKey(key: string): string | null {
+  const sep = key.indexOf("::")
+  if (sep === -1) return null
+  return PROTOCOL_NAMES[normalizeAptosAddress(key.slice(0, sep))] ?? null
+}
+
 /** Merged errmap across the demo protocols. Keys are `address::module`. */
 export const PROTOCOL_ERRMAPS: AbortErrmap = {
   ...DECIBEL_ERRMAPS,
