@@ -85,8 +85,8 @@ export default function ErrorsIndexPage() {
               Every transaction error, explained
             </h1>
             <p className="text-muted text-base max-w-2xl">
-              The exact messages wallets and block explorers show when a transaction fails, in plain
-              English: what each one means, and how to fix it. {TX_ERRORS.length} errors and counting.
+              The exact messages wallets and block explorers show when a transaction fails, and what
+              each one means. {TX_ERRORS.length} errors and counting.
             </p>
           </FadeIn>
 
