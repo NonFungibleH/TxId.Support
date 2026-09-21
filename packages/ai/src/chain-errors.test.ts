@@ -6,7 +6,7 @@ import { CODE_NAMES, RESULT_CODE_ENUM_FOR_OP } from "../../stellar/src/codes.gen
 import { SUI_ERRMAPS } from "../../sui/src/errmap"
 import { PROGRAM_ERRMAPS } from "../../solana/src/errmap"
 import { explainStatus, KNOWN_STATUSES } from "../../hyperliquid/src/statuses"
-import { PROTOCOL_ERRMAPS as APTOS_ERRMAPS } from "../../aptos/src/errmap"
+import { PROTOCOL_ERRMAPS as APTOS_ERRMAPS, protocolForErrmapKey } from "../../aptos/src/errmap"
 import { PROTOCOL_ERRORS as NEAR_ERRORS } from "../../near/src/errmap"
 
 /**
@@ -49,6 +49,8 @@ export interface ChainError {
   scope: string | null
   code: number | null
   meaning: string
+  /** The protocol the code belongs to, where the chain's codes are per-protocol (Aptos). */
+  protocol?: string
 }
 
 /** `txBAD_SEQ` -> `stellar-tx-bad-seq`. The URL is readable; the H1 stays exact. */
@@ -220,6 +222,7 @@ function aptosErrors(): ChainError[] {
         scope: moduleName,
         code: Number(code),
         meaning: text,
+        ...(protocolForErrmapKey(qualified) ? { protocol: protocolForErrmapKey(qualified)! } : {}),
       })
     }
   }
@@ -278,6 +281,8 @@ export interface ChainError {
   /** Its signed number within its enum, which is what raw XDR carries. */
   code: number | null
   meaning: string
+  /** The protocol the code belongs to, where a chain's codes are per-protocol (Aptos). */
+  protocol?: string
 }
 
 export const CHAIN_ERRORS: ChainError[] = ${JSON.stringify(errors, null, 2)}
@@ -322,6 +327,19 @@ describe("the published chain errors come from the decoder, not from a copy", ()
   it("publishes nothing written as instructions to the model", () => {
     const promptVoice = /\bDo NOT\b|\bState that plainly\b|\bstop there\b|\bthe model\b|\bnothing here establishes\b|\bDo not (?:say|tell|offer|claim)\b/
     expect(built.filter(e => promptVoice.test(e.meaning)).map(e => e.slug)).toEqual([])
+  })
+
+  /**
+   * An Aptos abort belongs to a PROTOCOL, and a reader cannot tell which from
+   * the module alone: Amnis ships a module called `aptos_governance`, which
+   * under a bare "Aptos" heading reads as the framework's own governance. Every
+   * published Aptos entry names its protocol, derived from the address it is
+   * keyed on rather than from a list kept here.
+   */
+  it("names the protocol behind every Aptos entry", () => {
+    const aptos = built.filter(e => e.chain === "aptos")
+    expect(aptos.length).toBeGreaterThan(40)
+    expect(aptos.filter(e => !e.protocol).map(e => e.slug)).toEqual([])
   })
 
   // Site-wide rule, and these strings are entirely user-facing.
