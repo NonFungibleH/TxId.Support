@@ -65,7 +65,13 @@ const FRAMEWORK_ERRORS: Record<string, Record<number, { name: string; reason: st
   },
 }
 
-export type AbortErrmap = Record<string, Record<number, { name: string; reason: string }>>
+/**
+ * `reason` is what the decoder returns, and the chat model reads it. `page`,
+ * when present, is what the public error reference publishes instead: needed
+ * only where `reason` also steers the model ("Do NOT say the order was
+ * filled"), which must never appear on a page a protocol's engineers will read.
+ */
+export type AbortErrmap = Record<string, Record<number, { name: string; reason: string; page?: string }>>
 
 function normalizeModuleKey(mod: string): string {
   const sep = mod.indexOf("::")

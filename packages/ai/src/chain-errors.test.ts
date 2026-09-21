@@ -206,8 +206,10 @@ function aptosErrors(): ChainError[] {
   for (const [qualified, codes] of Object.entries(APTOS_ERRMAPS)) {
     const moduleName = qualified.split("::").pop() ?? qualified
     for (const [code, entry] of Object.entries(codes)) {
-      const e = entry as { name: string; reason: string }
-      if (!e.reason || e.reason.length < MIN_EXPLANATION) continue
+      const e = entry as { name: string; reason: string; page?: string }
+      // `page` is the reader-facing text where `reason` also steers the model.
+      const text = e.page ?? e.reason
+      if (!text || text.length < MIN_EXPLANATION) continue
       const slug = slugify("aptos", `${moduleName}-${e.name}`)
       if (seen.has(slug)) continue
       seen.add(slug)
@@ -217,7 +219,7 @@ function aptosErrors(): ChainError[] {
         chain: "aptos",
         scope: moduleName,
         code: Number(code),
-        meaning: e.reason,
+        meaning: text,
       })
     }
   }
@@ -304,6 +306,22 @@ describe("the published chain errors come from the decoder, not from a copy", ()
       seen.set(e.slug, e.message)
     }
     expect(dupes).toEqual([])
+  })
+
+  /**
+   * The decoder's explanations serve two readers. Most are written for the
+   * person who hit the error, and publish as they are. A few also steer the
+   * model in the chat ("Do NOT say the order was filled"), because the chat
+   * must not claim more than the abort proves. Published verbatim, that reads
+   * as an AI prompt on a public page under our name, and one did: Decibel's
+   * order-not-found page, the error a Decibel engineer is likeliest to click.
+   *
+   * An entry that needs model guidance carries a separate `page` text for the
+   * reference. These phrases only appear when the prompt voice leaked through.
+   */
+  it("publishes nothing written as instructions to the model", () => {
+    const promptVoice = /\bDo NOT\b|\bState that plainly\b|\bstop there\b|\bthe model\b|\bnothing here establishes\b|\bDo not (?:say|tell|offer|claim)\b/
+    expect(built.filter(e => promptVoice.test(e.meaning)).map(e => e.slug)).toEqual([])
   })
 
   // Site-wide rule, and these strings are entirely user-facing.
