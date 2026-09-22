@@ -153,7 +153,7 @@ describe("readiness checklist", () => {
       gas: ok({ hasAny: false, coversOneTx: false }),
     }))
     expect(c.todo).toBe(2)
-    expect(c.headline).toBe("2 things to sort before your first deposit")
+    expect(c.headline).toBe("Two things to sort before your first deposit")
   })
 
   // Rules carried over from the opener: facts only, no amounts, no advice.

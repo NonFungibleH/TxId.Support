@@ -1013,6 +1013,7 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
     activation: config?.mode === "token" ? null : config?.activation,
     walletAddress,
     chainId,
+    walletChainKnown: walletSetup === "connected",
     embedNonce,
   })
 
@@ -2373,16 +2374,30 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
   // Actions gate stays shut) and the question waits one render for it, because
   // sendMessage reads the wallet from its own closure.
   const [queuedAsk, setQueuedAsk] = useState<string | null>(null)
+  // Opening the checklist is the user engaging with the wallet it read, so the
+  // chat takes that wallet too. Otherwise the header asks them to connect a
+  // wallet the panel beneath it is already describing. The chain is the
+  // project's, exactly as for a pasted address: the questions are about the
+  // protocol, and the network item already covers the wallet being elsewhere.
+  const adoptActivationWallet = useCallback(() => {
+    const w = activationUI.wallet
+    if (walletAddress || !w) return
+    const evmCid = (config?.chains ?? []).find((c) => !NON_EVM_CHAINS.includes(c))
+    setWalletAddress(w.address)
+    setChainId(evmCid ?? w.chainId ?? "0x1")
+    setWalletSetup("manual")
+    // NON_EVM_CHAINS is a render-scope constant; listing it would rebuild this
+    // callback on every render for no change in behaviour.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activationUI.wallet, walletAddress, config?.chains])
+  useEffect(() => {
+    if (activationUI.showChecklist) adoptActivationWallet()
+  }, [activationUI.showChecklist, adoptActivationWallet])
   const askFromChecklist = useCallback((q: string) => {
     activationUI.setShowChecklist(false)
-    const w = activationUI.wallet
-    if (!walletAddress && w) {
-      setWalletAddress(w.address)
-      setChainId(w.chainId ?? chainId)
-      setWalletSetup("manual")
-    }
+    adoptActivationWallet()
     setQueuedAsk(q)
-  }, [activationUI, walletAddress, chainId])
+  }, [activationUI, adoptActivationWallet])
   useEffect(() => {
     if (!queuedAsk) return
     if (activationUI.wallet && !walletAddress) return

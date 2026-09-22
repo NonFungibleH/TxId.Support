@@ -38,9 +38,9 @@ export function ActivationDemoGrid({
                 role="radio"
                 aria-checked={theme === t}
                 onClick={() => setTheme(t)}
-                className={`rounded-md px-3 py-1 text-xs font-medium capitalize ${theme === t ? "bg-neutral-900 text-white dark:bg-white dark:text-neutral-900" : ""}`}
+                className={`rounded-md px-3 py-1 text-xs font-medium ${theme === t ? "bg-neutral-900 text-white dark:bg-white dark:text-neutral-900" : ""}`}
               >
-                {t} widget
+                {t === "dark" ? "Dark widget" : "Light widget"}
               </button>
             ))}
           </div>

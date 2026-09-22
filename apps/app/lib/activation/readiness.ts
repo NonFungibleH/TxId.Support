@@ -74,6 +74,8 @@ export interface Checklist {
 }
 
 const ORDER: Record<ItemStatus, number> = { ready: 0, todo: 1, expect: 2, unknown: 3 }
+/** A checklist has at most five items, so its counts are always spelled out. */
+const WORDS: Record<number, string> = { 2: "Two", 3: "Three", 4: "Four", 5: "Five" }
 
 function orList(xs: string[]): string {
   if (xs.length <= 1) return xs[0] ?? ""
@@ -257,7 +259,7 @@ export function buildChecklist(input: ChecklistInput): Checklist {
 
   const headline =
     todo > 0
-      ? `${todo === 1 ? "One thing" : `${todo} things`} to sort before your first ${input.action}`
+      ? `${todo === 1 ? "One thing" : `${WORDS[todo] ?? todo} things`} to sort before your first ${input.action}`
       : unknown > 0
         ? "Nothing to fix in what I could check"
         : `You're ready for your first ${input.action}`

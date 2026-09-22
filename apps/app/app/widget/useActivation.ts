@@ -54,12 +54,20 @@ export function useActivation({
   activation,
   walletAddress,
   chainId,
+  walletChainKnown,
   embedNonce,
 }: {
   apiKey: string
   activation: ActivationWidgetConfig | null | undefined
   walletAddress: string | null
   chainId: string | null
+  /**
+   * Whether `chainId` is the network the wallet is actually on. True only for
+   * a wallet connected in the widget. A pasted address has no network at all:
+   * its chainId is the project's, assumed, and a checklist built on it would
+   * say "Connected to Avalanche" about a wallet sitting on Ethereum.
+   */
+  walletChainKnown: boolean
   embedNonce: string | null
 }) {
   const [hostWallet, setHostWallet] = useState<{ address: string; chainId: string | null } | null>(null)
@@ -69,12 +77,17 @@ export function useActivation({
   const [refreshTick, setRefreshTick] = useState(0)
   const on = !!activation
 
-  // The wallet connected in the widget wins; otherwise the one the host page
-  // already has. EVM only, which is all v1 checks.
+  // The wallet in the chat wins; otherwise the one the host page already has.
+  // EVM only, which is all v1 checks. The network comes only from something
+  // that actually reported it: the host page's wallet when it is the same
+  // address, or a wallet connected in the widget. Otherwise it is unknown and
+  // the network item is left out rather than guessed.
+  const hostMatch = !!walletAddress && !!hostWallet && hostWallet.address.toLowerCase() === walletAddress.toLowerCase()
   const wallet =
-    walletAddress && EVM.test(walletAddress) ? { address: walletAddress, chainId } :
-    hostWallet && EVM.test(hostWallet.address) ? hostWallet :
-    null
+    walletAddress && EVM.test(walletAddress)
+      ? { address: walletAddress, chainId: hostMatch ? hostWallet!.chainId : walletChainKnown ? chainId : null }
+      : hostWallet && EVM.test(hostWallet.address) ? hostWallet
+      : null
   const address = wallet?.address ?? null
   const walletChain = wallet?.chainId ?? null
   const flagKey = address ? `txid_act_${apiKey}_${address.toLowerCase()}` : null
