@@ -10,6 +10,8 @@ import { betaControls, resolveThemeMode, themedBranding } from "@/lib/types/conf
 import { CHAT_LIMITS } from "@/lib/limits"
 import DOMPurify from "dompurify"
 import { ActionCard } from "./ActionCard"
+import { useActivation, type ActivationWidgetConfig } from "./useActivation"
+import { ReadinessPanel } from "./ReadinessPanel"
 import type { WalletActionPayload } from "./ActionCard"
 import {
   SendIcon,
@@ -169,6 +171,8 @@ interface WidgetConfig {
   actions?: { enabled: boolean }
   /** Beta programme. Resolved server-side, so null means "not running one". */
   beta?: { autoOpen: boolean; feedback: boolean; bugReports?: boolean; intro?: string | null } | null
+  /** Readiness check for new wallets. Null unless the project turned it on. */
+  activation?: ActivationWidgetConfig | null
 }
 
 // Returns perceived luminance 0-1; > 0.5 = light background
@@ -1001,6 +1005,17 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
     return () => { cancelled = true }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [walletAddress, chainId, apiKey, config?.mode])
+
+  // Readiness check for new wallets (lib/activation). Inert unless the project
+  // turned it on: `config.activation` is null for everyone else.
+  const activationUI = useActivation({
+    apiKey,
+    activation: config?.mode === "token" ? null : config?.activation,
+    walletAddress,
+    chainId,
+    walletChainKnown: walletSetup === "connected",
+    embedNonce,
+  })
 
   // The address the user connected is not the account their positions live in.
   // Resolve the second one as soon as we have the first, so both are on screen
@@ -2353,6 +2368,44 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
     // one of them takes a real dependency.
   }, [input, isStreaming, config, messages, apiKey, walletAddress, chainId, isPreview, previewToken, walletSetup, hasCurated, markOriented, recordFinding, flushBugReport])
 
+  // A question asked from the readiness checklist. When the check was about the
+  // host page's wallet and the chat has none yet, that wallet is adopted first
+  // (as a MANUAL wallet, like identify(): asserted, never signed, so the
+  // Actions gate stays shut) and the question waits one render for it, because
+  // sendMessage reads the wallet from its own closure.
+  const [queuedAsk, setQueuedAsk] = useState<string | null>(null)
+  // Opening the checklist is the user engaging with the wallet it read, so the
+  // chat takes that wallet too. Otherwise the header asks them to connect a
+  // wallet the panel beneath it is already describing. The chain is the
+  // project's, exactly as for a pasted address: the questions are about the
+  // protocol, and the network item already covers the wallet being elsewhere.
+  const adoptActivationWallet = useCallback(() => {
+    const w = activationUI.wallet
+    if (walletAddress || !w) return
+    const evmCid = (config?.chains ?? []).find((c) => !NON_EVM_CHAINS.includes(c))
+    setWalletAddress(w.address)
+    setChainId(evmCid ?? w.chainId ?? "0x1")
+    setWalletSetup("manual")
+    // NON_EVM_CHAINS is a render-scope constant; listing it would rebuild this
+    // callback on every render for no change in behaviour.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activationUI.wallet, walletAddress, config?.chains])
+  useEffect(() => {
+    if (activationUI.showChecklist) adoptActivationWallet()
+  }, [activationUI.showChecklist, adoptActivationWallet])
+  const askFromChecklist = useCallback((q: string) => {
+    activationUI.setShowChecklist(false)
+    adoptActivationWallet()
+    setQueuedAsk(q)
+  }, [activationUI, adoptActivationWallet])
+  useEffect(() => {
+    if (!queuedAsk) return
+    if (activationUI.wallet && !walletAddress) return
+    const q = queuedAsk
+    setQueuedAsk(null)
+    void sendMessage(q)
+  }, [queuedAsk, walletAddress, activationUI.wallet, sendMessage])
+
   // ── Host page control (window.txid.* → widget.js → here) ──────────────────
   // The embedding site drives the widget from its own code: identify() supplies
   // the user's wallet so they never connect twice, and open({mode}) pops the
@@ -3174,7 +3227,30 @@ export function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
         {/* ── Support Mode tabs ─────────────────────────────────────────── */}
 
         {!isTokenMode && tab === "chat" && (
-          <div className="flex flex-1 flex-col min-h-0 overflow-hidden">
+          <div className="relative flex flex-1 flex-col min-h-0 overflow-hidden">
+            {activationUI.showChecklist && activationUI.readiness && (
+              <ReadinessPanel
+                readiness={activationUI.readiness}
+                palette={{ primary: b.primaryColor, onPrimary, text: adaptiveText, background: b.backgroundColor, bgIsLight }}
+                projectName={config.projectName}
+                onAsk={askFromChecklist}
+                onBack={() => activationUI.setShowChecklist(false)}
+              />
+            )}
+            {activationUI.offer && !activationUI.showChecklist && activationUI.readiness?.checklist && (
+              <button
+                type="button"
+                onClick={activationUI.openChecklist}
+                className="mx-3 mt-2 flex items-center justify-between gap-2 rounded-xl px-3 py-2 text-left text-[11px] focus-visible:outline focus-visible:outline-2"
+                style={{ backgroundColor: `${b.primaryColor}14`, border: `1px solid ${b.primaryColor}33`, color: adaptiveText }}
+              >
+                <span className="min-w-0">
+                  <span className="font-medium">{activationUI.readiness.checklist.headline}</span>
+                  <span className="opacity-70">. See your checklist.</span>
+                </span>
+                <span aria-hidden style={{ color: b.primaryColor }}>&rarr;</span>
+              </button>
+            )}
             <div ref={messagesContainerRef} className="flex-1 min-h-0 space-y-3 overflow-y-auto p-3">
               {(() => {
                 return messages.map((m) => (

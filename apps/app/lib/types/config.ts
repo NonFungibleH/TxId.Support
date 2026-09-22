@@ -578,6 +578,55 @@ export function activeStatusNotice(config: { incident?: IncidentConfig | null } 
   return inc
 }
 
+/**
+ * Activation: a readiness check for new wallets, and a rescue for their first
+ * failed attempt. OFF unless a project turns it on, so a live integration that
+ * never opened this page behaves exactly as it did before it existed.
+ */
+export type ActivationMode = "off" | "prompt" | "open_once"
+
+export type ActivationSpend =
+  /** The action pays in the chain's native coin (stake AVAX, a payable lock fee). */
+  | { kind: "native" }
+  /**
+   * The action pulls one of these ERC-20s, on the action's chain. The symbol is
+   * resolved on chain when the setting is saved, so a check never needs a
+   * lookup just to name the token it is about.
+   */
+  | { kind: "tokens"; tokens: { address: string; symbol: string }[] }
+  /** Whatever the user brings: a swap, a lock of any token. */
+  | { kind: "any" }
+
+export interface ActivationConfig {
+  mode: ActivationMode
+  /** One word, as the protocol's users say it: "deposit", "swap", "lock", "stake". */
+  action: string
+  /** The watched contract the action is sent to. Its chain is the action's chain, and it is the approval spender. */
+  contractId?: string
+  spends: ActivationSpend
+  /** The protocol's own getting-started page. */
+  guideUrl?: string
+  /** Share of new wallets that see nothing, so the two groups can be compared. 0 to 50. */
+  holdoutPct: number
+  enabledAt?: string
+}
+
+export const ACTIVATION_HOLDOUT_DEFAULT = 10
+export const ACTIVATION_HOLDOUT_MAX = 50
+
+export const ACTIVATION_DEFAULT: ActivationConfig = {
+  mode: "off",
+  action: "transaction",
+  spends: { kind: "any" },
+  holdoutPct: ACTIVATION_HOLDOUT_DEFAULT,
+}
+
+/** On only when a project deliberately set a mode other than off. Missing config is off. */
+export function activationOn(config: Pick<ProjectConfig, "activation"> | null | undefined): boolean {
+  const m = config?.activation?.mode
+  return m === "prompt" || m === "open_once"
+}
+
 export interface ProjectConfig {
   branding: BrandingConfig
   token: TokenConfig | null
@@ -631,6 +680,7 @@ export interface ProjectConfig {
    */
   incident?: IncidentConfig | null
   proactiveOpener?: { enabled: boolean }
+  activation?: ActivationConfig
   docsSync?: DocsSyncConfig
   subaccounts?: SubaccountsConfig
   /** Beta programme. Layers on top of support mode, never replaces it. */

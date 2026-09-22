@@ -19,11 +19,15 @@ const isPublicRoute = createRouteMatcher([
   // so authenticated pages render blank on a *.vercel.app host. The page itself
   // 404s in production and reads fixtures, never the database.
   "/console-demo(.*)",
+  // Same arrangement for the readiness check: fixtures only, 404 in production.
+  "/activation-demo(.*)",
   "/api/chat(.*)",
   "/api/check(.*)",
   "/api/widget-config(.*)",
   "/api/widget/protocol-account(.*)",
   "/api/widget/opener(.*)",
+  "/api/widget/readiness(.*)",
+  "/api/widget/activation-event(.*)",
   "/api/feedback(.*)",
   "/api/tickets(.*)",
   "/api/telegram(.*)",

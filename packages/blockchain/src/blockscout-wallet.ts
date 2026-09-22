@@ -178,6 +178,13 @@ export async function bsRecentTransactions(address: string, chainId: string, lim
   return (data?.items ?? []).slice(0, limit).map(tx => mapBsTx(tx, chainId))
 }
 
+/** One page of history, or null when Blockscout did not answer. `complete` means there is no next page. */
+export async function bsHistoryPage(address: string, chainId: string): Promise<{ txs: Transaction[]; complete: boolean } | null> {
+  const data = await bsGet(chainId, `/addresses/${address}/transactions`) as { items?: BsTxItem[]; next_page_params?: unknown } | null
+  if (!data || !Array.isArray(data.items)) return null
+  return { txs: data.items.map(tx => mapBsTx(tx, chainId)), complete: data.next_page_params == null }
+}
+
 export async function bsContractTransactions(contractAddress: string, chainId: string, limit = 10): Promise<Transaction[]> {
   const data = await bsGet(chainId, `/addresses/${contractAddress}/transactions?filter=to`) as { items?: BsTxItem[] } | null
   return (data?.items ?? [])
