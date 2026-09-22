@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation"
 import {
   LayoutDashboard, Paintbrush, FileCode2, BookOpen,
   LayoutList, Code2, BarChart3, Globe, MessageSquare, MessageCircle, Eye, Ticket, MessagesSquare,
-  Send, Wallet, Users, FlaskConical, Inbox as InboxIcon, Settings as SettingsIcon,
+  Send, Wallet, Rocket, Users, FlaskConical, Inbox as InboxIcon, Settings as SettingsIcon,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { Capability } from "@/lib/roles"
@@ -91,6 +91,7 @@ const SUPPORT_GROUPS: NavGroup[] = [
     label: "Beta",
     items: [
       { href: "/dashboard/actions", label: "Actions", icon: Wallet, beta: true },
+      { href: "/dashboard/activation", label: "Activation", icon: Rocket, beta: true },
     ],
   },
 ]
