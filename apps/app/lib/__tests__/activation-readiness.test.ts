@@ -19,7 +19,7 @@ function input(over: Partial<ChecklistInput> = {}, f: Partial<WalletFacts> = {})
   return {
     projectName: "Benqi",
     action: "deposit",
-    spends: { kind: "tokens", tokens: ["0xusdc"] },
+    spends: { kind: "tokens", tokens: [{ address: "0xusdc", symbol: "USDC" }] },
     actionChain: { id: "0xa86a", name: "Avalanche", nativeSymbol: "AVAX", evm: true },
     facts: facts(f),
     ...over,
@@ -130,6 +130,16 @@ describe("readiness checklist", () => {
       actionChain: { id: "aptos", name: "Aptos", nativeSymbol: "APT", evm: false },
     }, { walletChain: { id: "aptos", name: "Aptos" } }))
     expect(aptos.items.find(i => i.id === "approval")).toBeUndefined()
+  })
+
+  it("still gives the approve heads-up when there is no specific token to check", () => {
+    const c = buildChecklist(input({}, { approvals: null }))
+    expect(c.items.find(i => i.id === "approval")).toMatchObject({ status: "expect", title: "Your wallet may ask you to approve a token first" })
+  })
+
+  it("has no approval item when the action is paid in the native coin", () => {
+    const c = buildChecklist(input({ action: "stake", spends: { kind: "native" } }))
+    expect(c.items.find(i => i.id === "approval")).toBeUndefined()
   })
 
   it("omits the network item when the wallet's chain is not known", () => {

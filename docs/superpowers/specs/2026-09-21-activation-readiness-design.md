@@ -28,7 +28,7 @@ activation?: {
   mode: "off" | "prompt" | "open_once"   // default "off"
   action: string                          // one word, as users say it: "deposit", "swap", "lock", "stake"
   contractId?: string                     // watched contract the action is sent to; the approval spender
-  spends: { kind: "native" } | { kind: "tokens"; tokens: string[] } | { kind: "any" }
+  spends: { kind: "native" } | { kind: "tokens"; tokens: { address: string; symbol: string }[] } | { kind: "any" }
   guideUrl?: string                       // the protocol's own getting-started page
   holdoutPct: number                      // share of new wallets that see nothing, 0 to 50, default 10
 }
@@ -79,6 +79,6 @@ The order is: failure first, then ready, then to do, then what to expect, then c
 
 ## Out of scope for v1
 
-- Aptos and other non-EVM approval checks. The Aptos reader covers history and gas only.
+- **Non-EVM action chains.** The endpoint returns 204 and the dashboard says so. The Aptos history reader filters the wallet's last 25 transactions and cannot say whether that was the whole history, so activation there would be unmeasurable and "no activity yet" unprovable.
 - Suggesting a bridge or a venue. That is advice.
 - A per-step funnel beyond prompted, opened, dismissed and activated.

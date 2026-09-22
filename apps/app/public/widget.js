@@ -70,6 +70,14 @@
     "#txid-widget-frame-wrap.txid-docking{transition:left .45s cubic-bezier(.2,.8,.2,1),top .45s cubic-bezier(.2,.8,.2,1)}" +
     "#txid-widget-caption{position:fixed;z-index:2147483646;background:#17172a;color:#fff;font:500 13px/1.4 system-ui,-apple-system,sans-serif;padding:8px 12px;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.35);opacity:0;transition:opacity .3s;pointer-events:none;max-width:240px}" +
     "#txid-widget-caption.show{opacity:1}" +
+    /* Readiness prompt. Same bubble as the caption, but it can be clicked and
+       dismissed, so it takes pointer events and carries its own close button. */
+    "#txid-widget-nudge{position:fixed;z-index:2147483646;display:flex;align-items:flex-start;gap:6px;background:#17172a;color:#fff;font:500 13px/1.4 system-ui,-apple-system,sans-serif;padding:9px 8px 9px 12px;border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,.35);opacity:0;transition:opacity .3s;max-width:min(260px,calc(100vw - 110px))}" +
+    "#txid-widget-nudge.show{opacity:1}" +
+    "#txid-widget-nudge button{background:none;border:none;color:inherit;font:inherit;cursor:pointer;text-align:left;padding:0}" +
+    "#txid-widget-nudge .txid-nudge-x{opacity:.6;font-size:16px;line-height:1;padding:0 2px}" +
+    "#txid-widget-nudge .txid-nudge-x:hover{opacity:1}" +
+    "#txid-widget-nudge button:focus-visible{outline:2px solid #fff;outline-offset:2px;border-radius:4px}" +
     "#txid-widget-frame{width:100%;height:100%;border:none;display:block}" +
     /* Mobile: full-width bottom sheet, respects safe areas */
     "@media(max-width:440px){" +
@@ -214,6 +222,18 @@
     else queuedOpen = msg;
   };
   window.txid.close = function () { setOpen(false); };
+  // Optional: call from your transaction-failure handler with the hash.
+  //   window.txid.notifyFailure("0x…")
+  // Only has an effect when the project runs the readiness check, and then it
+  // makes the failure the top item straight away instead of waiting for the
+  // indexer to catch up. Held until the widget asks for it.
+  var queuedFailure = null;
+  window.txid.notifyFailure = function (hash) {
+    var h = hash != null ? String(hash) : "";
+    if (!/^0x[0-9a-fA-F]{64}$/.test(h)) return;
+    var msg = { type: "txid-failure", hash: h };
+    if (activationWatching) sendToFrame(msg); else queuedFailure = msg;
+  };
   // Drive the widget's palette from the host site's own light/dark toggle.
   //   window.txid.setTheme("dark" | "light" | "auto")
   // Only has an effect when the project designed a dark theme in the dashboard
@@ -233,6 +253,7 @@
   function setOpen(next) {
     open = next;
     if (open) {
+      clearNudge();
       // A normal open is never centred. If a previous spotlight's class
       // survived any path we have not thought of, strip it rather than let
       // the panel reopen mid-screen.
@@ -384,6 +405,119 @@
     }, 4500);
   }
 
+  // ── Readiness check (activation) ───────────────────────────────────────────
+  // NOTHING HERE RUNS UNLESS THE FRAME ASKS, and the frame asks only for a
+  // project that turned the readiness check on. For everyone else this loader
+  // behaves exactly as it did before the feature existed.
+
+  var nudge = null;
+  var nudgeText = null;
+  var activationWatching = false;
+
+  function clearNudge() {
+    if (!nudge) return;
+    var n = nudge;
+    nudge = null; nudgeText = null;
+    n.classList.remove("show");
+    setTimeout(function () { if (n.parentNode) n.parentNode.removeChild(n); }, 350);
+  }
+
+  function placeNudge() {
+    if (!nudge) return;
+    var r = btn.getBoundingClientRect();
+    // Beside the launcher, on whichever side has room: after a drag to the
+    // left edge the usual left-hand spot is off the page.
+    if (r.left + r.width / 2 < window.innerWidth / 2) {
+      nudge.style.left = Math.max(8, r.right + 10) + "px"; nudge.style.right = "auto";
+    } else {
+      nudge.style.right = Math.max(8, window.innerWidth - r.left + 10) + "px"; nudge.style.left = "auto";
+    }
+    nudge.style.bottom = Math.max(8, window.innerHeight - r.bottom + 6) + "px";
+  }
+
+  function showNudge(text) {
+    // Never over an open panel, and never twice.
+    if (open || !text || btn.style.display === "none") return;
+    if (nudge && nudgeText === text) return;
+    clearNudge();
+    var n = document.createElement("div");
+    n.id = "txid-widget-nudge";
+    n.setAttribute("role", "status");
+    var go = document.createElement("button");
+    go.type = "button";
+    go.textContent = String(text).slice(0, 160);
+    go.addEventListener("click", function () {
+      clearNudge();
+      setOpen(true);
+      sendToFrame({ type: "txid-show-checklist" });
+    });
+    var x = document.createElement("button");
+    x.type = "button";
+    x.className = "txid-nudge-x";
+    x.setAttribute("aria-label", "Dismiss");
+    x.textContent = "\u00d7";
+    x.addEventListener("click", function () {
+      clearNudge();
+      sendToFrame({ type: "txid-nudge-dismissed" });
+    });
+    n.appendChild(go);
+    n.appendChild(x);
+    root.appendChild(n);
+    nudge = n; nudgeText = text;
+    placeNudge();
+    requestAnimationFrame(function () { n.classList.add("show"); });
+  }
+
+  // Typing into the host page is the clearest sign someone is mid-flow, often
+  // entering the amount for the very transaction the checklist is about.
+  function userIsBusy() {
+    var a = document.activeElement;
+    if (!a || a === document.body || a === iframe) return false;
+    var tag = String(a.tagName || "").toUpperCase();
+    return tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || a.isContentEditable === true;
+  }
+
+  // "Open once" projects. The frame keeps the once-per-wallet record; this
+  // enforces the rest. When it cannot open, it prompts instead, so the user is
+  // still offered the check without having a panel dropped over what they are
+  // doing.
+  function openChecklistOnce(text) {
+    setTimeout(function () {
+      if (open || window.innerWidth <= 440 || userIsBusy()) { showNudge(text); return; }
+      setOpen(true);
+      sendToFrame({ type: "txid-show-checklist" });
+    }, 1200);
+  }
+
+  // The wallet the host page is already connected to, so the check needs no
+  // second connection. eth_accounts NEVER prompts: it lists only accounts this
+  // site is already connected to, and an empty list otherwise. identify()
+  // still wins in the frame when the host calls it.
+  function watchHostWallet() {
+    var p = window.ethereum;
+    if (!p || typeof p.request !== "function") return;
+    function report() {
+      Promise.resolve(p.request({ method: "eth_accounts" })).then(function (accts) {
+        var a = accts && accts[0];
+        if (!a) { sendToFrame({ type: "txid-host-wallet", address: null }); return; }
+        return Promise.resolve(p.request({ method: "eth_chainId" })).then(function (cid) {
+          sendToFrame({ type: "txid-host-wallet", address: String(a), chainId: cid ? String(cid) : null });
+        });
+      })["catch"](function () { /* locked or busy wallet: say nothing */ });
+    }
+    report();
+    if (typeof p.on === "function") {
+      try { p.on("accountsChanged", report); p.on("chainChanged", report); } catch (e) { /* older provider */ }
+    }
+  }
+
+  function startActivation() {
+    if (activationWatching) return;
+    activationWatching = true;
+    watchHostWallet();
+    if (queuedFailure) { sendToFrame(queuedFailure); queuedFailure = null; }
+  }
+
   // Base panel size (kept in sync with the CSS above). Text-scale grows it.
   var BASE_W = 380, BASE_H = 560;
 
@@ -474,6 +608,7 @@
   window.addEventListener("resize", function () {
     applyButtonPos();
     if (open) positionPanel();
+    placeNudge();
   });
 
   // Apply any saved position on load.
@@ -656,6 +791,11 @@
     if (e.data === "txid-inactive") { launcherDecided = true; return; }
 
     if (e.data === "txid-autoopen") { autoOpenOnce(); return; }
+
+    if (e.data && e.data.type === "txid-activation-watch") { startActivation(); return; }
+    if (e.data && e.data.type === "txid-nudge" && typeof e.data.text === "string") { showNudge(e.data.text); return; }
+    if (e.data && e.data.type === "txid-nudge-clear") { clearNudge(); return; }
+    if (e.data && e.data.type === "txid-open-checklist" && typeof e.data.text === "string") { openChecklistOnce(e.data.text); return; }
 
     // The tester sent their first message: the introduction has done its job,
     // so the panel docks to the corner on its own and the conversation

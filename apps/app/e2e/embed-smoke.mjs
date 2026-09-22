@@ -96,6 +96,75 @@ try {
   await page.click("#txid-widget-btn"); await page.waitForTimeout(150)
   s = await state()
   check("reopen is corner, never centred", s.open && s.corner && !s.classes.includes("txid-center"), JSON.stringify(s))
+
+  // ── Readiness check (activation) ───────────────────────────────────────────
+  // What the loader sends INTO the frame, recorded from inside the frame.
+  await post("txid-close"); await page.waitForTimeout(400)
+  const frame = page.frames().find(f => f.url().includes("/widget"))
+  await frame.evaluate(() => {
+    window.__got = []
+    window.addEventListener("message", e => { if (e.data && e.data.type) window.__got.push(e.data) })
+  })
+  const got = () => frame.evaluate(() => window.__got.map(m => m.type))
+  const clearGot = () => frame.evaluate(() => { window.__got = [] })
+  const nudgeShown = () => page.evaluate(() => !!document.getElementById("txid-widget-nudge"))
+  const panelOpen = () => page.evaluate(() => document.getElementById("txid-widget-frame-wrap").className.includes("open"))
+
+  // A fake injected wallet that records every method it is asked for.
+  await page.evaluate(() => {
+    window.__calls = []
+    window.ethereum = {
+      request: ({ method }) => {
+        window.__calls.push(method)
+        if (method === "eth_accounts") return Promise.resolve(["0x1111111111111111111111111111111111111111"])
+        if (method === "eth_chainId") return Promise.resolve("0xa86a")
+        return Promise.reject(new Error("unexpected " + method))
+      },
+      on: () => {},
+    }
+  })
+  await post("txid-ready"); await page.waitForTimeout(150)
+  await page.evaluate(() => window.txid.notifyFailure("0x" + "ab".repeat(32)))
+  await page.waitForTimeout(300)
+  let calls = await page.evaluate(() => window.__calls)
+  check("loader touches no wallet until the frame asks", calls.length === 0 && !(await got()).includes("txid-failure"), JSON.stringify({ calls, got: await got() }))
+
+  await post({ type: "txid-activation-watch" }); await page.waitForTimeout(300)
+  calls = await page.evaluate(() => window.__calls)
+  const wallet = await frame.evaluate(() => window.__got.find(m => m.type === "txid-host-wallet"))
+  check("host wallet is read silently and reported", !!wallet && wallet.address === "0x1111111111111111111111111111111111111111" && wallet.chainId === "0xa86a" && !calls.includes("eth_requestAccounts"), JSON.stringify({ calls, wallet }))
+  check("a failure reported before the frame asked is delivered once it does", (await got()).includes("txid-failure"), JSON.stringify(await got()))
+
+  await clearGot()
+  await post({ type: "txid-nudge", text: "Getting started? Check your wallet is ready for your first deposit." })
+  await page.waitForTimeout(400)
+  check("prompt appears beside the launcher", await nudgeShown(), "")
+  await page.click("#txid-widget-nudge .txid-nudge-x"); await page.waitForTimeout(400)
+  check("dismiss removes the prompt and tells the frame", !(await nudgeShown()) && (await got()).includes("txid-nudge-dismissed") && !(await panelOpen()), JSON.stringify(await got()))
+
+  await clearGot()
+  await post({ type: "txid-nudge", text: "Getting started? Check your wallet is ready for your first deposit." })
+  await page.waitForTimeout(400)
+  await page.click("#txid-widget-nudge button:not(.txid-nudge-x)"); await page.waitForTimeout(500)
+  check("clicking the prompt opens the checklist", (await panelOpen()) && !(await nudgeShown()) && (await got()).includes("txid-show-checklist"), JSON.stringify(await got()))
+
+  await post({ type: "txid-nudge", text: "Anything" }); await page.waitForTimeout(300)
+  check("no prompt over an open panel", !(await nudgeShown()), "")
+  await post("txid-close"); await page.waitForTimeout(400)
+
+  // Open-once must never drop the panel over someone typing into the host page.
+  await clearGot()
+  await page.evaluate(() => {
+    const i = document.createElement("input"); i.id = "amount"; document.body.appendChild(i); i.focus()
+  })
+  await post({ type: "txid-open-checklist", text: "Getting started?" }); await page.waitForTimeout(1600)
+  check("open-once while typing prompts instead of opening", !(await panelOpen()) && (await nudgeShown()), JSON.stringify(await got()))
+  await page.evaluate(() => { document.getElementById("amount").blur(); document.getElementById("txid-widget-nudge")?.remove() })
+  await post({ type: "txid-nudge-clear" }); await page.waitForTimeout(400)
+
+  await clearGot()
+  await post({ type: "txid-open-checklist", text: "Getting started?" }); await page.waitForTimeout(1600)
+  check("open-once when idle opens on the checklist", (await panelOpen()) && (await got()).includes("txid-show-checklist"), JSON.stringify(await got()))
 } finally {
   await browser.close()
   server.close()

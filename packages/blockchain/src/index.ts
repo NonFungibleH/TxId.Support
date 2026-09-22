@@ -1,6 +1,6 @@
-export { getNativeBalance, getTokenBalances, getRecentTransactions, getTransactionByHash, getContractTransactions, getWalletApprovals, LookupUnavailableError } from "./wallet"
+export { getNativeBalance, getTokenBalances, getRecentTransactions, readWalletHistory, getTransactionByHash, getContractTransactions, getWalletApprovals, LookupUnavailableError } from "./wallet"
 export { sanitizeChainText } from "./text"
-export type { WalletApproval } from "./wallet"
+export type { WalletApproval, WalletHistoryRead } from "./wallet"
 export { decodeTxRevert, fetchAbiFromExplorer } from "./decoder"
 export { diagnoseTransaction } from "./diagnose"
 export type { TxDiagnosis } from "./diagnose"

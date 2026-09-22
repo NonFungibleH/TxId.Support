@@ -64,3 +64,18 @@ jobs:
             echo "::error::docs-resync returned HTTP $code: $(cat /tmp/out.json)"
             exit 1
           fi
+
+  activation-recheck:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Re-check readiness-check wallets for a first action
+        run: |
+          code=$(curl -sS -o /tmp/out.json -w "%{http_code}" --max-time 120 \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            "${{ secrets.APP_URL }}/api/cron/activation")
+          cat /tmp/out.json
+          echo
+          if [ "$code" != "200" ]; then
+            echo "::error::activation returned HTTP $code: $(cat /tmp/out.json)"
+            exit 1
+          fi

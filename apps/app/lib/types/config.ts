@@ -588,8 +588,12 @@ export type ActivationMode = "off" | "prompt" | "open_once"
 export type ActivationSpend =
   /** The action pays in the chain's native coin (stake AVAX, a payable lock fee). */
   | { kind: "native" }
-  /** The action pulls one of these ERC-20s, on the action's chain. */
-  | { kind: "tokens"; tokens: string[] }
+  /**
+   * The action pulls one of these ERC-20s, on the action's chain. The symbol is
+   * resolved on chain when the setting is saved, so a check never needs a
+   * lookup just to name the token it is about.
+   */
+  | { kind: "tokens"; tokens: { address: string; symbol: string }[] }
   /** Whatever the user brings: a swap, a lock of any token. */
   | { kind: "any" }
 

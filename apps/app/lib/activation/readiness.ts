@@ -85,7 +85,7 @@ function andList(xs: string[]): string {
   return `${xs.slice(0, -1).join(", ")} and ${xs[xs.length - 1]}`
 }
 
-function failureItem(f: NonNullable<WalletFacts["failure"]>, projectName: string): ChecklistItem {
+export function failureItem(f: NonNullable<WalletFacts["failure"]>, projectName: string): ChecklistItem {
   if (f.source === "host") {
     return {
       id: "failure",
@@ -203,17 +203,19 @@ function assetItem(input: ChecklistInput): ChecklistItem | null {
 
 function approvalItem(input: ChecklistInput): ChecklistItem | null {
   if (!input.actionChain.evm) return null
+  if (input.spends.kind === "native") return null
   const permission = `It gives ${input.projectName}'s contract permission to use that token.`
-  if (input.spends.kind === "any") {
-    return {
-      id: "approval",
-      status: "expect",
-      title: "Your wallet may ask you to approve a token first",
-      detail: `For most tokens that's a separate transaction before the ${input.action} itself, with its own network fee. ${permission}`,
-    }
+  const generic: ChecklistItem = {
+    id: "approval",
+    status: "expect",
+    title: "Your wallet may ask you to approve a token first",
+    detail: `For most tokens that's a separate transaction before the ${input.action} itself, with its own network fee. ${permission}`,
   }
   const ap = input.facts.approvals
-  if (!ap || input.spends.kind !== "tokens") return null
+  // Nothing specific to check (any token, no known spender, or nothing held
+  // yet): the heads-up still stands, because the approve prompt is the one a
+  // first-time user is least ready for.
+  if (input.spends.kind === "any" || !ap) return generic
   if (ap.kind !== "ok") {
     return {
       id: "approval",
@@ -222,7 +224,7 @@ function approvalItem(input: ChecklistInput): ChecklistItem | null {
       detail: `Couldn't check whether your token is already approved for ${input.projectName}.`,
     }
   }
-  if (ap.value.length === 0) return null
+  if (ap.value.length === 0) return generic
   const missing = ap.value.filter(x => !x.approved).map(x => x.symbol)
   if (missing.length === 0) {
     return {

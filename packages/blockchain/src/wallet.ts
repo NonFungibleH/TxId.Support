@@ -11,6 +11,7 @@ import {
   bsNativeBalance,
   bsTokenBalances,
   bsRecentTransactions,
+  bsHistoryPage,
   bsContractTransactions,
   bsTransactionByHash,
   bsWalletApprovals,
@@ -517,6 +518,41 @@ export async function getRecentTransactions(
   limit = 10,
 ): Promise<Transaction[]> {
   if (usesBlockscoutWallet(chainId)) return bsRecentTransactions(address, chainId, limit)
+  return (await moralisHistoryPage(address, chainId, limit)).txs
+}
+
+/**
+ * A wallet's history, saying whether the read completed and whether it was the
+ * WHOLE history. getRecentTransactions answers neither: a failed Blockscout
+ * read comes back as an empty list, and a full page is indistinguishable from
+ * a wallet that has done exactly that many things. Anything that concludes
+ * "this wallet has never done X" needs both answers, so it reads through here.
+ */
+export type WalletHistoryRead =
+  | { kind: "ok"; txs: Transaction[]; complete: boolean }
+  | { kind: "unavailable" }
+  | { kind: "unsupported" }
+
+export async function readWalletHistory(address: string, chainId: string, limit = 100): Promise<WalletHistoryRead> {
+  if (usesBlockscoutWallet(chainId)) {
+    const page = await bsHistoryPage(address, chainId)
+    if (!page) return { kind: "unavailable" }
+    return { kind: "ok", txs: page.txs.slice(0, limit), complete: page.complete && page.txs.length <= limit }
+  }
+  if (!moralisChain(chainId)) return { kind: "unsupported" }
+  try {
+    const page = await moralisHistoryPage(address, chainId, limit)
+    return { kind: "ok", txs: page.txs, complete: page.txs.length < limit }
+  } catch {
+    return { kind: "unavailable" }
+  }
+}
+
+async function moralisHistoryPage(
+  address: string,
+  chainId: string,
+  limit: number,
+): Promise<{ txs: Transaction[] }> {
   const chain = moralisChain(chainId)
   if (!chain) throw new Error(`No indexer configured for chain ${chainId}`)
   const res = await fetch(
@@ -537,7 +573,7 @@ export async function getRecentTransactions(
       receipt_status: string
     }>
   }
-  return (data.result ?? []).map((tx) => {
+  return { txs: (data.result ?? []).map((tx) => {
     const valueEth = (Number(BigInt(tx.value)) / 1e18).toLocaleString("en-US", {
       maximumFractionDigits: 6,
     })
@@ -576,5 +612,5 @@ export async function getRecentTransactions(
       summary,
       ...(decodedRevert !== undefined ? { decodedRevert } : {}),
     }
-  })
+  }) }
 }

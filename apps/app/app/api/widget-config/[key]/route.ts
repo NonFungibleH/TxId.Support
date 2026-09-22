@@ -1,6 +1,7 @@
 import { createServiceClient } from "@/lib/supabase/server"
 import type { ProjectConfig, Plan } from "@/lib/types/config"
-import { isPaidPlan, resolveDisclaimer, activeStatusNotice, activeBeta, betaControls } from "@/lib/types/config"
+import { isPaidPlan, resolveDisclaimer, activeStatusNotice, activeBeta, betaControls, activationOn } from "@/lib/types/config"
+import { resolveActionChain } from "@/lib/activation/facts"
 import type { Database } from "@/lib/supabase/types"
 import { verifyPreviewToken } from "@/lib/preview-token"
 import { isActionDemo } from "@/lib/actions-gate"
@@ -148,6 +149,12 @@ export async function GET(
     // Whether this protocol keeps user funds in a per-user account object. The
     // address itself is resolved per wallet at connect time, not here.
     subaccounts: { enabled: config.subaccounts?.enabled === true },
+    // Readiness check. Only the mode and the action word: the holdout share
+    // and the group a wallet is in are decided server-side and never sent, so
+    // a user cannot opt themselves in or out of the comparison.
+    activation: activationOn(config) && config.activation && resolveActionChain(config)
+      ? { mode: config.activation.mode, action: config.activation.action }
+      : null,
     tokenModeAsk: config.tokenModeAsk ?? null,
     welcomeMessage: config.branding?.welcomeMessage ?? null,
     // Resolved server-side so the widget never has to know the default, and an

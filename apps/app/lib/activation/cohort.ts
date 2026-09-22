@@ -50,7 +50,8 @@ export type ProtocolHistory =
       complete: boolean
       /** The oldest transaction in the page read, to any contract. Null for a wallet with none. */
       oldestAt: string | null
-      txs: { hash: string; at: string; success: boolean; reason?: string }[]
+      /** `age` is computed by the chain package, so nothing here subtracts two clocks. */
+      txs: { hash: string; at: string; success: boolean; reason?: string; age?: string | null }[]
     }
   | { kind: "unavailable" }
   | { kind: "unsupported" }
