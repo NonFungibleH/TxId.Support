@@ -1,4 +1,4 @@
-export { getNativeBalance, getTokenBalances, getRecentTransactions, getTransactionByHash, getContractTransactions, getWalletApprovals, LookupUnavailableError } from "./wallet"
+export { getNativeBalance, getTokenBalances, knownTokenCoverage, RPC_HISTORY_MAX, getRecentTransactions, getTransactionByHash, getContractTransactions, getWalletApprovals, LookupUnavailableError } from "./wallet"
 export { sanitizeChainText } from "./text"
 export type { WalletApproval } from "./wallet"
 export { decodeTxRevert, fetchAbiFromExplorer } from "./decoder"
@@ -57,3 +57,7 @@ export {
   encodeContractAction,
 } from "./actions"
 export type { SwapQuote, BuiltSwap, PreflightResult, EncodedAction } from "./actions"
+export { ARC, isArc, routedTargets, readUsdcBlocklisted, arcRevertExplanation } from "./arc"
+export type { BlocklistRead } from "./arc"
+export { rpcSentHistory } from "./rpc-history"
+export type { SentHistory } from "./rpc-history"

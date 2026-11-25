@@ -28,6 +28,7 @@ const EXPECTED = {
   pending_congestion: "TXID-3007",
   dropped: "TXID-3008",
   insufficient_gas_balance: "TXID-2001",
+  sender_blocklisted: "TXID-1007",
   lookup_failed: "TXID-9004",
 } satisfies Record<PendingDiagnosis["cause"], string>
 

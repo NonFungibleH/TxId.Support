@@ -39,6 +39,10 @@ export interface PendingDiagnosis {
     | "pending_congestion"       // in mempool, just waiting to be mined
     | "dropped"                  // unknown to the node: dropped/replaced/never broadcast
     | "insufficient_gas_balance" // wallet has no native token to pay gas
+    // The network refuses this sender before anything runs (Arc: the address is
+    // on the USDC blocklist, and USDC is the gas token). Read from the chain,
+    // never inferred: an unanswered blocklist check does not produce this.
+    | "sender_blocklisted"
     // The node could not be asked at all. NOT a statement about the transaction.
     // This exists because a timed-out RPC used to fall through to "dropped",
     // which the resolver turns into "nothing moved, submit it again".
@@ -65,6 +69,12 @@ export interface Transaction {
   status: "success" | "failed"
   summary: string        // human-readable one-liner
   method?: string        // decoded function name from the input selector (when ABI known)
+  /**
+   * The contracts actually called, when `to` is a router that forwards the call
+   * with the user's wallet as sender (Arc's Memo and Multicall3From). Absent
+   * when `to` is itself the target. Match protocols on `targets ?? [to]`.
+   */
+  targets?: string[]
   decodedRevert?: DecodedRevert  // present for failed transactions
 }
 
@@ -80,6 +90,24 @@ export interface ChainConfig {
   /** Blockscout v2 REST API base (e.g. https://explorer.etherlink.com/api).
    *  Set for non-Moralis chains; the wallet adapter falls back to it. */
   blockscoutApi?: string
+  /**
+   * The RPC keeps archive state, so a wallet's SENT history can be walked by
+   * nonce (see rpc-history.ts): exact, failures included, no indexer needed.
+   * Set only where it was verified live; a pruning node would answer old
+   * nonce reads with errors, and the walk treats that as unavailable.
+   */
+  rpcHistory?: boolean
+  /**
+   * The tokens checked when there is no indexer to enumerate holdings. A
+   * balance list built from this says which tokens were checked; it is never a
+   * claim that the wallet holds nothing else.
+   */
+  knownTokens?: { address: string; symbol: string; name: string; decimals: number }[]
+  /**
+   * An ERC-20 interface over the NATIVE balance (Arc's USDC at 0x3600…). Same
+   * money, second view: never list it as a separate holding.
+   */
+  nativeErc20?: string
 }
 
 const DEFAULT_CHAIN_CONFIGS: Record<string, ChainConfig> = {
@@ -189,6 +217,29 @@ const DEFAULT_CHAIN_CONFIGS: Record<string, ChainConfig> = {
     // chainlist reports 999 as HyperEVM Mainnet with explorer hyperevmscan.io,
     // and the RPC below returns 0x3e7. Do not "correct" this against that list.
     rpcUrl: "https://rpc.hyperliquid.xyz/evm",
+  },
+  "0x13b2": {
+    id: "0x13b2",
+    name: "Arc",
+    // Circle's L1 (5042). Gas IS USDC, held natively at 18 decimals; the ERC-20
+    // at 0x3600… is the same balance at 6 decimals (see nativeErc20).
+    nativeCurrency: "USDC",
+    explorer: "https://explorer.arc.io",
+    rpcUrl: "https://rpc.mainnet.arc.io",
+    // No free indexer, measured 2026-11-25: Moralis's OpenAPI chain enum has no
+    // Arc, there is no Blockscout API, explorer.arc.io sits behind a Cloudflare
+    // challenge, and Etherscan V2 lists 5042 as "Paid Plan required". The
+    // public RPC DOES keep archive state (eth_getTransactionCount answers at
+    // block 1,000,000), so sent history is walked by nonce instead.
+    rpcHistory: true,
+    nativeErc20: "0x3600000000000000000000000000000000000000",
+    // From docs.arc.io/arc/references/contract-addresses, mainnet tab.
+    knownTokens: [
+      { address: "0xbEf5f6d51CB62b58e6A8f77868681825C6fe21c1", symbol: "EURC", name: "Euro Coin", decimals: 6 },
+      { address: "0x8a5D989Bbb96929F689B0200f435f53dA42bF490", symbol: "USYC", name: "US Yield Coin", decimals: 6 },
+      { address: "0x171A4217b86A807A64eB94757Db6849fb4bDbAA0", symbol: "cirBTC", name: "Circle Wrapped Bitcoin", decimals: 8 },
+      { address: "0x128cC466B61f542da60c70e3aA11c10e19B84EDB", symbol: "WETH", name: "Wrapped Ether", decimals: 18 },
+    ],
   },
   "0x1237": {
     id: "0x1237",

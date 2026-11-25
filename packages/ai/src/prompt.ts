@@ -15,6 +15,7 @@ const CHAIN_NAMES: Record<string, string> = {
   "0x82":     "Unichain",
   "0x2611":   "Plasma",
   "0x1388":   "Mantle",
+  "0x13b2":   "Arc",
   "0xe708":   "Linea",
   "0xaa36a7": "Sepolia (testnet)",
   "0x13881":  "Mumbai (testnet)",
@@ -27,6 +28,7 @@ const CHAIN_NAMES: Record<string, string> = {
   "aptos":    "Aptos",
   // decimal string variants
   "143":      "Monad",
+  "5042":     "Arc",
   "999":      "HyperEVM",
   "1":        "Ethereum Mainnet",
   "56":       "BNB Chain",
@@ -767,6 +769,27 @@ export function buildSystemPrompt(params: StreamChatParams): string {
         `Suggest they click "Connect Wallet" at the top of the chat for automatic lookups. One sentence, naturally.\n\n` +
         `**If the user pastes a wallet address:**\n` +
         `Note it for context. You can use it to identify which transaction in the contract history is theirs. You still need a wallet connection (or a specific tx link) for full history lookups.`
+      )
+    }
+
+    // ARC (Circle's L1, 5042). Every rule below changes a generic EVM answer
+    // into a wrong one there, and each was checked against Arc itself on
+    // 2026-11-25. Emitted when the wallet is on Arc or the project runs there.
+    const arcInPlay =
+      diagnosticsOn &&
+      (walletConfig?.chainId === "0x13b2" || walletConfig?.chainId === "5042" ||
+        (config.watchedContracts ?? []).some(c => c.chain === "0x13b2" || c.chain === "5042"))
+    if (arcInPlay) {
+      parts.push(
+        `## Arc (Circle's chain): what is different\n` +
+        `- **Fees are paid in USDC.** The wallet's native balance IS its USDC. The USDC token contract (0x3600…) is the same money seen at 6 decimals, never a second holding: never add the two together, and never tell a user to get ETH or any other coin for fees.\n` +
+        `- **There are no confirmations.** A transaction is either pending or final, and final is irreversible the moment it is in a block. Never tell a user to wait for confirmations.\n` +
+        `- **Underpriced transactions vanish without a trace.** Arc silently discards anything with a max fee below 20 gwei: no error, no receipt, no record. A hash Arc has never seen most often means this, or a replacement with the same nonce. Either way it never executed. Tell the user to check their wallet's activity for a replacement before sending again.\n` +
+        `- **"Blocked address"** means an address in the transfer is on the USDC blocklist. Retrying will not change it, and you do not know why the address was restricted, so do not speculate. The gas used up to the check was charged.\n` +
+        `- **"Zero address not allowed"** means USDC was sent to the zero address, which Arc refuses rather than burning. Nothing moved.\n` +
+        `- **Memo and Multicall3From** (0x5294…e505 and 0x522f…47D0) forward a call with the user's wallet as the sender. A transaction sent to either one acted on the contract INSIDE it; describe it by that contract, never as "a call to Memo".\n` +
+        `- **History on Arc** lists what the wallet SENT, failures included, most recent first, up to five. Transfers it received are not listed. The total sent count is exact.\n` +
+        `- **Token balances on Arc** cover the tokens that were checked (EURC, USYC, cirBTC, WETH) plus native USDC. Never say the wallet holds nothing else.`,
       )
     }
 

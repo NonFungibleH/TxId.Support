@@ -41,8 +41,11 @@ import {
   estimateAction,
 
   canonicalChainId,
+  knownTokenCoverage,
+  rpcSentHistory,
+  RPC_HISTORY_MAX,
 } from "@txid/blockchain"
-import type { TokenBalance } from "@txid/blockchain"
+import type { TokenBalance, Transaction } from "@txid/blockchain"
 import {
   getSolanaWalletBalance,
   getSolanaRecentTransactions,
@@ -831,6 +834,29 @@ export async function executeTool(
           walletChain: wallet.chainId,
           protocolChains: histProtocolChains,
           note: `WRONG NETWORK, do not report this as an empty history. The wallet is connected to chain ${wallet.chainId}, and this protocol's contracts are on ${histProtocolChains.join(", ")}. This history is from the wrong chain, so it says NOTHING about whether the user has traded. Tell them to switch networks in their wallet and ask again. Never tell them they have no transactions with the protocol on the basis of this result.`,
+        }
+      }
+
+      // NO INDEXER, BUT AN ARCHIVE NODE (Arc): the sent history is walked by
+      // nonce, so it is exact about how much exists and includes failures,
+      // but it is costly per transaction and cannot see what was received.
+      const histCfg = CHAIN_CONFIGS[wallet.chainId]
+      if (histCfg?.rpcHistory && !histCfg.moralisChain && !histCfg.blockscoutApi) {
+        let h: { sent: number; txs: Transaction[] }
+        try {
+          h = await rpcSentHistory(wallet.address, wallet.chainId, Math.min(limit, RPC_HISTORY_MAX))
+        } catch {
+          return { lookupFailed: true, note: `Could not read this wallet's history on ${histCfg.name}: the node did not answer. Do NOT say the wallet has no activity: this lookup did not complete. Offer to look up a specific transaction hash instead, which can be checked directly.` }
+        }
+        const wanted = programOrContract?.toLowerCase()
+        const shown = wanted ? h.txs.filter(t => (t.targets ?? [t.to]).some(x => x?.toLowerCase() === wanted)) : h.txs
+        return {
+          transactions: shown,
+          sentTotal: h.sent,
+          ...(wanted ? { filteredTo: programOrContract, scanned: h.txs.length } : {}),
+          note: h.sent === 0
+            ? `This wallet has never sent a transaction on ${histCfg.name}. That count comes from the chain itself and is exact: it is an answer, not a failed lookup. Transfers it RECEIVED are not counted.`
+            : `These are the ${h.txs.length} most recent of the ${h.sent} transactions this wallet has ever SENT on ${histCfg.name}, read from the chain itself. Failed transactions ARE included. Transfers the wallet RECEIVED are not listed, and only the most recent ${RPC_HISTORY_MAX} can be read here, so older activity exists that is not shown.${wanted ? " Transactions routed through Arc's Memo or Multicall3From contracts are matched on their real target." : ""}`,
         }
       }
 
@@ -2054,9 +2080,19 @@ export async function executeTool(
 async function tokensOrNote(
   address: string,
   chainId: string,
-): Promise<{ tokens: TokenBalance[] } | { tokensUnavailable: true; lookupFailed: true; note: string }> {
+): Promise<{ tokens: TokenBalance[]; tokensChecked?: string[]; tokensNote?: string } | { tokensUnavailable: true; lookupFailed: true; note: string }> {
   try {
-    return { tokens: await getTokenBalances(address, chainId) }
+    const tokens = await getTokenBalances(address, chainId)
+    // No public index on this chain (Arc): the list is what was CHECKED, so the
+    // model must not turn "none of these" into "nothing at all".
+    const checked = knownTokenCoverage(chainId)
+    if (!checked) return { tokens }
+    const cfg = CHAIN_CONFIGS[chainId]
+    return {
+      tokens,
+      tokensChecked: checked,
+      tokensNote: `${cfg?.name ?? "This chain"} has no public token index, so only these tokens were checked: ${checked.join(", ")}. Other tokens were NOT checked: do not say the wallet holds nothing else.${cfg?.nativeErc20 ? ` ${cfg.nativeCurrency} is the native balance and pays the network fee; its ERC-20 view is the SAME money, never an extra holding, so never add the two together.` : ""}`,
+    }
   } catch {
     return {
       tokensUnavailable: true,

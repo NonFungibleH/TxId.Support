@@ -1,4 +1,5 @@
 import { CHAIN_CONFIGS } from "./types"
+import { isArc, arcRevertExplanation } from "./arc"
 import type { Transaction } from "./types"
 import { getTransactionByHash, LookupUnavailableError } from "./wallet"
 import { enrichTransaction } from "./enrich"
@@ -74,6 +75,8 @@ function fixForPending(cause: string): string {
       return "Wait for the network to clear, or speed it up with a higher fee."
     case "insufficient_gas_balance":
       return "Add the network's native token to cover gas, then retry."
+    case "sender_blocklisted":
+      return "Retrying will not change the outcome. Contact the app or the asset's issuer about the restriction."
     case "lookup_failed":
       return "The chain could not be reached just now. Check again shortly; do not resubmit on the strength of this result."
     default:
@@ -124,6 +127,10 @@ export async function diagnoseTransaction(hash: string, chainOverride?: string):
     const enrichment = await enrichTransaction(hash, hit.id, []).catch(() => null)
     const rev = tx.decodedRevert
     const failed = tx.status === "failed"
+    // Arc's own revert strings ("Blocked address", "Zero address not allowed")
+    // mean something specific there, and the generic "resolve the condition"
+    // fix would send someone round in circles on a blocklist.
+    const arcText = failed && rev?.cause === "revert_reason" && isArc(hit.id) ? arcRevertExplanation(rev.reason) : null
     return {
       status: tx.status,
       chain: chainName(hit.id),
@@ -131,9 +138,9 @@ export async function diagnoseTransaction(hash: string, chainOverride?: string):
       cause: failed ? rev?.cause ?? "unknown_revert" : "success",
       error: rev?.errorName ?? (rev?.cause === "revert_reason" ? rev.reason : null) ?? null,
       explanation: failed
-        ? rev?.reason ?? "The transaction reverted."
+        ? arcText?.explanation ?? rev?.reason ?? "The transaction reverted."
         : "The transaction executed successfully.",
-      fix: failed ? fixForRevert(rev) : null,
+      fix: failed ? arcText?.fix ?? fixForRevert(rev) : null,
       tokenTransfers: (enrichment?.tokenTransfers ?? []).map((t) => ({
         token: t.token,
         ...(t.symbol ? { symbol: t.symbol } : {}),

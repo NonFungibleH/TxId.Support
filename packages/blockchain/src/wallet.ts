@@ -15,6 +15,8 @@ import {
   bsTransactionByHash,
   bsWalletApprovals,
 } from "./blockscout-wallet"
+import { rpcSentHistory } from "./rpc-history"
+import { functionSelector as selectorOf } from "./keccak"
 
 /** Decode the called function name from a transaction's input selector using the ABI. */
 function decodeMethodName(input: string, abiJson: string): string | undefined {
@@ -203,11 +205,73 @@ export async function getNativeBalance(
 }
 
 /** Get ERC-20 token balances for a wallet */
+/**
+ * Balances of a chain's KNOWN tokens, read with balanceOf, for chains with no
+ * indexer to enumerate holdings (Arc). This is a list of what was checked, not
+ * a claim that the wallet holds nothing else: `knownTokenCoverage` says which
+ * tokens those were, so a caller can say so.
+ *
+ * The native token's ERC-20 view (Arc's USDC at 0x3600…) is never read here.
+ * It is the same balance as the native one, and listing both would double it.
+ */
+async function knownTokenBalances(address: string, chainId: string): Promise<TokenBalance[]> {
+  const cfg = CHAIN_CONFIGS[chainId]!
+  const mirror = cfg.nativeErc20?.toLowerCase()
+  const tokens = (cfg.knownTokens ?? []).filter(t => t.address.toLowerCase() !== mirror)
+  if (tokens.length === 0) return []
+  const data = selectorOf("balanceOf(address)") + address.slice(2).toLowerCase().padStart(64, "0")
+  type Reply = { id: number; result?: string; error?: unknown }
+  let body = null as Reply[] | null
+  try {
+    const res = await fetch(cfg.rpcUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(tokens.map((t, id) => ({ jsonrpc: "2.0", id, method: "eth_call", params: [{ to: t.address, data }, "latest"] }))),
+      signal: AbortSignal.timeout(10000),
+    })
+    if (!res.ok) throw new Error(String(res.status))
+    body = (await res.json()) as Reply[] | null
+  } catch (e) {
+    throw new LookupUnavailableError(chainId, `could not read token balances on ${cfg.name}: ${e instanceof Error ? e.message : "network error"}`)
+  }
+  if (!Array.isArray(body) || body.length !== tokens.length) {
+    throw new LookupUnavailableError(chainId, `the ${cfg.name} node did not return every token balance`)
+  }
+  const out: TokenBalance[] = []
+  for (const r of body) {
+    const t = tokens[r.id]
+    // One unanswered token makes the whole list unreliable: "no EURC" must
+    // never be produced by a read that did not come back.
+    if (!t || r.error !== undefined || typeof r.result !== "string" || !/^0x[0-9a-f]*$/i.test(r.result)) {
+      throw new LookupUnavailableError(chainId, `a token balance read on ${cfg.name} did not complete`)
+    }
+    const raw = r.result === "0x" ? 0n : BigInt(r.result)
+    if (raw === 0n) continue
+    const div = 10n ** BigInt(t.decimals)
+    const whole = raw / div
+    const frac = raw % div
+    const formatted = frac === 0n
+      ? whole.toLocaleString("en-US")
+      : `${whole.toLocaleString("en-US")}.${frac.toString().padStart(t.decimals, "0").slice(0, 6).replace(/0+$/, "")}`
+    out.push({ tokenAddress: t.address, symbol: t.symbol, name: t.name, decimals: t.decimals, balance: raw.toString(), balanceFormatted: formatted, usdValue: null, logo: null })
+  }
+  return out
+}
+
+/** Which tokens a known-token balance read covered, or null when an indexer listed everything. */
+export function knownTokenCoverage(chainId: string): string[] | null {
+  const cfg = CHAIN_CONFIGS[chainId]
+  if (!cfg || cfg.moralisChain || cfg.blockscoutApi || !cfg.knownTokens) return null
+  const mirror = cfg.nativeErc20?.toLowerCase()
+  return cfg.knownTokens.filter(t => t.address.toLowerCase() !== mirror).map(t => t.symbol)
+}
+
 export async function getTokenBalances(
   address: string,
   chainId: string,
 ): Promise<TokenBalance[]> {
   if (usesBlockscoutWallet(chainId)) return bsTokenBalances(address, chainId)
+  if (!moralisChain(chainId) && CHAIN_CONFIGS[chainId]?.knownTokens) return knownTokenBalances(address, chainId)
   const chain = moralisChain(chainId)
   if (!chain) throw new Error(`No indexer configured for chain ${chainId}`)
   const res = await fetch(
@@ -510,6 +574,12 @@ export async function getContractTransactions(
   })
 }
 
+/**
+ * Each transaction found by nonce walk costs several round trips to a public
+ * node, so a chat answer reads the most recent few, not a page of fifty.
+ */
+export const RPC_HISTORY_MAX = 5
+
 /** Get recent transactions for a wallet (last 10) */
 export async function getRecentTransactions(
   address: string,
@@ -517,6 +587,9 @@ export async function getRecentTransactions(
   limit = 10,
 ): Promise<Transaction[]> {
   if (usesBlockscoutWallet(chainId)) return bsRecentTransactions(address, chainId, limit)
+  // No indexer, but an archive RPC: walk the sent history by nonce, failures
+  // included. See rpc-history.ts.
+  if (!moralisChain(chainId) && CHAIN_CONFIGS[chainId]?.rpcHistory) return (await rpcSentHistory(address, chainId, Math.min(limit, RPC_HISTORY_MAX))).txs
   const chain = moralisChain(chainId)
   if (!chain) throw new Error(`No indexer configured for chain ${chainId}`)
   const res = await fetch(

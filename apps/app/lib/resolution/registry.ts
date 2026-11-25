@@ -78,6 +78,13 @@ export const REGISTRY: Record<string, RegistryEntry> = Object.fromEntries(
       detail: "Every transaction carries an expiry. Once it passes without commitment the transaction is permanently invalid and leaves no on-chain record, even though the wallet showed a hash. Nothing was spent.",
       next_step: "Submit it again.",
     }),
+    E({
+      code: "TXID-1007", cause: "SENDER_RESTRICTED", category: "SUBMISSION",
+      custody: "unchanged", next_action_owner: "infrastructure", retryable: "no", recommended_action: "CONTACT_SUPPORT",
+      summary: "The network refuses transactions from this address.",
+      detail: "The sending address is restricted by the asset that pays the network fee, so transactions from it are rejected before they run. Nothing executed and nothing was spent. Read from the chain, not inferred.",
+      next_step: "Retrying will not change the outcome. Contact the application or the asset's issuer about the restriction.",
+    }),
 
     // ── 2xxx BALANCE: not enough of something to pay with ─────────────────
     E({

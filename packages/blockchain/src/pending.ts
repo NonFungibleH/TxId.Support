@@ -1,4 +1,5 @@
 import { CHAIN_CONFIGS } from "./types"
+import { ARC, isArc, readUsdcBlocklisted } from "./arc"
 import type { PendingDiagnosis } from "./types"
 
 /**
@@ -146,6 +147,20 @@ export async function diagnosePendingTx(
   if (tx && tx.blockNumber != null) return null
 
   // ── The node doesn't know this hash: dropped / replaced / never broadcast ─
+  // Arc first, because both of its usual reasons leave no trace at all: the
+  // mempool discards anything under the fee floor with no error and no
+  // receipt, and a blocklisted sender is refused before execution. The
+  // blocklist is only claimed when the USDC contract answered; an unanswered
+  // check falls through to the general explanation.
+  if (isArc(chainId) && walletAddress) {
+    const bl = await readUsdcBlocklisted(walletAddress, chainId)
+    if (bl.kind === "ok" && bl.blocklisted) {
+      return {
+        cause: "sender_blocklisted",
+        reason: `The USDC contract on ${cfg.name} reports the sending address as blocklisted. USDC is the gas token here, so transactions from this address are refused before they run: nothing executed and nothing was spent.`,
+      }
+    }
+  }
   if (walletAddress) {
     const balanceRaw = (await rpcCall(rpc, "eth_getBalance", [walletAddress, "latest"])) as string | null
     if (balanceRaw != null && toBig(balanceRaw) === 0n) {
@@ -153,6 +168,13 @@ export async function diagnosePendingTx(
         cause: "insufficient_gas_balance",
         reason: `The connected wallet holds 0 ${symbol}, so it cannot pay gas for any transaction on this network. Add some ${symbol} and try again.`,
       }
+    }
+  }
+
+  if (isArc(chainId)) {
+    return {
+      cause: "dropped",
+      reason: `${cfg.name} has no record of this hash. On ${cfg.name} that usually means it never ran: the network silently discards any transaction whose max fee is below its ${ARC.FEE_FLOOR_GWEI} gwei floor, with no error and no receipt, and it refuses senders on the USDC blocklist before execution. It may also have been replaced by another transaction with the same nonce. Either way nothing from this hash executed. Check the wallet's activity for a replacement before sending it again.`,
     }
   }
 

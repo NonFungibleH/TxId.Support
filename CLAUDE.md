@@ -1499,6 +1499,31 @@ error. Check the provider's own coverage before writing anything.
 | **Moralis** | the chain is in Moralis's supported-chains table | a `CHAIN_CONFIGS` entry, nothing else |
 | **Blockscout** | no Moralis, but a reachable Blockscout v2 API | `blockscoutApi` + a `BLOCKSCOUT_BASES` line (see Etherlink) |
 | **RPC only** | neither | single-tx, revert decode, native balance and gas work; token balances and history are UNAVAILABLE and must throw, never return empty (see Robinhood Chain, HyperEVM) |
+| **Archive RPC (nonce walk)** | no free indexer, but the public RPC keeps archive state | `rpcHistory: true` (+ `knownTokens`, `nativeErc20` where relevant): sent history incl. failures, exact count, ~1s per tx (see Arc) |
+
+**Arc (`0x13b2`, Circle's L1, 2026-11-25)** took a fourth route, built for it. Moralis does not
+index it, there is no Blockscout API, `explorer.arc.io` sits behind a Cloudflare challenge and
+Etherscan V2 lists 5042 as paid-only. But the public RPC keeps archive state, so
+`rpc-history.ts` finds a wallet's SENT transactions by searching for the block where its nonce
+changed: failures included (a revert still spends the nonce), and the current nonce says
+EXACTLY how many exist, so the read knows when it is complete. Cost: about 1 second per
+transaction (8-way search; Arc's node rejects batches of 16 archive reads spanning history,
+and answers "internal error" when hammered, so batches halve and back off). Capped at
+`RPC_HISTORY_MAX` (5) for chat. It cannot see received transfers or smart-account operations.
+
+Arc rules that make generic EVM answers wrong, each verified on mainnet (all in `arc.ts`):
+- **USDC is gas, native at 18 decimals; the ERC-20 at `0x3600…` is the SAME money at 6.** Never
+  list both (`nativeErc20` excludes it from token balances).
+- **Under 20 gwei is silently dropped**, no receipt; **a blocklisted sender is refused before
+  execution**. An unknown hash on Arc gets Arc's explanation, and `sender_blocklisted`
+  (TXID-1007) only when `isBlacklisted` on the USDC contract ANSWERED true.
+- **Revert strings, verbatim:** `Blocked address` (blocklist, maps to TXID-4002) and
+  `Zero address not allowed`.
+- **Memo (`0x5294…e505`) and Multicall3From (`0x522f…47D0`)** forward calls with the user as
+  sender: `routedTargets()` decodes the real target, and transactions carry `targets` so the
+  opener and protocol filters match on `targets ?? [to]`.
+- **No confirmations**: pending or final. Token balances cover `knownTokens` only and the tool
+  says so; an Alchemy key (Arc has Token + Transfers APIs) would make the list complete.
 
 **Etherscan V2 is orthogonal to all three and nearly free.** One
 `ETHERSCAN_API_KEY` covers every chain it lists, so ABI fetching, contract
