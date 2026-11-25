@@ -350,6 +350,9 @@ export default function AptosCheckPage() {
         setConnectError(j.error ?? "Could not find a live trader just now. Paste an address instead.")
         return
       }
+      // The chat reads `wallet`, so the live trader has to be stored, not only
+      // greeted. Without this every question went out with no wallet at all.
+      setWallet(j.address)
       enterChat(j.address)
     } catch {
       setConnectError("Could not reach the network. Paste an address instead.")
