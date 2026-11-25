@@ -1,4 +1,4 @@
-import { getRecentTransactions , canonicalChainId} from "@txid/blockchain"
+import { getRecentTransactions, canonicalChainId, CHAIN_CONFIGS, rpcSentHistory, RPC_HISTORY_MAX } from "@txid/blockchain"
 import { getAptosRecentTransactions, isAptosChain } from "@txid/aptos"
 import type { ProjectConfig } from "@/lib/types/config"
 import { resolveProtocolAccount } from "@/lib/protocol-account"
@@ -121,11 +121,25 @@ async function recentEvm(config: ProjectConfig, address: string, chainId: string
   )
   if (watched.size === 0) return null
 
-  const txs = await getRecentTransactions(address, chainId, 25).catch(() => null)
+  // Arc and any chain read by nonce walk: the count of sent transactions is
+  // exact, but only the most recent few are read. "No activity" is claimed
+  // only when every transaction the wallet ever sent was read; otherwise a
+  // busy wallet's older use of the protocol would be reported as none.
+  const cfg = CHAIN_CONFIGS[canonicalChainId(chainId)]
+  let txs
+  if (cfg?.rpcHistory && !cfg.moralisChain && !cfg.blockscoutApi) {
+    const h = await rpcSentHistory(address, cfg.id, RPC_HISTORY_MAX).catch(() => null)
+    if (!h) return null
+    const hits = h.txs.filter(t => (t.targets ?? [t.to]).some(x => x && watched.has(x.toLowerCase())))
+    if (hits.length === 0 && h.txs.length < h.sent) return null
+    txs = h.txs
+  } else {
+    txs = await getRecentTransactions(address, chainId, 25).catch(() => null)
+  }
   if (!txs) return null
 
   return txs
-    .filter(t => t.to && watched.has(t.to.toLowerCase()))
+    .filter(t => (t.targets ?? [t.to]).some(x => x && watched.has(x.toLowerCase())))
     .slice(0, 5)
     .map(t => ({
       failed: t.status === "failed",

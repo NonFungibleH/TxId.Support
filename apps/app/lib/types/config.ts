@@ -80,6 +80,7 @@ export const SUPPORTED_CHAINS = [
   { id: "0x82",     name: "Unichain",         explorer: "uniscan.xyz" },
   { id: "0x2611",   name: "Plasma",           explorer: "plasmascan.to" },
   { id: "0x1388",   name: "Mantle",           explorer: "mantlescan.xyz" },
+  { id: "0x13b2",   name: "Arc",              explorer: "explorer.arc.io" },
   { id: "aptos",    name: "Aptos",             explorer: "explorer.aptoslabs.com" },
   { id: "sui",      name: "Sui",               explorer: "suiscan.xyz" },
   { id: "stellar",  name: "Stellar",           explorer: "stellar.expert" },

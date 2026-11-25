@@ -168,6 +168,7 @@ export interface ResolveInput {
       | "pending_congestion"
       | "dropped"
       | "insufficient_gas_balance"
+      | "sender_blocklisted"
       | "lookup_failed"
     reason?: string
   }

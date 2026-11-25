@@ -33,6 +33,9 @@ function codeFromErrorText(text: string | undefined): string | null {
   // Order matters: the more specific patterns must be tested first.
   if (has(text, "allowance", "insufficient-allowance", "STF", "TRANSFER_FROM_FAILED")) return "TXID-4001"
   if (has(text, "TRANSFER_FAILED", "low-level call failed", "transfer rejected")) return "TXID-4002"
+  // Arc's USDC blocklist, verbatim as the chain returns it (2026-11-25), and
+  // Circle's FiatToken wording elsewhere. The token refused the movement.
+  if (has(text, "Blocked address", "account is blacklisted")) return "TXID-4002"
   if (has(text, "exceeds balance", "INSUFFICIENT_FUNDS", "INSUFFICIENT_PFS_FUNDS", "insufficient balance")) return "TXID-2005"
   if (has(text, "INSUFFICIENT_OUTPUT_AMOUNT", "slippage", "UniswapV2: K", "price impact")) return "TXID-5001"
   if (has(text, "INSUFFICIENT_INPUT_AMOUNT", "below minimum", "TOO_SMALL", "MIN_SIZE")) return "TXID-5002"
@@ -97,7 +100,7 @@ const PENDING_CODES = new Set(["TXID-3002", "TXID-3005", "TXID-3006", "TXID-3007
 // TXID-1003 (RPC unavailable) is deliberately NOT here: a timeout during
 // submission does not establish that nothing was submitted.
 const NOT_SUBMITTED_CODES = new Set([
-  "TXID-1001", "TXID-1002", "TXID-1004", "TXID-1005", "TXID-1006",
+  "TXID-1001", "TXID-1002", "TXID-1004", "TXID-1005", "TXID-1006", "TXID-1007",
   "TXID-8001", "TXID-8002", "TXID-8003",
 ])
 
@@ -144,6 +147,7 @@ function classify(input: ResolveInput): string {
       // custody "unknown" and retryable "unknown", which is the truth.
       case "lookup_failed": return "TXID-9004"
       case "insufficient_gas_balance": return "TXID-2001"
+      case "sender_blocklisted": return "TXID-1007"
     }
   }
 

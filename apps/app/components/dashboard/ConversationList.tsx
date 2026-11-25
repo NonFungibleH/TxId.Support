@@ -53,6 +53,7 @@ const CHAIN_NAMES: Record<string, string> = {
   "130":   "Unichain",   "0x82":     "Unichain",
   "9745":  "Plasma",     "0x2611":   "Plasma",
   "5000":  "Mantle",     "0x1388":   "Mantle",
+  "5042":  "Arc",        "0x13b2":   "Arc",
   "250":   "Fantom",
   "aptos": "Aptos",
   "sui":   "Sui",

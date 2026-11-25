@@ -363,20 +363,23 @@ export const CHAINS: ChainInfo[] = [
     name: "Arc",
     ticker: "USDC",
     family: "evm",
-    status: "coming-soon",
+    status: "live",
     color: "#1E4E8C",
     logo: "/chains/Arc.jpg",
     explorerName: "Arc Explorer",
     tagline: "Circle's stablecoin chain, where the gas is USDC.",
     intro:
-      "Arc pays for gas in USDC rather than a volatile native token, which quietly changes what a failed transaction means: running out of gas is running out of dollars, and every explanation written for a chain with its own coin gets that wrong. TxID reads Arc's execution directly and says what actually happened. Diagnosis goes live with the network.",
+      "Arc pays for gas in USDC rather than a volatile native token, which quietly changes what a failed transaction means. Running out of gas is running out of dollars, a transaction priced under the network's fee floor disappears without a receipt, and a restricted address is refused before anything runs. TxID reads Arc directly and explains each of these in the terms Arc actually uses.",
     metaDescription:
-      "TxID is ready for Arc, Circle's USDC-native L1. Failed transactions explained in plain language, with gas denominated in dollars rather than a volatile token.",
+      "TxID on Arc, Circle's USDC-native L1: failed transactions explained, a wallet's recent activity read from the chain itself, and USDC gas explained in dollars.",
+    builtFor:
+      "TxID is built for how Arc actually behaves, not adapted from another chain: USDC as gas held at 18 decimals, final-on-inclusion settlement with no confirmations, the 20 gwei fee floor, the USDC blocklist, and calls routed through Memo and Multicall3From.",
     failures: [
       { title: "Reverted transactions", detail: "Replays the transaction and turns the contract's own revert reason into what went wrong and what to do next." },
-      { title: "Gas paid in dollars", detail: "Explains a shortfall in the terms Arc actually uses, so nobody is told to top up a token the chain does not have." },
-      { title: "Custom contract errors", detail: "Decodes a bare error selector against the contract's published interface, so a hex string becomes a sentence." },
-      { title: "Failures that only happened once", detail: "Spots a transaction that fails on chain but succeeds when replayed a block earlier, which means state moved underneath it." },
+      { title: "Transactions that vanished", detail: "Explains a hash Arc has never seen: priced under the 20 gwei floor, refused for a restricted sender, or replaced. Nothing executed, so nothing was spent." },
+      { title: "Gas paid in dollars", detail: "Explains a shortfall in USDC, the coin Arc actually charges, and never counts the USDC token and the native balance as two separate holdings." },
+      { title: "Restricted addresses", detail: "Recognises a transfer refused by the USDC blocklist and says plainly that retrying will not change it." },
+      { title: "Failures that only happened once", detail: "Spots a transaction that fails on chain but succeeds when replayed a block earlier, which means the market moved underneath it." },
     ],
   },
   {
